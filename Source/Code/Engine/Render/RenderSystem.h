@@ -10,52 +10,45 @@ class RenderSystem
 
 	private:
 
-		ID3D12Device *Device;
-		IDXGISwapChain4 *SwapChain;
+		ID3D11Device *Device;
+		IDXGISwapChain *SwapChain;
 
 		int ResolutionWidth;
 		int ResolutionHeight;
 
-		ID3D12CommandQueue *CommandQueue;
-		ID3D12CommandAllocator *CommandAllocators[2];
-		ID3D12GraphicsCommandList *CommandList;
+		ID3D11DeviceContext *DeviceContext;
 
-		UINT CurrentBackBufferIndex, CurrentFrameIndex;
+		ID3D11Texture2D *BackBufferTexture;
+		ID3D11RenderTargetView *BackBufferRTV;
 
-		ID3D12Fence *Fences[2];
-		HANDLE Event;
+		ID3D11Texture2D *DepthBufferTexture;
+		ID3D11DepthStencilView *DepthBufferDSV;
 
-		ID3D12DescriptorHeap *RTDescriptorHeap, *DSDescriptorHeap, *CBSRUADescriptorHeap, *SamplersDescriptorHeap;
-		ID3D12DescriptorHeap *ConstantBufferDescriptorHeap, *TexturesDescriptorHeap;
-		ID3D12DescriptorHeap *FrameResourcesDescriptorHeaps[2], *FrameSamplersDescriptorHeaps[2];
+		ID3D11Buffer *ConstantBuffers[20000];
 
-		ID3D12RootSignature *RootSignature;
+		ID3D11SamplerState *Sampler;
 
-		ID3D12Resource *BackBufferTextures[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE BackBufferRTVs[2];
+		ID3D11Buffer *VertexBuffers[4000], *IndexBuffers[4000];
 
-		ID3D12Resource *DepthBufferTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE DepthBufferDSV;
+		ID3D11InputLayout *InputLayout;
+		ID3D11RasterizerState *RasterizerState;
+		ID3D11BlendState *BlendState;
+		ID3D11DepthStencilState *DepthStencilState;
 
-		ID3D12Resource *GPUConstantBuffer, *CPUConstantBuffers[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs[20000];
+		ID3D11VertexShader *VertexShaders[4000];
+		ID3D11PixelShader *PixelShaders[4000];
 
-		D3D12_CPU_DESCRIPTOR_HANDLE Sampler;
-
-		ID3D12Resource *VertexBuffers[4000], *IndexBuffers[4000];
-
-		ID3D12PipelineState *PipelineStates[4000];
-
-		ID3D12Resource *Textures[4000];
-		D3D12_CPU_DESCRIPTOR_HANDLE TextureSRVs[4000];
+		ID3D11Texture2D *Textures[4000];
+		ID3D11ShaderResourceView *TextureSRVs[4000];
 
 		struct
 		{
 			XMFLOAT3 Location;
 			XMFLOAT3 Rotation;
 			XMFLOAT3 Scale;
-			ID3D12Resource *VertexBuffer, *IndexBuffer;
-			ID3D12PipelineState *PipelineState;
-			D3D12_CPU_DESCRIPTOR_HANDLE TextureSRV;
+			ID3D11Buffer *VertexBuffer, *IndexBuffer;
+			ID3D11VertexShader *VertexShader;
+			ID3D11PixelShader *PixelShader;
+			ID3D11ShaderResourceView *TextureSRV;
 		} RenderObjects[20000];
 };
