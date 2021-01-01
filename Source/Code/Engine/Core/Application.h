@@ -8,6 +8,8 @@ class Application
 		static void StopApplication();
 		static void RunMainLoop();
 
+		static HWND GetMainWindowHandle() { return MainWindowHandle; }
+
 	private:
 
 		static bool AppExitFlag;

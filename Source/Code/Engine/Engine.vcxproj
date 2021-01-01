@@ -161,11 +161,13 @@
   <ItemGroup>
     <ClInclude Include="Core\Application.h" />
     <ClInclude Include="Engine\Engine.h" />
+    <ClInclude Include="Render\RenderSystem.h" />
     <ClInclude Include="StdAfx.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Core\Application.cpp" />
     <ClCompile Include="Engine\Engine.cpp" />
+    <ClCompile Include="Render\RenderSystem.cpp" />
     <ClCompile Include="StdAfx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Render/RenderSystem.h>
+
 class Engine
 {
 	public:
@@ -13,4 +15,6 @@ class Engine
 	private:
 
 		static Engine engine;
+
+		RenderSystem renderSystem;
 };

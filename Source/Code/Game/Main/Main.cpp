@@ -5,4 +5,5 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	Application::StartApplication(L"Paradox", hInstance);
 	Application::RunMainLoop();
 	Application::StopApplication();
+	return 0;
 }
