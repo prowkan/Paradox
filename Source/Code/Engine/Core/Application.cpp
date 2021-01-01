@@ -49,7 +49,7 @@ void Application::RunMainLoop()
 
 	while (!Application::AppExitFlag)
 	{
-		if (PeekMessage(&Message, NULL, 0, 0, PM_REMOVE))
+		while (PeekMessage(&Message, NULL, 0, 0, PM_REMOVE))
 		{
 			BOOL bResult = TranslateMessage(&Message);
 			LRESULT lResult = DispatchMessage(&Message);
