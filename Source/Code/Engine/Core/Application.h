@@ -5,8 +5,8 @@ class Application
 	public:
 
 		static void StartApplication(const wchar_t* WindowTitle, HINSTANCE hInstance);
-		static void RunMainLoop();
 		static void StopApplication();
+		static void RunMainLoop();
 
 	private:
 

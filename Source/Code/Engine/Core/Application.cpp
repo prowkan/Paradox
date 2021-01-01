@@ -1,5 +1,7 @@
 #include "Application.h"
 
+#include <Engine/Engine.h>
+
 bool Application::AppExitFlag;
 HWND Application::MainWindowHandle;
 
@@ -41,10 +43,23 @@ void Application::StartApplication(const wchar_t* WindowTitle, HINSTANCE hInstan
 	Result = ShowWindow(Application::MainWindowHandle, SW_SHOW);
 
 	Application::AppExitFlag = false;
+
+	Engine::GetEngine().InitEngine();
+}
+
+void Application::StopApplication()
+{
+	Engine::GetEngine().ShutdownEngine();
+
+	BOOL Result;
+	Result = DestroyWindow(Application::MainWindowHandle);
 }
 
 void Application::RunMainLoop()
 {
+	ULONGLONG CurrentTime = GetTickCount64(), NewTime;
+	float DeltaTime;
+
 	MSG Message;
 
 	while (!Application::AppExitFlag)
@@ -57,11 +72,13 @@ void Application::RunMainLoop()
 
 		if (GetAsyncKeyState(VK_ESCAPE) & 0x8000)
 			Application::AppExitFlag = true;
-	}
-}
 
-void Application::StopApplication()
-{
-	BOOL Result;
-	Result = DestroyWindow(Application::MainWindowHandle);
+		NewTime = GetTickCount64();
+
+		DeltaTime = float(NewTime - CurrentTime) / 1000.0f;
+
+		Engine::GetEngine().TickEngine(DeltaTime);
+
+		CurrentTime = NewTime;
+	}
 }
