@@ -171,6 +171,11 @@
     <ClInclude Include="Game\MetaClass.h" />
     <ClInclude Include="Game\World.h" />
     <ClInclude Include="Render\RenderSystem.h" />
+    <ClInclude Include="ResourceManager\Resource.h" />
+    <ClInclude Include="ResourceManager\ResourceManager.h" />
+    <ClInclude Include="ResourceManager\Resources\Render\Materials\MaterialResource.h" />
+    <ClInclude Include="ResourceManager\Resources\Render\Meshes\StaticMeshResource.h" />
+    <ClInclude Include="ResourceManager\Resources\Render\Textures\Texture2DResource.h" />
     <ClInclude Include="StdAfx.h" />
   </ItemGroup>
   <ItemGroup>
@@ -186,6 +191,11 @@
     <ClCompile Include="Game\MetaClass.cpp" />
     <ClCompile Include="Game\World.cpp" />
     <ClCompile Include="Render\RenderSystem.cpp" />
+    <ClCompile Include="ResourceManager\Resource.cpp" />
+    <ClCompile Include="ResourceManager\ResourceManager.cpp" />
+    <ClCompile Include="ResourceManager\Resources\Render\Materials\MaterialResource.cpp" />
+    <ClCompile Include="ResourceManager\Resources\Render\Meshes\StaticMeshResource.cpp" />
+    <ClCompile Include="ResourceManager\Resources\Render\Textures\Texture2DResource.cpp" />
     <ClCompile Include="StdAfx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>

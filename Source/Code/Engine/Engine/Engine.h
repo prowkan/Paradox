@@ -1,7 +1,10 @@
 #pragma once
 
-#include <Game/GameFramework.h>
 #include <Render/RenderSystem.h>
+
+#include <ResourceManager/ResourceManager.h>
+
+#include <Game/GameFramework.h>
 
 class Engine
 {
@@ -13,10 +16,17 @@ class Engine
 		void ShutdownEngine();
 		void TickEngine(float DeltaTime);
 
+		RenderSystem& GetRenderSystem() { return renderSystem; }
+
+		ResourceManager& GetResourceManager() { return resourceManager; }
+
 	private:
 
 		static Engine engine;
 
-		GameFramework gameFramework;
 		RenderSystem renderSystem;
+
+		ResourceManager resourceManager;
+
+		GameFramework gameFramework;
 };

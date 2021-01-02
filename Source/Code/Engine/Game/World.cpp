@@ -8,6 +8,12 @@
 #include "Components/Common/TransformComponent.h"
 #include "Components/Render/Meshes/StaticMeshComponent.h"
 
+#include <Engine/Engine.h>
+
+#include <ResourceManager/Resources/Render/Meshes/StaticMeshResource.h>
+#include <ResourceManager/Resources/Render/Textures/Texture2DResource.h>
+#include <ResourceManager/Resources/Render/Materials/MaterialResource.h>
+
 void World::LoadWorld()
 {
 	for (int i = -50; i < 50; i++)
