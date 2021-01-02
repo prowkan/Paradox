@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Game/GameFramework.h>
 #include <Render/RenderSystem.h>
 
 class Engine
@@ -16,5 +17,6 @@ class Engine
 
 		static Engine engine;
 
+		GameFramework gameFramework;
 		RenderSystem renderSystem;
 };

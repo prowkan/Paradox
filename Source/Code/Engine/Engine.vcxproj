@@ -161,12 +161,30 @@
   <ItemGroup>
     <ClInclude Include="Core\Application.h" />
     <ClInclude Include="Engine\Engine.h" />
+    <ClInclude Include="Game\Component.h" />
+    <ClInclude Include="Game\Components\Common\BoundingBoxComponent.h" />
+    <ClInclude Include="Game\Components\Common\TransformComponent.h" />
+    <ClInclude Include="Game\Components\Render\Meshes\StaticMeshComponent.h" />
+    <ClInclude Include="Game\GameFramework.h" />
+    <ClInclude Include="Game\GameObject.h" />
+    <ClInclude Include="Game\GameObjects\Render\Meshes\StaticMeshObject.h" />
+    <ClInclude Include="Game\MetaClass.h" />
+    <ClInclude Include="Game\World.h" />
     <ClInclude Include="Render\RenderSystem.h" />
     <ClInclude Include="StdAfx.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Core\Application.cpp" />
     <ClCompile Include="Engine\Engine.cpp" />
+    <ClCompile Include="Game\Component.cpp" />
+    <ClCompile Include="Game\Components\Common\BoundingBoxComponent.cpp" />
+    <ClCompile Include="Game\Components\Common\TransformComponent.cpp" />
+    <ClCompile Include="Game\Components\Render\Meshes\StaticMeshComponent.cpp" />
+    <ClCompile Include="Game\GameFramework.cpp" />
+    <ClCompile Include="Game\GameObject.cpp" />
+    <ClCompile Include="Game\GameObjects\Render\Meshes\StaticMeshObject.cpp" />
+    <ClCompile Include="Game\MetaClass.cpp" />
+    <ClCompile Include="Game\World.cpp" />
     <ClCompile Include="Render\RenderSystem.cpp" />
     <ClCompile Include="StdAfx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
