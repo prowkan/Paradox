@@ -15,6 +15,12 @@ LRESULT CALLBACK Application::MainWindowProc(HWND hWnd, UINT Msg, WPARAM wParam,
 
 void Application::StartApplication(const wchar_t* WindowTitle, HINSTANCE hInstance)
 {
+	BOOL Result;
+
+	Result = AllocConsole();
+	Result = SetConsoleTitle(WindowTitle);
+	freopen("CONOUT$", "w", stdout);
+
 	WNDCLASSEX WndClassEx;
 	WndClassEx.cbClsExtra = 0;
 	WndClassEx.cbSize = sizeof(WNDCLASSEX);
@@ -38,7 +44,6 @@ void Application::StartApplication(const wchar_t* WindowTitle, HINSTANCE hInstan
 
 	Application::MainWindowHandle = CreateWindowEx(0, L"MainWindowClass", WindowTitle, WindowStyle, 0, 0, ScreenWidth, ScreenHeight, NULL, NULL, hInstance, NULL);
 
-	BOOL Result;
 	Result = UpdateWindow(Application::MainWindowHandle);
 	Result = ShowWindow(Application::MainWindowHandle, SW_SHOW);
 
@@ -53,6 +58,8 @@ void Application::StopApplication()
 
 	BOOL Result;
 	Result = DestroyWindow(Application::MainWindowHandle);
+
+	Result = FreeConsole();
 }
 
 void Application::RunMainLoop()
