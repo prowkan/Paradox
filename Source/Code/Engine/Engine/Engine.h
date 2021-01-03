@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Input/InputSystem.h>
 #include <Render/RenderSystem.h>
 
 #include <ResourceManager/ResourceManager.h>
@@ -16,6 +17,7 @@ class Engine
 		void ShutdownEngine();
 		void TickEngine(float DeltaTime);
 
+		InputSystem& GetInputSystem() { return inputSystem; }
 		RenderSystem& GetRenderSystem() { return renderSystem; }
 
 		ResourceManager& GetResourceManager() { return resourceManager; }
@@ -26,6 +28,7 @@ class Engine
 
 		static Engine engine;
 
+		InputSystem inputSystem;
 		RenderSystem renderSystem;
 
 		ResourceManager resourceManager;
