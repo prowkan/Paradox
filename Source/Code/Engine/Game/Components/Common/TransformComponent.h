@@ -26,6 +26,8 @@ class TransformComponent : public Component
 		XMFLOAT3 GetPivotPoint() { return PivotPoint; }
 		void SetPivotPoint(const XMFLOAT3& NewPivotPoint) { PivotPoint = NewPivotPoint; }
 
+		XMMATRIX GetTransformMatrix() { return XMMatrixRotationRollPitchYaw(Rotation.x, Rotation.y, Rotation.z) * XMMatrixScaling(Scale.x, Scale.y, Scale.z) * XMMatrixTranslation(Location.x, Location.y, Location.z); }
+
 	private:
 
 		XMFLOAT3 Location;

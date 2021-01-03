@@ -14,11 +14,7 @@ vector<StaticMeshComponent*> CullingSubSystem::GetVisibleStaticMeshesInFrustum(c
 
 	for (int i = 0; i < InputStaticMeshes.size(); i++)
 	{
-		XMFLOAT3 Location = InputStaticMeshes[i]->GetTransformComponent()->GetLocation();
-		XMFLOAT3 Rotation = InputStaticMeshes[i]->GetTransformComponent()->GetRotation();
-		XMFLOAT3 Scale = InputStaticMeshes[i]->GetTransformComponent()->GetScale();
-
-		XMMATRIX WorldMatrix = XMMatrixRotationRollPitchYaw(Rotation.x, Rotation.y, Rotation.z) * XMMatrixScaling(Scale.x, Scale.y, Scale.z) * XMMatrixTranslation(Location.x, Location.y, Location.z);
+		XMMATRIX WorldMatrix = InputStaticMeshes[i]->GetTransformComponent()->GetTransformMatrix();
 
 		BoundingBoxComponent *boundingBoxComponent = InputStaticMeshes[i]->GetBoundingBoxComponent();
 

@@ -454,11 +454,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	for (int k = 0; k < VisbleStaticMeshComponentsCount; k++)
 	{
-		XMFLOAT3 Location = VisbleStaticMeshComponents[k]->GetTransformComponent()->GetLocation();
-		XMFLOAT3 Rotation = VisbleStaticMeshComponents[k]->GetTransformComponent()->GetRotation();
-		XMFLOAT3 Scale = VisbleStaticMeshComponents[k]->GetTransformComponent()->GetScale();
-
-		XMMATRIX WorldMatrix = XMMatrixRotationRollPitchYaw(Rotation.x, Rotation.y, Rotation.z) * XMMatrixScaling(Scale.x, Scale.y, Scale.z) * XMMatrixTranslation(Location.x, Location.y, Location.z);
+		XMMATRIX WorldMatrix = VisbleStaticMeshComponents[k]->GetTransformComponent()->GetTransformMatrix();
 		XMMATRIX WVPMatrix = WorldMatrix * ViewProjMatrix;
 
 		memcpy((BYTE*)ConstantBufferData + ConstantBufferOffset, &WVPMatrix, sizeof(XMMATRIX));
