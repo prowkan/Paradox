@@ -7,6 +7,9 @@ extern MetaClass *StaticMeshComponentMetaClass;
 class StaticMeshResource;
 class MaterialResource;
 
+class TransformComponent;
+class BoundingBoxComponent;
+
 class StaticMeshComponent : public Component
 {
 	public:
@@ -28,4 +31,6 @@ class StaticMeshComponent : public Component
 		StaticMeshResource *StaticMesh;
 		MaterialResource *Material;
 
+		TransformComponent *transformComponent;
+		BoundingBoxComponent *boundingBoxComponent;
 };

@@ -24,6 +24,19 @@ class GameObject
 		World *GetWorld() { return OwningWorld; }
 		void SetWorld(World* NewWorld) { OwningWorld = NewWorld; }
 
+		template<typename T>
+		T* GetComponent()
+		{
+			for (Component* component : Components)
+			{
+				T* ConcreteComponent = dynamic_cast<T*>(component);
+
+				if (ConcreteComponent != nullptr) return ConcreteComponent;
+			}
+
+			return nullptr;
+		}
+
 	protected:
 
 		MetaClass *metaClass;
