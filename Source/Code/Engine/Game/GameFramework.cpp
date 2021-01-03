@@ -10,15 +10,18 @@
 #include "Components/Common/BoundingBoxComponent.h"
 #include "Components/Render/Meshes/StaticMeshComponent.h"
 
+#define DECLARE_CLASS(Class) Class ## MetaClass = new MetaClass(&CallObjectConstructor<Class>, sizeof(Class), # Class);
+#define DECLARE_CLASS_WITH_BASE_CLASS(Class, BaseClass) Class ## MetaClass = new MetaClass(&CallObjectConstructor<Class>, sizeof(Class), # Class, BaseClass ## MetaClass);
+
 void GameFramework::InitFramework()
 {
-	GameObjectMetaClass = new MetaClass(&CallObjectConstructor<GameObject>, sizeof(GameObject), "GameObject");
-	StaticMeshObjectMetaClass = new MetaClass(&CallObjectConstructor<StaticMeshObject>, sizeof(StaticMeshObject), "StaticMeshObject", GameObjectMetaClass);
+	DECLARE_CLASS(GameObject)
+	DECLARE_CLASS_WITH_BASE_CLASS(StaticMeshObject, GameObject)
 
-	ComponentMetaClass = new MetaClass(&CallObjectConstructor<Component>, sizeof(Component), "Component");
-	TransformComponentMetaClass = new MetaClass(&CallObjectConstructor<TransformComponent>, sizeof(TransformComponent), "TransformComponent", ComponentMetaClass);
-	BoundingBoxComponentMetaClass = new MetaClass(&CallObjectConstructor<BoundingBoxComponent>, sizeof(BoundingBoxComponent), "BoundingBoxComponent", ComponentMetaClass);
-	StaticMeshComponentMetaClass = new MetaClass(&CallObjectConstructor<StaticMeshComponent>, sizeof(StaticMeshComponent), "StaticMeshComponent", ComponentMetaClass);
+	DECLARE_CLASS(Component)
+	DECLARE_CLASS_WITH_BASE_CLASS(TransformComponent, GameObject)
+	DECLARE_CLASS_WITH_BASE_CLASS(BoundingBoxComponent, GameObject)
+	DECLARE_CLASS_WITH_BASE_CLASS(StaticMeshComponent, GameObject)
 
 	camera.InitCamera();
 	world.LoadWorld();
