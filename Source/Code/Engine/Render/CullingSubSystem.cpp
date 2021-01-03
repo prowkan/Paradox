@@ -1,0 +1,78 @@
+#include "CullingSubSystem.h"
+
+#include <Game/Components/Common/TransformComponent.h>
+#include <Game/Components/Common/BoundingBoxComponent.h>
+#include <Game/Components/Render/Meshes/StaticMeshComponent.h>
+
+vector<StaticMeshComponent*> CullingSubSystem::GetVisibleStaticMeshesInFrustum(const vector<StaticMeshComponent*>& InputStaticMeshes, const XMMATRIX& ViewProjMatrix)
+{
+	vector<StaticMeshComponent*> OutputStaticMeshes;
+
+	XMVECTOR FrustumPlanes[6];
+
+	ExtractFrustumPlanesFromViewProjMatrix(ViewProjMatrix, FrustumPlanes);
+
+	for (int i = 0; i < InputStaticMeshes.size(); i++)
+	{
+		XMMATRIX WorldMatrix = InputStaticMeshes[i]->GetTransformComponent()->GetTransformMatrix();
+
+		BoundingBoxComponent *boundingBoxComponent = InputStaticMeshes[i]->GetBoundingBoxComponent();
+
+		XMFLOAT3 BBCenter = boundingBoxComponent->GetCenter();
+		XMFLOAT3 BBHalfSize = boundingBoxComponent->GetHalfSize();
+
+		XMVECTOR BoundingBoxVertices[8];
+		BoundingBoxVertices[0] = XMVectorSet(BBCenter.x + BBHalfSize.x, BBCenter.y + BBHalfSize.y, BBCenter.z + BBHalfSize.z, 1.0f);
+		BoundingBoxVertices[1] = XMVectorSet(BBCenter.x - BBHalfSize.x, BBCenter.y + BBHalfSize.y, BBCenter.z + BBHalfSize.z, 1.0f);
+		BoundingBoxVertices[2] = XMVectorSet(BBCenter.x + BBHalfSize.x, BBCenter.y - BBHalfSize.y, BBCenter.z + BBHalfSize.z, 1.0f);
+		BoundingBoxVertices[3] = XMVectorSet(BBCenter.x - BBHalfSize.x, BBCenter.y - BBHalfSize.y, BBCenter.z + BBHalfSize.z, 1.0f);
+		BoundingBoxVertices[4] = XMVectorSet(BBCenter.x + BBHalfSize.x, BBCenter.y + BBHalfSize.y, BBCenter.z - BBHalfSize.z, 1.0f);
+		BoundingBoxVertices[5] = XMVectorSet(BBCenter.x - BBHalfSize.x, BBCenter.y + BBHalfSize.y, BBCenter.z - BBHalfSize.z, 1.0f);
+		BoundingBoxVertices[6] = XMVectorSet(BBCenter.x + BBHalfSize.x, BBCenter.y - BBHalfSize.y, BBCenter.z - BBHalfSize.z, 1.0f);
+		BoundingBoxVertices[7] = XMVectorSet(BBCenter.x - BBHalfSize.x, BBCenter.y - BBHalfSize.y, BBCenter.z - BBHalfSize.z, 1.0f);
+
+		if (CullBoxVsFrustum(BoundingBoxVertices, WorldMatrix, FrustumPlanes)) OutputStaticMeshes.push_back(InputStaticMeshes[i]);
+	}
+
+	return OutputStaticMeshes;
+}
+
+void CullingSubSystem::ExtractFrustumPlanesFromViewProjMatrix(const XMMATRIX& ViewProjMatrix, XMVECTOR* FrustumPlanes)
+{
+	XMFLOAT4X4 ViewProjMatrixF44;
+
+	XMStoreFloat4x4(&ViewProjMatrixF44, ViewProjMatrix);
+
+	FrustumPlanes[0] = XMPlaneNormalize(XMVectorSet(ViewProjMatrixF44._14 + ViewProjMatrixF44._11, ViewProjMatrixF44._24 + ViewProjMatrixF44._21, ViewProjMatrixF44._34 + ViewProjMatrixF44._31, ViewProjMatrixF44._44 + ViewProjMatrixF44._41));
+	FrustumPlanes[1] = XMPlaneNormalize(XMVectorSet(ViewProjMatrixF44._14 - ViewProjMatrixF44._11, ViewProjMatrixF44._24 - ViewProjMatrixF44._21, ViewProjMatrixF44._34 - ViewProjMatrixF44._31, ViewProjMatrixF44._44 - ViewProjMatrixF44._41));
+	FrustumPlanes[2] = XMPlaneNormalize(XMVectorSet(ViewProjMatrixF44._14 + ViewProjMatrixF44._12, ViewProjMatrixF44._24 + ViewProjMatrixF44._22, ViewProjMatrixF44._34 + ViewProjMatrixF44._32, ViewProjMatrixF44._44 + ViewProjMatrixF44._42));
+	FrustumPlanes[3] = XMPlaneNormalize(XMVectorSet(ViewProjMatrixF44._14 - ViewProjMatrixF44._12, ViewProjMatrixF44._24 - ViewProjMatrixF44._22, ViewProjMatrixF44._34 - ViewProjMatrixF44._32, ViewProjMatrixF44._44 - ViewProjMatrixF44._42));
+	FrustumPlanes[4] = XMPlaneNormalize(XMVectorSet(ViewProjMatrixF44._13, ViewProjMatrixF44._23, ViewProjMatrixF44._33, ViewProjMatrixF44._43));
+	FrustumPlanes[5] = XMPlaneNormalize(XMVectorSet(ViewProjMatrixF44._14 - ViewProjMatrixF44._13, ViewProjMatrixF44._24 - ViewProjMatrixF44._23, ViewProjMatrixF44._34 - ViewProjMatrixF44._33, ViewProjMatrixF44._44 - ViewProjMatrixF44._43));
+}
+
+bool CullingSubSystem::CullBoxVsFrustum(const XMVECTOR* BoundingBoxVertices, const XMMATRIX& WorldMatrix, const XMVECTOR* FrustumPlanes)
+{
+	XMVECTOR TransformedBoundingBoxVertices[8];
+
+	for (int i = 0; i < 8; i++)
+	{
+		TransformedBoundingBoxVertices[i] = XMVector4Transform(BoundingBoxVertices[i], WorldMatrix);
+	}
+
+	for (int i = 0; i < 6; i++)
+	{
+		if (XMVectorGetX(XMPlaneDotCoord(FrustumPlanes[i], TransformedBoundingBoxVertices[0])) > 0.0f) continue;
+		if (XMVectorGetX(XMPlaneDotCoord(FrustumPlanes[i], TransformedBoundingBoxVertices[1])) > 0.0f) continue;
+		if (XMVectorGetX(XMPlaneDotCoord(FrustumPlanes[i], TransformedBoundingBoxVertices[2])) > 0.0f) continue;
+		if (XMVectorGetX(XMPlaneDotCoord(FrustumPlanes[i], TransformedBoundingBoxVertices[3])) > 0.0f) continue;
+		if (XMVectorGetX(XMPlaneDotCoord(FrustumPlanes[i], TransformedBoundingBoxVertices[4])) > 0.0f) continue;
+		if (XMVectorGetX(XMPlaneDotCoord(FrustumPlanes[i], TransformedBoundingBoxVertices[5])) > 0.0f) continue;
+		if (XMVectorGetX(XMPlaneDotCoord(FrustumPlanes[i], TransformedBoundingBoxVertices[6])) > 0.0f) continue;
+		if (XMVectorGetX(XMPlaneDotCoord(FrustumPlanes[i], TransformedBoundingBoxVertices[7])) > 0.0f) continue;
+
+		return false;
+	}
+
+	return true;
+}

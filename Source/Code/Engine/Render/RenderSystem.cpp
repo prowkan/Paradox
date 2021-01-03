@@ -7,6 +7,7 @@
 #include <Game/GameObjects/Render/Meshes/StaticMeshObject.h>
 
 #include <Game/Components/Common/TransformComponent.h>
+#include <Game/Components/Common/BoundingBoxComponent.h>
 #include <Game/Components/Render/Meshes/StaticMeshComponent.h>
 
 #include <ResourceManager/Resources/Render/Meshes/StaticMeshResource.h>
@@ -232,6 +233,34 @@ void RenderSystem::ShutdownSystem()
 	RefCount = BlendState->Release();
 	RefCount = DepthStencilState->Release();
 
+	for (RenderMesh* renderMesh : RenderMeshDestructionQueue)
+	{
+		RefCount = renderMesh->VertexBuffer->Release();
+		RefCount = renderMesh->IndexBuffer->Release();
+
+		delete renderMesh;
+	}
+
+	RenderMeshDestructionQueue.clear();
+
+	for (RenderMaterial* renderMaterial : RenderMaterialDestructionQueue)
+	{
+		RefCount = renderMaterial->PipelineState->Release();
+
+		delete renderMaterial;
+	}
+
+	RenderMaterialDestructionQueue.clear();
+
+	for (RenderTexture* renderTexture : RenderTextureDestructionQueue)
+	{
+		RefCount = renderTexture->Texture->Release();
+
+		delete renderTexture;
+	}
+
+	RenderTextureDestructionQueue.clear();
+
 	RefCount = Sampler->Release();
 
 	RefCount = BackBufferRTV->Release();
@@ -252,23 +281,18 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	DeviceContext->ClearState();
 
-	XMMATRIX ViewProjMatrix = XMMatrixLookToLH(XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)) * XMMatrixPerspectiveFovLH(3.14f / 2.0f, 16.0f / 9.0f, 0.01f, 1000.0f);
+	XMMATRIX ViewProjMatrix = Engine::GetEngine().GetGameFramework().GetCamera().GetViewProjMatrix();
 
 	D3D11_MAPPED_SUBRESOURCE MappedSubResource;
 
-	vector<GameObject*> GameObjects = Engine::GetEngine().GetGameFramework().GetWorld().GetGameObjects();
-	size_t GameObjectsCount = GameObjects.size();
+	vector<StaticMeshComponent*> AllStaticMeshComponents = Engine::GetEngine().GetGameFramework().GetWorld().GetRenderScene().GetStaticMeshComponents();
+	vector<StaticMeshComponent*> VisbleStaticMeshComponents = cullingSubSystem.GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ViewProjMatrix);
+	size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.size();
 
-	for (int k = 0; k < GameObjectsCount; k++)
+	for (int k = 0; k < VisbleStaticMeshComponentsCount; k++)
 	{
-		StaticMeshObject *staticMeshObject = (StaticMeshObject*)GameObjects[k];
-
-		XMFLOAT3 Location = staticMeshObject->GetTransformComponent()->GetLocation();
-		XMFLOAT3 Rotation = staticMeshObject->GetTransformComponent()->GetRotation();
-		XMFLOAT3 Scale = staticMeshObject->GetTransformComponent()->GetScale();
-
-		XMMATRIX WorldMatrix = XMMatrixRotationRollPitchYaw(Rotation.x, Rotation.y, Rotation.z) * XMMatrixScaling(Scale.x, Scale.y, Scale.z) * XMMatrixTranslation(Location.x, Location.y, Location.z);
-		XMMATRIX WVPMatrix = WorldMatrix * ViewProjMatrix; 
+		XMMATRIX WorldMatrix = VisbleStaticMeshComponents[k]->GetTransformComponent()->GetTransformMatrix();
+		XMMATRIX WVPMatrix = WorldMatrix * ViewProjMatrix;
 		
 		hr = DeviceContext->Map(ConstantBuffers[k], 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, 0, &MappedSubResource);
 		
@@ -304,11 +328,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	UINT Stride = sizeof(Vertex), Offset = 0;
 	
-	for (int k = 0; k < GameObjectsCount; k++)
+	for (int k = 0; k < VisbleStaticMeshComponentsCount; k++)
 	{
-		StaticMeshObject *staticMeshObject = (StaticMeshObject*)GameObjects[k];
-
-		StaticMeshComponent *staticMeshComponent = staticMeshObject->GetStaticMeshComponent();
+		StaticMeshComponent *staticMeshComponent = VisbleStaticMeshComponents[k];
 
 		RenderMesh *renderMesh = staticMeshComponent->GetStaticMesh()->GetRenderMesh();
 		RenderMaterial *renderMaterial = staticMeshComponent->GetMaterial()->GetRenderMaterial();
@@ -417,4 +439,19 @@ RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInf
 	hr = Device->CreatePixelShader(renderMaterialCreateInfo.PixelShaderByteCodeData, renderMaterialCreateInfo.PixelShaderByteCodeLength, nullptr, &renderMaterial->PixelShader);
 
 	return renderMaterial;
+}
+
+void RenderSystem::DestroyRenderMesh(RenderMesh* renderMesh)
+{
+	RenderMeshDestructionQueue.push_back(renderMesh);
+}
+
+void RenderSystem::DestroyRenderTexture(RenderTexture* renderTexture)
+{
+	RenderTextureDestructionQueue.push_back(renderTexture);
+}
+
+void RenderSystem::DestroyRenderMaterial(RenderMaterial* renderMaterial)
+{
+	RenderMaterialDestructionQueue.push_back(renderMaterial);
 }

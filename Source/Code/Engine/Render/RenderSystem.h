@@ -1,5 +1,7 @@
 #pragma once
 
+#include "CullingSubSystem.h"
+
 struct RenderMesh
 {
 	ID3D11Buffer *VertexBuffer, *IndexBuffer;
@@ -63,6 +65,10 @@ class RenderSystem
 		RenderMesh* CreateRenderMesh(const RenderMeshCreateInfo& renderMeshCreateInfo);
 		RenderTexture* CreateRenderTexture(const RenderTextureCreateInfo& renderTextureCreateInfo);
 		RenderMaterial* CreateRenderMaterial(const RenderMaterialCreateInfo& renderMaterialCreateInfo);
+
+		void DestroyRenderMesh(RenderMesh* renderMesh);
+		void DestroyRenderTexture(RenderTexture* renderTexture);
+		void DestroyRenderMaterial(RenderMaterial* renderMaterial);
 
 	private:
 

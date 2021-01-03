@@ -17,4 +17,5 @@ void StaticMeshResource::CreateResource(const void* ResourceData)
 
 void StaticMeshResource::DestroyResource()
 {
+	Engine::GetEngine().GetRenderSystem().DestroyRenderMesh(renderMesh);
 }

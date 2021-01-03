@@ -19,4 +19,5 @@ void MaterialResource::CreateResource(const void* ResourceData)
 
 void MaterialResource::DestroyResource()
 {
+	Engine::GetEngine().GetRenderSystem().DestroyRenderMaterial(renderMaterial);
 }

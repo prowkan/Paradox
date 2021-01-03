@@ -7,6 +7,9 @@ extern MetaClass *StaticMeshComponentMetaClass;
 class StaticMeshResource;
 class MaterialResource;
 
+class TransformComponent;
+class BoundingBoxComponent;
+
 class StaticMeshComponent : public Component
 {
 	public:
@@ -17,15 +20,23 @@ class StaticMeshComponent : public Component
 
 		virtual void InitComponentDefaultProperties() override;
 
+		virtual void RegisterComponent() override;
+		virtual void UnRegisterComponent() override;
+
 		StaticMeshResource* GetStaticMesh() { return StaticMesh; }
 		void SetStaticMesh(StaticMeshResource* NewStaticMesh) { StaticMesh = NewStaticMesh; }
 
 		MaterialResource* GetMaterial() { return Material; }
 		void SetMaterial(MaterialResource* NewMaterial) { Material = NewMaterial; }
 
+		TransformComponent* GetTransformComponent() { return transformComponent; }
+		BoundingBoxComponent* GetBoundingBoxComponent() { return boundingBoxComponent; }
+
 	private:
 
 		StaticMeshResource *StaticMesh;
 		MaterialResource *Material;
 
+		TransformComponent *transformComponent;
+		BoundingBoxComponent *boundingBoxComponent;
 };

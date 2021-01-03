@@ -18,4 +18,5 @@ void Texture2DResource::CreateResource(const void* ResourceData)
 
 void Texture2DResource::DestroyResource()
 {
+	Engine::GetEngine().GetRenderSystem().DestroyRenderTexture(renderTexture);
 }

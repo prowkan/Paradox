@@ -1,6 +1,6 @@
 #pragma once
 
-class Resource;
+#include "Resource.h"
 
 class ResourceManager
 {
@@ -16,6 +16,16 @@ class ResourceManager
 
 		template<typename T>
 		T* GetResource(const string& ResourceName) { return (T*)ResourceTable[ResourceName]; }
+
+		void DestroyAllResources()
+		{
+			for (auto It : ResourceTable)
+			{
+				It.second->DestroyResource();
+			}
+
+			ResourceTable.clear();
+		}
 
 	private:
 
