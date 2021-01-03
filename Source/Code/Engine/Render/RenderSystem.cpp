@@ -22,7 +22,7 @@ void RenderSystem::InitSystem()
 	ULONG RefCount;
 
 #ifdef _DEBUG
-	DeviceCreationFlags |= D3D11_CREATE_DEVICE_DEBUG;
+	DeviceCreationFlags |= D3D11_CREATE_DEVICE_FLAG::D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
 	IDXGIFactory *Factory;
@@ -245,7 +245,8 @@ void RenderSystem::ShutdownSystem()
 
 	for (RenderMaterial* renderMaterial : RenderMaterialDestructionQueue)
 	{
-		RefCount = renderMaterial->PipelineState->Release();
+		RefCount = renderMaterial->VertexShader->Release();
+		RefCount = renderMaterial->PixelShader->Release();
 
 		delete renderMaterial;
 	}
@@ -254,6 +255,7 @@ void RenderSystem::ShutdownSystem()
 
 	for (RenderTexture* renderTexture : RenderTextureDestructionQueue)
 	{
+		RefCount = renderTexture->TextureSRV->Release();
 		RefCount = renderTexture->Texture->Release();
 
 		delete renderTexture;

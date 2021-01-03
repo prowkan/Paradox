@@ -94,4 +94,10 @@ class RenderSystem
 		ID3D11RasterizerState *RasterizerState;
 		ID3D11BlendState *BlendState;
 		ID3D11DepthStencilState *DepthStencilState;
+
+		vector<RenderMesh*> RenderMeshDestructionQueue;
+		vector<RenderMaterial*> RenderMaterialDestructionQueue;
+		vector<RenderTexture*> RenderTextureDestructionQueue;
+
+		CullingSubSystem cullingSubSystem;
 };
