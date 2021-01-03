@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Render/RenderScene.h>
+
 class MetaClass;
 class GameObject;
 
@@ -14,7 +16,11 @@ class World
 
 		vector<GameObject*>& GetGameObjects() { return GameObjects; }
 
+		RenderScene& GetRenderScene() { return renderScene; }
+
 	private:
 
 		vector<GameObject*> GameObjects;
+
+		RenderScene renderScene;
 };

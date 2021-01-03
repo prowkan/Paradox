@@ -19,6 +19,9 @@ class Component
 
 		virtual void InitComponentDefaultProperties() {}
 
+		virtual void RegisterComponent() {}
+		virtual void UnRegisterComponent() {}
+
 		GameObject* GetOwner() { return Owner; }
 		void SetOwner(GameObject* NewOwner) { Owner = NewOwner; }
 

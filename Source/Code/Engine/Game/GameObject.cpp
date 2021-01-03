@@ -13,6 +13,7 @@ Component* GameObject::CreateDefaultComponent(MetaClass* metaClass)
 	component->SetMetaClass(metaClass);
 	component->SetOwner(this);
 	component->InitComponentDefaultProperties();
+	component->RegisterComponent();
 	Components.push_back(component);
 	return component;
 }

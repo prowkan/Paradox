@@ -24,7 +24,7 @@ void RenderSystem::InitSystem()
 	ID3D12Debug3 *Debug;
 	hr = D3D12GetDebugInterface(__uuidof(ID3D12Debug3), (void**)&Debug);
 	Debug->EnableDebugLayer();
-	//Debug->SetEnableGPUBasedValidation(TRUE);
+	Debug->SetEnableGPUBasedValidation(TRUE);
 	FactoryCreationFlags |= DXGI_CREATE_FACTORY_DEBUG;
 #endif
 
@@ -447,16 +447,14 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	hr = CPUConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData);
 
-	vector<GameObject*> GameObjects = Engine::GetEngine().GetGameFramework().GetWorld().GetGameObjects();
-	size_t GameObjectsCount = GameObjects.size();
+	vector<StaticMeshComponent*> AllStaticMeshComponents = Engine::GetEngine().GetGameFramework().GetWorld().GetRenderScene().GetStaticMeshComponents();
+	size_t AllStaticMeshComponentsCount = AllStaticMeshComponents.size();
 
-	for (int k = 0; k < GameObjectsCount; k++)
+	for (int k = 0; k < AllStaticMeshComponentsCount; k++)
 	{
-		StaticMeshObject *staticMeshObject = (StaticMeshObject*)GameObjects[k];
-
-		XMFLOAT3 Location = staticMeshObject->GetTransformComponent()->GetLocation();
-		XMFLOAT3 Rotation = staticMeshObject->GetTransformComponent()->GetRotation();
-		XMFLOAT3 Scale = staticMeshObject->GetTransformComponent()->GetScale();
+		XMFLOAT3 Location = AllStaticMeshComponents[k]->GetTransformComponent()->GetLocation();
+		XMFLOAT3 Rotation = AllStaticMeshComponents[k]->GetTransformComponent()->GetRotation();
+		XMFLOAT3 Scale = AllStaticMeshComponents[k]->GetTransformComponent()->GetScale();
 
 		XMMATRIX WorldMatrix = XMMatrixRotationRollPitchYaw(Rotation.x, Rotation.y, Rotation.z) * XMMatrixScaling(Scale.x, Scale.y, Scale.z) * XMMatrixTranslation(Location.x, Location.y, Location.z);
 		XMMATRIX WVPMatrix = WorldMatrix * ViewProjMatrix;
@@ -533,11 +531,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 	CommandList->ClearRenderTargetView(BackBufferRTVs[CurrentBackBufferIndex], ClearColor, 0, nullptr);
 	CommandList->ClearDepthStencilView(DepthBufferDSV, D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
-	for (int k = 0; k < GameObjectsCount; k++)
+	for (int k = 0; k < AllStaticMeshComponentsCount; k++)
 	{
-		StaticMeshObject *staticMeshObject = (StaticMeshObject*)GameObjects[k];
-
-		StaticMeshComponent *staticMeshComponent = staticMeshObject->GetStaticMeshComponent();
+		StaticMeshComponent *staticMeshComponent = AllStaticMeshComponents[k];
 
 		RenderMesh *renderMesh = staticMeshComponent->GetStaticMesh()->GetRenderMesh();
 		RenderMaterial *renderMaterial = staticMeshComponent->GetMaterial()->GetRenderMaterial();
