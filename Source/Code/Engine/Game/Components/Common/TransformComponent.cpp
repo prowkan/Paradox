@@ -2,7 +2,7 @@
 
 #include "../../MetaClass.h"
 
-MetaClass *TransformComponentMetaClass = new MetaClass(&CallObjectConstructor<TransformComponent>, sizeof(TransformComponent), "TransformComponent");
+MetaClass *TransformComponentMetaClass;
 
 void TransformComponent::InitComponentDefaultProperties()
 {

@@ -8,7 +8,7 @@
 
 #include <Engine/Engine.h>
 
-MetaClass *StaticMeshComponentMetaClass = new MetaClass(&CallObjectConstructor<StaticMeshComponent>, sizeof(StaticMeshComponent), "StaticMeshComponent");
+MetaClass *StaticMeshComponentMetaClass;
 
 void StaticMeshComponent::InitComponentDefaultProperties()
 {

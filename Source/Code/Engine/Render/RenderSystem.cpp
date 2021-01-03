@@ -7,6 +7,7 @@
 #include <Game/GameObjects/Render/Meshes/StaticMeshObject.h>
 
 #include <Game/Components/Common/TransformComponent.h>
+#include <Game/Components/Common/BoundingBoxComponent.h>
 #include <Game/Components/Render/Meshes/StaticMeshComponent.h>
 
 #include <ResourceManager/Resources/Render/Meshes/StaticMeshResource.h>

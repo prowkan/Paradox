@@ -1,6 +1,7 @@
 #pragma once
 
-class MetaClass;
+#include "MetaClass.h"
+
 class Component;
 class World;
 
@@ -29,10 +30,18 @@ class GameObject
 		{
 			for (Component* component : Components)
 			{
-				T* ConcreteComponent = dynamic_cast<T*>(component);
+				T* ConcreteComponent = Component::DynamicCast<T>(component);
 
 				if (ConcreteComponent != nullptr) return ConcreteComponent;
 			}
+
+			return nullptr;
+		}
+
+		template<typename T>
+		static T* DynamicCast(GameObject* gameObject)
+		{
+			if (gameObject->GetMetaClass() == T::GetMetaClassStatic() || gameObject->GetMetaClass()->IsBaseOf(T::GetMetaClassStatic()) || T::GetMetaClassStatic()->IsBaseOf(gameObject->GetMetaClass())) return (T*)gameObject;
 
 			return nullptr;
 		}

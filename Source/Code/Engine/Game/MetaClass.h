@@ -14,7 +14,7 @@ class MetaClass
 {
 	public:
 
-		MetaClass(ObjectConstructorType ObjectConstructorFunc, const size_t ClassSize, const char* ClassName) : ObjectConstructorFunc(ObjectConstructorFunc), ClassSize(ClassSize), ClassName(ClassName) {}
+		MetaClass(ObjectConstructorType ObjectConstructorFunc, const size_t ClassSize, const char* ClassName, MetaClass* BaseClass = nullptr) : ObjectConstructorFunc(ObjectConstructorFunc), ClassSize(ClassSize), ClassName(ClassName), BaseClass(BaseClass) {}
 
 		ObjectConstructorType ObjectConstructorFunc;
 
@@ -22,9 +22,22 @@ class MetaClass
 
 		const char* GetClassName() const { return ClassName; }
 
+		bool IsBaseOf(MetaClass *metaClass) const
+		{
+			if (metaClass == this) return true;
+
+			if (this->BaseClass && this->BaseClass == metaClass) return true;
+
+			if (this->BaseClass && this->BaseClass->IsBaseOf(metaClass)) return true;
+
+			return false;
+		}
+
 	private:
 
 		size_t ClassSize;
 
 		const char *ClassName;
+
+		MetaClass *BaseClass;
 };
