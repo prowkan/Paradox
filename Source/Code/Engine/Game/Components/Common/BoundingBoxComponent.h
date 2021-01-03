@@ -14,5 +14,11 @@ class BoundingBoxComponent : public Component
 
 		virtual void InitComponentDefaultProperties() override;
 
+		XMFLOAT3 GetCenter() { return Center; }
+		XMFLOAT3 GetHalfSize() { return HalfSize; }
+
 	private:
+
+		XMFLOAT3 Center;
+		XMFLOAT3 HalfSize;
 };

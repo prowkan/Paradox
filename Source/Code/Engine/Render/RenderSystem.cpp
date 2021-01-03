@@ -449,13 +449,14 @@ void RenderSystem::TickSystem(float DeltaTime)
 	hr = CPUConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData);
 
 	vector<StaticMeshComponent*> AllStaticMeshComponents = Engine::GetEngine().GetGameFramework().GetWorld().GetRenderScene().GetStaticMeshComponents();
-	size_t AllStaticMeshComponentsCount = AllStaticMeshComponents.size();
+	vector<StaticMeshComponent*> VisbleStaticMeshComponents = cullingSubSystem.GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ViewProjMatrix);
+	size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.size();
 
-	for (int k = 0; k < AllStaticMeshComponentsCount; k++)
+	for (int k = 0; k < VisbleStaticMeshComponentsCount; k++)
 	{
-		XMFLOAT3 Location = AllStaticMeshComponents[k]->GetTransformComponent()->GetLocation();
-		XMFLOAT3 Rotation = AllStaticMeshComponents[k]->GetTransformComponent()->GetRotation();
-		XMFLOAT3 Scale = AllStaticMeshComponents[k]->GetTransformComponent()->GetScale();
+		XMFLOAT3 Location = VisbleStaticMeshComponents[k]->GetTransformComponent()->GetLocation();
+		XMFLOAT3 Rotation = VisbleStaticMeshComponents[k]->GetTransformComponent()->GetRotation();
+		XMFLOAT3 Scale = VisbleStaticMeshComponents[k]->GetTransformComponent()->GetScale();
 
 		XMMATRIX WorldMatrix = XMMatrixRotationRollPitchYaw(Rotation.x, Rotation.y, Rotation.z) * XMMatrixScaling(Scale.x, Scale.y, Scale.z) * XMMatrixTranslation(Location.x, Location.y, Location.z);
 		XMMATRIX WVPMatrix = WorldMatrix * ViewProjMatrix;
@@ -532,9 +533,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 	CommandList->ClearRenderTargetView(BackBufferRTVs[CurrentBackBufferIndex], ClearColor, 0, nullptr);
 	CommandList->ClearDepthStencilView(DepthBufferDSV, D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
-	for (int k = 0; k < AllStaticMeshComponentsCount; k++)
+	for (int k = 0; k < VisbleStaticMeshComponentsCount; k++)
 	{
-		StaticMeshComponent *staticMeshComponent = AllStaticMeshComponents[k];
+		StaticMeshComponent *staticMeshComponent = VisbleStaticMeshComponents[k];
 
 		RenderMesh *renderMesh = staticMeshComponent->GetStaticMesh()->GetRenderMesh();
 		RenderMaterial *renderMaterial = staticMeshComponent->GetMaterial()->GetRenderMaterial();

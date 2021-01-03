@@ -1,5 +1,7 @@
 #pragma once
 
+#include "CullingSubSystem.h"
+
 struct RenderMesh
 {
 	ID3D12Resource *VertexBuffer, *IndexBuffer;
@@ -106,4 +108,6 @@ class RenderSystem
 		vector<RenderMesh*> RenderMeshDestructionQueue;
 		vector<RenderMaterial*> RenderMaterialDestructionQueue;
 		vector<RenderTexture*> RenderTextureDestructionQueue;
+
+		CullingSubSystem cullingSubSystem;
 };
