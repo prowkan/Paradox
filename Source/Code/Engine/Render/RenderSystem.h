@@ -2,18 +2,19 @@
 
 struct RenderMesh
 {
-	ID3D12Resource *VertexBuffer, *IndexBuffer;
+	ID3D11Buffer *VertexBuffer, *IndexBuffer;
 };
 
 struct RenderTexture
 {
-	ID3D12Resource *Texture;
-	D3D12_CPU_DESCRIPTOR_HANDLE TextureSRV;
+	ID3D11Texture2D *Texture;
+	ID3D11ShaderResourceView *TextureSRV;
 };
 
 struct RenderMaterial
 {
-	ID3D12PipelineState *PipelineState;
+	ID3D11VertexShader *VertexShader;
+	ID3D11PixelShader *PixelShader;
 };
 
 struct RenderMeshCreateInfo
@@ -83,27 +84,8 @@ class RenderSystem
 
 		ID3D11SamplerState *Sampler;
 
-		ID3D11Buffer *VertexBuffers[4000], *IndexBuffers[4000];
-
 		ID3D11InputLayout *InputLayout;
 		ID3D11RasterizerState *RasterizerState;
 		ID3D11BlendState *BlendState;
 		ID3D11DepthStencilState *DepthStencilState;
-
-		ID3D11VertexShader *VertexShaders[4000];
-		ID3D11PixelShader *PixelShaders[4000];
-
-		ID3D11Texture2D *Textures[4000];
-		ID3D11ShaderResourceView *TextureSRVs[4000];
-
-		struct
-		{
-			XMFLOAT3 Location;
-			XMFLOAT3 Rotation;
-			XMFLOAT3 Scale;
-			ID3D11Buffer *VertexBuffer, *IndexBuffer;
-			ID3D11VertexShader *VertexShader;
-			ID3D11PixelShader *PixelShader;
-			ID3D11ShaderResourceView *TextureSRV;
-		} RenderObjects[20000];
 };
