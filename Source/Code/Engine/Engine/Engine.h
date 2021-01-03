@@ -20,6 +20,8 @@ class Engine
 
 		ResourceManager& GetResourceManager() { return resourceManager; }
 
+		GameFramework& GetGameFramework() { return gameFramework; }
+
 	private:
 
 		static Engine engine;

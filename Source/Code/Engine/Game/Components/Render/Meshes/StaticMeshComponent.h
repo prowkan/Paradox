@@ -4,6 +4,9 @@
 
 extern MetaClass *StaticMeshComponentMetaClass;
 
+class StaticMeshResource;
+class MaterialResource;
+
 class StaticMeshComponent : public Component
 {
 	public:
@@ -14,6 +17,15 @@ class StaticMeshComponent : public Component
 
 		virtual void InitComponentDefaultProperties() override;
 
+		StaticMeshResource* GetStaticMesh() { return StaticMesh; }
+		void SetStaticMesh(StaticMeshResource* NewStaticMesh) { StaticMesh = NewStaticMesh; }
+
+		MaterialResource* GetMaterial() { return Material; }
+		void SetMaterial(MaterialResource* NewMaterial) { Material = NewMaterial; }
+
 	private:
+
+		StaticMeshResource *StaticMesh;
+		MaterialResource *Material;
 
 };

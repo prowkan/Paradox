@@ -2,16 +2,16 @@
 
 #include <Core/Application.h>
 
-struct Vertex
-{
-	XMFLOAT3 Position;
-	XMFLOAT2 TexCoord;
-};
+#include <Engine/Engine.h>
 
-struct Texel
-{
-	BYTE R, G, B, A;
-};
+#include <Game/GameObjects/Render/Meshes/StaticMeshObject.h>
+
+#include <Game/Components/Common/TransformComponent.h>
+#include <Game/Components/Render/Meshes/StaticMeshComponent.h>
+
+#include <ResourceManager/Resources/Render/Meshes/StaticMeshResource.h>
+#include <ResourceManager/Resources/Render/Materials/MaterialResource.h>
+#include <ResourceManager/Resources/Render/Textures/Texture2DResource.h>
 
 void RenderSystem::InitSystem()
 {
@@ -328,517 +328,7 @@ void RenderSystem::InitSystem()
 
 	Sampler.ptr = SamplersDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + 0 * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 
-	Device->CreateSampler(&SamplerDesc, Sampler);
-
-	const int VertexCount = 9 * 9 * 6;
-	const int IndexCount = 8 * 8 * 6 * 6;
-
-	Vertex Vertices[VertexCount];
-
-	for (int i = 0; i < 9; i++)
-	{
-		for (int j = 0; j < 9; j++)
-		{
-			Vertices[0 + 9 * i + j].Position = XMFLOAT3(-1.0f + j * 0.25f, 1.0f - i * 0.25f, -1.0f);
-			Vertices[0 + 9 * i + j].TexCoord = XMFLOAT2(j * 0.125f, i * 0.125f);
-
-			Vertices[81 + 9 * i + j].Position = XMFLOAT3(1.0f, 1.0f - i * 0.25f, -1.0f + j * 0.25f);
-			Vertices[81 + 9 * i + j].TexCoord = XMFLOAT2(j * 0.125f, i * 0.125f);
-
-			Vertices[2 * 81 + 9 * i + j].Position = XMFLOAT3(1.0f - j * 0.25f, 1.0f - i * 0.25f, 1.0f);
-			Vertices[2 * 81 + 9 * i + j].TexCoord = XMFLOAT2(j * 0.125f, i * 0.125f);
-
-			Vertices[3 * 81 + 9 * i + j].Position = XMFLOAT3(-1.0f, 1.0f - i * 0.25f, 1.0f - j * 0.25f);
-			Vertices[3 * 81 + 9 * i + j].TexCoord = XMFLOAT2(j * 0.125f, i * 0.125f);
-
-			Vertices[4 * 81 + 9 * i + j].Position = XMFLOAT3(-1.0f + j * 0.25f, 1.0f, 1.0f - i * 0.25f);
-			Vertices[4 * 81 + 9 * i + j].TexCoord = XMFLOAT2(j * 0.125f, i * 0.125f);
-
-			Vertices[5 * 81 + 9 * i + j].Position = XMFLOAT3(-1.0f + j * 0.25f, -1.0f, -1.0f + i * 0.25f);
-			Vertices[5 * 81 + 9 * i + j].TexCoord = XMFLOAT2(j * 0.125f, i * 0.125f);
-		}
-	}	
-
-	WORD Indices[IndexCount];
-
-	for (int i = 0; i < 8; i++)
-	{
-		for (int j = 0; j < 8; j++)
-		{
-			Indices[0 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 0] = 0 * 81 + 9 * i + j;
-			Indices[0 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 1] = 0 * 81 + 9 * i + j + 1;
-			Indices[0 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 2] = 0 * 81 + 9 * (i + 1) + j;
-			Indices[0 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 3] = 0 * 81 + 9 * (i + 1) + j;
-			Indices[0 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 4] = 0 * 81 + 9 * i + j + 1;
-			Indices[0 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 5] = 0 * 81 + 9 * (i + 1) + j + 1;
-
-			Indices[1 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 0] = 1 * 81 + 9 * i + j;
-			Indices[1 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 1] = 1 * 81 + 9 * i + j + 1;
-			Indices[1 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 2] = 1 * 81 + 9 * (i + 1) + j;
-			Indices[1 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 3] = 1 * 81 + 9 * (i + 1) + j;
-			Indices[1 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 4] = 1 * 81 + 9 * i + j + 1;
-			Indices[1 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 5] = 1 * 81 + 9 * (i + 1) + j + 1;
-
-			Indices[2 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 0] = 2 * 81 + 9 * i + j;
-			Indices[2 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 1] = 2 * 81 + 9 * i + j + 1;
-			Indices[2 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 2] = 2 * 81 + 9 * (i + 1) + j;
-			Indices[2 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 3] = 2 * 81 + 9 * (i + 1) + j;
-			Indices[2 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 4] = 2 * 81 + 9 * i + j + 1;
-			Indices[2 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 5] = 2 * 81 + 9 * (i + 1) + j + 1;
-
-			Indices[3 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 0] = 3 * 81 + 9 * i + j;
-			Indices[3 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 1] = 3 * 81 + 9 * i + j + 1;
-			Indices[3 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 2] = 3 * 81 + 9 * (i + 1) + j;
-			Indices[3 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 3] = 3 * 81 + 9 * (i + 1) + j;
-			Indices[3 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 4] = 3 * 81 + 9 * i + j + 1;
-			Indices[3 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 5] = 3 * 81 + 9 * (i + 1) + j + 1;
-
-			Indices[4 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 0] = 4 * 81 + 9 * i + j;
-			Indices[4 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 1] = 4 * 81 + 9 * i + j + 1;
-			Indices[4 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 2] = 4 * 81 + 9 * (i + 1) + j;
-			Indices[4 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 3] = 4 * 81 + 9 * (i + 1) + j;
-			Indices[4 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 4] = 4 * 81 + 9 * i + j + 1;
-			Indices[4 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 5] = 4 * 81 + 9 * (i + 1) + j + 1;
-
-			Indices[5 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 0] = 5 * 81 + 9 * i + j;
-			Indices[5 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 1] = 5 * 81 + 9 * i + j + 1;
-			Indices[5 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 2] = 5 * 81 + 9 * (i + 1) + j;
-			Indices[5 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 3] = 5 * 81 + 9 * (i + 1) + j;
-			Indices[5 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 4] = 5 * 81 + 9 * i + j + 1;
-			Indices[5 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 5] = 5 * 81 + 9 * (i + 1) + j + 1;
-		}
-	}
-
-	for (int k = 0; k < 4000; k++)
-	{
-		ID3D12Resource *TemporaryVertexBuffer, *TemporaryIndexBuffer;
-
-		ResourceDesc.Alignment = 0;
-		ResourceDesc.DepthOrArraySize = 1;
-		ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER;
-		ResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE;
-		ResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
-		ResourceDesc.Height = 1;
-		ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-		ResourceDesc.MipLevels = 1;
-		ResourceDesc.SampleDesc.Count = 1;
-		ResourceDesc.SampleDesc.Quality = 0;
-		ResourceDesc.Width = sizeof(Vertex) * VertexCount;
-
-		HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-		HeapProperties.CreationNodeMask = 0;
-		HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
-		HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT;
-		HeapProperties.VisibleNodeMask = 0;
-
-		hr = Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), (void**)&VertexBuffers[k]);
-
-		HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-		HeapProperties.CreationNodeMask = 0;
-		HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
-		HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD;
-		HeapProperties.VisibleNodeMask = 0;
-
-		hr = Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), (void**)&TemporaryVertexBuffer);
-
-		ResourceDesc.Alignment = 0;
-		ResourceDesc.DepthOrArraySize = 1;
-		ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER;
-		ResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE;
-		ResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
-		ResourceDesc.Height = 1;
-		ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-		ResourceDesc.MipLevels = 1;
-		ResourceDesc.SampleDesc.Count = 1;
-		ResourceDesc.SampleDesc.Quality = 0;
-		ResourceDesc.Width = sizeof(WORD) * IndexCount;
-
-		HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-		HeapProperties.CreationNodeMask = 0;
-		HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
-		HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT;
-		HeapProperties.VisibleNodeMask = 0;
-
-		hr = Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), (void**)&IndexBuffers[k]);
-
-		HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-		HeapProperties.CreationNodeMask = 0;
-		HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
-		HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD;
-		HeapProperties.VisibleNodeMask = 0;
-
-		hr = Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), (void**)&TemporaryIndexBuffer);
-
-		void *MappedData;
-
-		D3D12_RANGE ReadRange, WrittenRange;
-
-		ReadRange.Begin = ReadRange.End = 0;
-
-		WrittenRange.Begin = 0;
-		WrittenRange.End = sizeof(Vertex) * VertexCount;
-
-		hr = TemporaryVertexBuffer->Map(0, &ReadRange, &MappedData);
-		memcpy(MappedData, Vertices, sizeof(Vertex) * VertexCount);
-		TemporaryVertexBuffer->Unmap(0, &WrittenRange);
-
-		ReadRange.Begin = ReadRange.End = 0;
-
-		WrittenRange.Begin = 0;
-		WrittenRange.End = sizeof(WORD) * IndexCount;
-
-		hr = TemporaryIndexBuffer->Map(0, &ReadRange, &MappedData);
-		memcpy(MappedData, Indices, sizeof(WORD) * IndexCount);
-		TemporaryIndexBuffer->Unmap(0, &WrittenRange);
-
-		hr = CommandAllocators[0]->Reset();
-		hr = CommandList->Reset(CommandAllocators[0], nullptr);
-
-		CommandList->CopyBufferRegion(VertexBuffers[k], 0, TemporaryVertexBuffer, 0, sizeof(Vertex) * VertexCount);
-		CommandList->CopyBufferRegion(IndexBuffers[k], 0, TemporaryIndexBuffer, 0, sizeof(WORD) * IndexCount);
-
-		D3D12_RESOURCE_BARRIER ResourceBarriers[2];
-		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[0].Transition.pResource = VertexBuffers[k];
-		ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-		ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-		ResourceBarriers[0].Transition.Subresource = 0;
-		ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[1].Transition.pResource = IndexBuffers[k];
-		ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_INDEX_BUFFER;
-		ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-		ResourceBarriers[1].Transition.Subresource = 0;
-		ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-		CommandList->ResourceBarrier(2, ResourceBarriers);
-
-		hr = CommandList->Close();
-
-		CommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CommandList);
-
-		hr = CommandQueue->Signal(Fences[0], 2);
-
-		if (Fences[0]->GetCompletedValue() != 2)
-		{
-			hr = Fences[0]->SetEventOnCompletion(2, Event);
-			DWORD WaitResult = WaitForSingleObject(Event, INFINITE);
-		}
-
-		hr = Fences[0]->Signal(1);
-
-		RefCount = TemporaryVertexBuffer->Release();
-		RefCount = TemporaryIndexBuffer->Release();
-	}
-
-	for (int k = 0; k < 4000; k++)
-	{
-		D3D12_INPUT_ELEMENT_DESC InputElementDescs[2];
-		InputElementDescs[0].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
-		InputElementDescs[0].Format = DXGI_FORMAT::DXGI_FORMAT_R32G32B32_FLOAT;
-		InputElementDescs[0].InputSlot = 0;
-		InputElementDescs[0].InputSlotClass = D3D12_INPUT_CLASSIFICATION::D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-		InputElementDescs[0].InstanceDataStepRate = 0;
-		InputElementDescs[0].SemanticIndex = 0;
-		InputElementDescs[0].SemanticName = "POSITION";
-		InputElementDescs[1].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
-		InputElementDescs[1].Format = DXGI_FORMAT::DXGI_FORMAT_R32G32_FLOAT;
-		InputElementDescs[1].InputSlot = 0;
-		InputElementDescs[1].InputSlotClass = D3D12_INPUT_CLASSIFICATION::D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-		InputElementDescs[1].InstanceDataStepRate = 0;
-		InputElementDescs[1].SemanticIndex = 0;
-		InputElementDescs[1].SemanticName = "TEXCOORD";
-
-		const char *VertexShaderSourceCode = R"(
-	
-			struct VSInput
-			{
-				float3 Position : POSITION;
-				float2 TexCoord : TEXCOORD;
-			};
-
-			struct VSOutput
-			{
-				float4 Position : SV_Position;
-				float2 TexCoord : TEXCOORD;
-			};
-
-			struct VSConstants
-			{
-				float4x4 WVPMatrix;
-			};
-
-			ConstantBuffer<VSConstants> VertexShaderConstants : register(b0);
-
-			VSOutput VS(VSInput VertexShaderInput)
-			{
-				VSOutput VertexShaderOutput;
-
-				VertexShaderOutput.Position = mul(float4(VertexShaderInput.Position, 1.0f), VertexShaderConstants.WVPMatrix);
-				VertexShaderOutput.TexCoord = VertexShaderInput.TexCoord;
-
-				return VertexShaderOutput;
-			}
-
-		)";
-
-		const char *PixelShaderSourceCode = R"(
-
-			struct PSInput
-			{
-				float4 Position : SV_Position;
-				float2 TexCoord : TEXCOORD;
-			};
-
-			Texture2D Texture : register(t0);
-			SamplerState Sampler : register(s0);
-
-			float4 PS(PSInput PixelShaderInput) : SV_Target
-			{
-				return float4(Texture.Sample(Sampler, PixelShaderInput.TexCoord).rgb, 1.0f);
-			}
-
-		)";
-
-		ID3DBlob *ErrorBlob = nullptr;
-
-		ID3DBlob *VertexShaderBlob, *PixelShaderBlob;
-
-		hr = D3DCompile(VertexShaderSourceCode, strlen(VertexShaderSourceCode), "VertexShader", nullptr, nullptr, "VS", "vs_5_1", D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &VertexShaderBlob, &ErrorBlob);
-		hr = D3DCompile(PixelShaderSourceCode, strlen(PixelShaderSourceCode), "PixelShader", nullptr, nullptr, "PS", "ps_5_1", D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &PixelShaderBlob, &ErrorBlob);
-
-		D3D12_GRAPHICS_PIPELINE_STATE_DESC GraphicsPipelineStateDesc;
-		ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
-		GraphicsPipelineStateDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE::D3D12_COLOR_WRITE_ENABLE_ALL;
-		GraphicsPipelineStateDesc.DepthStencilState.DepthEnable = TRUE;
-		GraphicsPipelineStateDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC::D3D12_COMPARISON_FUNC_LESS;
-		GraphicsPipelineStateDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK::D3D12_DEPTH_WRITE_MASK_ALL;
-		GraphicsPipelineStateDesc.DSVFormat = DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
-		GraphicsPipelineStateDesc.Flags = D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_NONE;
-		GraphicsPipelineStateDesc.InputLayout.NumElements = 2;
-		GraphicsPipelineStateDesc.InputLayout.pInputElementDescs = InputElementDescs;
-		GraphicsPipelineStateDesc.NodeMask = 0;
-		GraphicsPipelineStateDesc.NumRenderTargets = 1;
-		GraphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE::D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-		GraphicsPipelineStateDesc.pRootSignature = RootSignature;
-		GraphicsPipelineStateDesc.PS.BytecodeLength = PixelShaderBlob->GetBufferSize();
-		GraphicsPipelineStateDesc.PS.pShaderBytecode = PixelShaderBlob->GetBufferPointer();
-		GraphicsPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_BACK;
-		GraphicsPipelineStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID;
-		GraphicsPipelineStateDesc.RTVFormats[0] = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-		GraphicsPipelineStateDesc.SampleDesc.Count = 1;
-		GraphicsPipelineStateDesc.SampleDesc.Quality = 0;
-		GraphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
-		GraphicsPipelineStateDesc.VS.BytecodeLength = VertexShaderBlob->GetBufferSize();
-		GraphicsPipelineStateDesc.VS.pShaderBytecode = VertexShaderBlob->GetBufferPointer();
-
-		hr = Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, __uuidof(ID3D12PipelineState), (void**)&PipelineStates[k]);
-
-		RefCount = VertexShaderBlob->Release();
-		RefCount = PixelShaderBlob->Release();
-	}
-
-	Texel *Texels[8];
-
-	Texels[0] = new Texel[512 * 512];
-	Texels[1] = new Texel[256 * 256];
-	Texels[2] = new Texel[128 * 128];
-	Texels[3] = new Texel[64 * 64];
-	Texels[4] = new Texel[32 * 32];
-	Texels[5] = new Texel[16 * 16];
-	Texels[6] = new Texel[8 * 8];
-	Texels[7] = new Texel[4 * 4];
-
-	for (int y = 0; y < 512; y++)
-	{
-		for (int x = 0; x < 512; x++)
-		{
-			Texels[0][y * 512 + x].R = ((x / 64) + (y / 64)) % 2 ? 0 : 255;
-			Texels[0][y * 512 + x].G = ((x / 64) + (y / 64)) % 2 ? 0 : 255;
-			Texels[0][y * 512 + x].B = ((x / 64) + (y / 64)) % 2 ? 192 : 255;
-			Texels[0][y * 512 + x].A = 255;
-		}
-	}
-
-	for (int k = 1; k < 8; k++)
-	{
-		int MIPSize = 512 >> k;
-
-		for (int y = 0; y < MIPSize; y++)
-		{
-			for (int x = 0; x < MIPSize; x++)
-			{
-				Texels[k][y * MIPSize + x].R = BYTE(0.25f * ((float)Texels[k - 1][(2 * y) * (2 * MIPSize) + (2 * x)].R + (float)Texels[k - 1][(2 * y) * (2 * MIPSize) + (2 * x + 1)].R + (float)Texels[k - 1][(2 * y + 1) * (2 * MIPSize) + (2 * x)].R + (float)Texels[k - 1][(2 * y + 1) * (2 * MIPSize) + (2 * x + 1)].R));
-				Texels[k][y * MIPSize + x].G = BYTE(0.25f * ((float)Texels[k - 1][(2 * y) * (2 * MIPSize) + (2 * x)].G + (float)Texels[k - 1][(2 * y) * (2 * MIPSize) + (2 * x + 1)].G + (float)Texels[k - 1][(2 * y + 1) * (2 * MIPSize) + (2 * x)].G + (float)Texels[k - 1][(2 * y + 1) * (2 * MIPSize) + (2 * x + 1)].G));
-				Texels[k][y * MIPSize + x].B = BYTE(0.25f * ((float)Texels[k - 1][(2 * y) * (2 * MIPSize) + (2 * x)].B + (float)Texels[k - 1][(2 * y) * (2 * MIPSize) + (2 * x + 1)].B + (float)Texels[k - 1][(2 * y + 1) * (2 * MIPSize) + (2 * x)].B + (float)Texels[k - 1][(2 * y + 1) * (2 * MIPSize) + (2 * x + 1)].B));
-				Texels[k][y * MIPSize + x].A = 255;
-			}
-		}
-	}
-
-	for (int k = 0; k < 4000; k++)
-	{
-		ID3D12Resource *TemporaryTexture;
-
-		ResourceDesc.Alignment = 0;
-		ResourceDesc.DepthOrArraySize = 1;
-		ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-		ResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE;
-		ResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-		ResourceDesc.Height = 512;
-		ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_UNKNOWN;
-		ResourceDesc.MipLevels = 8;
-		ResourceDesc.SampleDesc.Count = 1;
-		ResourceDesc.SampleDesc.Quality = 0;
-		ResourceDesc.Width = 512;
-
-		HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-		HeapProperties.CreationNodeMask = 0;
-		HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
-		HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT;
-		HeapProperties.VisibleNodeMask = 0;
-
-		hr = Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), (void**)&Textures[k]);
-
-		D3D12_PLACED_SUBRESOURCE_FOOTPRINT PlacedSubResourceFootPrints[8];
-
-		UINT NumsRows[8];
-		UINT64 RowsSizesInBytes[8], TotalBytes;
-
-		Device->GetCopyableFootprints(&ResourceDesc, 0, 8, 0, PlacedSubResourceFootPrints, NumsRows, RowsSizesInBytes, &TotalBytes);
-
-		ResourceDesc.Alignment = 0;
-		ResourceDesc.DepthOrArraySize = 1;
-		ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER;
-		ResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE;
-		ResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
-		ResourceDesc.Height = 1;
-		ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-		ResourceDesc.MipLevels = 1;
-		ResourceDesc.SampleDesc.Count = 1;
-		ResourceDesc.SampleDesc.Quality = 0;
-		ResourceDesc.Width = TotalBytes;
-
-		HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-		HeapProperties.CreationNodeMask = 0;
-		HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
-		HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD;
-		HeapProperties.VisibleNodeMask = 0;
-
-		hr = Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), (void**)&TemporaryTexture);
-
-		void *MappedData;
-
-		D3D12_RANGE ReadRange, WrittenRange;
-
-		ReadRange.Begin = ReadRange.End = 0;
-
-		WrittenRange.Begin = 0;
-		WrittenRange.End = TotalBytes;
-
-		hr = TemporaryTexture->Map(0, &ReadRange, &MappedData);
-
-		for (int i = 0; i < 8; i++)
-		{
-			for (UINT j = 0; j < NumsRows[i]; j++)
-			{
-				memcpy((BYTE*)MappedData + PlacedSubResourceFootPrints[i].Offset + j * PlacedSubResourceFootPrints[i].Footprint.RowPitch, (BYTE*)Texels[i] + j * RowsSizesInBytes[i], RowsSizesInBytes[i]);
-			}
-		}
-
-		TemporaryTexture->Unmap(0, &WrittenRange);
-
-		hr = CommandAllocators[0]->Reset();
-		hr = CommandList->Reset(CommandAllocators[0], nullptr);
-
-		D3D12_TEXTURE_COPY_LOCATION SourceTextureCopyLocation, DestTextureCopyLocation;
-
-		SourceTextureCopyLocation.pResource = TemporaryTexture;
-		SourceTextureCopyLocation.Type = D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-
-		DestTextureCopyLocation.pResource = Textures[k];
-		DestTextureCopyLocation.Type = D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-
-		for (int i = 0; i < 8; i++)
-		{
-			SourceTextureCopyLocation.PlacedFootprint = PlacedSubResourceFootPrints[i];
-			DestTextureCopyLocation.SubresourceIndex = i;
-
-			CommandList->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
-		}
-
-		D3D12_RESOURCE_BARRIER ResourceBarrier;
-		ResourceBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarrier.Transition.pResource = Textures[k];
-		ResourceBarrier.Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-		ResourceBarrier.Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-		ResourceBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		ResourceBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-		CommandList->ResourceBarrier(1, &ResourceBarrier);
-
-		hr = CommandList->Close();
-
-		CommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CommandList);
-
-		hr = CommandQueue->Signal(Fences[0], 2);
-
-		if (Fences[0]->GetCompletedValue() != 2)
-		{
-			hr = Fences[0]->SetEventOnCompletion(2, Event);
-			DWORD WaitResult = WaitForSingleObject(Event, INFINITE);
-		}
-
-		hr = Fences[0]->Signal(1);
-
-		RefCount = TemporaryTexture->Release();
-
-		D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
-		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-		SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		SRVDesc.Texture2D.MipLevels = 8;
-		SRVDesc.Texture2D.MostDetailedMip = 0;
-		SRVDesc.Texture2D.PlaneSlice = 0;
-		SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
-
-		TextureSRVs[k].ptr = TexturesDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + k * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
-		Device->CreateShaderResourceView(Textures[k], &SRVDesc, TextureSRVs[k]);
-	}
-
-	delete[] Texels[0];
-	delete[] Texels[1];
-	delete[] Texels[2];
-	delete[] Texels[3];
-	delete[] Texels[4];
-	delete[] Texels[5];
-	delete[] Texels[6];
-	delete[] Texels[7];
-
-	for (int k = 0; k < 20000; k++)
-	{
-		int i = ((k / 2) / 100) - 50;
-		int j = ((k / 2) % 100) - 50;
-
-		RenderObjects[k].Location = XMFLOAT3(i * 5.0f + 2.5f, -0.0f, j * 5.0f + 2.5f);
-		RenderObjects[k].Rotation = XMFLOAT3(0.0f, 0.0f, 0.0f);
-		RenderObjects[k].Scale = XMFLOAT3(1.0f, 1.0f, 1.0f);
-		RenderObjects[k].VertexBuffer = VertexBuffers[k % 4000];
-		RenderObjects[k].IndexBuffer = IndexBuffers[k % 4000];
-		RenderObjects[k].PipelineState = PipelineStates[k % 4000];
-		RenderObjects[k].TextureSRV = TextureSRVs[k % 4000];
-
-		k++;
-
-		RenderObjects[k].Location = XMFLOAT3(i * 10.0f + 5.0f, -2.0f, j * 10.0f + 5.0f);
-		RenderObjects[k].Rotation = XMFLOAT3(0.0f, 0.0f, 0.0f);
-		RenderObjects[k].Scale = XMFLOAT3(5.0f, 1.0f, 5.0f);
-		RenderObjects[k].VertexBuffer = VertexBuffers[k % 4000];
-		RenderObjects[k].IndexBuffer = IndexBuffers[k % 4000];
-		RenderObjects[k].PipelineState = PipelineStates[k % 4000];
-		RenderObjects[k].TextureSRV = TextureSRVs[k % 4000];
-	}
+	Device->CreateSampler(&SamplerDesc, Sampler);	
 }
 
 void RenderSystem::ShutdownSystem()
@@ -854,16 +344,6 @@ void RenderSystem::ShutdownSystem()
 	}
 
 	ULONG RefCount;
-
-	for (int k = 0; k < 4000; k++)
-	{
-		RefCount = VertexBuffers[k]->Release();
-		RefCount = IndexBuffers[k]->Release();
-
-		RefCount = PipelineStates[k]->Release();
-
-		RefCount = Textures[k]->Release();
-	}
 
 	RefCount = BackBufferTextures[0]->Release();
 	RefCount = BackBufferTextures[1]->Release();
@@ -939,9 +419,18 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	hr = CPUConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData);
 
-	for (int k = 0; k < 20000; k++)
+	vector<GameObject*> GameObjects = Engine::GetEngine().GetGameFramework().GetWorld().GetGameObjects();
+	size_t GameObjectsCount = GameObjects.size();
+
+	for (int k = 0; k < GameObjectsCount; k++)
 	{
-		XMMATRIX WorldMatrix = XMMatrixRotationRollPitchYaw(RenderObjects[k].Rotation.x, RenderObjects[k].Rotation.y, RenderObjects[k].Rotation.z) * XMMatrixScaling(RenderObjects[k].Scale.x, RenderObjects[k].Scale.y, RenderObjects[k].Scale.z) * XMMatrixTranslation(RenderObjects[k].Location.x, RenderObjects[k].Location.y, RenderObjects[k].Location.z);
+		StaticMeshObject *staticMeshObject = (StaticMeshObject*)GameObjects[k];
+
+		XMFLOAT3 Location = staticMeshObject->GetTransformComponent()->GetLocation();
+		XMFLOAT3 Rotation = staticMeshObject->GetTransformComponent()->GetRotation();
+		XMFLOAT3 Scale = staticMeshObject->GetTransformComponent()->GetScale();
+
+		XMMATRIX WorldMatrix = XMMatrixRotationRollPitchYaw(Rotation.x, Rotation.y, Rotation.z) * XMMatrixScaling(Scale.x, Scale.y, Scale.z) * XMMatrixTranslation(Location.x, Location.y, Location.z);
 		XMMATRIX WVPMatrix = WorldMatrix * ViewProjMatrix;
 
 		memcpy((BYTE*)ConstantBufferData + ConstantBufferOffset, &WVPMatrix, sizeof(XMMATRIX));
@@ -1016,27 +505,35 @@ void RenderSystem::TickSystem(float DeltaTime)
 	CommandList->ClearRenderTargetView(BackBufferRTVs[CurrentBackBufferIndex], ClearColor, 0, nullptr);
 	CommandList->ClearDepthStencilView(DepthBufferDSV, D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
-	for (int k = 0; k < 20000; k++)
+	for (int k = 0; k < GameObjectsCount; k++)
 	{
+		StaticMeshObject *staticMeshObject = (StaticMeshObject*)GameObjects[k];
+
+		StaticMeshComponent *staticMeshComponent = staticMeshObject->GetStaticMeshComponent();
+
+		RenderMesh *renderMesh = staticMeshComponent->GetStaticMesh()->GetRenderMesh();
+		RenderMaterial *renderMaterial = staticMeshComponent->GetMaterial()->GetRenderMaterial();
+		RenderTexture *renderTexture = staticMeshComponent->GetMaterial()->GetTexture(0)->GetRenderTexture();
+
 		Device->CopyDescriptorsSimple(1, ResourceCPUHandle, ConstantBufferCBVs[k], D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		ResourceCPUHandle.ptr += ResourceHandleSize;
-		Device->CopyDescriptorsSimple(1, ResourceCPUHandle, RenderObjects[k].TextureSRV, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		Device->CopyDescriptorsSimple(1, ResourceCPUHandle, renderTexture->TextureSRV, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		ResourceCPUHandle.ptr += ResourceHandleSize;
 
 		D3D12_VERTEX_BUFFER_VIEW VertexBufferView;
-		VertexBufferView.BufferLocation = RenderObjects[k].VertexBuffer->GetGPUVirtualAddress();
+		VertexBufferView.BufferLocation = renderMesh->VertexBuffer->GetGPUVirtualAddress();
 		VertexBufferView.SizeInBytes = sizeof(Vertex) * 9 * 9 * 6;
 		VertexBufferView.StrideInBytes = sizeof(Vertex);
 
 		D3D12_INDEX_BUFFER_VIEW IndexBufferView;
-		IndexBufferView.BufferLocation = RenderObjects[k].IndexBuffer->GetGPUVirtualAddress();
+		IndexBufferView.BufferLocation = renderMesh->IndexBuffer->GetGPUVirtualAddress();
 		IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
 		IndexBufferView.SizeInBytes = sizeof(WORD) * 8 * 8 * 6 * 6;
 
 		CommandList->IASetVertexBuffers(0, 1, &VertexBufferView);
 		CommandList->IASetIndexBuffer(&IndexBufferView);
 
-		CommandList->SetPipelineState(RenderObjects[k].PipelineState);
+		CommandList->SetPipelineState(renderMaterial->PipelineState);
 
 		CommandList->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
@@ -1073,4 +570,332 @@ void RenderSystem::TickSystem(float DeltaTime)
 	}
 
 	hr = Fences[CurrentFrameIndex]->Signal(0);
+}
+
+RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMeshCreateInfo)
+{
+	RenderMesh *renderMesh = new RenderMesh();
+
+	HRESULT hr;
+
+	ID3D12Resource *TemporaryVertexBuffer, *TemporaryIndexBuffer;
+
+	D3D12_RESOURCE_DESC ResourceDesc;
+	ResourceDesc.Alignment = 0;
+	ResourceDesc.DepthOrArraySize = 1;
+	ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER;
+	ResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE;
+	ResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
+	ResourceDesc.Height = 1;
+	ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+	ResourceDesc.MipLevels = 1;
+	ResourceDesc.SampleDesc.Count = 1;
+	ResourceDesc.SampleDesc.Quality = 0;
+	ResourceDesc.Width = sizeof(Vertex) * renderMeshCreateInfo.VertexCount;
+
+	D3D12_HEAP_PROPERTIES HeapProperties;
+	HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	HeapProperties.CreationNodeMask = 0;
+	HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
+	HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT;
+	HeapProperties.VisibleNodeMask = 0;
+
+	hr = Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), (void**)&renderMesh->VertexBuffer);
+
+	HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	HeapProperties.CreationNodeMask = 0;
+	HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
+	HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD;
+	HeapProperties.VisibleNodeMask = 0;
+
+	hr = Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), (void**)&TemporaryVertexBuffer);
+
+	ResourceDesc.Alignment = 0;
+	ResourceDesc.DepthOrArraySize = 1;
+	ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER;
+	ResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE;
+	ResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
+	ResourceDesc.Height = 1;
+	ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+	ResourceDesc.MipLevels = 1;
+	ResourceDesc.SampleDesc.Count = 1;
+	ResourceDesc.SampleDesc.Quality = 0;
+	ResourceDesc.Width = sizeof(WORD) * renderMeshCreateInfo.IndexCount;
+
+	HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	HeapProperties.CreationNodeMask = 0;
+	HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
+	HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT;
+	HeapProperties.VisibleNodeMask = 0;
+
+	hr = Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), (void**)&renderMesh->IndexBuffer);
+
+	HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	HeapProperties.CreationNodeMask = 0;
+	HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
+	HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD;
+	HeapProperties.VisibleNodeMask = 0;
+
+	hr = Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), (void**)&TemporaryIndexBuffer);
+
+	void *MappedData;
+
+	D3D12_RANGE ReadRange, WrittenRange;
+
+	ReadRange.Begin = ReadRange.End = 0;
+
+	WrittenRange.Begin = 0;
+	WrittenRange.End = sizeof(Vertex) * renderMeshCreateInfo.VertexCount;
+
+	hr = TemporaryVertexBuffer->Map(0, &ReadRange, &MappedData);
+	memcpy(MappedData, renderMeshCreateInfo.VertexData, sizeof(Vertex) * renderMeshCreateInfo.VertexCount);
+	TemporaryVertexBuffer->Unmap(0, &WrittenRange);
+
+	ReadRange.Begin = ReadRange.End = 0;
+
+	WrittenRange.Begin = 0;
+	WrittenRange.End = sizeof(WORD) * renderMeshCreateInfo.IndexCount;
+
+	hr = TemporaryIndexBuffer->Map(0, &ReadRange, &MappedData);
+	memcpy(MappedData, renderMeshCreateInfo.IndexData, sizeof(WORD) * renderMeshCreateInfo.IndexCount);
+	TemporaryIndexBuffer->Unmap(0, &WrittenRange);
+
+	hr = CommandAllocators[0]->Reset();
+	hr = CommandList->Reset(CommandAllocators[0], nullptr);
+
+	CommandList->CopyBufferRegion(renderMesh->VertexBuffer, 0, TemporaryVertexBuffer, 0, sizeof(Vertex) * renderMeshCreateInfo.VertexCount);
+	CommandList->CopyBufferRegion(renderMesh->IndexBuffer, 0, TemporaryIndexBuffer, 0, sizeof(WORD) * renderMeshCreateInfo.IndexCount);
+
+	D3D12_RESOURCE_BARRIER ResourceBarriers[2];
+	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	ResourceBarriers[0].Transition.pResource = renderMesh->VertexBuffer;
+	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+	ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
+	ResourceBarriers[0].Transition.Subresource = 0;
+	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	ResourceBarriers[1].Transition.pResource = renderMesh->IndexBuffer;
+	ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_INDEX_BUFFER;
+	ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
+	ResourceBarriers[1].Transition.Subresource = 0;
+	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+
+	CommandList->ResourceBarrier(2, ResourceBarriers);
+
+	hr = CommandList->Close();
+
+	CommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CommandList);
+
+	hr = CommandQueue->Signal(Fences[0], 2);
+
+	if (Fences[0]->GetCompletedValue() != 2)
+	{
+		hr = Fences[0]->SetEventOnCompletion(2, Event);
+		DWORD WaitResult = WaitForSingleObject(Event, INFINITE);
+	}
+
+	hr = Fences[0]->Signal(1);
+
+	ULONG RefCount;
+
+	RefCount = TemporaryVertexBuffer->Release();
+	RefCount = TemporaryIndexBuffer->Release();
+
+	return renderMesh;
+}
+
+RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& renderTextureCreateInfo)
+{
+	RenderTexture *renderTexture = new RenderTexture();
+
+	HRESULT hr;
+
+	ID3D12Resource *TemporaryTexture;
+
+	D3D12_RESOURCE_DESC ResourceDesc;
+	ResourceDesc.Alignment = 0;
+	ResourceDesc.DepthOrArraySize = 1;
+	ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	ResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE;
+	ResourceDesc.Format = renderTextureCreateInfo.SRGB ? DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM;
+	ResourceDesc.Height = renderTextureCreateInfo.Height;
+	ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	ResourceDesc.MipLevels = renderTextureCreateInfo.MIPLevels;
+	ResourceDesc.SampleDesc.Count = 1;
+	ResourceDesc.SampleDesc.Quality = 0;
+	ResourceDesc.Width = renderTextureCreateInfo.Width;
+
+	D3D12_HEAP_PROPERTIES HeapProperties;
+	HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	HeapProperties.CreationNodeMask = 0;
+	HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
+	HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT;
+	HeapProperties.VisibleNodeMask = 0;
+
+	hr = Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), (void**)&renderTexture->Texture);
+
+	D3D12_PLACED_SUBRESOURCE_FOOTPRINT PlacedSubResourceFootPrints[16];
+
+	UINT NumsRows[16];
+	UINT64 RowsSizesInBytes[16], TotalBytes;
+
+	Device->GetCopyableFootprints(&ResourceDesc, 0, renderTextureCreateInfo.MIPLevels, 0, PlacedSubResourceFootPrints, NumsRows, RowsSizesInBytes, &TotalBytes);
+
+	ResourceDesc.Alignment = 0;
+	ResourceDesc.DepthOrArraySize = 1;
+	ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER;
+	ResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE;
+	ResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
+	ResourceDesc.Height = 1;
+	ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+	ResourceDesc.MipLevels = 1;
+	ResourceDesc.SampleDesc.Count = 1;
+	ResourceDesc.SampleDesc.Quality = 0;
+	ResourceDesc.Width = TotalBytes;
+
+	HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	HeapProperties.CreationNodeMask = 0;
+	HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
+	HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD;
+	HeapProperties.VisibleNodeMask = 0;
+
+	hr = Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), (void**)&TemporaryTexture);
+
+	void *MappedData;
+
+	D3D12_RANGE ReadRange, WrittenRange;
+
+	ReadRange.Begin = ReadRange.End = 0;
+
+	WrittenRange.Begin = 0;
+	WrittenRange.End = TotalBytes;
+
+	hr = TemporaryTexture->Map(0, &ReadRange, &MappedData);
+
+	BYTE *TexelData = renderTextureCreateInfo.TexelData;
+
+	for (int i = 0; i < 8; i++)
+	{
+		for (UINT j = 0; j < NumsRows[i]; j++)
+		{
+			memcpy((BYTE*)MappedData + PlacedSubResourceFootPrints[i].Offset + j * PlacedSubResourceFootPrints[i].Footprint.RowPitch, (BYTE*)TexelData + j * RowsSizesInBytes[i], RowsSizesInBytes[i]);
+		}
+
+		TexelData += 4 * (renderTextureCreateInfo.Width >> i) * (renderTextureCreateInfo.Height >> i);
+	}
+
+	TemporaryTexture->Unmap(0, &WrittenRange);
+
+	hr = CommandAllocators[0]->Reset();
+	hr = CommandList->Reset(CommandAllocators[0], nullptr);
+
+	D3D12_TEXTURE_COPY_LOCATION SourceTextureCopyLocation, DestTextureCopyLocation;
+
+	SourceTextureCopyLocation.pResource = TemporaryTexture;
+	SourceTextureCopyLocation.Type = D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+
+	DestTextureCopyLocation.pResource = renderTexture->Texture;
+	DestTextureCopyLocation.Type = D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+
+	for (int i = 0; i < 8; i++)
+	{
+		SourceTextureCopyLocation.PlacedFootprint = PlacedSubResourceFootPrints[i];
+		DestTextureCopyLocation.SubresourceIndex = i;
+
+		CommandList->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
+	}
+
+	D3D12_RESOURCE_BARRIER ResourceBarrier;
+	ResourceBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	ResourceBarrier.Transition.pResource = renderTexture->Texture;
+	ResourceBarrier.Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+	ResourceBarrier.Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
+	ResourceBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+	ResourceBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+
+	CommandList->ResourceBarrier(1, &ResourceBarrier);
+
+	hr = CommandList->Close();
+
+	CommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CommandList);
+
+	hr = CommandQueue->Signal(Fences[0], 2);
+
+	if (Fences[0]->GetCompletedValue() != 2)
+	{
+		hr = Fences[0]->SetEventOnCompletion(2, Event);
+		DWORD WaitResult = WaitForSingleObject(Event, INFINITE);
+	}
+
+	hr = Fences[0]->Signal(1);
+
+	ULONG RefCount = TemporaryTexture->Release();
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+	SRVDesc.Format = renderTextureCreateInfo.SRGB ? DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM;
+	SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	SRVDesc.Texture2D.MipLevels = 8;
+	SRVDesc.Texture2D.MostDetailedMip = 0;
+	SRVDesc.Texture2D.PlaneSlice = 0;
+	SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+	SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
+
+	renderTexture->TextureSRV.ptr = TexturesDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + TexturesDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	++TexturesDescriptorsCount;
+
+	Device->CreateShaderResourceView(renderTexture->Texture, &SRVDesc, renderTexture->TextureSRV);
+
+	return renderTexture;
+}
+
+RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInfo& renderMaterialCreateInfo)
+{
+	RenderMaterial *renderMaterial = new RenderMaterial();
+
+	HRESULT hr;
+
+	D3D12_INPUT_ELEMENT_DESC InputElementDescs[2];
+	InputElementDescs[0].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+	InputElementDescs[0].Format = DXGI_FORMAT::DXGI_FORMAT_R32G32B32_FLOAT;
+	InputElementDescs[0].InputSlot = 0;
+	InputElementDescs[0].InputSlotClass = D3D12_INPUT_CLASSIFICATION::D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+	InputElementDescs[0].InstanceDataStepRate = 0;
+	InputElementDescs[0].SemanticIndex = 0;
+	InputElementDescs[0].SemanticName = "POSITION";
+	InputElementDescs[1].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+	InputElementDescs[1].Format = DXGI_FORMAT::DXGI_FORMAT_R32G32_FLOAT;
+	InputElementDescs[1].InputSlot = 0;
+	InputElementDescs[1].InputSlotClass = D3D12_INPUT_CLASSIFICATION::D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+	InputElementDescs[1].InstanceDataStepRate = 0;
+	InputElementDescs[1].SemanticIndex = 0;
+	InputElementDescs[1].SemanticName = "TEXCOORD";
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC GraphicsPipelineStateDesc;
+	ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+	GraphicsPipelineStateDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE::D3D12_COLOR_WRITE_ENABLE_ALL;
+	GraphicsPipelineStateDesc.DepthStencilState.DepthEnable = TRUE;
+	GraphicsPipelineStateDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC::D3D12_COMPARISON_FUNC_LESS;
+	GraphicsPipelineStateDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK::D3D12_DEPTH_WRITE_MASK_ALL;
+	GraphicsPipelineStateDesc.DSVFormat = DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+	GraphicsPipelineStateDesc.Flags = D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_NONE;
+	GraphicsPipelineStateDesc.InputLayout.NumElements = 2;
+	GraphicsPipelineStateDesc.InputLayout.pInputElementDescs = InputElementDescs;
+	GraphicsPipelineStateDesc.NodeMask = 0;
+	GraphicsPipelineStateDesc.NumRenderTargets = 1;
+	GraphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE::D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	GraphicsPipelineStateDesc.pRootSignature = RootSignature;
+	GraphicsPipelineStateDesc.PS.BytecodeLength = renderMaterialCreateInfo.PixelShaderByteCodeLength;
+	GraphicsPipelineStateDesc.PS.pShaderBytecode = renderMaterialCreateInfo.PixelShaderByteCodeData;
+	GraphicsPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_BACK;
+	GraphicsPipelineStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID;
+	GraphicsPipelineStateDesc.RTVFormats[0] = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	GraphicsPipelineStateDesc.SampleDesc.Count = 1;
+	GraphicsPipelineStateDesc.SampleDesc.Quality = 0;
+	GraphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
+	GraphicsPipelineStateDesc.VS.BytecodeLength = renderMaterialCreateInfo.VertexShaderByteCodeLength;
+	GraphicsPipelineStateDesc.VS.pShaderBytecode = renderMaterialCreateInfo.VertexShaderByteCodeData;
+
+	hr = Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, __uuidof(ID3D12PipelineState), (void**)&renderMaterial->PipelineState);
+
+	return renderMaterial;
 }

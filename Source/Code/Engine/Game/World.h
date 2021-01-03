@@ -12,6 +12,8 @@ class World
 
 		GameObject* SpawnGameObject(MetaClass* metaClass);
 
+		vector<GameObject*>& GetGameObjects() { return GameObjects; }
+
 	private:
 
 		vector<GameObject*> GameObjects;

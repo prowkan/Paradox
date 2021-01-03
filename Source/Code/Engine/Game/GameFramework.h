@@ -10,6 +10,8 @@ class GameFramework
 		void ShutdownFramework();
 		void TickFramework(float DeltaTime);
 
+		World& GetWorld() { return world; }
+
 	private:
 
 		World world;

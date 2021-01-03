@@ -1,5 +1,56 @@
 #pragma once
 
+struct RenderMesh
+{
+	ID3D12Resource *VertexBuffer, *IndexBuffer;
+};
+
+struct RenderTexture
+{
+	ID3D12Resource *Texture;
+	D3D12_CPU_DESCRIPTOR_HANDLE TextureSRV;
+};
+
+struct RenderMaterial
+{
+	ID3D12PipelineState *PipelineState;
+};
+
+struct RenderMeshCreateInfo
+{
+	UINT VertexCount;
+	void *VertexData;
+	UINT IndexCount;
+	void *IndexData;
+};
+
+struct RenderTextureCreateInfo
+{
+	UINT Width, Height;
+	UINT MIPLevels;
+	BOOL SRGB;
+	BYTE *TexelData;
+};
+
+struct RenderMaterialCreateInfo
+{
+	UINT VertexShaderByteCodeLength;
+	void *VertexShaderByteCodeData;
+	UINT PixelShaderByteCodeLength;
+	void *PixelShaderByteCodeData;
+};
+
+struct Vertex
+{
+	XMFLOAT3 Position;
+	XMFLOAT2 TexCoord;
+};
+
+struct Texel
+{
+	BYTE R, G, B, A;
+};
+
 class RenderSystem
 {
 	public:
@@ -7,6 +58,10 @@ class RenderSystem
 		void InitSystem();
 		void ShutdownSystem();
 		void TickSystem(float DeltaTime);
+
+		RenderMesh* CreateRenderMesh(const RenderMeshCreateInfo& renderMeshCreateInfo);
+		RenderTexture* CreateRenderTexture(const RenderTextureCreateInfo& renderTextureCreateInfo);
+		RenderMaterial* CreateRenderMaterial(const RenderMaterialCreateInfo& renderMaterialCreateInfo);
 
 	private:
 
@@ -29,6 +84,8 @@ class RenderSystem
 		ID3D12DescriptorHeap *ConstantBufferDescriptorHeap, *TexturesDescriptorHeap;
 		ID3D12DescriptorHeap *FrameResourcesDescriptorHeaps[2], *FrameSamplersDescriptorHeaps[2];
 
+		UINT TexturesDescriptorsCount = 0;
+
 		ID3D12RootSignature *RootSignature;
 
 		ID3D12Resource *BackBufferTextures[2];
@@ -41,21 +98,4 @@ class RenderSystem
 		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs[20000];
 
 		D3D12_CPU_DESCRIPTOR_HANDLE Sampler;
-
-		ID3D12Resource *VertexBuffers[4000], *IndexBuffers[4000];
-
-		ID3D12PipelineState *PipelineStates[4000];
-
-		ID3D12Resource *Textures[4000];
-		D3D12_CPU_DESCRIPTOR_HANDLE TextureSRVs[4000];
-
-		struct
-		{
-			XMFLOAT3 Location;
-			XMFLOAT3 Rotation;
-			XMFLOAT3 Scale;
-			ID3D12Resource *VertexBuffer, *IndexBuffer;
-			ID3D12PipelineState *PipelineState;
-			D3D12_CPU_DESCRIPTOR_HANDLE TextureSRV;
-		} RenderObjects[20000];
 };
