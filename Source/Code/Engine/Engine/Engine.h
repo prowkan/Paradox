@@ -2,6 +2,10 @@
 
 #include <Render/RenderSystem.h>
 
+#include <ResourceManager/ResourceManager.h>
+
+#include <Game/GameFramework.h>
+
 class Engine
 {
 	public:
@@ -12,9 +16,19 @@ class Engine
 		void ShutdownEngine();
 		void TickEngine(float DeltaTime);
 
+		RenderSystem& GetRenderSystem() { return renderSystem; }
+
+		ResourceManager& GetResourceManager() { return resourceManager; }
+
+		GameFramework& GetGameFramework() { return gameFramework; }
+
 	private:
 
 		static Engine engine;
 
 		RenderSystem renderSystem;
+
+		ResourceManager resourceManager;
+
+		GameFramework gameFramework;
 };

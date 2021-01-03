@@ -1,5 +1,12 @@
 #pragma once
 
+#include <stdio.h>
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <map>
+
 #include <Windows.h>
 
 #include <d3d11.h>
@@ -14,4 +21,5 @@
 
 #pragma comment(lib, "d3dcompiler.lib")
 
+using namespace std;
 using namespace DirectX;

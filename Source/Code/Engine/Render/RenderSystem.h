@@ -1,5 +1,56 @@
 #pragma once
 
+struct RenderMesh
+{
+	ID3D12Resource *VertexBuffer, *IndexBuffer;
+};
+
+struct RenderTexture
+{
+	ID3D12Resource *Texture;
+	D3D12_CPU_DESCRIPTOR_HANDLE TextureSRV;
+};
+
+struct RenderMaterial
+{
+	ID3D12PipelineState *PipelineState;
+};
+
+struct RenderMeshCreateInfo
+{
+	UINT VertexCount;
+	void *VertexData;
+	UINT IndexCount;
+	void *IndexData;
+};
+
+struct RenderTextureCreateInfo
+{
+	UINT Width, Height;
+	UINT MIPLevels;
+	BOOL SRGB;
+	BYTE *TexelData;
+};
+
+struct RenderMaterialCreateInfo
+{
+	UINT VertexShaderByteCodeLength;
+	void *VertexShaderByteCodeData;
+	UINT PixelShaderByteCodeLength;
+	void *PixelShaderByteCodeData;
+};
+
+struct Vertex
+{
+	XMFLOAT3 Position;
+	XMFLOAT2 TexCoord;
+};
+
+struct Texel
+{
+	BYTE R, G, B, A;
+};
+
 class RenderSystem
 {
 	public:
@@ -7,6 +58,10 @@ class RenderSystem
 		void InitSystem();
 		void ShutdownSystem();
 		void TickSystem(float DeltaTime);
+
+		RenderMesh* CreateRenderMesh(const RenderMeshCreateInfo& renderMeshCreateInfo);
+		RenderTexture* CreateRenderTexture(const RenderTextureCreateInfo& renderTextureCreateInfo);
+		RenderMaterial* CreateRenderMaterial(const RenderMaterialCreateInfo& renderMaterialCreateInfo);
 
 	private:
 
