@@ -298,6 +298,8 @@ GameObject* World::SpawnGameObject(MetaClass* metaClass)
 	void *gameObjectPtr = malloc(metaClass->GetClassSize());
 	metaClass->ObjectConstructorFunc(gameObjectPtr);
 	GameObject *gameObject = (GameObject*)gameObjectPtr;
+	gameObject->SetMetaClass(metaClass);
+	gameObject->SetWorld(this);
 	gameObject->InitDefaultProperties();
 	GameObjects.push_back(gameObject);
 	return gameObject;

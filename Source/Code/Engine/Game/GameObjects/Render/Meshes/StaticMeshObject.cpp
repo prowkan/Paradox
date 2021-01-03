@@ -6,7 +6,7 @@
 #include "../../../Components/Common/BoundingBoxComponent.h"
 #include "../../../Components/Render/Meshes/StaticMeshComponent.h"
 
-MetaClass *StaticMeshObjectMetaClass = new MetaClass(&CallObjectConstructor<StaticMeshObject>, sizeof(StaticMeshObject));
+MetaClass *StaticMeshObjectMetaClass = new MetaClass(&CallObjectConstructor<StaticMeshObject>, sizeof(StaticMeshObject), "StaticMeshObject");
 
 void StaticMeshObject::InitDefaultProperties()
 {

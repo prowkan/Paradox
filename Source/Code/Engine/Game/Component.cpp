@@ -2,4 +2,4 @@
 
 #include "MetaClass.h"
 
-MetaClass *ComponentMetaClass = new MetaClass(&CallObjectConstructor<Component>, sizeof(Component));
+MetaClass *ComponentMetaClass = new MetaClass(&CallObjectConstructor<Component>, sizeof(Component), "Component");
