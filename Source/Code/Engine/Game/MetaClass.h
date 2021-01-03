@@ -1,5 +1,7 @@
 #pragma once
 
+#undef GetClassName
+
 template<typename T>
 void CallObjectConstructor(void* Pointer)
 {
