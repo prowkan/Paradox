@@ -290,7 +290,7 @@ void World::LoadWorld()
 
 void World::UnLoadWorld()
 {
-
+	Engine::GetEngine().GetResourceManager().DestroyAllResources();
 }
 
 GameObject* World::SpawnGameObject(MetaClass* metaClass)

@@ -24,7 +24,7 @@ void RenderSystem::InitSystem()
 	ID3D12Debug3 *Debug;
 	hr = D3D12GetDebugInterface(__uuidof(ID3D12Debug3), (void**)&Debug);
 	Debug->EnableDebugLayer();
-	Debug->SetEnableGPUBasedValidation(TRUE);
+	//Debug->SetEnableGPUBasedValidation(TRUE);
 	FactoryCreationFlags |= DXGI_CREATE_FACTORY_DEBUG;
 #endif
 
@@ -344,6 +344,34 @@ void RenderSystem::ShutdownSystem()
 	}
 
 	ULONG RefCount;
+
+	for (RenderMesh* renderMesh : RenderMeshDestructionQueue)
+	{
+		RefCount = renderMesh->VertexBuffer->Release();
+		RefCount = renderMesh->IndexBuffer->Release();
+
+		delete renderMesh;
+	}
+
+	RenderMeshDestructionQueue.clear();
+
+	for (RenderMaterial* renderMaterial : RenderMaterialDestructionQueue)
+	{
+		RefCount = renderMaterial->PipelineState->Release();
+
+		delete renderMaterial;
+	}
+
+	RenderMaterialDestructionQueue.clear();
+
+	for (RenderTexture* renderTexture : RenderTextureDestructionQueue)
+	{
+		RefCount = renderTexture->Texture->Release();
+
+		delete renderTexture;
+	}
+
+	RenderTextureDestructionQueue.clear();
 
 	RefCount = BackBufferTextures[0]->Release();
 	RefCount = BackBufferTextures[1]->Release();
@@ -898,4 +926,19 @@ RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInf
 	hr = Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, __uuidof(ID3D12PipelineState), (void**)&renderMaterial->PipelineState);
 
 	return renderMaterial;
+}
+
+void RenderSystem::DestroyRenderMesh(RenderMesh* renderMesh)
+{
+	RenderMeshDestructionQueue.push_back(renderMesh);
+}
+
+void RenderSystem::DestroyRenderTexture(RenderTexture* renderTexture)
+{
+	RenderTextureDestructionQueue.push_back(renderTexture);
+}
+
+void RenderSystem::DestroyRenderMaterial(RenderMaterial* renderMaterial)
+{
+	RenderMaterialDestructionQueue.push_back(renderMaterial);
 }

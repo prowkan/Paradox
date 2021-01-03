@@ -63,6 +63,10 @@ class RenderSystem
 		RenderTexture* CreateRenderTexture(const RenderTextureCreateInfo& renderTextureCreateInfo);
 		RenderMaterial* CreateRenderMaterial(const RenderMaterialCreateInfo& renderMaterialCreateInfo);
 
+		void DestroyRenderMesh(RenderMesh* renderMesh);
+		void DestroyRenderTexture(RenderTexture* renderTexture);
+		void DestroyRenderMaterial(RenderMaterial* renderMaterial);
+
 	private:
 
 		ID3D12Device *Device;
@@ -98,4 +102,8 @@ class RenderSystem
 		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs[20000];
 
 		D3D12_CPU_DESCRIPTOR_HANDLE Sampler;
+
+		vector<RenderMesh*> RenderMeshDestructionQueue;
+		vector<RenderMaterial*> RenderMaterialDestructionQueue;
+		vector<RenderTexture*> RenderTextureDestructionQueue;
 };
