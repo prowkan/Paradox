@@ -161,6 +161,7 @@
   <ItemGroup>
     <ClInclude Include="Core\Application.h" />
     <ClInclude Include="Engine\Engine.h" />
+    <ClInclude Include="Game\Camera.h" />
     <ClInclude Include="Game\Component.h" />
     <ClInclude Include="Game\Components\Common\BoundingBoxComponent.h" />
     <ClInclude Include="Game\Components\Common\TransformComponent.h" />
@@ -182,6 +183,7 @@
   <ItemGroup>
     <ClCompile Include="Core\Application.cpp" />
     <ClCompile Include="Engine\Engine.cpp" />
+    <ClCompile Include="Game\Camera.cpp" />
     <ClCompile Include="Game\Component.cpp" />
     <ClCompile Include="Game\Components\Common\BoundingBoxComponent.cpp" />
     <ClCompile Include="Game\Components\Common\TransformComponent.cpp" />

@@ -437,7 +437,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 	CommandList->SetDescriptorHeaps(2, DescriptorHeaps);
 	CommandList->SetGraphicsRootSignature(RootSignature);
 
-	XMMATRIX ViewProjMatrix = XMMatrixLookToLH(XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)) * XMMatrixPerspectiveFovLH(3.14f / 2.0f, 16.0f / 9.0f, 0.01f, 1000.0f);
+	XMMATRIX ViewProjMatrix = Engine::GetEngine().GetGameFramework().GetCamera().GetViewProjMatrix();
 
 	D3D12_RANGE ReadRange, WrittenRange;
 

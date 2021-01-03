@@ -304,3 +304,9 @@ GameObject* World::SpawnGameObject(MetaClass* metaClass)
 	GameObjects.push_back(gameObject);
 	return gameObject;
 }
+
+
+void World::TickWorld(float DeltaTime)
+{
+
+}

@@ -11,6 +11,7 @@ class World
 
 		void LoadWorld();
 		void UnLoadWorld();
+		void TickWorld(float DeltaTime);
 
 		GameObject* SpawnGameObject(MetaClass* metaClass);
 

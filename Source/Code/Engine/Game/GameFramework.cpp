@@ -20,15 +20,18 @@ void GameFramework::InitFramework()
 	BoundingBoxComponentMetaClass = new MetaClass(&CallObjectConstructor<BoundingBoxComponent>, sizeof(BoundingBoxComponent), "BoundingBoxComponent", ComponentMetaClass);
 	StaticMeshComponentMetaClass = new MetaClass(&CallObjectConstructor<StaticMeshComponent>, sizeof(StaticMeshComponent), "StaticMeshComponent", ComponentMetaClass);
 
+	camera.InitCamera();
 	world.LoadWorld();
 }
 
 void GameFramework::ShutdownFramework()
 {
+	camera.ShutdownCamera();
 	world.UnLoadWorld();
 }
 
 void GameFramework::TickFramework(float DeltaTime)
 {
-
+	camera.TickCamera(DeltaTime);
+	world.TickWorld(DeltaTime);
 }
