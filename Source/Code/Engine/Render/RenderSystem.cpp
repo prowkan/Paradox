@@ -329,7 +329,55 @@ void RenderSystem::InitSystem()
 
 	Sampler.ptr = SamplersDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + 0 * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 
-	Device->CreateSampler(&SamplerDesc, Sampler);	
+	Device->CreateSampler(&SamplerDesc, Sampler);
+
+	D3D12_HEAP_DESC HeapDesc;
+	HeapDesc.Alignment = 0;
+	HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
+	HeapDesc.Properties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	HeapDesc.Properties.CreationNodeMask = 0;
+	HeapDesc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
+	HeapDesc.Properties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT;
+	HeapDesc.Properties.VisibleNodeMask = 0;
+	HeapDesc.SizeInBytes = BUFFER_MEMORY_HEAP_SIZE;
+
+	hr = Device->CreateHeap(&HeapDesc, __uuidof(ID3D12Heap), (void**)&BufferMemoryHeaps[CurrentBufferMemoryHeapIndex]);
+
+	HeapDesc.Alignment = 0;
+	HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES;
+	HeapDesc.Properties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	HeapDesc.Properties.CreationNodeMask = 0;
+	HeapDesc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
+	HeapDesc.Properties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT;
+	HeapDesc.Properties.VisibleNodeMask = 0;
+	HeapDesc.SizeInBytes = TEXTURE_MEMORY_HEAP_SIZE;
+
+	hr = Device->CreateHeap(&HeapDesc, __uuidof(ID3D12Heap), (void**)&TextureMemoryHeaps[CurrentTextureMemoryHeapIndex]);
+
+	HeapDesc.Alignment = 0;
+	HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
+	HeapDesc.Properties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	HeapDesc.Properties.CreationNodeMask = 0;
+	HeapDesc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
+	HeapDesc.Properties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD;
+	HeapDesc.Properties.VisibleNodeMask = 0;
+	HeapDesc.SizeInBytes = UPLOAD_HEAP_SIZE;
+
+	hr = Device->CreateHeap(&HeapDesc, __uuidof(ID3D12Heap), (void**)&UploadHeap);
+
+	ResourceDesc.Alignment = 0;
+	ResourceDesc.DepthOrArraySize = 1;
+	ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER;
+	ResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE;
+	ResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
+	ResourceDesc.Height = 1;
+	ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+	ResourceDesc.MipLevels = 1;
+	ResourceDesc.SampleDesc.Count = 1;
+	ResourceDesc.SampleDesc.Quality = 0;
+	ResourceDesc.Width = UPLOAD_HEAP_SIZE;
+
+	hr = Device->CreatePlacedResource(UploadHeap, 0, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), (void**)&UploadBuffer);
 }
 
 void RenderSystem::ShutdownSystem()
@@ -373,6 +421,15 @@ void RenderSystem::ShutdownSystem()
 	}
 
 	RenderTextureDestructionQueue.clear();
+
+	for (int i = 0; i < MAX_MEMORY_HEAPS_COUNT; i++)
+	{
+		if (BufferMemoryHeaps[i]) RefCount = BufferMemoryHeaps[i]->Release();
+		if (TextureMemoryHeaps[i]) RefCount = TextureMemoryHeaps[i]->Release();
+	}
+
+	RefCount = UploadBuffer->Release();
+	RefCount = UploadHeap->Release();
 
 	RefCount = BackBufferTextures[0]->Release();
 	RefCount = BackBufferTextures[1]->Release();
@@ -600,8 +657,6 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 
 	HRESULT hr;
 
-	ID3D12Resource *TemporaryVertexBuffer, *TemporaryIndexBuffer;
-
 	D3D12_RESOURCE_DESC ResourceDesc;
 	ResourceDesc.Alignment = 0;
 	ResourceDesc.DepthOrArraySize = 1;
@@ -615,22 +670,32 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 	ResourceDesc.SampleDesc.Quality = 0;
 	ResourceDesc.Width = sizeof(Vertex) * renderMeshCreateInfo.VertexCount;
 
-	D3D12_HEAP_PROPERTIES HeapProperties;
-	HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	HeapProperties.CreationNodeMask = 0;
-	HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
-	HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT;
-	HeapProperties.VisibleNodeMask = 0;
+	D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDesc);
 
-	hr = Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), (void**)&renderMesh->VertexBuffer);
+	size_t AlignedResourceOffset = BufferMemoryHeapOffsets[CurrentBufferMemoryHeapIndex] + (ResourceAllocationInfo.Alignment - BufferMemoryHeapOffsets[CurrentBufferMemoryHeapIndex] % ResourceAllocationInfo.Alignment);
 
-	HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	HeapProperties.CreationNodeMask = 0;
-	HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
-	HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD;
-	HeapProperties.VisibleNodeMask = 0;
+	if (AlignedResourceOffset + ResourceAllocationInfo.SizeInBytes > BUFFER_MEMORY_HEAP_SIZE)
+	{
+		++CurrentBufferMemoryHeapIndex;
 
-	hr = Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), (void**)&TemporaryVertexBuffer);
+		D3D12_HEAP_DESC HeapDesc;
+		HeapDesc.Alignment = 0;
+		HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
+		HeapDesc.Properties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+		HeapDesc.Properties.CreationNodeMask = 0;
+		HeapDesc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
+		HeapDesc.Properties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT;
+		HeapDesc.Properties.VisibleNodeMask = 0;
+		HeapDesc.SizeInBytes = BUFFER_MEMORY_HEAP_SIZE;
+
+		hr = Device->CreateHeap(&HeapDesc, __uuidof(ID3D12Heap), (void**)&BufferMemoryHeaps[CurrentBufferMemoryHeapIndex]);
+
+		AlignedResourceOffset = 0;
+	}
+
+	hr = Device->CreatePlacedResource(BufferMemoryHeaps[CurrentBufferMemoryHeapIndex], AlignedResourceOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), (void**)&renderMesh->VertexBuffer);
+
+	BufferMemoryHeapOffsets[CurrentBufferMemoryHeapIndex] = AlignedResourceOffset + ResourceAllocationInfo.SizeInBytes;
 
 	ResourceDesc.Alignment = 0;
 	ResourceDesc.DepthOrArraySize = 1;
@@ -644,21 +709,32 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 	ResourceDesc.SampleDesc.Quality = 0;
 	ResourceDesc.Width = sizeof(WORD) * renderMeshCreateInfo.IndexCount;
 
-	HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	HeapProperties.CreationNodeMask = 0;
-	HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
-	HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT;
-	HeapProperties.VisibleNodeMask = 0;
+	ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDesc);
 
-	hr = Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), (void**)&renderMesh->IndexBuffer);
+	AlignedResourceOffset = BufferMemoryHeapOffsets[CurrentBufferMemoryHeapIndex] + (ResourceAllocationInfo.Alignment - BufferMemoryHeapOffsets[CurrentBufferMemoryHeapIndex] % ResourceAllocationInfo.Alignment);
 
-	HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	HeapProperties.CreationNodeMask = 0;
-	HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
-	HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD;
-	HeapProperties.VisibleNodeMask = 0;
+	if (AlignedResourceOffset + ResourceAllocationInfo.SizeInBytes > BUFFER_MEMORY_HEAP_SIZE)
+	{
+		++CurrentBufferMemoryHeapIndex;
 
-	hr = Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), (void**)&TemporaryIndexBuffer);
+		D3D12_HEAP_DESC HeapDesc;
+		HeapDesc.Alignment = 0;
+		HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
+		HeapDesc.Properties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+		HeapDesc.Properties.CreationNodeMask = 0;
+		HeapDesc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
+		HeapDesc.Properties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT;
+		HeapDesc.Properties.VisibleNodeMask = 0;
+		HeapDesc.SizeInBytes = BUFFER_MEMORY_HEAP_SIZE;
+
+		hr = Device->CreateHeap(&HeapDesc, __uuidof(ID3D12Heap), (void**)&BufferMemoryHeaps[CurrentBufferMemoryHeapIndex]);
+
+		AlignedResourceOffset = 0;
+	}
+
+	hr = Device->CreatePlacedResource(BufferMemoryHeaps[CurrentBufferMemoryHeapIndex], AlignedResourceOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), (void**)&renderMesh->IndexBuffer);
+
+	BufferMemoryHeapOffsets[CurrentBufferMemoryHeapIndex] = AlignedResourceOffset + ResourceAllocationInfo.SizeInBytes;
 
 	void *MappedData;
 
@@ -667,26 +743,18 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 	ReadRange.Begin = ReadRange.End = 0;
 
 	WrittenRange.Begin = 0;
-	WrittenRange.End = sizeof(Vertex) * renderMeshCreateInfo.VertexCount;
+	WrittenRange.End = sizeof(Vertex) * renderMeshCreateInfo.VertexCount + sizeof(WORD) * renderMeshCreateInfo.IndexCount;
 
-	hr = TemporaryVertexBuffer->Map(0, &ReadRange, &MappedData);
-	memcpy(MappedData, renderMeshCreateInfo.VertexData, sizeof(Vertex) * renderMeshCreateInfo.VertexCount);
-	TemporaryVertexBuffer->Unmap(0, &WrittenRange);
-
-	ReadRange.Begin = ReadRange.End = 0;
-
-	WrittenRange.Begin = 0;
-	WrittenRange.End = sizeof(WORD) * renderMeshCreateInfo.IndexCount;
-
-	hr = TemporaryIndexBuffer->Map(0, &ReadRange, &MappedData);
-	memcpy(MappedData, renderMeshCreateInfo.IndexData, sizeof(WORD) * renderMeshCreateInfo.IndexCount);
-	TemporaryIndexBuffer->Unmap(0, &WrittenRange);
+	hr = UploadBuffer->Map(0, &ReadRange, &MappedData);
+	memcpy((BYTE*)MappedData, renderMeshCreateInfo.VertexData, sizeof(Vertex) * renderMeshCreateInfo.VertexCount);
+	memcpy((BYTE*)MappedData + sizeof(Vertex) * renderMeshCreateInfo.VertexCount, renderMeshCreateInfo.IndexData, sizeof(WORD) * renderMeshCreateInfo.IndexCount);
+	UploadBuffer->Unmap(0, &WrittenRange);
 
 	hr = CommandAllocators[0]->Reset();
 	hr = CommandList->Reset(CommandAllocators[0], nullptr);
 
-	CommandList->CopyBufferRegion(renderMesh->VertexBuffer, 0, TemporaryVertexBuffer, 0, sizeof(Vertex) * renderMeshCreateInfo.VertexCount);
-	CommandList->CopyBufferRegion(renderMesh->IndexBuffer, 0, TemporaryIndexBuffer, 0, sizeof(WORD) * renderMeshCreateInfo.IndexCount);
+	CommandList->CopyBufferRegion(renderMesh->VertexBuffer, 0, UploadBuffer, 0, sizeof(Vertex) * renderMeshCreateInfo.VertexCount);
+	CommandList->CopyBufferRegion(renderMesh->IndexBuffer, 0, UploadBuffer, sizeof(Vertex) * renderMeshCreateInfo.VertexCount, sizeof(WORD) * renderMeshCreateInfo.IndexCount);
 
 	D3D12_RESOURCE_BARRIER ResourceBarriers[2];
 	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
@@ -718,11 +786,6 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 
 	hr = Fences[0]->Signal(1);
 
-	ULONG RefCount;
-
-	RefCount = TemporaryVertexBuffer->Release();
-	RefCount = TemporaryIndexBuffer->Release();
-
 	return renderMesh;
 }
 
@@ -731,8 +794,6 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 	RenderTexture *renderTexture = new RenderTexture();
 
 	HRESULT hr;
-
-	ID3D12Resource *TemporaryTexture;
 
 	D3D12_RESOURCE_DESC ResourceDesc;
 	ResourceDesc.Alignment = 0;
@@ -747,14 +808,32 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 	ResourceDesc.SampleDesc.Quality = 0;
 	ResourceDesc.Width = renderTextureCreateInfo.Width;
 
-	D3D12_HEAP_PROPERTIES HeapProperties;
-	HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	HeapProperties.CreationNodeMask = 0;
-	HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
-	HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT;
-	HeapProperties.VisibleNodeMask = 0;
+	D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDesc);
 
-	hr = Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), (void**)&renderTexture->Texture);
+	size_t AlignedResourceOffset = TextureMemoryHeapOffsets[CurrentTextureMemoryHeapIndex] + (ResourceAllocationInfo.Alignment - TextureMemoryHeapOffsets[CurrentTextureMemoryHeapIndex] % ResourceAllocationInfo.Alignment);
+
+	if (AlignedResourceOffset + ResourceAllocationInfo.SizeInBytes > TEXTURE_MEMORY_HEAP_SIZE)
+	{
+		++CurrentTextureMemoryHeapIndex;
+
+		D3D12_HEAP_DESC HeapDesc;
+		HeapDesc.Alignment = 0;
+		HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES;
+		HeapDesc.Properties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+		HeapDesc.Properties.CreationNodeMask = 0;
+		HeapDesc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
+		HeapDesc.Properties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT;
+		HeapDesc.Properties.VisibleNodeMask = 0;
+		HeapDesc.SizeInBytes = TEXTURE_MEMORY_HEAP_SIZE;
+
+		hr = Device->CreateHeap(&HeapDesc, __uuidof(ID3D12Heap), (void**)&TextureMemoryHeaps[CurrentTextureMemoryHeapIndex]);
+
+		AlignedResourceOffset = 0;
+	}
+
+	hr = Device->CreatePlacedResource(TextureMemoryHeaps[CurrentTextureMemoryHeapIndex], AlignedResourceOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), (void**)&renderTexture->Texture);
+
+	TextureMemoryHeapOffsets[CurrentTextureMemoryHeapIndex] = AlignedResourceOffset + ResourceAllocationInfo.SizeInBytes;
 
 	D3D12_PLACED_SUBRESOURCE_FOOTPRINT PlacedSubResourceFootPrints[16];
 
@@ -762,26 +841,6 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 	UINT64 RowsSizesInBytes[16], TotalBytes;
 
 	Device->GetCopyableFootprints(&ResourceDesc, 0, renderTextureCreateInfo.MIPLevels, 0, PlacedSubResourceFootPrints, NumsRows, RowsSizesInBytes, &TotalBytes);
-
-	ResourceDesc.Alignment = 0;
-	ResourceDesc.DepthOrArraySize = 1;
-	ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER;
-	ResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE;
-	ResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
-	ResourceDesc.Height = 1;
-	ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-	ResourceDesc.MipLevels = 1;
-	ResourceDesc.SampleDesc.Count = 1;
-	ResourceDesc.SampleDesc.Quality = 0;
-	ResourceDesc.Width = TotalBytes;
-
-	HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	HeapProperties.CreationNodeMask = 0;
-	HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
-	HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD;
-	HeapProperties.VisibleNodeMask = 0;
-
-	hr = Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), (void**)&TemporaryTexture);
 
 	void *MappedData;
 
@@ -792,7 +851,7 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 	WrittenRange.Begin = 0;
 	WrittenRange.End = TotalBytes;
 
-	hr = TemporaryTexture->Map(0, &ReadRange, &MappedData);
+	hr = UploadBuffer->Map(0, &ReadRange, &MappedData);
 
 	BYTE *TexelData = renderTextureCreateInfo.TexelData;
 
@@ -806,14 +865,14 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 		TexelData += 4 * (renderTextureCreateInfo.Width >> i) * (renderTextureCreateInfo.Height >> i);
 	}
 
-	TemporaryTexture->Unmap(0, &WrittenRange);
+	UploadBuffer->Unmap(0, &WrittenRange);
 
 	hr = CommandAllocators[0]->Reset();
 	hr = CommandList->Reset(CommandAllocators[0], nullptr);
 
 	D3D12_TEXTURE_COPY_LOCATION SourceTextureCopyLocation, DestTextureCopyLocation;
 
-	SourceTextureCopyLocation.pResource = TemporaryTexture;
+	SourceTextureCopyLocation.pResource = UploadBuffer;
 	SourceTextureCopyLocation.Type = D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 
 	DestTextureCopyLocation.pResource = renderTexture->Texture;
@@ -850,8 +909,6 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 	}
 
 	hr = Fences[0]->Signal(1);
-
-	ULONG RefCount = TemporaryTexture->Release();
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
 	SRVDesc.Format = renderTextureCreateInfo.SRGB ? DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM;
