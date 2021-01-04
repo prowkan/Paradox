@@ -184,6 +184,8 @@ void RenderSystem::InitSystem()
 			}
 		}
 
+		return -1;
+
 	} ();
 
 	VkDeviceQueueCreateInfo DeviceQueueCreateInfo;
@@ -463,6 +465,8 @@ void RenderSystem::InitSystem()
 				return i;
 		}
 
+		return -1;
+
 	} ();
 	MemoryAllocateInfo.pNext = nullptr;
 	MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -582,6 +586,8 @@ void RenderSystem::InitSystem()
 				return i;
 		}
 
+		return -1;
+
 	} ();
 	MemoryAllocateInfo.pNext = nullptr;
 	MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -605,6 +611,8 @@ void RenderSystem::InitSystem()
 				return i;
 		}
 
+		return -1;
+
 	} ();
 	MemoryAllocateInfo.pNext = nullptr;
 	MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -625,6 +633,8 @@ void RenderSystem::InitSystem()
 			if (((1 << i) & MemoryRequirements.memoryTypeBits) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
 				return i;
 		}
+
+		return -1;
 
 	} ();
 	MemoryAllocateInfo.pNext = nullptr;
@@ -663,6 +673,8 @@ void RenderSystem::InitSystem()
 				return i;
 		}
 
+		return -1;
+
 	} ();
 	MemoryAllocateInfo.pNext = nullptr;
 	MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -677,6 +689,8 @@ void RenderSystem::InitSystem()
 			if ((PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
 				return i;
 		}
+
+		return -1;
 
 	} ();
 	MemoryAllocateInfo.pNext = nullptr;
@@ -705,6 +719,8 @@ void RenderSystem::InitSystem()
 			if (((1 << i) & MemoryRequirements.memoryTypeBits) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
 				return i;
 		}
+
+		return -1;
 
 	} ();
 	MemoryAllocateInfo.pNext = nullptr;
@@ -909,7 +925,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	VkClearValue ClearValues[2];
 	ClearValues[0].color.float32[0] = 0.0f;
-	ClearValues[0].color.float32[1] = 5.0f;
+	ClearValues[0].color.float32[1] = 0.5f;
 	ClearValues[0].color.float32[2] = 1.0f;
 	ClearValues[0].color.float32[3] = 1.0f;
 	ClearValues[1].depthStencil.depth = 1.0f;
@@ -1125,6 +1141,8 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 					return i;
 			}
 
+			return -1;
+
 		} ();
 		MemoryAllocateInfo.pNext = nullptr;
 		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -1166,6 +1184,8 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
 					return i;
 			}
+
+			return -1;
 
 		} ();
 		MemoryAllocateInfo.pNext = nullptr;
@@ -1312,6 +1332,8 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
 					return i;
 			}
+
+			return -1;
 
 		} ();
 		MemoryAllocateInfo.pNext = nullptr;

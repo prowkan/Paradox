@@ -242,9 +242,9 @@ void World::LoadWorld()
 
 	MaterialResourceCreateInfo materialResourceCreateInfo;
 	materialResourceCreateInfo.PixelShaderByteCodeData = (void*)shaderc_result_get_bytes(PixelShaderCompilationResult);
-	materialResourceCreateInfo.PixelShaderByteCodeLength = shaderc_result_get_length(PixelShaderCompilationResult);
+	materialResourceCreateInfo.PixelShaderByteCodeLength = (UINT)shaderc_result_get_length(PixelShaderCompilationResult);
 	materialResourceCreateInfo.VertexShaderByteCodeData = (void*)shaderc_result_get_bytes(VertexShaderCompilationResult);
-	materialResourceCreateInfo.VertexShaderByteCodeLength = shaderc_result_get_length(VertexShaderCompilationResult);
+	materialResourceCreateInfo.VertexShaderByteCodeLength = (UINT)shaderc_result_get_length(VertexShaderCompilationResult);
 	materialResourceCreateInfo.Textures.resize(1);
 
 	for (int k = 0; k < 4000; k++)
