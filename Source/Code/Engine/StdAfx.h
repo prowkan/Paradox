@@ -9,17 +9,14 @@
 
 #include <Windows.h>
 
-#include <d3d12.h>
-#include <dxgi1_6.h>
-
-#include <d3dcompiler.h>
+#define VK_USE_PLATFORM_WIN32_KHR
+#include <C:/VulkanSDK/1.2.162.0/Include/vulkan/vulkan.h>
+#include <C:/VulkanSDK/1.2.162.0/Include/shaderc/shaderc.h>
 
 #include <DirectXMath.h>
 
-#pragma comment(lib, "d3d12.lib")
-#pragma comment(lib, "dxgi.lib")
-
-#pragma comment(lib, "d3dcompiler.lib")
+#pragma comment(lib, "C:/VulkanSDK/1.2.162.0/Lib/vulkan-1.lib")
+#pragma comment(lib, "C:/VulkanSDK/1.2.162.0/Lib/shaderc_combined.lib")
 
 using namespace std;
 using namespace DirectX;

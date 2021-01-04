@@ -172,14 +172,14 @@ void World::LoadWorld()
 	
 			struct VSInput
 			{
-				float3 Position : POSITION;
-				float2 TexCoord : TEXCOORD;
+				[[vk::location(0)]] float3 Position : POSITION;
+				[[vk::location(1)]] float2 TexCoord : TEXCOORD;
 			};
 
 			struct VSOutput
 			{
 				float4 Position : SV_Position;
-				float2 TexCoord : TEXCOORD;
+				[[vk::location(0)]] float2 TexCoord : TEXCOORD;
 			};
 
 			struct VSConstants
@@ -187,13 +187,13 @@ void World::LoadWorld()
 				float4x4 WVPMatrix;
 			};
 
-			ConstantBuffer<VSConstants> VertexShaderConstants : register(b0);
+			[[vk::binding(0, 0)]] ConstantBuffer<VSConstants> VertexShaderConstants : register(b0);
 
 			VSOutput VS(VSInput VertexShaderInput)
 			{
 				VSOutput VertexShaderOutput;
 
-				VertexShaderOutput.Position = mul(float4(VertexShaderInput.Position, 1.0f), VertexShaderConstants.WVPMatrix);
+				VertexShaderOutput.Position = mul(VertexShaderConstants.WVPMatrix, float4(VertexShaderInput.Position, 1.0f));
 				VertexShaderOutput.TexCoord = VertexShaderInput.TexCoord;
 
 				return VertexShaderOutput;
@@ -205,34 +205,46 @@ void World::LoadWorld()
 
 			struct PSInput
 			{
-				float4 Position : SV_Position;
+				[[vk::location(0)]] float4 Position : SV_Position;
 				float2 TexCoord : TEXCOORD;
 			};
 
-			Texture2D Texture : register(t0);
-			SamplerState Sampler : register(s0);
+			[[vk::binding(0, 1)]] Texture2D Texture : register(t0);
+			[[vk::binding(0, 2)]] SamplerState Sampler : register(s0);
 
-			float4 PS(PSInput PixelShaderInput) : SV_Target
+			[[vk::location(0)]] float4 PS(PSInput PixelShaderInput) : SV_Target
 			{
 				return float4(Texture.Sample(Sampler, PixelShaderInput.TexCoord).rgb, 1.0f);
 			}
 
 		)";
 
-	ID3DBlob *ErrorBlob = nullptr;
+	shaderc_compiler_t ShaderCompiler = shaderc_compiler_initialize();
+	shaderc_compile_options_t CompilerOptions = shaderc_compile_options_initialize();
 
-	ID3DBlob *VertexShaderBlob, *PixelShaderBlob;
+	shaderc_compile_options_set_source_language(CompilerOptions, shaderc_source_language::shaderc_source_language_hlsl);
+	shaderc_compile_options_set_invert_y(CompilerOptions, true);
 
-	HRESULT hr;
+	shaderc_compilation_result_t VertexShaderCompilationResult = shaderc_compile_into_spv(ShaderCompiler, VertexShaderSourceCode, strlen(VertexShaderSourceCode), shaderc_shader_kind::shaderc_vertex_shader, "VertexShader", "VS", CompilerOptions);
+	shaderc_compilation_result_t PixelShaderCompilationResult = shaderc_compile_into_spv(ShaderCompiler, PixelShaderSourceCode, strlen(PixelShaderSourceCode), shaderc_shader_kind::shaderc_fragment_shader, "PixelShader", "PS", CompilerOptions);
+		
+	size_t VertexShaderCompilationErrorsCount = shaderc_result_get_num_errors(VertexShaderCompilationResult);
+	size_t PixelShaderCompilationErrorsCount = shaderc_result_get_num_errors(PixelShaderCompilationResult);
 
-	hr = D3DCompile(VertexShaderSourceCode, strlen(VertexShaderSourceCode), "VertexShader", nullptr, nullptr, "VS", "vs_5_1", D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &VertexShaderBlob, &ErrorBlob);
-	hr = D3DCompile(PixelShaderSourceCode, strlen(PixelShaderSourceCode), "PixelShader", nullptr, nullptr, "PS", "ps_5_1", D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &PixelShaderBlob, &ErrorBlob);
+	cout << "VertexShaderCompilationErrorsCount: " << VertexShaderCompilationErrorsCount << endl;
+	cout << "PixelShaderCompilationErrorsCount: " << PixelShaderCompilationErrorsCount << endl;
+
+	const char *VertexShaderCompilationErrorMessage = shaderc_result_get_error_message(VertexShaderCompilationResult);
+	const char *PixelShaderCompilationErrorMessage = shaderc_result_get_error_message(PixelShaderCompilationResult);
+
+	cout << "VertexShaderCompilationErrorMessage: " << VertexShaderCompilationErrorMessage << endl;
+	cout << "PixelShaderCompilationErrorMessage: " << PixelShaderCompilationErrorMessage << endl;
 
 	MaterialResourceCreateInfo materialResourceCreateInfo;
-	materialResourceCreateInfo.PixelShaderByteCodeData = PixelShaderBlob->GetBufferPointer();
-	materialResourceCreateInfo.PixelShaderByteCodeLength = (UINT)PixelShaderBlob->GetBufferSize();
-	materialResourceCreateInfo.VertexShaderByteCodeData = VertexShaderBlob->GetBufferPointer();
-	materialResourceCreateInfo.VertexShaderByteCodeLength = (UINT)VertexShaderBlob->GetBufferSize();
+	materialResourceCreateInfo.PixelShaderByteCodeData = (void*)shaderc_result_get_bytes(PixelShaderCompilationResult);
+	materialResourceCreateInfo.PixelShaderByteCodeLength = shaderc_result_get_length(PixelShaderCompilationResult);
+	materialResourceCreateInfo.VertexShaderByteCodeData = (void*)shaderc_result_get_bytes(VertexShaderCompilationResult);
+	materialResourceCreateInfo.VertexShaderByteCodeLength = shaderc_result_get_length(VertexShaderCompilationResult);
 	materialResourceCreateInfo.Textures.resize(1);
 
 	for (int k = 0; k < 4000; k++)
@@ -250,10 +262,7 @@ void World::LoadWorld()
 		Engine::GetEngine().GetResourceManager().AddResource<MaterialResource>(MaterialResourceName, &materialResourceCreateInfo);
 	}
 
-	ULONG RefCount;
-
-	RefCount = VertexShaderBlob->Release();
-	RefCount = PixelShaderBlob->Release();
+	shaderc_compiler_release(ShaderCompiler);
 
 	UINT ResourceCounter = 0;
 

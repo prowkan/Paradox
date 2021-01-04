@@ -4,18 +4,18 @@
 
 struct RenderMesh
 {
-	ID3D12Resource *VertexBuffer, *IndexBuffer;
+	VkBuffer VertexBuffer, IndexBuffer;
 };
 
 struct RenderTexture
 {
-	ID3D12Resource *Texture;
-	D3D12_CPU_DESCRIPTOR_HANDLE TextureSRV;
+	VkImage Texture;
+	VkImageView TextureView;
 };
 
 struct RenderMaterial
 {
-	ID3D12PipelineState *PipelineState;
+	VkPipeline Pipeline;
 };
 
 struct RenderMeshCreateInfo
@@ -71,50 +71,55 @@ class RenderSystem
 
 	private:
 
-		ID3D12Device *Device;
-		IDXGISwapChain4 *SwapChain;
+		VkInstance Instance;
+		VkPhysicalDevice PhysicalDevice;
+		VkDevice Device;
+		VkSurfaceKHR Surface;
+		VkSwapchainKHR SwapChain;
 
 		int ResolutionWidth;
 		int ResolutionHeight;
 
-		ID3D12CommandQueue *CommandQueue;
-		ID3D12CommandAllocator *CommandAllocators[2];
-		ID3D12GraphicsCommandList *CommandList;
+		VkQueue CommandQueue;
+		VkCommandPool CommandPools[2];
+		VkCommandBuffer CommandBuffers[2];
 
 		UINT CurrentBackBufferIndex, CurrentFrameIndex;
 
-		ID3D12Fence *Fences[2];
-		HANDLE Event;
+		VkSemaphore ImageAvailabilitySemaphore, ImagePresentationSemaphore;
+		VkFence Fences[2];
+		
+		VkDescriptorPool DescriptorPools[2];
+		VkDescriptorSetLayout ConstantBuffersSetLayout, TexturesSetLayout, SamplersSetLayout;
+		VkDescriptorSet SamplersSets[2], ConstantBuffersSets[2][20000], TexturesSets[2][20000];
 
-		ID3D12DescriptorHeap *RTDescriptorHeap, *DSDescriptorHeap, *CBSRUADescriptorHeap, *SamplersDescriptorHeap;
-		ID3D12DescriptorHeap *ConstantBufferDescriptorHeap, *TexturesDescriptorHeap;
-		ID3D12DescriptorHeap *FrameResourcesDescriptorHeaps[2], *FrameSamplersDescriptorHeaps[2];
+		VkPipelineLayout PipelineLayout;
 
-		UINT TexturesDescriptorsCount = 0;
+		VkImage BackBufferTextures[2];
+		VkImageView BackBufferRTVs[2];
 
-		ID3D12RootSignature *RootSignature;
+		VkImage DepthBufferTexture;
+		VkImageView DepthBufferDSV;
+		VkDeviceMemory DepthBufferTextureMemoryHeap;
 
-		ID3D12Resource *BackBufferTextures[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE BackBufferRTVs[2];
+		VkRenderPass RenderPass;
+		VkFramebuffer FrameBuffers[2];
 
-		ID3D12Resource *DepthBufferTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE DepthBufferDSV;
+		VkBuffer GPUConstantBuffer, CPUConstantBuffers[2];
+		VkDeviceMemory GPUConstantBufferMemoryHeap, CPUConstantBufferMemoryHeaps[2];
 
-		ID3D12Resource *GPUConstantBuffer, *CPUConstantBuffers[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs[20000];
-
-		D3D12_CPU_DESCRIPTOR_HANDLE Sampler;
+		VkSampler Sampler;
 
 		static const UINT MAX_MEMORY_HEAPS_COUNT = 200;
 		static const SIZE_T BUFFER_MEMORY_HEAP_SIZE = 16 * 1024 * 1024, TEXTURE_MEMORY_HEAP_SIZE = 256 * 1024 * 1024;
 		static const SIZE_T UPLOAD_HEAP_SIZE = 64 * 1024 * 1024;
 
-		ID3D12Heap *BufferMemoryHeaps[MAX_MEMORY_HEAPS_COUNT] = { nullptr }, *TextureMemoryHeaps[MAX_MEMORY_HEAPS_COUNT] = { nullptr };
+		VkDeviceMemory BufferMemoryHeaps[MAX_MEMORY_HEAPS_COUNT] = { VK_NULL_HANDLE }, TextureMemoryHeaps[MAX_MEMORY_HEAPS_COUNT] = { VK_NULL_HANDLE };
 		size_t BufferMemoryHeapOffsets[MAX_MEMORY_HEAPS_COUNT] = { 0 }, TextureMemoryHeapOffsets[MAX_MEMORY_HEAPS_COUNT] = { 0 };
 		int CurrentBufferMemoryHeapIndex = 0, CurrentTextureMemoryHeapIndex = 0;
 
-		ID3D12Heap *UploadHeap;
-		ID3D12Resource *UploadBuffer;
+		VkDeviceMemory UploadHeap;
+		VkBuffer UploadBuffer;
 		size_t UploadBufferOffset = 0;
 
 		vector<RenderMesh*> RenderMeshDestructionQueue;
