@@ -16,7 +16,7 @@
 #include <DirectXMath.h>
 
 #pragma comment(lib, "C:/VulkanSDK/1.2.162.0/Lib/vulkan-1.lib")
-#pragma comment(lib, "C:/VulkanSDK/1.2.162.0/Lib/shaderc_combined.lib")
+#pragma comment(lib, "C:/VulkanSDK/1.2.162.0/Lib/shaderc_shared.lib")
 
 using namespace std;
 using namespace DirectX;

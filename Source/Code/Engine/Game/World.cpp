@@ -262,6 +262,11 @@ void World::LoadWorld()
 		Engine::GetEngine().GetResourceManager().AddResource<MaterialResource>(MaterialResourceName, &materialResourceCreateInfo);
 	}
 
+	shaderc_result_release(VertexShaderCompilationResult);
+	shaderc_result_release(PixelShaderCompilationResult);
+
+	shaderc_compile_options_release(CompilerOptions);
+
 	shaderc_compiler_release(ShaderCompiler);
 
 	UINT ResourceCounter = 0;
