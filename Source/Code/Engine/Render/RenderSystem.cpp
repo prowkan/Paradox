@@ -855,7 +855,7 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 
 	BYTE *TexelData = renderTextureCreateInfo.TexelData;
 
-	for (int i = 0; i < 8; i++)
+	for (UINT i = 0; i < renderTextureCreateInfo.MIPLevels; i++)
 	{
 		for (UINT j = 0; j < NumsRows[i]; j++)
 		{
@@ -878,7 +878,7 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 	DestTextureCopyLocation.pResource = renderTexture->Texture;
 	DestTextureCopyLocation.Type = D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 
-	for (int i = 0; i < 8; i++)
+	for (UINT i = 0; i < renderTextureCreateInfo.MIPLevels; i++)
 	{
 		SourceTextureCopyLocation.PlacedFootprint = PlacedSubResourceFootPrints[i];
 		DestTextureCopyLocation.SubresourceIndex = i;
@@ -913,7 +913,7 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 	D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
 	SRVDesc.Format = renderTextureCreateInfo.SRGB ? DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM;
 	SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	SRVDesc.Texture2D.MipLevels = 8;
+	SRVDesc.Texture2D.MipLevels = renderTextureCreateInfo.MIPLevels;
 	SRVDesc.Texture2D.MostDetailedMip = 0;
 	SRVDesc.Texture2D.PlaneSlice = 0;
 	SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
