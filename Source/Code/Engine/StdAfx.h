@@ -16,10 +16,18 @@
 
 #include <DirectXMath.h>
 
+#include <F:/Optick/include/optick.h>
+
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
 
 #pragma comment(lib, "d3dcompiler.lib")
+
+#ifdef _DEBUG
+#pragma comment(lib, "F:/Optick/lib/x64/debug/OptickCore.lib")
+#else
+#pragma comment(lib, "F:/Optick/lib/x64/release/OptickCore.lib")
+#endif
 
 using namespace std;
 using namespace DirectX;

@@ -95,6 +95,18 @@ class RenderSystem
 		ID3D11BlendState *BlendState;
 		ID3D11DepthStencilState *DepthStencilState;
 
+		static const UINT MAX_MEMORY_HEAPS_COUNT = 200;
+		static const SIZE_T BUFFER_MEMORY_HEAP_SIZE = 16 * 1024 * 1024, TEXTURE_MEMORY_HEAP_SIZE = 256 * 1024 * 1024;
+		static const SIZE_T UPLOAD_HEAP_SIZE = 64 * 1024 * 1024;
+
+		ID3D12Heap *BufferMemoryHeaps[MAX_MEMORY_HEAPS_COUNT] = { nullptr }, *TextureMemoryHeaps[MAX_MEMORY_HEAPS_COUNT] = { nullptr };
+		size_t BufferMemoryHeapOffsets[MAX_MEMORY_HEAPS_COUNT] = { 0 }, TextureMemoryHeapOffsets[MAX_MEMORY_HEAPS_COUNT] = { 0 };
+		int CurrentBufferMemoryHeapIndex = 0, CurrentTextureMemoryHeapIndex = 0;
+
+		ID3D12Heap *UploadHeap;
+		ID3D12Resource *UploadBuffer;
+		size_t UploadBufferOffset = 0;
+
 		vector<RenderMesh*> RenderMeshDestructionQueue;
 		vector<RenderMaterial*> RenderMaterialDestructionQueue;
 		vector<RenderTexture*> RenderTextureDestructionQueue;
