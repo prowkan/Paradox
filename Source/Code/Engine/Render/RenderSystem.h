@@ -77,6 +77,10 @@ class RenderSystem
 		VkSurfaceKHR Surface;
 		VkSwapchainKHR SwapChain;
 
+#ifdef _DEBUG
+		VkDebugUtilsMessengerEXT DebugUtilsMessenger;
+#endif
+
 		int ResolutionWidth;
 		int ResolutionHeight;
 

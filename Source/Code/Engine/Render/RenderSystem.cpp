@@ -112,8 +112,6 @@ void RenderSystem::InitSystem()
 	DebugUtilsMessengerCreateInfo.pUserData = nullptr;
 	DebugUtilsMessengerCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
 
-	VkDebugUtilsMessengerEXT DebugUtilsMessenger;
-
 	PFN_vkCreateDebugUtilsMessengerEXT vkCreateDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(Instance, "vkCreateDebugUtilsMessengerEXT");
 
 	Result = vkCreateDebugUtilsMessengerEXT(Instance, &DebugUtilsMessengerCreateInfo, nullptr, &DebugUtilsMessenger);
@@ -819,6 +817,12 @@ void RenderSystem::ShutdownSystem()
 	vkDestroyFramebuffer(Device, FrameBuffers[0], nullptr);
 	vkDestroyFramebuffer(Device, FrameBuffers[1], nullptr);
 	vkDestroyRenderPass(Device, RenderPass, nullptr);
+
+#ifdef _DEBUG
+	PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(Instance, "vkDestroyDebugUtilsMessengerEXT");
+
+	vkDestroyDebugUtilsMessengerEXT(Instance, DebugUtilsMessenger, nullptr);
+#endif
 
 	vkDestroyDevice(Device, nullptr);
 	vkDestroyInstance(Instance, nullptr);
