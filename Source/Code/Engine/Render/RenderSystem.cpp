@@ -293,8 +293,6 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	OPTICK_EVENT("Draw Calls")
 
-	hr = CPUConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData);
-
 	for (int k = 0; k < VisbleStaticMeshComponentsCount; k++)
 	{
 		XMMATRIX WorldMatrix = VisbleStaticMeshComponents[k]->GetTransformComponent()->GetTransformMatrix();
