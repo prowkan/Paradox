@@ -853,6 +853,10 @@ void RenderSystem::TickSystem(float DeltaTime)
 	vector<StaticMeshComponent*> VisbleStaticMeshComponents = cullingSubSystem.GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ViewProjMatrix);
 	size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.size();
 
+	OPTICK_EVENT("Draw Calls")
+
+	hr = CPUConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData);
+
 	for (int k = 0; k < VisbleStaticMeshComponentsCount; k++)
 	{
 		XMMATRIX WorldMatrix = VisbleStaticMeshComponents[k]->GetTransformComponent()->GetTransformMatrix();
@@ -1358,7 +1362,7 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 
 	BYTE *TexelData = renderTextureCreateInfo.TexelData;
 
-	for (int i = 0; i < 8; i++)
+	for (UINT i = 0; i < renderTextureCreateInfo.MIPLevels; i++)
 	{
 		for (UINT j = 0; j < renderTextureCreateInfo.Height >> i; j++)
 		{

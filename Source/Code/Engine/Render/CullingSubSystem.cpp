@@ -6,6 +6,8 @@
 
 vector<StaticMeshComponent*> CullingSubSystem::GetVisibleStaticMeshesInFrustum(const vector<StaticMeshComponent*>& InputStaticMeshes, const XMMATRIX& ViewProjMatrix)
 {
+	OPTICK_EVENT("Frustum Culling")
+
 	vector<StaticMeshComponent*> OutputStaticMeshes;
 
 	XMVECTOR FrustumPlanes[6];
