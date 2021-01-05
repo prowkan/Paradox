@@ -18,6 +18,8 @@ void Engine::ShutdownEngine()
 
 void Engine::TickEngine(float DeltaTime)
 {
+	OPTICK_FRAME("Main Thread")
+
 	inputSystem.TickSystem(DeltaTime);
 	gameFramework.TickFramework(DeltaTime);
 	renderSystem.TickSystem(DeltaTime);

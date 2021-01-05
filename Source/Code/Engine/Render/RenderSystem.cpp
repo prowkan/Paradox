@@ -503,11 +503,13 @@ void RenderSystem::TickSystem(float DeltaTime)
 	void *ConstantBufferData;
 	SIZE_T ConstantBufferOffset = 0;
 
-	hr = CPUConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData);
-
 	vector<StaticMeshComponent*> AllStaticMeshComponents = Engine::GetEngine().GetGameFramework().GetWorld().GetRenderScene().GetStaticMeshComponents();
 	vector<StaticMeshComponent*> VisbleStaticMeshComponents = cullingSubSystem.GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ViewProjMatrix);
 	size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.size();
+
+	OPTICK_EVENT("Draw Calls")
+
+	hr = CPUConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData);
 
 	for (int k = 0; k < VisbleStaticMeshComponentsCount; k++)
 	{
