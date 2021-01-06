@@ -2,8 +2,6 @@
 
 #include "../../../Component.h"
 
-extern MetaClass *StaticMeshComponentMetaClass;
-
 class StaticMeshResource;
 class MaterialResource;
 
@@ -19,6 +17,8 @@ class StaticMeshComponent : public Component
 		static MetaClass* GetMetaClassStatic() { return StaticMeshComponentMetaClass; }
 
 		virtual void InitComponentDefaultProperties() override;
+
+		static MetaClass *StaticMeshComponentMetaClass;
 
 		virtual void RegisterComponent() override;
 		virtual void UnRegisterComponent() override;

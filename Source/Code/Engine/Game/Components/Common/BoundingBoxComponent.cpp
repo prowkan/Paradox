@@ -2,7 +2,7 @@
 
 #include "../../MetaClass.h"
 
-MetaClass *BoundingBoxComponentMetaClass;
+MetaClass *BoundingBoxComponent::BoundingBoxComponentMetaClass;
 
 void BoundingBoxComponent::InitComponentDefaultProperties()
 {

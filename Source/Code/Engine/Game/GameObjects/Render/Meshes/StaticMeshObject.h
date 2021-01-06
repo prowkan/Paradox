@@ -2,8 +2,6 @@
 
 #include "../../../GameObject.h"
 
-extern MetaClass *StaticMeshObjectMetaClass;
-
 class TransformComponent;
 class BoundingBoxComponent;
 class StaticMeshComponent;
@@ -15,6 +13,8 @@ class StaticMeshObject : public GameObject
 		static void StaticConstructor(void* Pointer) { new (Pointer) StaticMeshObject(); }
 
 		static MetaClass* GetMetaClassStatic() { return StaticMeshObjectMetaClass; }
+
+		static MetaClass *StaticMeshObjectMetaClass;
 
 		virtual void InitDefaultProperties() override;
 

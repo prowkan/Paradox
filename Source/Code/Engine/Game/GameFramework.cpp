@@ -10,8 +10,8 @@
 #include "Components/Common/BoundingBoxComponent.h"
 #include "Components/Render/Meshes/StaticMeshComponent.h"
 
-#define DECLARE_CLASS(Class) Class ## MetaClass = new MetaClass(&CallObjectConstructor<Class>, sizeof(Class), # Class);
-#define DECLARE_CLASS_WITH_BASE_CLASS(Class, BaseClass) Class ## MetaClass = new MetaClass(&CallObjectConstructor<Class>, sizeof(Class), # Class, BaseClass ## MetaClass);
+#define DECLARE_CLASS(Class) Class::Class ## MetaClass = new MetaClass(&CallObjectConstructor<Class>, sizeof(Class), # Class);
+#define DECLARE_CLASS_WITH_BASE_CLASS(Class, BaseClass) Class::Class ## MetaClass = new MetaClass(&CallObjectConstructor<Class>, sizeof(Class), # Class, BaseClass::BaseClass ## MetaClass);
 
 void GameFramework::InitFramework()
 {
