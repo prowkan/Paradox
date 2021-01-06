@@ -95,10 +95,6 @@ class RenderSystem
 		ID3D11BlendState *BlendState;
 		ID3D11DepthStencilState *DepthStencilState;
 
-		static const UINT MAX_MEMORY_HEAPS_COUNT = 200;
-		static const SIZE_T BUFFER_MEMORY_HEAP_SIZE = 16 * 1024 * 1024, TEXTURE_MEMORY_HEAP_SIZE = 256 * 1024 * 1024;
-		static const SIZE_T UPLOAD_HEAP_SIZE = 64 * 1024 * 1024;
-
 		vector<RenderMesh*> RenderMeshDestructionQueue;
 		vector<RenderMaterial*> RenderMaterialDestructionQueue;
 		vector<RenderTexture*> RenderTextureDestructionQueue;
