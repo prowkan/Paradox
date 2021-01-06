@@ -596,18 +596,21 @@ void RenderSystem::TickSystem(float DeltaTime)
 		RenderMaterial *renderMaterial = staticMeshComponent->GetMaterial()->GetRenderMaterial();
 		RenderTexture *renderTexture = staticMeshComponent->GetMaterial()->GetTexture(0)->GetRenderTexture();
 
-		Device->CopyDescriptorsSimple(1, ResourceCPUHandle, ConstantBufferCBVs[k], D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		ResourceCPUHandle.ptr += ResourceHandleSize;
-		Device->CopyDescriptorsSimple(1, ResourceCPUHandle, renderTexture->TextureSRV, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		ResourceCPUHandle.ptr += ResourceHandleSize;
+		UINT DestRangeSize = 2;
+		UINT SourceRangeSizes[2] = { 1, 1 };
+		D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[2] = { ConstantBufferCBVs[k], renderTexture->TextureSRV };
+
+		Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		
+		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
 
 		D3D12_VERTEX_BUFFER_VIEW VertexBufferView;
-		VertexBufferView.BufferLocation = renderMesh->VertexBuffer->GetGPUVirtualAddress();
+		VertexBufferView.BufferLocation = renderMesh->VertexBufferAddress;
 		VertexBufferView.SizeInBytes = sizeof(Vertex) * 9 * 9 * 6;
 		VertexBufferView.StrideInBytes = sizeof(Vertex);
 
 		D3D12_INDEX_BUFFER_VIEW IndexBufferView;
-		IndexBufferView.BufferLocation = renderMesh->IndexBuffer->GetGPUVirtualAddress();
+		IndexBufferView.BufferLocation = renderMesh->IndexBufferAddress;
 		IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
 		IndexBufferView.SizeInBytes = sizeof(WORD) * 8 * 8 * 6 * 6;
 
@@ -787,6 +790,9 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 	}
 
 	hr = Fences[0]->Signal(1);
+
+	renderMesh->VertexBufferAddress = renderMesh->VertexBuffer->GetGPUVirtualAddress();
+	renderMesh->IndexBufferAddress = renderMesh->IndexBuffer->GetGPUVirtualAddress();
 
 	return renderMesh;
 }

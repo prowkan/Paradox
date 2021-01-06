@@ -5,6 +5,7 @@
 struct RenderMesh
 {
 	ID3D12Resource *VertexBuffer, *IndexBuffer;
+	D3D12_GPU_VIRTUAL_ADDRESS VertexBufferAddress, IndexBufferAddress;
 };
 
 struct RenderTexture
