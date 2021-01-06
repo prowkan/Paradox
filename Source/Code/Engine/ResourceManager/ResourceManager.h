@@ -19,7 +19,7 @@ class ResourceManager
 
 		void DestroyAllResources()
 		{
-			for (auto It : ResourceTable)
+			for (auto& It : ResourceTable)
 			{
 				It.second->DestroyResource();
 			}

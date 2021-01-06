@@ -22,7 +22,7 @@ class MetaClass
 
 		const char* GetClassName() const { return ClassName; }
 
-		bool IsBaseOf(MetaClass *metaClass) const
+		bool IsBaseOf(MetaClass* metaClass) const
 		{
 			if (metaClass == this) return true;
 
