@@ -4,8 +4,6 @@ class MetaClass;
 class Component;
 class GameObject;
 
-extern MetaClass *ComponentMetaClass;
-
 class Component
 {
 	public:
@@ -32,6 +30,8 @@ class Component
 
 			return nullptr;
 		}
+
+		static MetaClass *ComponentMetaClass;
 
 	protected:
 

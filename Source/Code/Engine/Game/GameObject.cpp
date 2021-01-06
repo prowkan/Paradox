@@ -3,7 +3,7 @@
 #include "MetaClass.h"
 #include "Component.h"
 
-MetaClass *GameObjectMetaClass;
+MetaClass *GameObject::GameObjectMetaClass;
 
 Component* GameObject::CreateDefaultComponent(MetaClass* metaClass)
 {
