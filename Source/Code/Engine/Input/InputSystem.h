@@ -9,4 +9,6 @@ class InputSystem
 		void TickSystem(float DeltaTime);
 
 	private:
+
+		POINT PreviousCursorPosition, CurrentCursorPosition;
 };
