@@ -2,8 +2,6 @@
 
 #include "../../Component.h"
 
-extern MetaClass *TransformComponentMetaClass;
-
 class TransformComponent : public Component
 {
 	public:
@@ -13,6 +11,8 @@ class TransformComponent : public Component
 		static MetaClass* GetMetaClassStatic() { return TransformComponentMetaClass; }
 
 		virtual void InitComponentDefaultProperties() override;
+
+		static MetaClass *TransformComponentMetaClass;
 
 		XMFLOAT3 GetLocation() { return Location; }
 		void SetLocation(const XMFLOAT3& NewLocation) { Location = NewLocation; }

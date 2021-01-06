@@ -2,4 +2,4 @@
 
 #include "MetaClass.h"
 
-MetaClass *ComponentMetaClass;
+MetaClass *Component::ComponentMetaClass;

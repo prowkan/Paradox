@@ -2,8 +2,6 @@
 
 #include "../../Component.h"
 
-extern MetaClass *BoundingBoxComponentMetaClass;
-
 class BoundingBoxComponent : public Component
 {
 	public:
@@ -13,6 +11,8 @@ class BoundingBoxComponent : public Component
 		static MetaClass* GetMetaClassStatic() { return BoundingBoxComponentMetaClass; }
 
 		virtual void InitComponentDefaultProperties() override;
+
+		static MetaClass *BoundingBoxComponentMetaClass;
 
 		XMFLOAT3 GetCenter() { return Center; }
 		XMFLOAT3 GetHalfSize() { return HalfSize; }
