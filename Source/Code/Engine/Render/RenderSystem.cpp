@@ -30,7 +30,18 @@ VkBool32 VKAPI_PTR vkDebugUtilsMessengerCallbackEXT(VkDebugUtilsMessageSeverityF
 
 	OutputDebugString(L" ");
 
-	OutputDebugStringA(pCallbackData->pMessage);
+	wchar_t *Message = new wchar_t[strlen(pCallbackData->pMessage) + 1];
+
+	for (size_t i = 0; pCallbackData->pMessage[i] != 0; i++)
+	{
+		Message[i] = pCallbackData->pMessage[i];
+	}
+
+	Message[strlen(pCallbackData->pMessage)] = 0;
+
+	OutputDebugString(Message);
+
+	delete[] Message;
 
 	OutputDebugString(L"\r\n");
 
