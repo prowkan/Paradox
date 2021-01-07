@@ -22,6 +22,8 @@ void InputSystem::ShutdownSystem()
 
 void InputSystem::TickSystem(float DeltaTime)
 {
+	if (GetForegroundWindow() != Application::GetMainWindowHandle()) return;
+
 	XMFLOAT3 CameraLocation = Engine::GetEngine().GetGameFramework().GetCamera().GetCameraLocation();
 	XMFLOAT3 CameraRotation = Engine::GetEngine().GetGameFramework().GetCamera().GetCameraRotation();
 
