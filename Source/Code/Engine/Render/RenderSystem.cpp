@@ -891,12 +891,15 @@ void RenderSystem::TickSystem(float DeltaTime)
 	
 	vkCmdPipelineBarrier(CommandBuffers[CurrentFrameIndex], VkPipelineStageFlagBits::VK_PIPELINE_STAGE_HOST_BIT, VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 1, &BufferMemoryBarrier, 0, nullptr);
 
-	VkBufferCopy BufferCopy;
-	BufferCopy.dstOffset = 0;
-	BufferCopy.size = ConstantBufferOffset;
-	BufferCopy.srcOffset = 0;
+	if (ConstantBufferOffset > 0)
+	{
+		VkBufferCopy BufferCopy;
+		BufferCopy.dstOffset = 0;
+		BufferCopy.size = ConstantBufferOffset;
+		BufferCopy.srcOffset = 0;
 
-	vkCmdCopyBuffer(CommandBuffers[CurrentFrameIndex], CPUConstantBuffers[CurrentFrameIndex], GPUConstantBuffer, 1, &BufferCopy);
+		vkCmdCopyBuffer(CommandBuffers[CurrentFrameIndex], CPUConstantBuffers[CurrentFrameIndex], GPUConstantBuffer, 1, &BufferCopy);
+	}
 
 	BufferMemoryBarrier.buffer = GPUConstantBuffer;
 	BufferMemoryBarrier.dstAccessMask = VkAccessFlagBits::VK_ACCESS_UNIFORM_READ_BIT;
