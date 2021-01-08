@@ -53,6 +53,9 @@ struct Texel
 	BYTE R, G, B, A;
 };
 
+#define SAFE_DX(Func) CheckDXCallResult(Func, L#Func);
+#define SAFE_RELEASE(Object) if (Object) { ULONG RefCount = Object->Release(); Object = nullptr; }
+
 class RenderSystem
 {
 	public:
@@ -131,4 +134,7 @@ class RenderSystem
 		vector<RenderTexture*> RenderTextureDestructionQueue;
 
 		CullingSubSystem cullingSubSystem;
+
+		inline void CheckDXCallResult(HRESULT hr, const wchar_t* Function);
+		inline const wchar_t* GetDXErrorMessageFromHRESULT(HRESULT hr);
 };

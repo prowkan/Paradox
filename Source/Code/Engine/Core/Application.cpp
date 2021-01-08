@@ -13,8 +13,115 @@ LRESULT CALLBACK Application::MainWindowProc(HWND hWnd, UINT Msg, WPARAM wParam,
 	return DefWindowProc(hWnd, Msg, wParam, lParam);
 }
 
+LONG WINAPI Application::UnhandledExceptionFilter(_EXCEPTION_POINTERS* ExceptionInfo)
+{
+	wchar_t ErrorMessageBuffer[1024];
+	wchar_t ExceptionCodeBuffer[256];
+
+	switch (ExceptionInfo->ExceptionRecord->ExceptionCode)
+	{
+		case EXCEPTION_ACCESS_VIOLATION:
+			wcscpy(ExceptionCodeBuffer, L"EXCEPTION_ACCESS_VIOLATION");
+			break;
+		case EXCEPTION_DATATYPE_MISALIGNMENT:
+			wcscpy(ExceptionCodeBuffer, L"EXCEPTION_DATATYPE_MISALIGNMENT");
+			break;
+		case EXCEPTION_BREAKPOINT:
+			wcscpy(ExceptionCodeBuffer, L"EXCEPTION_BREAKPOINT");
+			break;
+		case EXCEPTION_SINGLE_STEP:
+			wcscpy(ExceptionCodeBuffer, L"EXCEPTION_SINGLE_STEP");
+			break;
+		case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
+			wcscpy(ExceptionCodeBuffer, L"EXCEPTION_ARRAY_BOUNDS_EXCEEDED");
+			break;
+		case EXCEPTION_FLT_DENORMAL_OPERAND:
+			wcscpy(ExceptionCodeBuffer, L"EXCEPTION_FLT_DENORMAL_OPERAND");
+			break;
+		case EXCEPTION_FLT_DIVIDE_BY_ZERO:
+			wcscpy(ExceptionCodeBuffer, L"EXCEPTION_FLT_DIVIDE_BY_ZERO");
+			break;
+		case EXCEPTION_FLT_INEXACT_RESULT:
+			wcscpy(ExceptionCodeBuffer, L"EXCEPTION_FLT_INEXACT_RESULT");
+			break;
+		case EXCEPTION_FLT_INVALID_OPERATION:
+			wcscpy(ExceptionCodeBuffer, L"EXCEPTION_FLT_INVALID_OPERATION");
+			break;
+		case EXCEPTION_FLT_OVERFLOW:
+			wcscpy(ExceptionCodeBuffer, L"EXCEPTION_FLT_OVERFLOW");
+			break;
+		case EXCEPTION_FLT_STACK_CHECK:
+			wcscpy(ExceptionCodeBuffer, L"EXCEPTION_FLT_STACK_CHECK");
+			break;
+		case EXCEPTION_FLT_UNDERFLOW:
+			wcscpy(ExceptionCodeBuffer, L"EXCEPTION_FLT_UNDERFLOW");
+			break;
+		case EXCEPTION_INT_DIVIDE_BY_ZERO:
+			wcscpy(ExceptionCodeBuffer, L"EXCEPTION_INT_DIVIDE_BY_ZERO");
+			break;
+		case EXCEPTION_INT_OVERFLOW:
+			wcscpy(ExceptionCodeBuffer, L"EXCEPTION_INT_OVERFLOW");
+			break;
+		case EXCEPTION_PRIV_INSTRUCTION:
+			wcscpy(ExceptionCodeBuffer, L"EXCEPTION_PRIV_INSTRUCTION");
+			break;
+		case EXCEPTION_IN_PAGE_ERROR:
+			wcscpy(ExceptionCodeBuffer, L"EXCEPTION_IN_PAGE_ERROR");
+			break;
+		case EXCEPTION_ILLEGAL_INSTRUCTION:
+			wcscpy(ExceptionCodeBuffer, L"EXCEPTION_ILLEGAL_INSTRUCTION");
+			break;
+		case EXCEPTION_NONCONTINUABLE_EXCEPTION:
+			wcscpy(ExceptionCodeBuffer, L"EXCEPTION_NONCONTINUABLE_EXCEPTION");
+			break;
+		case EXCEPTION_STACK_OVERFLOW:
+			wcscpy(ExceptionCodeBuffer, L"EXCEPTION_STACK_OVERFLOW");
+			break;
+		case EXCEPTION_INVALID_DISPOSITION:
+			wcscpy(ExceptionCodeBuffer, L"EXCEPTION_INVALID_DISPOSITION");
+			break;
+		case EXCEPTION_GUARD_PAGE:
+			wcscpy(ExceptionCodeBuffer, L"EXCEPTION_GUARD_PAGE");
+			break;
+		case EXCEPTION_INVALID_HANDLE:
+			wcscpy(ExceptionCodeBuffer, L"EXCEPTION_INVALID_HANDLE");
+			break;
+		default:
+			wcscpy(ExceptionCodeBuffer, L"неизвестный код");
+			break;
+	}
+
+	wsprintf(ErrorMessageBuffer, L"Поймано необработанное исключение.\r\nКод исключения: 0x%08X (%s)\r\nАдрес исключения: 0x%p", ExceptionInfo->ExceptionRecord->ExceptionCode, ExceptionCodeBuffer, ExceptionInfo->ExceptionRecord->ExceptionAddress);
+
+	int IntResult = MessageBox(NULL, ErrorMessageBuffer, L"Критическая ошибка", MB_OK | MB_ICONERROR);
+
+	wchar_t MiniDumpFileName[256];
+	wchar_t ModuleFileName[256];
+
+	DWORD DResult = GetModuleFileName(NULL, ModuleFileName, 256);
+
+	SYSTEMTIME SystemTime;
+
+	GetLocalTime(&SystemTime);
+
+	wsprintf(MiniDumpFileName, L"%s_Crash_%02d-%02d-%02d_%02d-%02d-%04d.dmp", ModuleFileName, SystemTime.wHour, SystemTime.wMinute, SystemTime.wSecond, SystemTime.wDay, SystemTime.wMonth, SystemTime.wYear);
+
+	HANDLE MiniDumpFile = CreateFile(MiniDumpFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
+
+	MINIDUMP_EXCEPTION_INFORMATION MiniDumpExceptionInformation;
+	MiniDumpExceptionInformation.ClientPointers = TRUE;
+	MiniDumpExceptionInformation.ExceptionPointers = ExceptionInfo;
+	MiniDumpExceptionInformation.ThreadId = GetCurrentThreadId();
+
+	BOOL Result = MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), MiniDumpFile, MINIDUMP_TYPE::MiniDumpWithDataSegs, &MiniDumpExceptionInformation, NULL, NULL);
+
+	return EXCEPTION_CONTINUE_SEARCH;
+}
+
 void Application::StartApplication(const wchar_t* WindowTitle, HINSTANCE hInstance)
 {
+	LPTOP_LEVEL_EXCEPTION_FILTER TopLevelExceptionFilter = SetUnhandledExceptionFilter(&Application::UnhandledExceptionFilter);
+
 	BOOL Result;
 
 	Result = AllocConsole();
