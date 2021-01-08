@@ -16,18 +16,15 @@
 
 void RenderSystem::InitSystem()
 {
-	HRESULT hr;
-
 	UINT DeviceCreationFlags = 0;
-	ULONG RefCount;
-
+	
 #ifdef _DEBUG
 	DeviceCreationFlags |= D3D11_CREATE_DEVICE_FLAG::D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
 	IDXGIFactory *Factory;
 
-	hr = CreateDXGIFactory1(__uuidof(IDXGIFactory), (void**)&Factory);
+	SAFE_DX(CreateDXGIFactory1(__uuidof(IDXGIFactory), (void**)&Factory));
 
 	IDXGIAdapter *Adapter;
 
@@ -49,9 +46,9 @@ void RenderSystem::InitSystem()
 
 	D3D_FEATURE_LEVEL FeatureLevel = D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_11_0;
 
-	hr = D3D11CreateDevice(Adapter, D3D_DRIVER_TYPE::D3D_DRIVER_TYPE_UNKNOWN, NULL, DeviceCreationFlags, &FeatureLevel, 1, D3D11_SDK_VERSION, &Device, nullptr, &DeviceContext);
+	SAFE_DX(D3D11CreateDevice(Adapter, D3D_DRIVER_TYPE::D3D_DRIVER_TYPE_UNKNOWN, NULL, DeviceCreationFlags, &FeatureLevel, 1, D3D11_SDK_VERSION, &Device, nullptr, &DeviceContext));
 
-	RefCount = Adapter->Release();
+	SAFE_RELEASE(Adapter);
 
 	DXGI_SWAP_CHAIN_DESC SwapChainDesc;
 	SwapChainDesc.BufferCount = 1;
@@ -70,22 +67,22 @@ void RenderSystem::InitSystem()
 	SwapChainDesc.SwapEffect = DXGI_SWAP_EFFECT::DXGI_SWAP_EFFECT_SEQUENTIAL;
 	SwapChainDesc.Windowed = TRUE;
 
-	hr = Factory->CreateSwapChain(Device, &SwapChainDesc, &SwapChain);
+	SAFE_DX(Factory->CreateSwapChain(Device, &SwapChainDesc, &SwapChain));
 	
-	hr = Factory->MakeWindowAssociation(Application::GetMainWindowHandle(), DXGI_MWA_NO_ALT_ENTER);
+	SAFE_DX(Factory->MakeWindowAssociation(Application::GetMainWindowHandle(), DXGI_MWA_NO_ALT_ENTER));
 
-	RefCount = Factory->Release();
+	SAFE_RELEASE(Factory);
 
 	delete[] DisplayModes;
 
-	hr = SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&BackBufferTexture);
+	SAFE_DX(SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&BackBufferTexture));
 
 	D3D11_RENDER_TARGET_VIEW_DESC RTVDesc;
 	RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 	RTVDesc.Texture2D.MipSlice = 0;
 	RTVDesc.ViewDimension = D3D11_RTV_DIMENSION::D3D11_RTV_DIMENSION_TEXTURE2D;
 
-	hr = Device->CreateRenderTargetView(BackBufferTexture, &RTVDesc, &BackBufferRTV);
+	SAFE_DX(Device->CreateRenderTargetView(BackBufferTexture, &RTVDesc, &BackBufferRTV));
 	
 	D3D11_TEXTURE2D_DESC TextureDesc;
 	TextureDesc.ArraySize = 1;
@@ -100,7 +97,7 @@ void RenderSystem::InitSystem()
 	TextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
 	TextureDesc.Width = ResolutionWidth;
 
-	hr = Device->CreateTexture2D(&TextureDesc, nullptr, &DepthBufferTexture);
+	SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &DepthBufferTexture));
 
 	D3D11_DEPTH_STENCIL_VIEW_DESC DSVDesc;
 	DSVDesc.Flags = 0;
@@ -108,7 +105,7 @@ void RenderSystem::InitSystem()
 	DSVDesc.Texture2D.MipSlice = 0;
 	DSVDesc.ViewDimension = D3D11_DSV_DIMENSION::D3D11_DSV_DIMENSION_TEXTURE2D;
 
-	hr = Device->CreateDepthStencilView(DepthBufferTexture, &DSVDesc, &DepthBufferDSV);
+	SAFE_DX(Device->CreateDepthStencilView(DepthBufferTexture, &DSVDesc, &DepthBufferDSV));
 
 	D3D11_BUFFER_DESC BufferDesc;
 	BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_CONSTANT_BUFFER;
@@ -120,7 +117,7 @@ void RenderSystem::InitSystem()
 
 	for (int i = 0; i < 20000; i++)
 	{
-		hr = Device->CreateBuffer(&BufferDesc, nullptr, &ConstantBuffers[i]);
+		SAFE_DX(Device->CreateBuffer(&BufferDesc, nullptr, &ConstantBuffers[i]));
 	}
 
 	D3D11_SAMPLER_DESC SamplerDesc;
@@ -133,7 +130,7 @@ void RenderSystem::InitSystem()
 	SamplerDesc.MinLOD = 0;
 	SamplerDesc.MipLODBias = 0.0f;
 
-	hr = Device->CreateSamplerState(&SamplerDesc, &Sampler);
+	SAFE_DX(Device->CreateSamplerState(&SamplerDesc, &Sampler));
 
 	D3D11_INPUT_ELEMENT_DESC InputElementDescs[2];
 	InputElementDescs[0].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
@@ -191,24 +188,24 @@ void RenderSystem::InitSystem()
 
 	ID3DBlob *VertexShaderBlob;
 
-	hr = D3DCompile(VertexShaderSourceCode, strlen(VertexShaderSourceCode), "VertexShader", nullptr, nullptr, "VS", "vs_5_0", D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &VertexShaderBlob, &ErrorBlob);
+	SAFE_DX(D3DCompile(VertexShaderSourceCode, strlen(VertexShaderSourceCode), "VertexShader", nullptr, nullptr, "VS", "vs_5_0", D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &VertexShaderBlob, &ErrorBlob));
 
-	hr = Device->CreateInputLayout(InputElementDescs, 2, VertexShaderBlob->GetBufferPointer(), VertexShaderBlob->GetBufferSize(), &InputLayout);
+	SAFE_DX(Device->CreateInputLayout(InputElementDescs, 2, VertexShaderBlob->GetBufferPointer(), VertexShaderBlob->GetBufferSize(), &InputLayout));
 
-	RefCount = VertexShaderBlob->Release();
+	SAFE_RELEASE(VertexShaderBlob);
 
 	D3D11_RASTERIZER_DESC RasterizerDesc;
 	ZeroMemory(&RasterizerDesc, sizeof(D3D11_RASTERIZER_DESC));
 	RasterizerDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_BACK;
 	RasterizerDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_SOLID;
 
-	hr = Device->CreateRasterizerState(&RasterizerDesc, &RasterizerState);
+	SAFE_DX(Device->CreateRasterizerState(&RasterizerDesc, &RasterizerState));
 
 	D3D11_BLEND_DESC BlendDesc;
 	ZeroMemory(&BlendDesc, sizeof(D3D11_BLEND_DESC));
 	BlendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE::D3D11_COLOR_WRITE_ENABLE_ALL;
 
-	hr = Device->CreateBlendState(&BlendDesc, &BlendState);
+	SAFE_DX(Device->CreateBlendState(&BlendDesc, &BlendState));
 
 	D3D11_DEPTH_STENCIL_DESC DepthStencilDesc;
 	ZeroMemory(&DepthStencilDesc, sizeof(D3D11_DEPTH_STENCIL_DESC));
@@ -216,22 +213,20 @@ void RenderSystem::InitSystem()
 	DepthStencilDesc.DepthFunc = D3D11_COMPARISON_FUNC::D3D11_COMPARISON_LESS;
 	DepthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK::D3D11_DEPTH_WRITE_MASK_ALL;
 
-	hr = Device->CreateDepthStencilState(&DepthStencilDesc, &DepthStencilState);
+	SAFE_DX(Device->CreateDepthStencilState(&DepthStencilDesc, &DepthStencilState));
 }
 
 void RenderSystem::ShutdownSystem()
 {
-	ULONG RefCount;
-
 	for (int k = 0; k < 20000; k++)
 	{
-		RefCount = ConstantBuffers[k]->Release();
+		SAFE_RELEASE(ConstantBuffers[k]);
 	}
 
-	RefCount = InputLayout->Release();
-	RefCount = RasterizerState->Release();
-	RefCount = BlendState->Release();
-	RefCount = DepthStencilState->Release();
+	SAFE_RELEASE(InputLayout);
+	SAFE_RELEASE(RasterizerState);
+	SAFE_RELEASE(BlendState);
+	SAFE_RELEASE(DepthStencilState);
 
 	for (RenderMesh* renderMesh : RenderMeshDestructionQueue)
 	{
@@ -245,8 +240,8 @@ void RenderSystem::ShutdownSystem()
 
 	for (RenderMaterial* renderMaterial : RenderMaterialDestructionQueue)
 	{
-		RefCount = renderMaterial->VertexShader->Release();
-		RefCount = renderMaterial->PixelShader->Release();
+		SAFE_RELEASE(renderMaterial->VertexShader);
+		SAFE_RELEASE(renderMaterial->PixelShader);
 
 		delete renderMaterial;
 	}
@@ -255,33 +250,30 @@ void RenderSystem::ShutdownSystem()
 
 	for (RenderTexture* renderTexture : RenderTextureDestructionQueue)
 	{
-		RefCount = renderTexture->TextureSRV->Release();
-		RefCount = renderTexture->Texture->Release();
+		SAFE_RELEASE(renderTexture->TextureSRV);
+		SAFE_RELEASE(renderTexture->Texture);
 
 		delete renderTexture;
 	}
 
 	RenderTextureDestructionQueue.clear();
 
-	RefCount = Sampler->Release();
+	SAFE_RELEASE(Sampler);
 
-	RefCount = BackBufferRTV->Release();
-	RefCount = BackBufferTexture->Release();
+	SAFE_RELEASE(BackBufferRTV);
+	SAFE_RELEASE(BackBufferTexture);
 
-	RefCount = DepthBufferDSV->Release();
-	RefCount = DepthBufferTexture->Release();
+	SAFE_RELEASE(DepthBufferDSV);
+	SAFE_RELEASE(DepthBufferTexture);
 
-	RefCount = SwapChain->Release();
+	SAFE_RELEASE(SwapChain);
 
-	RefCount = DeviceContext->Release();
-	RefCount = Device->Release();
+	SAFE_RELEASE(DeviceContext);
+	SAFE_RELEASE(Device);
 }
 
 void RenderSystem::TickSystem(float DeltaTime)
 {
-	SAFE_DX(CommandAllocators[CurrentFrameIndex]->Reset());
-	SAFE_DX(CommandList->Reset(CommandAllocators[CurrentFrameIndex], nullptr));
-
 	DeviceContext->ClearState();
 
 	XMMATRIX ViewProjMatrix = Engine::GetEngine().GetGameFramework().GetCamera().GetViewProjMatrix();
@@ -299,7 +291,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		XMMATRIX WorldMatrix = VisbleStaticMeshComponents[k]->GetTransformComponent()->GetTransformMatrix();
 		XMMATRIX WVPMatrix = WorldMatrix * ViewProjMatrix;
 		
-		hr = DeviceContext->Map(ConstantBuffers[k], 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, 0, &MappedSubResource);
+		SAFE_DX(DeviceContext->Map(ConstantBuffers[k], 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, 0, &MappedSubResource));
 		
 		memcpy(MappedSubResource.pData, &WVPMatrix, sizeof(XMMATRIX));
 
@@ -353,14 +345,12 @@ void RenderSystem::TickSystem(float DeltaTime)
 		DeviceContext->DrawIndexed(8 * 8 * 6 * 6, 0, 0);
 	}
 
-	hr = SwapChain->Present(0, 0);
+	SAFE_DX(SwapChain->Present(0, 0));
 }
 
 RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMeshCreateInfo)
 {
 	RenderMesh *renderMesh = new RenderMesh();
-
-	HRESULT hr;
 
 	D3D11_BUFFER_DESC BufferDesc;
 	BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER;
@@ -375,7 +365,7 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 	SubResourceData.SysMemPitch = 0;
 	SubResourceData.SysMemSlicePitch = 0;
 
-	hr = Device->CreateBuffer(&BufferDesc, &SubResourceData, &renderMesh->VertexBuffer);
+	SAFE_DX(Device->CreateBuffer(&BufferDesc, &SubResourceData, &renderMesh->VertexBuffer));
 
 	BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_INDEX_BUFFER;
 	BufferDesc.ByteWidth = sizeof(WORD) * renderMeshCreateInfo.IndexCount;
@@ -388,7 +378,7 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 	SubResourceData.SysMemPitch = 0;
 	SubResourceData.SysMemSlicePitch = 0;
 
-	hr = Device->CreateBuffer(&BufferDesc, &SubResourceData, &renderMesh->IndexBuffer);
+	SAFE_DX(Device->CreateBuffer(&BufferDesc, &SubResourceData, &renderMesh->IndexBuffer));
 
 	return renderMesh;
 }
@@ -396,8 +386,6 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& renderTextureCreateInfo)
 {
 	RenderTexture *renderTexture = new RenderTexture();
-
-	HRESULT hr;
 
 	D3D11_TEXTURE2D_DESC TextureDesc;
 	TextureDesc.ArraySize = 1;
@@ -421,7 +409,7 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 		SubResourceData[i].SysMemSlicePitch = 0;
 	}
 
-	hr = Device->CreateTexture2D(&TextureDesc, SubResourceData, &renderTexture->Texture);
+	SAFE_DX(Device->CreateTexture2D(&TextureDesc, SubResourceData, &renderTexture->Texture));
 
 	D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
 	SRVDesc.Format = renderTextureCreateInfo.SRGB ? DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -429,7 +417,7 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 	SRVDesc.Texture2D.MostDetailedMip = 0;
 	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_TEXTURE2D;
 
-	hr = Device->CreateShaderResourceView(renderTexture->Texture, &SRVDesc, &renderTexture->TextureSRV);
+	SAFE_DX(Device->CreateShaderResourceView(renderTexture->Texture, &SRVDesc, &renderTexture->TextureSRV));
 
 	return renderTexture;
 }
@@ -438,10 +426,8 @@ RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInf
 {
 	RenderMaterial *renderMaterial = new RenderMaterial();
 
-	HRESULT hr;
-
-	hr = Device->CreateVertexShader(renderMaterialCreateInfo.VertexShaderByteCodeData, renderMaterialCreateInfo.VertexShaderByteCodeLength, nullptr, &renderMaterial->VertexShader);
-	hr = Device->CreatePixelShader(renderMaterialCreateInfo.PixelShaderByteCodeData, renderMaterialCreateInfo.PixelShaderByteCodeLength, nullptr, &renderMaterial->PixelShader);
+	SAFE_DX(Device->CreateVertexShader(renderMaterialCreateInfo.VertexShaderByteCodeData, renderMaterialCreateInfo.VertexShaderByteCodeLength, nullptr, &renderMaterial->VertexShader));
+	SAFE_DX(Device->CreatePixelShader(renderMaterialCreateInfo.PixelShaderByteCodeData, renderMaterialCreateInfo.PixelShaderByteCodeLength, nullptr, &renderMaterial->PixelShader));
 
 	return renderMaterial;
 }
