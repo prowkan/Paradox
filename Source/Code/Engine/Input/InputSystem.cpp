@@ -34,7 +34,7 @@ void InputSystem::TickSystem(float DeltaTime)
 
 	BOOL Result = GetCursorPos(&CurrentCursorPosition);
 
-	float MouseSensetivity = 1.0f;
+	float MouseSensetivity = 0.25f;
 
 	CameraRotation.x += MouseSensetivity * (CurrentCursorPosition.y - PreviousCursorPosition.y) * DeltaTime;
 	CameraRotation.y += MouseSensetivity * (CurrentCursorPosition.x - PreviousCursorPosition.x) * DeltaTime;
