@@ -16,4 +16,5 @@ class Application
 		static HWND MainWindowHandle;
 
 		static LRESULT CALLBACK MainWindowProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
+		static LONG WINAPI UnhandledExceptionFilter(_EXCEPTION_POINTERS* ExceptionInfo);
 };

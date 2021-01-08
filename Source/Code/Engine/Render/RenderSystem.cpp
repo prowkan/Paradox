@@ -31,18 +31,18 @@ void RenderSystem::InitSystem()
 
 	IDXGIAdapter *Adapter;
 
-	hr = Factory->EnumAdapters(0, (IDXGIAdapter**)&Adapter);
+	SAFE_DX(Factory->EnumAdapters(0, (IDXGIAdapter**)&Adapter));
 
 	IDXGIOutput *Monitor;
 
-	hr = Adapter->EnumOutputs(0, &Monitor);
+	SAFE_DX(Adapter->EnumOutputs(0, &Monitor));
 
 	UINT DisplayModesCount;
-	hr = Monitor->GetDisplayModeList(DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM, 0, &DisplayModesCount, nullptr);
+	SAFE_DX(Monitor->GetDisplayModeList(DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM, 0, &DisplayModesCount, nullptr));
 	DXGI_MODE_DESC *DisplayModes = new DXGI_MODE_DESC[DisplayModesCount];
-	hr = Monitor->GetDisplayModeList(DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM, 0, &DisplayModesCount, DisplayModes);
+	SAFE_DX(Monitor->GetDisplayModeList(DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM, 0, &DisplayModesCount, DisplayModes));
 
-	RefCount = Monitor->Release();
+	SAFE_RELEASE(Monitor);
 
 	ResolutionWidth = DisplayModes[DisplayModesCount - 1].Width;
 	ResolutionHeight = DisplayModes[DisplayModesCount - 1].Height;
@@ -235,8 +235,8 @@ void RenderSystem::ShutdownSystem()
 
 	for (RenderMesh* renderMesh : RenderMeshDestructionQueue)
 	{
-		RefCount = renderMesh->VertexBuffer->Release();
-		RefCount = renderMesh->IndexBuffer->Release();
+		SAFE_RELEASE(renderMesh->VertexBuffer);
+		SAFE_RELEASE(renderMesh->IndexBuffer);
 
 		delete renderMesh;
 	}
@@ -279,7 +279,8 @@ void RenderSystem::ShutdownSystem()
 
 void RenderSystem::TickSystem(float DeltaTime)
 {
-	HRESULT hr;
+	SAFE_DX(CommandAllocators[CurrentFrameIndex]->Reset());
+	SAFE_DX(CommandList->Reset(CommandAllocators[CurrentFrameIndex], nullptr));
 
 	DeviceContext->ClearState();
 
@@ -458,4 +459,218 @@ void RenderSystem::DestroyRenderTexture(RenderTexture* renderTexture)
 void RenderSystem::DestroyRenderMaterial(RenderMaterial* renderMaterial)
 {
 	RenderMaterialDestructionQueue.push_back(renderMaterial);
+}
+
+void RenderSystem::CheckDXCallResult(HRESULT hr, const wchar_t* Function)
+{
+	if (FAILED(hr))
+	{
+		wchar_t DXErrorMessageBuffer[2048];
+		wchar_t DXErrorCodeBuffer[512];
+
+		const wchar_t *DXErrorCodePtr = GetDXErrorMessageFromHRESULT(hr);
+
+		if (DXErrorCodePtr) wcscpy(DXErrorCodeBuffer, DXErrorCodePtr);
+		else wsprintf(DXErrorCodeBuffer, L"0x%08X (неизвестный код)", hr);
+
+		wsprintf(DXErrorMessageBuffer, L"Произошла ошибка при попытке вызова следующей DirectX-функции:\r\n%s\r\nКод ошибки: %s", Function, DXErrorCodeBuffer);
+
+		int IntResult = MessageBox(NULL, DXErrorMessageBuffer, L"Ошибка DirectX", MB_OK | MB_ICONERROR);
+
+		if (hr == DXGI_ERROR_DEVICE_REMOVED) SAFE_DX(Device->GetDeviceRemovedReason());
+
+		ExitProcess(0);
+	}
+}
+
+const wchar_t* RenderSystem::GetDXErrorMessageFromHRESULT(HRESULT hr)
+{
+	switch (hr)
+	{
+		case E_UNEXPECTED:
+			return L"E_UNEXPECTED"; 
+			break; 
+		case E_NOTIMPL:
+			return L"E_NOTIMPL";
+			break;
+		case E_OUTOFMEMORY:
+			return L"E_OUTOFMEMORY";
+			break; 
+		case E_INVALIDARG:
+			return L"E_INVALIDARG";
+			break; 
+		case E_NOINTERFACE:
+			return L"E_NOINTERFACE";
+			break; 
+		case E_POINTER:
+			return L"E_POINTER"; 
+			break; 
+		case E_HANDLE:
+			return L"E_HANDLE"; 
+			break;
+		case E_ABORT:
+			return L"E_ABORT"; 
+			break; 
+		case E_FAIL:
+			return L"E_FAIL"; 
+			break;
+		case E_ACCESSDENIED:
+			return L"E_ACCESSDENIED";
+			break; 
+		case E_PENDING:
+			return L"E_PENDING";
+			break; 
+		case E_BOUNDS:
+			return L"E_BOUNDS";
+			break; 
+		case E_CHANGED_STATE:
+			return L"E_CHANGED_STATE";
+			break; 
+		case E_ILLEGAL_STATE_CHANGE:
+			return L"E_ILLEGAL_STATE_CHANGE";
+			break; 
+		case E_ILLEGAL_METHOD_CALL:
+			return L"E_ILLEGAL_METHOD_CALL";
+			break; 
+		case E_STRING_NOT_NULL_TERMINATED:
+			return L"E_STRING_NOT_NULL_TERMINATED"; 
+			break; 
+		case E_ILLEGAL_DELEGATE_ASSIGNMENT:
+			return L"E_ILLEGAL_DELEGATE_ASSIGNMENT";
+			break; 
+		case E_ASYNC_OPERATION_NOT_STARTED:
+			return L"E_ASYNC_OPERATION_NOT_STARTED"; 
+			break; 
+		case E_APPLICATION_EXITING:
+			return L"E_APPLICATION_EXITING";
+			break; 
+		case E_APPLICATION_VIEW_EXITING:
+			return L"E_APPLICATION_VIEW_EXITING";
+			break; 
+		case DXGI_ERROR_INVALID_CALL:
+			return L"DXGI_ERROR_INVALID_CALL";
+			break; 
+		case DXGI_ERROR_NOT_FOUND:
+			return L"DXGI_ERROR_NOT_FOUND";
+			break; 
+		case DXGI_ERROR_MORE_DATA:
+			return L"DXGI_ERROR_MORE_DATA";
+			break; 
+		case DXGI_ERROR_UNSUPPORTED:
+			return L"DXGI_ERROR_UNSUPPORTED";
+			break; 
+		case DXGI_ERROR_DEVICE_REMOVED:
+			return L"DXGI_ERROR_DEVICE_REMOVED";
+			break; 
+		case DXGI_ERROR_DEVICE_HUNG:
+			return L"DXGI_ERROR_DEVICE_HUNG";
+			break; 
+		case DXGI_ERROR_DEVICE_RESET:
+			return L"DXGI_ERROR_DEVICE_RESET";
+			break; 
+		case DXGI_ERROR_WAS_STILL_DRAWING:
+			return L"DXGI_ERROR_WAS_STILL_DRAWING";
+			break; 
+		case DXGI_ERROR_FRAME_STATISTICS_DISJOINT:
+			return L"DXGI_ERROR_FRAME_STATISTICS_DISJOINT";
+			break; 
+		case DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE:
+			return L"DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE"; 
+			break; 
+		case DXGI_ERROR_DRIVER_INTERNAL_ERROR:
+			return L"DXGI_ERROR_DRIVER_INTERNAL_ERROR";
+			break; 
+		case DXGI_ERROR_NONEXCLUSIVE:
+			return L"DXGI_ERROR_NONEXCLUSIVE";
+			break; 
+		case DXGI_ERROR_NOT_CURRENTLY_AVAILABLE:
+			return L"DXGI_ERROR_NOT_CURRENTLY_AVAILABLE"; 
+			break; 
+		case DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED:
+			return L"DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED";
+			break; 
+		case DXGI_ERROR_REMOTE_OUTOFMEMORY:
+			return L"DXGI_ERROR_REMOTE_OUTOFMEMORY"; 
+			break; 
+		case DXGI_ERROR_ACCESS_LOST:
+			return L"DXGI_ERROR_ACCESS_LOST";
+			break; 
+		case DXGI_ERROR_WAIT_TIMEOUT:
+			return L"DXGI_ERROR_WAIT_TIMEOUT";
+			break; 
+		case DXGI_ERROR_SESSION_DISCONNECTED:
+			return L"DXGI_ERROR_SESSION_DISCONNECTED";
+			break; 
+		case DXGI_ERROR_RESTRICT_TO_OUTPUT_STALE:
+			return L"DXGI_ERROR_RESTRICT_TO_OUTPUT_STALE";
+			break; 
+		case DXGI_ERROR_CANNOT_PROTECT_CONTENT:
+			return L"DXGI_ERROR_CANNOT_PROTECT_CONTENT";
+			break; 
+		case DXGI_ERROR_ACCESS_DENIED:
+			return L"DXGI_ERROR_ACCESS_DENIED"; 
+			break; 
+		case DXGI_ERROR_NAME_ALREADY_EXISTS:
+			return L"DXGI_ERROR_NAME_ALREADY_EXISTS";
+			break; 
+		case DXGI_ERROR_SDK_COMPONENT_MISSING:
+			return L"DXGI_ERROR_SDK_COMPONENT_MISSING"; 
+			break; 
+		case DXGI_ERROR_NOT_CURRENT:
+			return L"DXGI_ERROR_NOT_CURRENT";
+			break; 
+		case DXGI_ERROR_HW_PROTECTION_OUTOFMEMORY:
+			return L"DXGI_ERROR_HW_PROTECTION_OUTOFMEMORY"; 
+			break; 
+		case DXGI_ERROR_DYNAMIC_CODE_POLICY_VIOLATION:
+			return L"DXGI_ERROR_DYNAMIC_CODE_POLICY_VIOLATION"; 
+			break; 
+		case DXGI_ERROR_NON_COMPOSITED_UI:
+			return L"DXGI_ERROR_NON_COMPOSITED_UI";
+			break; 
+		case DXGI_ERROR_MODE_CHANGE_IN_PROGRESS:
+			return L"DXGI_ERROR_MODE_CHANGE_IN_PROGRESS";
+			break; 
+		case DXGI_ERROR_CACHE_CORRUPT:
+			return L"DXGI_ERROR_CACHE_CORRUPT";
+			break;
+		case DXGI_ERROR_CACHE_FULL:
+			return L"DXGI_ERROR_CACHE_FULL";
+			break;
+		case DXGI_ERROR_CACHE_HASH_COLLISION:
+			return L"DXGI_ERROR_CACHE_HASH_COLLISION";
+			break;
+		case DXGI_ERROR_ALREADY_EXISTS:
+			return L"DXGI_ERROR_ALREADY_EXISTS"; 
+			break;
+		case D3D10_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS:
+			return L"D3D10_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS";
+			break; 
+		case D3D10_ERROR_FILE_NOT_FOUND:
+			return L"D3D10_ERROR_FILE_NOT_FOUND";
+			break;
+		case D3D11_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS:
+			return L"D3D11_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS";
+			break;
+		case D3D11_ERROR_FILE_NOT_FOUND:
+			return L"D3D11_ERROR_FILE_NOT_FOUND"; 
+			break;
+		case D3D11_ERROR_TOO_MANY_UNIQUE_VIEW_OBJECTS:
+			return L"D3D11_ERROR_TOO_MANY_UNIQUE_VIEW_OBJECTS"; 
+			break; 
+		case D3D11_ERROR_DEFERRED_CONTEXT_MAP_WITHOUT_INITIAL_DISCARD:
+			return L"D3D11_ERROR_DEFERRED_CONTEXT_MAP_WITHOUT_INITIAL_DISCARD";
+			break;
+		case D3D12_ERROR_ADAPTER_NOT_FOUND:
+			return L"D3D12_ERROR_ADAPTER_NOT_FOUND";
+			break;
+		case D3D12_ERROR_DRIVER_VERSION_MISMATCH:
+			return L"D3D12_ERROR_DRIVER_VERSION_MISMATCH"; 
+			break;
+		default:
+			return nullptr;
+			break;
+	}
+
+	return nullptr;
 }

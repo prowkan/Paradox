@@ -22,6 +22,8 @@ void InputSystem::ShutdownSystem()
 
 void InputSystem::TickSystem(float DeltaTime)
 {
+	if (GetForegroundWindow() != Application::GetMainWindowHandle()) return;
+
 	XMFLOAT3 CameraLocation = Engine::GetEngine().GetGameFramework().GetCamera().GetCameraLocation();
 	XMFLOAT3 CameraRotation = Engine::GetEngine().GetGameFramework().GetCamera().GetCameraRotation();
 
@@ -32,7 +34,7 @@ void InputSystem::TickSystem(float DeltaTime)
 
 	BOOL Result = GetCursorPos(&CurrentCursorPosition);
 
-	float MouseSensetivity = 1.0f;
+	float MouseSensetivity = 0.25f;
 
 	CameraRotation.x += MouseSensetivity * (CurrentCursorPosition.y - PreviousCursorPosition.y) * DeltaTime;
 	CameraRotation.y += MouseSensetivity * (CurrentCursorPosition.x - PreviousCursorPosition.x) * DeltaTime;
