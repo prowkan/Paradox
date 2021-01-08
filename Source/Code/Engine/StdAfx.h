@@ -8,6 +8,7 @@
 #include <map>
 
 #include <Windows.h>
+#include <DbgHelp.h>
 
 #include <d3d12.h>
 #include <dxgi1_6.h>
@@ -17,6 +18,8 @@
 #include <DirectXMath.h>
 
 #include <F:/Optick/include/optick.h>
+
+#pragma comment(lib, "DbgHelp.lib")
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
