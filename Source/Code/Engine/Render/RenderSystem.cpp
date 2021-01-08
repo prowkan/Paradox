@@ -16,14 +16,11 @@
 
 void RenderSystem::InitSystem()
 {
-	HRESULT hr;
-
 	UINT FactoryCreationFlags = 0;
-	ULONG RefCount;
 
 #ifdef _DEBUG
 	ID3D12Debug3 *Debug;
-	hr = D3D12GetDebugInterface(__uuidof(ID3D12Debug3), (void**)&Debug);
+	SAFE_DX(D3D12GetDebugInterface(__uuidof(ID3D12Debug3), (void**)&Debug));
 	Debug->EnableDebugLayer();
 	Debug->SetEnableGPUBasedValidation(TRUE);
 	FactoryCreationFlags |= DXGI_CREATE_FACTORY_DEBUG;
@@ -31,29 +28,29 @@ void RenderSystem::InitSystem()
 
 	IDXGIFactory7 *Factory;
 
-	hr = CreateDXGIFactory2(FactoryCreationFlags, __uuidof(IDXGIFactory7), (void**)&Factory);
+	SAFE_DX(CreateDXGIFactory2(FactoryCreationFlags, __uuidof(IDXGIFactory7), (void**)&Factory));
 
 	IDXGIAdapter *Adapter;
 
-	hr = Factory->EnumAdapters(0, (IDXGIAdapter**)&Adapter);
+	SAFE_DX(Factory->EnumAdapters(0, (IDXGIAdapter**)&Adapter));
 
 	IDXGIOutput *Monitor;
 
-	hr = Adapter->EnumOutputs(0, &Monitor);
+	SAFE_DX(Adapter->EnumOutputs(0, &Monitor));
 
 	UINT DisplayModesCount;
-	hr = Monitor->GetDisplayModeList(DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM, 0, &DisplayModesCount, nullptr);
+	SAFE_DX(Monitor->GetDisplayModeList(DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM, 0, &DisplayModesCount, nullptr));
 	DXGI_MODE_DESC *DisplayModes = new DXGI_MODE_DESC[DisplayModesCount];
-	hr = Monitor->GetDisplayModeList(DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM, 0, &DisplayModesCount, DisplayModes);
+	SAFE_DX(Monitor->GetDisplayModeList(DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM, 0, &DisplayModesCount, DisplayModes));
 
-	RefCount = Monitor->Release();
+	SAFE_RELEASE(Monitor);
 
 	ResolutionWidth = DisplayModes[DisplayModesCount - 1].Width;
 	ResolutionHeight = DisplayModes[DisplayModesCount - 1].Height;
 
-	hr = D3D12CreateDevice(Adapter, D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), (void**)&Device);
+	SAFE_DX(D3D12CreateDevice(Adapter, D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), (void**)&Device));
 
-	RefCount = Adapter->Release();
+	SAFE_RELEASE(Adapter);
 
 	D3D12_COMMAND_QUEUE_DESC CommandQueueDesc;
 	CommandQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAGS::D3D12_COMMAND_QUEUE_FLAG_NONE;
@@ -61,13 +58,13 @@ void RenderSystem::InitSystem()
 	CommandQueueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY::D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
 	CommandQueueDesc.Type = D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT;
 
-	hr = Device->CreateCommandQueue(&CommandQueueDesc, __uuidof(ID3D12CommandQueue), (void**)&CommandQueue);
+	SAFE_DX(Device->CreateCommandQueue(&CommandQueueDesc, __uuidof(ID3D12CommandQueue), (void**)&CommandQueue));
 
-	hr = Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator), (void**)&CommandAllocators[0]);
-	hr = Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator), (void**)&CommandAllocators[1]);
+	SAFE_DX(Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator), (void**)&CommandAllocators[0]));
+	SAFE_DX(Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator), (void**)&CommandAllocators[1]));
 
-	hr = Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT, CommandAllocators[0], nullptr, __uuidof(ID3D12GraphicsCommandList), (void**)&CommandList);
-	hr = CommandList->Close();
+	SAFE_DX(Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT, CommandAllocators[0], nullptr, __uuidof(ID3D12GraphicsCommandList), (void**)&CommandList));
+	SAFE_DX(CommandList->Close());
 
 	DXGI_SWAP_CHAIN_DESC1 SwapChainDesc;
 	SwapChainDesc.AlphaMode = DXGI_ALPHA_MODE::DXGI_ALPHA_MODE_UNSPECIFIED;
@@ -91,22 +88,22 @@ void RenderSystem::InitSystem()
 	SwapChainFullScreenDesc.Windowed = TRUE;
 
 	IDXGISwapChain1 *SwapChain1;
-	hr = Factory->CreateSwapChainForHwnd(CommandQueue, Application::GetMainWindowHandle(), &SwapChainDesc, &SwapChainFullScreenDesc, nullptr, &SwapChain1);
-	hr = SwapChain1->QueryInterface<IDXGISwapChain4>(&SwapChain);
+	SAFE_DX(Factory->CreateSwapChainForHwnd(CommandQueue, Application::GetMainWindowHandle(), &SwapChainDesc, &SwapChainFullScreenDesc, nullptr, &SwapChain1));
+	SAFE_DX(SwapChain1->QueryInterface<IDXGISwapChain4>(&SwapChain));
 
-	hr = Factory->MakeWindowAssociation(Application::GetMainWindowHandle(), DXGI_MWA_NO_ALT_ENTER);
+	SAFE_DX(Factory->MakeWindowAssociation(Application::GetMainWindowHandle(), DXGI_MWA_NO_ALT_ENTER));
 
-	RefCount = SwapChain1->Release();
+	SAFE_RELEASE(SwapChain1);
 
-	RefCount = Factory->Release();
+	SAFE_RELEASE(Factory);
 
 	delete[] DisplayModes;
 
 	CurrentBackBufferIndex = SwapChain->GetCurrentBackBufferIndex();
 	CurrentFrameIndex = 0;
 
-	hr = Device->CreateFence(1, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), (void**)&Fences[0]);
-	hr = Device->CreateFence(1, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), (void**)&Fences[1]);
+	SAFE_DX(Device->CreateFence(1, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), (void**)&Fences[0]));
+	SAFE_DX(Device->CreateFence(1, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), (void**)&Fences[1]));
 
 	Event = CreateEvent(NULL, FALSE, FALSE, L"Event");
 
@@ -116,58 +113,58 @@ void RenderSystem::InitSystem()
 	DescriptorHeapDesc.NumDescriptors = 2;
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 
-	hr = Device->CreateDescriptorHeap(&DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&RTDescriptorHeap);
+	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&RTDescriptorHeap));
 
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	DescriptorHeapDesc.NodeMask = 0;
 	DescriptorHeapDesc.NumDescriptors = 1;
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 
-	hr = Device->CreateDescriptorHeap(&DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&DSDescriptorHeap);
+	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&DSDescriptorHeap));
 
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	DescriptorHeapDesc.NodeMask = 0;
 	DescriptorHeapDesc.NumDescriptors = 1;
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 
-	hr = Device->CreateDescriptorHeap(&DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&CBSRUADescriptorHeap);
+	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&CBSRUADescriptorHeap));
 
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	DescriptorHeapDesc.NodeMask = 0;
 	DescriptorHeapDesc.NumDescriptors = 1;
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 
-	hr = Device->CreateDescriptorHeap(&DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&SamplersDescriptorHeap);
+	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&SamplersDescriptorHeap));
 
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	DescriptorHeapDesc.NodeMask = 0;
 	DescriptorHeapDesc.NumDescriptors = 100000;
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 
-	hr = Device->CreateDescriptorHeap(&DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&ConstantBufferDescriptorHeap);
+	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&ConstantBufferDescriptorHeap));
 
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	DescriptorHeapDesc.NodeMask = 0;
 	DescriptorHeapDesc.NumDescriptors = 4000;
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 
-	hr = Device->CreateDescriptorHeap(&DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&TexturesDescriptorHeap);
+	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&TexturesDescriptorHeap));
 
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	DescriptorHeapDesc.NodeMask = 0;
 	DescriptorHeapDesc.NumDescriptors = 100000;
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 
-	hr = Device->CreateDescriptorHeap(&DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&FrameResourcesDescriptorHeaps[0]);
-	hr = Device->CreateDescriptorHeap(&DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&FrameResourcesDescriptorHeaps[1]);
+	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&FrameResourcesDescriptorHeaps[0]));
+	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&FrameResourcesDescriptorHeaps[1]));
 
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	DescriptorHeapDesc.NodeMask = 0;
 	DescriptorHeapDesc.NumDescriptors = 2000;
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 
-	hr = Device->CreateDescriptorHeap(&DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&FrameSamplersDescriptorHeaps[0]);
-	hr = Device->CreateDescriptorHeap(&DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&FrameSamplersDescriptorHeaps[1]);
+	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&FrameSamplersDescriptorHeaps[0]));
+	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&FrameSamplersDescriptorHeaps[1]));
 
 	D3D12_DESCRIPTOR_RANGE DescriptorRanges[3];
 	DescriptorRanges[0].BaseShaderRegister = 0;
@@ -221,12 +218,12 @@ void RenderSystem::InitSystem()
 
 	ID3DBlob *RootSignatureBlob;
 
-	hr = D3D12SerializeRootSignature(&RootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION::D3D_ROOT_SIGNATURE_VERSION_1_0, &RootSignatureBlob, nullptr);
+	SAFE_DX(D3D12SerializeRootSignature(&RootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION::D3D_ROOT_SIGNATURE_VERSION_1_0, &RootSignatureBlob, nullptr));
 
-	hr = Device->CreateRootSignature(0, RootSignatureBlob->GetBufferPointer(), RootSignatureBlob->GetBufferSize(), __uuidof(ID3D12RootSignature), (void**)&RootSignature);
+	SAFE_DX(Device->CreateRootSignature(0, RootSignatureBlob->GetBufferPointer(), RootSignatureBlob->GetBufferSize(), __uuidof(ID3D12RootSignature), (void**)&RootSignature));
 
-	hr = SwapChain->GetBuffer(0, __uuidof(ID3D12Resource), (void**)&BackBufferTextures[0]);
-	hr = SwapChain->GetBuffer(1, __uuidof(ID3D12Resource), (void**)&BackBufferTextures[1]);
+	SAFE_DX(SwapChain->GetBuffer(0, __uuidof(ID3D12Resource), (void**)&BackBufferTextures[0]));
+	SAFE_DX(SwapChain->GetBuffer(1, __uuidof(ID3D12Resource), (void**)&BackBufferTextures[1]));
 
 	D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
 	RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
@@ -265,7 +262,7 @@ void RenderSystem::InitSystem()
 	ClearValue.DepthStencil.Stencil = 0;
 	ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 
-	hr = Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE, &ClearValue, __uuidof(ID3D12Resource), (void**)&DepthBufferTexture);
+	SAFE_DX(Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE, &ClearValue, __uuidof(ID3D12Resource), (void**)&DepthBufferTexture));
 
 	D3D12_DEPTH_STENCIL_VIEW_DESC DSVDesc;
 	DSVDesc.Flags = D3D12_DSV_FLAGS::D3D12_DSV_FLAG_NONE;
@@ -295,7 +292,7 @@ void RenderSystem::InitSystem()
 	HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT;
 	HeapProperties.VisibleNodeMask = 0;
 
-	hr = Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, __uuidof(ID3D12Resource), (void**)&GPUConstantBuffer);
+	SAFE_DX(Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, __uuidof(ID3D12Resource), (void**)&GPUConstantBuffer));
 
 	HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
 	HeapProperties.CreationNodeMask = 0;
@@ -303,8 +300,8 @@ void RenderSystem::InitSystem()
 	HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD;
 	HeapProperties.VisibleNodeMask = 0;
 
-	hr = Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), (void**)&CPUConstantBuffers[0]);
-	hr = Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), (void**)&CPUConstantBuffers[1]);
+	SAFE_DX(Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), (void**)&CPUConstantBuffers[0]));
+	SAFE_DX(Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), (void**)&CPUConstantBuffers[1]));
 
 	for (int i = 0; i < 20000; i++)
 	{
@@ -341,7 +338,7 @@ void RenderSystem::InitSystem()
 	HeapDesc.Properties.VisibleNodeMask = 0;
 	HeapDesc.SizeInBytes = BUFFER_MEMORY_HEAP_SIZE;
 
-	hr = Device->CreateHeap(&HeapDesc, __uuidof(ID3D12Heap), (void**)&BufferMemoryHeaps[CurrentBufferMemoryHeapIndex]);
+	SAFE_DX(Device->CreateHeap(&HeapDesc, __uuidof(ID3D12Heap), (void**)&BufferMemoryHeaps[CurrentBufferMemoryHeapIndex]));
 
 	HeapDesc.Alignment = 0;
 	HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES;
@@ -352,7 +349,7 @@ void RenderSystem::InitSystem()
 	HeapDesc.Properties.VisibleNodeMask = 0;
 	HeapDesc.SizeInBytes = TEXTURE_MEMORY_HEAP_SIZE;
 
-	hr = Device->CreateHeap(&HeapDesc, __uuidof(ID3D12Heap), (void**)&TextureMemoryHeaps[CurrentTextureMemoryHeapIndex]);
+	SAFE_DX(Device->CreateHeap(&HeapDesc, __uuidof(ID3D12Heap), (void**)&TextureMemoryHeaps[CurrentTextureMemoryHeapIndex]));
 
 	HeapDesc.Alignment = 0;
 	HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
@@ -363,7 +360,7 @@ void RenderSystem::InitSystem()
 	HeapDesc.Properties.VisibleNodeMask = 0;
 	HeapDesc.SizeInBytes = UPLOAD_HEAP_SIZE;
 
-	hr = Device->CreateHeap(&HeapDesc, __uuidof(ID3D12Heap), (void**)&UploadHeap);
+	SAFE_DX(Device->CreateHeap(&HeapDesc, __uuidof(ID3D12Heap), (void**)&UploadHeap));
 
 	ResourceDesc.Alignment = 0;
 	ResourceDesc.DepthOrArraySize = 1;
@@ -377,27 +374,23 @@ void RenderSystem::InitSystem()
 	ResourceDesc.SampleDesc.Quality = 0;
 	ResourceDesc.Width = UPLOAD_HEAP_SIZE;
 
-	hr = Device->CreatePlacedResource(UploadHeap, 0, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), (void**)&UploadBuffer);
+	SAFE_DX(Device->CreatePlacedResource(UploadHeap, 0, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), (void**)&UploadBuffer));
 }
 
 void RenderSystem::ShutdownSystem()
 {
-	HRESULT hr;
-
 	CurrentFrameIndex = (CurrentFrameIndex + 1) % 2;
 
 	if (Fences[CurrentFrameIndex]->GetCompletedValue() != 1)
 	{
-		hr = Fences[CurrentFrameIndex]->SetEventOnCompletion(1, Event);
+		SAFE_DX(Fences[CurrentFrameIndex]->SetEventOnCompletion(1, Event));
 		DWORD WaitResult = WaitForSingleObject(Event, INFINITE);
 	}
 
-	ULONG RefCount;
-
 	for (RenderMesh* renderMesh : RenderMeshDestructionQueue)
 	{
-		RefCount = renderMesh->VertexBuffer->Release();
-		RefCount = renderMesh->IndexBuffer->Release();
+		SAFE_RELEASE(renderMesh->VertexBuffer);
+		SAFE_RELEASE(renderMesh->IndexBuffer);
 
 		delete renderMesh;
 	}
@@ -406,7 +399,7 @@ void RenderSystem::ShutdownSystem()
 
 	for (RenderMaterial* renderMaterial : RenderMaterialDestructionQueue)
 	{
-		RefCount = renderMaterial->PipelineState->Release();
+		SAFE_RELEASE(renderMaterial->PipelineState);
 
 		delete renderMaterial;
 	}
@@ -415,7 +408,7 @@ void RenderSystem::ShutdownSystem()
 
 	for (RenderTexture* renderTexture : RenderTextureDestructionQueue)
 	{
-		RefCount = renderTexture->Texture->Release();
+		SAFE_RELEASE(renderTexture->Texture);
 
 		delete renderTexture;
 	}
@@ -424,63 +417,61 @@ void RenderSystem::ShutdownSystem()
 
 	for (int i = 0; i < MAX_MEMORY_HEAPS_COUNT; i++)
 	{
-		if (BufferMemoryHeaps[i]) RefCount = BufferMemoryHeaps[i]->Release();
-		if (TextureMemoryHeaps[i]) RefCount = TextureMemoryHeaps[i]->Release();
+		if (BufferMemoryHeaps[i]) SAFE_RELEASE(BufferMemoryHeaps[i]);
+		if (TextureMemoryHeaps[i]) SAFE_RELEASE(TextureMemoryHeaps[i]);
 	}
 
-	RefCount = UploadBuffer->Release();
-	RefCount = UploadHeap->Release();
+	SAFE_RELEASE(UploadBuffer);
+	SAFE_RELEASE(UploadHeap);
 
-	RefCount = BackBufferTextures[0]->Release();
-	RefCount = BackBufferTextures[1]->Release();
+	SAFE_RELEASE(BackBufferTextures[0]);
+	SAFE_RELEASE(BackBufferTextures[1]);
 
-	RefCount = DepthBufferTexture->Release();
+	SAFE_RELEASE(DepthBufferTexture);
 
-	RefCount = Fences[0]->Release();
-	RefCount = Fences[1]->Release();
+	SAFE_RELEASE(Fences[0]);
+	SAFE_RELEASE(Fences[1]);
 
 	BOOL Result;
 
 	Result = CloseHandle(Event);
 
-	RefCount = GPUConstantBuffer->Release();
-	RefCount = CPUConstantBuffers[0]->Release();
-	RefCount = CPUConstantBuffers[1]->Release();
+	SAFE_RELEASE(GPUConstantBuffer);
+	SAFE_RELEASE(CPUConstantBuffers[0]);
+	SAFE_RELEASE(CPUConstantBuffers[1]);
 
-	RefCount = RootSignature->Release();
+	SAFE_RELEASE(RootSignature);
 
-	RefCount = RTDescriptorHeap->Release();
-	RefCount = DSDescriptorHeap->Release();
-	RefCount = CBSRUADescriptorHeap->Release();
-	RefCount = SamplersDescriptorHeap->Release();
+	SAFE_RELEASE(RTDescriptorHeap);
+	SAFE_RELEASE(DSDescriptorHeap);
+	SAFE_RELEASE(CBSRUADescriptorHeap);
+	SAFE_RELEASE(SamplersDescriptorHeap);
 
-	RefCount = ConstantBufferDescriptorHeap->Release();
-	RefCount = TexturesDescriptorHeap->Release();
+	SAFE_RELEASE(ConstantBufferDescriptorHeap);
+	SAFE_RELEASE(TexturesDescriptorHeap);
 
-	RefCount = FrameResourcesDescriptorHeaps[0]->Release();
-	RefCount = FrameResourcesDescriptorHeaps[1]->Release();
+	SAFE_RELEASE(FrameResourcesDescriptorHeaps[0]);
+	SAFE_RELEASE(FrameResourcesDescriptorHeaps[1]);
 
-	RefCount = FrameSamplersDescriptorHeaps[0]->Release();
-	RefCount = FrameSamplersDescriptorHeaps[1]->Release();
+	SAFE_RELEASE(FrameSamplersDescriptorHeaps[0]);
+	SAFE_RELEASE(FrameSamplersDescriptorHeaps[1]);
 
-	RefCount = CommandList->Release();
+	SAFE_RELEASE(CommandList);
 
-	RefCount = CommandAllocators[0]->Release();
-	RefCount = CommandAllocators[1]->Release();
+	SAFE_RELEASE(CommandAllocators[0]);
+	SAFE_RELEASE(CommandAllocators[1]);
 
-	RefCount = SwapChain->Release();
+	SAFE_RELEASE(SwapChain);
 
-	RefCount = CommandQueue->Release();
+	SAFE_RELEASE(CommandQueue);
 
-	RefCount = Device->Release();
+	SAFE_RELEASE(Device);
 }
 
 void RenderSystem::TickSystem(float DeltaTime)
 {
-	HRESULT hr;
-
-	hr = CommandAllocators[CurrentFrameIndex]->Reset();
-	hr = CommandList->Reset(CommandAllocators[CurrentFrameIndex], nullptr);
+	SAFE_DX(CommandAllocators[CurrentFrameIndex]->Reset());
+	SAFE_DX(CommandList->Reset(CommandAllocators[CurrentFrameIndex], nullptr));
 
 	D3D12_CPU_DESCRIPTOR_HANDLE ResourceCPUHandle = FrameResourcesDescriptorHeaps[CurrentFrameIndex]->GetCPUDescriptorHandleForHeapStart();
 	D3D12_GPU_DESCRIPTOR_HANDLE ResourceGPUHandle = FrameResourcesDescriptorHeaps[CurrentFrameIndex]->GetGPUDescriptorHandleForHeapStart();
@@ -509,7 +500,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	OPTICK_EVENT("Draw Calls")
 
-	hr = CPUConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData);
+	SAFE_DX(CPUConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
 
 	for (int k = 0; k < VisbleStaticMeshComponentsCount; k++)
 	{
@@ -636,31 +627,29 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	CommandList->ResourceBarrier(1, &ResourceBarrier);
 
-	hr = CommandList->Close();
+	SAFE_DX(CommandList->Close());
 
 	CommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CommandList);
 
-	hr = SwapChain->Present(0, DXGI_PRESENT_ALLOW_TEARING);
+	SAFE_DX(SwapChain->Present(0, DXGI_PRESENT_ALLOW_TEARING));
 
-	hr = CommandQueue->Signal(Fences[CurrentFrameIndex], 1);
+	SAFE_DX(CommandQueue->Signal(Fences[CurrentFrameIndex], 1));
 
 	CurrentFrameIndex = (CurrentFrameIndex + 1) % 2;
 	CurrentBackBufferIndex = SwapChain->GetCurrentBackBufferIndex();
 
 	if (Fences[CurrentFrameIndex]->GetCompletedValue() != 1)
 	{
-		hr = Fences[CurrentFrameIndex]->SetEventOnCompletion(1, Event);
+		SAFE_DX(Fences[CurrentFrameIndex]->SetEventOnCompletion(1, Event));
 		DWORD WaitResult = WaitForSingleObject(Event, INFINITE);
 	}
 
-	hr = Fences[CurrentFrameIndex]->Signal(0);
+	SAFE_DX(Fences[CurrentFrameIndex]->Signal(0));
 }
 
 RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMeshCreateInfo)
 {
 	RenderMesh *renderMesh = new RenderMesh();
-
-	HRESULT hr;
 
 	D3D12_RESOURCE_DESC ResourceDesc;
 	ResourceDesc.Alignment = 0;
@@ -693,12 +682,12 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = BUFFER_MEMORY_HEAP_SIZE;
 
-		hr = Device->CreateHeap(&HeapDesc, __uuidof(ID3D12Heap), (void**)&BufferMemoryHeaps[CurrentBufferMemoryHeapIndex]);
+		SAFE_DX(Device->CreateHeap(&HeapDesc, __uuidof(ID3D12Heap), (void**)&BufferMemoryHeaps[CurrentBufferMemoryHeapIndex]));
 
 		AlignedResourceOffset = 0;
 	}
 
-	hr = Device->CreatePlacedResource(BufferMemoryHeaps[CurrentBufferMemoryHeapIndex], AlignedResourceOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), (void**)&renderMesh->VertexBuffer);
+	SAFE_DX(Device->CreatePlacedResource(BufferMemoryHeaps[CurrentBufferMemoryHeapIndex], AlignedResourceOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), (void**)&renderMesh->VertexBuffer));
 
 	BufferMemoryHeapOffsets[CurrentBufferMemoryHeapIndex] = AlignedResourceOffset + ResourceAllocationInfo.SizeInBytes;
 
@@ -732,12 +721,12 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = BUFFER_MEMORY_HEAP_SIZE;
 
-		hr = Device->CreateHeap(&HeapDesc, __uuidof(ID3D12Heap), (void**)&BufferMemoryHeaps[CurrentBufferMemoryHeapIndex]);
+		SAFE_DX(Device->CreateHeap(&HeapDesc, __uuidof(ID3D12Heap), (void**)&BufferMemoryHeaps[CurrentBufferMemoryHeapIndex]));
 
 		AlignedResourceOffset = 0;
 	}
 
-	hr = Device->CreatePlacedResource(BufferMemoryHeaps[CurrentBufferMemoryHeapIndex], AlignedResourceOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), (void**)&renderMesh->IndexBuffer);
+	SAFE_DX(Device->CreatePlacedResource(BufferMemoryHeaps[CurrentBufferMemoryHeapIndex], AlignedResourceOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), (void**)&renderMesh->IndexBuffer));
 
 	BufferMemoryHeapOffsets[CurrentBufferMemoryHeapIndex] = AlignedResourceOffset + ResourceAllocationInfo.SizeInBytes;
 
@@ -750,13 +739,13 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 	WrittenRange.Begin = 0;
 	WrittenRange.End = sizeof(Vertex) * renderMeshCreateInfo.VertexCount + sizeof(WORD) * renderMeshCreateInfo.IndexCount;
 
-	hr = UploadBuffer->Map(0, &ReadRange, &MappedData);
+	SAFE_DX(UploadBuffer->Map(0, &ReadRange, &MappedData));
 	memcpy((BYTE*)MappedData, renderMeshCreateInfo.VertexData, sizeof(Vertex) * renderMeshCreateInfo.VertexCount);
 	memcpy((BYTE*)MappedData + sizeof(Vertex) * renderMeshCreateInfo.VertexCount, renderMeshCreateInfo.IndexData, sizeof(WORD) * renderMeshCreateInfo.IndexCount);
 	UploadBuffer->Unmap(0, &WrittenRange);
 
-	hr = CommandAllocators[0]->Reset();
-	hr = CommandList->Reset(CommandAllocators[0], nullptr);
+	SAFE_DX(CommandAllocators[0]->Reset());
+	SAFE_DX(CommandList->Reset(CommandAllocators[0], nullptr));
 
 	CommandList->CopyBufferRegion(renderMesh->VertexBuffer, 0, UploadBuffer, 0, sizeof(Vertex) * renderMeshCreateInfo.VertexCount);
 	CommandList->CopyBufferRegion(renderMesh->IndexBuffer, 0, UploadBuffer, sizeof(Vertex) * renderMeshCreateInfo.VertexCount, sizeof(WORD) * renderMeshCreateInfo.IndexCount);
@@ -777,19 +766,19 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 
 	CommandList->ResourceBarrier(2, ResourceBarriers);
 
-	hr = CommandList->Close();
+	SAFE_DX(CommandList->Close());
 
 	CommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CommandList);
 
-	hr = CommandQueue->Signal(Fences[0], 2);
+	SAFE_DX(CommandQueue->Signal(Fences[0], 2));
 
 	if (Fences[0]->GetCompletedValue() != 2)
 	{
-		hr = Fences[0]->SetEventOnCompletion(2, Event);
+		SAFE_DX(Fences[0]->SetEventOnCompletion(2, Event));
 		DWORD WaitResult = WaitForSingleObject(Event, INFINITE);
 	}
 
-	hr = Fences[0]->Signal(1);
+	SAFE_DX(Fences[0]->Signal(1));
 
 	renderMesh->VertexBufferAddress = renderMesh->VertexBuffer->GetGPUVirtualAddress();
 	renderMesh->IndexBufferAddress = renderMesh->IndexBuffer->GetGPUVirtualAddress();
@@ -800,8 +789,6 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& renderTextureCreateInfo)
 {
 	RenderTexture *renderTexture = new RenderTexture();
-
-	HRESULT hr;
 
 	D3D12_RESOURCE_DESC ResourceDesc;
 	ResourceDesc.Alignment = 0;
@@ -834,12 +821,12 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = TEXTURE_MEMORY_HEAP_SIZE;
 
-		hr = Device->CreateHeap(&HeapDesc, __uuidof(ID3D12Heap), (void**)&TextureMemoryHeaps[CurrentTextureMemoryHeapIndex]);
+		SAFE_DX(Device->CreateHeap(&HeapDesc, __uuidof(ID3D12Heap), (void**)&TextureMemoryHeaps[CurrentTextureMemoryHeapIndex]));
 
 		AlignedResourceOffset = 0;
 	}
 
-	hr = Device->CreatePlacedResource(TextureMemoryHeaps[CurrentTextureMemoryHeapIndex], AlignedResourceOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), (void**)&renderTexture->Texture);
+	SAFE_DX(Device->CreatePlacedResource(TextureMemoryHeaps[CurrentTextureMemoryHeapIndex], AlignedResourceOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), (void**)&renderTexture->Texture));
 
 	TextureMemoryHeapOffsets[CurrentTextureMemoryHeapIndex] = AlignedResourceOffset + ResourceAllocationInfo.SizeInBytes;
 
@@ -859,7 +846,7 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 	WrittenRange.Begin = 0;
 	WrittenRange.End = TotalBytes;
 
-	hr = UploadBuffer->Map(0, &ReadRange, &MappedData);
+	SAFE_DX(UploadBuffer->Map(0, &ReadRange, &MappedData));
 
 	BYTE *TexelData = renderTextureCreateInfo.TexelData;
 
@@ -875,8 +862,8 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 
 	UploadBuffer->Unmap(0, &WrittenRange);
 
-	hr = CommandAllocators[0]->Reset();
-	hr = CommandList->Reset(CommandAllocators[0], nullptr);
+	SAFE_DX(CommandAllocators[0]->Reset());
+	SAFE_DX(CommandList->Reset(CommandAllocators[0], nullptr));
 
 	D3D12_TEXTURE_COPY_LOCATION SourceTextureCopyLocation, DestTextureCopyLocation;
 
@@ -904,19 +891,19 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 
 	CommandList->ResourceBarrier(1, &ResourceBarrier);
 
-	hr = CommandList->Close();
+	SAFE_DX(CommandList->Close());
 
 	CommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CommandList);
 
-	hr = CommandQueue->Signal(Fences[0], 2);
+	SAFE_DX(CommandQueue->Signal(Fences[0], 2));
 
 	if (Fences[0]->GetCompletedValue() != 2)
 	{
-		hr = Fences[0]->SetEventOnCompletion(2, Event);
+		SAFE_DX(Fences[0]->SetEventOnCompletion(2, Event));
 		DWORD WaitResult = WaitForSingleObject(Event, INFINITE);
 	}
 
-	hr = Fences[0]->Signal(1);
+	SAFE_DX(Fences[0]->Signal(1));
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
 	SRVDesc.Format = renderTextureCreateInfo.SRGB ? DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -938,8 +925,6 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInfo& renderMaterialCreateInfo)
 {
 	RenderMaterial *renderMaterial = new RenderMaterial();
-
-	HRESULT hr;
 
 	D3D12_INPUT_ELEMENT_DESC InputElementDescs[2];
 	InputElementDescs[0].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
@@ -982,7 +967,7 @@ RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInf
 	GraphicsPipelineStateDesc.VS.BytecodeLength = renderMaterialCreateInfo.VertexShaderByteCodeLength;
 	GraphicsPipelineStateDesc.VS.pShaderBytecode = renderMaterialCreateInfo.VertexShaderByteCodeData;
 
-	hr = Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, __uuidof(ID3D12PipelineState), (void**)&renderMaterial->PipelineState);
+	SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, __uuidof(ID3D12PipelineState), (void**)&renderMaterial->PipelineState));
 
 	return renderMaterial;
 }
@@ -1000,4 +985,218 @@ void RenderSystem::DestroyRenderTexture(RenderTexture* renderTexture)
 void RenderSystem::DestroyRenderMaterial(RenderMaterial* renderMaterial)
 {
 	RenderMaterialDestructionQueue.push_back(renderMaterial);
+}
+
+void RenderSystem::CheckDXCallResult(HRESULT hr, const wchar_t* Function)
+{
+	if (FAILED(hr))
+	{
+		wchar_t DXErrorMessageBuffer[2048];
+		wchar_t DXErrorCodeBuffer[512];
+
+		const wchar_t *DXErrorCodePtr = GetDXErrorMessageFromHRESULT(hr);
+
+		if (DXErrorCodePtr) wcscpy(DXErrorCodeBuffer, DXErrorCodePtr);
+		else wsprintf(DXErrorCodeBuffer, L"0x%08X (неизвестный код)", hr);
+
+		wsprintf(DXErrorMessageBuffer, L"Произошла ошибка при попытке вызова следующей DirectX-функции:\r\n%s\r\nКод ошибки: %s", Function, DXErrorCodeBuffer);
+
+		int IntResult = MessageBox(NULL, DXErrorMessageBuffer, L"Ошибка DirectX", MB_OK | MB_ICONERROR);
+
+		if (hr == DXGI_ERROR_DEVICE_REMOVED) SAFE_DX(Device->GetDeviceRemovedReason());
+
+		ExitProcess(0);
+	}
+}
+
+const wchar_t* RenderSystem::GetDXErrorMessageFromHRESULT(HRESULT hr)
+{
+	switch (hr)
+	{
+		case E_UNEXPECTED:
+			return L"E_UNEXPECTED"; 
+			break; 
+		case E_NOTIMPL:
+			return L"E_NOTIMPL";
+			break;
+		case E_OUTOFMEMORY:
+			return L"E_OUTOFMEMORY";
+			break; 
+		case E_INVALIDARG:
+			return L"E_INVALIDARG";
+			break; 
+		case E_NOINTERFACE:
+			return L"E_NOINTERFACE";
+			break; 
+		case E_POINTER:
+			return L"E_POINTER"; 
+			break; 
+		case E_HANDLE:
+			return L"E_HANDLE"; 
+			break;
+		case E_ABORT:
+			return L"E_ABORT"; 
+			break; 
+		case E_FAIL:
+			return L"E_FAIL"; 
+			break;
+		case E_ACCESSDENIED:
+			return L"E_ACCESSDENIED";
+			break; 
+		case E_PENDING:
+			return L"E_PENDING";
+			break; 
+		case E_BOUNDS:
+			return L"E_BOUNDS";
+			break; 
+		case E_CHANGED_STATE:
+			return L"E_CHANGED_STATE";
+			break; 
+		case E_ILLEGAL_STATE_CHANGE:
+			return L"E_ILLEGAL_STATE_CHANGE";
+			break; 
+		case E_ILLEGAL_METHOD_CALL:
+			return L"E_ILLEGAL_METHOD_CALL";
+			break; 
+		case E_STRING_NOT_NULL_TERMINATED:
+			return L"E_STRING_NOT_NULL_TERMINATED"; 
+			break; 
+		case E_ILLEGAL_DELEGATE_ASSIGNMENT:
+			return L"E_ILLEGAL_DELEGATE_ASSIGNMENT";
+			break; 
+		case E_ASYNC_OPERATION_NOT_STARTED:
+			return L"E_ASYNC_OPERATION_NOT_STARTED"; 
+			break; 
+		case E_APPLICATION_EXITING:
+			return L"E_APPLICATION_EXITING";
+			break; 
+		case E_APPLICATION_VIEW_EXITING:
+			return L"E_APPLICATION_VIEW_EXITING";
+			break; 
+		case DXGI_ERROR_INVALID_CALL:
+			return L"DXGI_ERROR_INVALID_CALL";
+			break; 
+		case DXGI_ERROR_NOT_FOUND:
+			return L"DXGI_ERROR_NOT_FOUND";
+			break; 
+		case DXGI_ERROR_MORE_DATA:
+			return L"DXGI_ERROR_MORE_DATA";
+			break; 
+		case DXGI_ERROR_UNSUPPORTED:
+			return L"DXGI_ERROR_UNSUPPORTED";
+			break; 
+		case DXGI_ERROR_DEVICE_REMOVED:
+			return L"DXGI_ERROR_DEVICE_REMOVED";
+			break; 
+		case DXGI_ERROR_DEVICE_HUNG:
+			return L"DXGI_ERROR_DEVICE_HUNG";
+			break; 
+		case DXGI_ERROR_DEVICE_RESET:
+			return L"DXGI_ERROR_DEVICE_RESET";
+			break; 
+		case DXGI_ERROR_WAS_STILL_DRAWING:
+			return L"DXGI_ERROR_WAS_STILL_DRAWING";
+			break; 
+		case DXGI_ERROR_FRAME_STATISTICS_DISJOINT:
+			return L"DXGI_ERROR_FRAME_STATISTICS_DISJOINT";
+			break; 
+		case DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE:
+			return L"DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE"; 
+			break; 
+		case DXGI_ERROR_DRIVER_INTERNAL_ERROR:
+			return L"DXGI_ERROR_DRIVER_INTERNAL_ERROR";
+			break; 
+		case DXGI_ERROR_NONEXCLUSIVE:
+			return L"DXGI_ERROR_NONEXCLUSIVE";
+			break; 
+		case DXGI_ERROR_NOT_CURRENTLY_AVAILABLE:
+			return L"DXGI_ERROR_NOT_CURRENTLY_AVAILABLE"; 
+			break; 
+		case DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED:
+			return L"DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED";
+			break; 
+		case DXGI_ERROR_REMOTE_OUTOFMEMORY:
+			return L"DXGI_ERROR_REMOTE_OUTOFMEMORY"; 
+			break; 
+		case DXGI_ERROR_ACCESS_LOST:
+			return L"DXGI_ERROR_ACCESS_LOST";
+			break; 
+		case DXGI_ERROR_WAIT_TIMEOUT:
+			return L"DXGI_ERROR_WAIT_TIMEOUT";
+			break; 
+		case DXGI_ERROR_SESSION_DISCONNECTED:
+			return L"DXGI_ERROR_SESSION_DISCONNECTED";
+			break; 
+		case DXGI_ERROR_RESTRICT_TO_OUTPUT_STALE:
+			return L"DXGI_ERROR_RESTRICT_TO_OUTPUT_STALE";
+			break; 
+		case DXGI_ERROR_CANNOT_PROTECT_CONTENT:
+			return L"DXGI_ERROR_CANNOT_PROTECT_CONTENT";
+			break; 
+		case DXGI_ERROR_ACCESS_DENIED:
+			return L"DXGI_ERROR_ACCESS_DENIED"; 
+			break; 
+		case DXGI_ERROR_NAME_ALREADY_EXISTS:
+			return L"DXGI_ERROR_NAME_ALREADY_EXISTS";
+			break; 
+		case DXGI_ERROR_SDK_COMPONENT_MISSING:
+			return L"DXGI_ERROR_SDK_COMPONENT_MISSING"; 
+			break; 
+		case DXGI_ERROR_NOT_CURRENT:
+			return L"DXGI_ERROR_NOT_CURRENT";
+			break; 
+		case DXGI_ERROR_HW_PROTECTION_OUTOFMEMORY:
+			return L"DXGI_ERROR_HW_PROTECTION_OUTOFMEMORY"; 
+			break; 
+		case DXGI_ERROR_DYNAMIC_CODE_POLICY_VIOLATION:
+			return L"DXGI_ERROR_DYNAMIC_CODE_POLICY_VIOLATION"; 
+			break; 
+		case DXGI_ERROR_NON_COMPOSITED_UI:
+			return L"DXGI_ERROR_NON_COMPOSITED_UI";
+			break; 
+		case DXGI_ERROR_MODE_CHANGE_IN_PROGRESS:
+			return L"DXGI_ERROR_MODE_CHANGE_IN_PROGRESS";
+			break; 
+		case DXGI_ERROR_CACHE_CORRUPT:
+			return L"DXGI_ERROR_CACHE_CORRUPT";
+			break;
+		case DXGI_ERROR_CACHE_FULL:
+			return L"DXGI_ERROR_CACHE_FULL";
+			break;
+		case DXGI_ERROR_CACHE_HASH_COLLISION:
+			return L"DXGI_ERROR_CACHE_HASH_COLLISION";
+			break;
+		case DXGI_ERROR_ALREADY_EXISTS:
+			return L"DXGI_ERROR_ALREADY_EXISTS"; 
+			break;
+		case D3D10_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS:
+			return L"D3D10_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS";
+			break; 
+		case D3D10_ERROR_FILE_NOT_FOUND:
+			return L"D3D10_ERROR_FILE_NOT_FOUND";
+			break;
+		case D3D11_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS:
+			return L"D3D11_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS";
+			break;
+		case D3D11_ERROR_FILE_NOT_FOUND:
+			return L"D3D11_ERROR_FILE_NOT_FOUND"; 
+			break;
+		case D3D11_ERROR_TOO_MANY_UNIQUE_VIEW_OBJECTS:
+			return L"D3D11_ERROR_TOO_MANY_UNIQUE_VIEW_OBJECTS"; 
+			break; 
+		case D3D11_ERROR_DEFERRED_CONTEXT_MAP_WITHOUT_INITIAL_DISCARD:
+			return L"D3D11_ERROR_DEFERRED_CONTEXT_MAP_WITHOUT_INITIAL_DISCARD";
+			break;
+		case D3D12_ERROR_ADAPTER_NOT_FOUND:
+			return L"D3D12_ERROR_ADAPTER_NOT_FOUND";
+			break;
+		case D3D12_ERROR_DRIVER_VERSION_MISMATCH:
+			return L"D3D12_ERROR_DRIVER_VERSION_MISMATCH"; 
+			break;
+		default:
+			return nullptr;
+			break;
+	}
+
+	return nullptr;
 }
