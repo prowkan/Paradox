@@ -163,6 +163,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Containers\COMRCPtr.h" />
     <ClInclude Include="Core\Application.h" />
     <ClInclude Include="Engine\Engine.h" />
     <ClInclude Include="Game\Camera.h" />
@@ -190,6 +191,7 @@
     <ClInclude Include="StdAfx.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Containers\COMRCPtr.cpp" />
     <ClCompile Include="Core\Application.cpp" />
     <ClCompile Include="Engine\Engine.cpp" />
     <ClCompile Include="Game\Camera.cpp" />

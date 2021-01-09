@@ -19,22 +19,22 @@ void RenderSystem::InitSystem()
 	UINT FactoryCreationFlags = 0;
 
 #ifdef _DEBUG
-	ID3D12Debug3 *Debug;
+	COMRCPtr<ID3D12Debug3> Debug;
 	SAFE_DX(D3D12GetDebugInterface(__uuidof(ID3D12Debug3), (void**)&Debug));
 	Debug->EnableDebugLayer();
 	Debug->SetEnableGPUBasedValidation(TRUE);
 	FactoryCreationFlags |= DXGI_CREATE_FACTORY_DEBUG;
 #endif
 
-	IDXGIFactory7 *Factory;
+	COMRCPtr<IDXGIFactory7> Factory;
 
 	SAFE_DX(CreateDXGIFactory2(FactoryCreationFlags, __uuidof(IDXGIFactory7), (void**)&Factory));
 
-	IDXGIAdapter *Adapter;
+	COMRCPtr<IDXGIAdapter> Adapter;
 
 	SAFE_DX(Factory->EnumAdapters(0, (IDXGIAdapter**)&Adapter));
 
-	IDXGIOutput *Monitor;
+	COMRCPtr<IDXGIOutput> Monitor;
 
 	SAFE_DX(Adapter->EnumOutputs(0, &Monitor));
 
@@ -43,14 +43,10 @@ void RenderSystem::InitSystem()
 	DXGI_MODE_DESC *DisplayModes = new DXGI_MODE_DESC[DisplayModesCount];
 	SAFE_DX(Monitor->GetDisplayModeList(DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM, 0, &DisplayModesCount, DisplayModes));
 
-	SAFE_RELEASE(Monitor);
-
 	ResolutionWidth = DisplayModes[DisplayModesCount - 1].Width;
 	ResolutionHeight = DisplayModes[DisplayModesCount - 1].Height;
 
 	SAFE_DX(D3D12CreateDevice(Adapter, D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), (void**)&Device));
-
-	SAFE_RELEASE(Adapter);
 
 	D3D12_COMMAND_QUEUE_DESC CommandQueueDesc;
 	CommandQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAGS::D3D12_COMMAND_QUEUE_FLAG_NONE;
@@ -87,15 +83,11 @@ void RenderSystem::InitSystem()
 	SwapChainFullScreenDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER::DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 	SwapChainFullScreenDesc.Windowed = TRUE;
 
-	IDXGISwapChain1 *SwapChain1;
+	COMRCPtr<IDXGISwapChain1> SwapChain1;
 	SAFE_DX(Factory->CreateSwapChainForHwnd(CommandQueue, Application::GetMainWindowHandle(), &SwapChainDesc, &SwapChainFullScreenDesc, nullptr, &SwapChain1));
 	SAFE_DX(SwapChain1->QueryInterface<IDXGISwapChain4>(&SwapChain));
 
 	SAFE_DX(Factory->MakeWindowAssociation(Application::GetMainWindowHandle(), DXGI_MWA_NO_ALT_ENTER));
-
-	SAFE_RELEASE(SwapChain1);
-
-	SAFE_RELEASE(Factory);
 
 	delete[] DisplayModes;
 
@@ -216,7 +208,7 @@ void RenderSystem::InitSystem()
 	RootSignatureDesc.pParameters = RootParameters;
 	RootSignatureDesc.pStaticSamplers = nullptr;
 
-	ID3DBlob *RootSignatureBlob;
+	COMRCPtr<ID3DBlob> RootSignatureBlob;
 
 	SAFE_DX(D3D12SerializeRootSignature(&RootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION::D3D_ROOT_SIGNATURE_VERSION_1_0, &RootSignatureBlob, nullptr));
 
@@ -389,9 +381,6 @@ void RenderSystem::ShutdownSystem()
 
 	for (RenderMesh* renderMesh : RenderMeshDestructionQueue)
 	{
-		SAFE_RELEASE(renderMesh->VertexBuffer);
-		SAFE_RELEASE(renderMesh->IndexBuffer);
-
 		delete renderMesh;
 	}
 
@@ -399,8 +388,6 @@ void RenderSystem::ShutdownSystem()
 
 	for (RenderMaterial* renderMaterial : RenderMaterialDestructionQueue)
 	{
-		SAFE_RELEASE(renderMaterial->PipelineState);
-
 		delete renderMaterial;
 	}
 
@@ -408,64 +395,14 @@ void RenderSystem::ShutdownSystem()
 
 	for (RenderTexture* renderTexture : RenderTextureDestructionQueue)
 	{
-		SAFE_RELEASE(renderTexture->Texture);
-
 		delete renderTexture;
 	}
 
 	RenderTextureDestructionQueue.clear();
 
-	for (int i = 0; i < MAX_MEMORY_HEAPS_COUNT; i++)
-	{
-		if (BufferMemoryHeaps[i]) SAFE_RELEASE(BufferMemoryHeaps[i]);
-		if (TextureMemoryHeaps[i]) SAFE_RELEASE(TextureMemoryHeaps[i]);
-	}
-
-	SAFE_RELEASE(UploadBuffer);
-	SAFE_RELEASE(UploadHeap);
-
-	SAFE_RELEASE(BackBufferTextures[0]);
-	SAFE_RELEASE(BackBufferTextures[1]);
-
-	SAFE_RELEASE(DepthBufferTexture);
-
-	SAFE_RELEASE(Fences[0]);
-	SAFE_RELEASE(Fences[1]);
-
 	BOOL Result;
 
 	Result = CloseHandle(Event);
-
-	SAFE_RELEASE(GPUConstantBuffer);
-	SAFE_RELEASE(CPUConstantBuffers[0]);
-	SAFE_RELEASE(CPUConstantBuffers[1]);
-
-	SAFE_RELEASE(RootSignature);
-
-	SAFE_RELEASE(RTDescriptorHeap);
-	SAFE_RELEASE(DSDescriptorHeap);
-	SAFE_RELEASE(CBSRUADescriptorHeap);
-	SAFE_RELEASE(SamplersDescriptorHeap);
-
-	SAFE_RELEASE(ConstantBufferDescriptorHeap);
-	SAFE_RELEASE(TexturesDescriptorHeap);
-
-	SAFE_RELEASE(FrameResourcesDescriptorHeaps[0]);
-	SAFE_RELEASE(FrameResourcesDescriptorHeaps[1]);
-
-	SAFE_RELEASE(FrameSamplersDescriptorHeaps[0]);
-	SAFE_RELEASE(FrameSamplersDescriptorHeaps[1]);
-
-	SAFE_RELEASE(CommandList);
-
-	SAFE_RELEASE(CommandAllocators[0]);
-	SAFE_RELEASE(CommandAllocators[1]);
-
-	SAFE_RELEASE(SwapChain);
-
-	SAFE_RELEASE(CommandQueue);
-
-	SAFE_RELEASE(Device);
 }
 
 void RenderSystem::TickSystem(float DeltaTime)
