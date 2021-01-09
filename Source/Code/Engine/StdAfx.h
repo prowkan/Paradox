@@ -16,6 +16,7 @@
 
 #include <DirectXMath.h>
 
+#define USE_OPTICK 1
 #include <F:/Optick/include/optick.h>
 
 #pragma comment(lib, "DbgHelp.lib")
