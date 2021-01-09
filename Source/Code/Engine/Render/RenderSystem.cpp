@@ -51,28 +51,26 @@ VkBool32 VKAPI_PTR vkDebugUtilsMessengerCallbackEXT(VkDebugUtilsMessageSeverityF
 
 void RenderSystem::InitSystem()
 {
-	VkResult Result;
-
 	uint32_t APIVersion;
 
-	Result = vkEnumerateInstanceVersion(&APIVersion);
+	SAFE_VK(vkEnumerateInstanceVersion(&APIVersion));
 
 	uint32_t InstanceLayerPropertiesCount;
-	Result = vkEnumerateInstanceLayerProperties(&InstanceLayerPropertiesCount, nullptr);
+	SAFE_VK(vkEnumerateInstanceLayerProperties(&InstanceLayerPropertiesCount, nullptr));
 	VkLayerProperties *InstanceLayerProperties = new VkLayerProperties[InstanceLayerPropertiesCount];
-	Result = vkEnumerateInstanceLayerProperties(&InstanceLayerPropertiesCount, InstanceLayerProperties);
+	SAFE_VK(vkEnumerateInstanceLayerProperties(&InstanceLayerPropertiesCount, InstanceLayerProperties));
 
 	uint32_t InstanceExtensionPropertiesCount;
-	Result = vkEnumerateInstanceExtensionProperties(nullptr, &InstanceExtensionPropertiesCount, nullptr);
+	SAFE_VK(vkEnumerateInstanceExtensionProperties(nullptr, &InstanceExtensionPropertiesCount, nullptr));
 	VkExtensionProperties *InstanceExtensionProperties = new VkExtensionProperties[InstanceExtensionPropertiesCount];
-	Result = vkEnumerateInstanceExtensionProperties(nullptr, &InstanceExtensionPropertiesCount, InstanceExtensionProperties);
+	SAFE_VK(vkEnumerateInstanceExtensionProperties(nullptr, &InstanceExtensionPropertiesCount, InstanceExtensionProperties));
 	delete[] InstanceExtensionProperties;
 
 	for (uint32_t i = 0; i < InstanceLayerPropertiesCount; i++)
 	{
-		Result = vkEnumerateInstanceExtensionProperties(InstanceLayerProperties[i].layerName, &InstanceExtensionPropertiesCount, nullptr);
+		SAFE_VK(vkEnumerateInstanceExtensionProperties(InstanceLayerProperties[i].layerName, &InstanceExtensionPropertiesCount, nullptr));
 		VkExtensionProperties *InstanceExtensionProperties = new VkExtensionProperties[InstanceExtensionPropertiesCount];
-		Result = vkEnumerateInstanceExtensionProperties(InstanceLayerProperties[i].layerName, &InstanceExtensionPropertiesCount, InstanceExtensionProperties);
+		SAFE_VK(vkEnumerateInstanceExtensionProperties(InstanceLayerProperties[i].layerName, &InstanceExtensionPropertiesCount, InstanceExtensionProperties));
 		delete[] InstanceExtensionProperties;
 	}
 
@@ -111,7 +109,7 @@ void RenderSystem::InitSystem()
 	InstanceCreateInfo.ppEnabledLayerNames = EnabledInstanceLayersNames;
 	InstanceCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	
-	Result = vkCreateInstance(&InstanceCreateInfo, nullptr, &Instance);
+	SAFE_VK(vkCreateInstance(&InstanceCreateInfo, nullptr, &Instance));
 
 #ifdef _DEBUG
 	VkDebugUtilsMessengerCreateInfoEXT DebugUtilsMessengerCreateInfo;
@@ -125,13 +123,13 @@ void RenderSystem::InitSystem()
 
 	PFN_vkCreateDebugUtilsMessengerEXT vkCreateDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(Instance, "vkCreateDebugUtilsMessengerEXT");
 
-	Result = vkCreateDebugUtilsMessengerEXT(Instance, &DebugUtilsMessengerCreateInfo, nullptr, &DebugUtilsMessenger);
+	SAFE_VK(vkCreateDebugUtilsMessengerEXT(Instance, &DebugUtilsMessengerCreateInfo, nullptr, &DebugUtilsMessenger));
 #endif
 
 	uint32_t PhysicalDevicesCount;
-	Result = vkEnumeratePhysicalDevices(Instance, &PhysicalDevicesCount, nullptr);
+	SAFE_VK(vkEnumeratePhysicalDevices(Instance, &PhysicalDevicesCount, nullptr));
 	VkPhysicalDevice *PhysicalDevices = new VkPhysicalDevice[PhysicalDevicesCount];
-	Result = vkEnumeratePhysicalDevices(Instance, &PhysicalDevicesCount, PhysicalDevices);
+	SAFE_VK(vkEnumeratePhysicalDevices(Instance, &PhysicalDevicesCount, PhysicalDevices));
 
 	for (uint32_t i = 0; i < PhysicalDevicesCount; i++)
 	{
@@ -149,21 +147,21 @@ void RenderSystem::InitSystem()
 	delete[] PhysicalDevices;
 
 	uint32_t DeviceLayerPropertiesCount;
-	Result = vkEnumerateDeviceLayerProperties(PhysicalDevice, &DeviceLayerPropertiesCount, nullptr);
+	SAFE_VK(vkEnumerateDeviceLayerProperties(PhysicalDevice, &DeviceLayerPropertiesCount, nullptr));
 	VkLayerProperties *DeviceLayerProperties = new VkLayerProperties[DeviceLayerPropertiesCount];
-	Result = vkEnumerateDeviceLayerProperties(PhysicalDevice, &DeviceLayerPropertiesCount, DeviceLayerProperties);
+	SAFE_VK(vkEnumerateDeviceLayerProperties(PhysicalDevice, &DeviceLayerPropertiesCount, DeviceLayerProperties));
 
 	uint32_t DeviceExtensionPropertiesCount;
-	Result = vkEnumerateDeviceExtensionProperties(PhysicalDevice, nullptr, &DeviceExtensionPropertiesCount, nullptr);
+	SAFE_VK(vkEnumerateDeviceExtensionProperties(PhysicalDevice, nullptr, &DeviceExtensionPropertiesCount, nullptr));
 	VkExtensionProperties *DeviceExtensionProperties = new VkExtensionProperties[DeviceExtensionPropertiesCount];
-	Result = vkEnumerateDeviceExtensionProperties(PhysicalDevice, nullptr, &DeviceExtensionPropertiesCount, DeviceExtensionProperties);
+	SAFE_VK(vkEnumerateDeviceExtensionProperties(PhysicalDevice, nullptr, &DeviceExtensionPropertiesCount, DeviceExtensionProperties));
 	delete[] DeviceExtensionProperties;
 
 	for (uint32_t i = 0; i < DeviceLayerPropertiesCount; i++)
 	{
-		Result = vkEnumerateDeviceExtensionProperties(PhysicalDevice, DeviceLayerProperties[i].layerName, &DeviceExtensionPropertiesCount, nullptr);
+		SAFE_VK(vkEnumerateDeviceExtensionProperties(PhysicalDevice, DeviceLayerProperties[i].layerName, &DeviceExtensionPropertiesCount, nullptr));
 		VkExtensionProperties *DeviceExtensionProperties = new VkExtensionProperties[DeviceExtensionPropertiesCount];
-		Result = vkEnumerateDeviceExtensionProperties(PhysicalDevice, DeviceLayerProperties[i].layerName, &DeviceExtensionPropertiesCount, DeviceExtensionProperties);
+		SAFE_VK(vkEnumerateDeviceExtensionProperties(PhysicalDevice, DeviceLayerProperties[i].layerName, &DeviceExtensionPropertiesCount, DeviceExtensionProperties));
 		delete[] DeviceExtensionProperties;
 	}
 
@@ -221,7 +219,7 @@ void RenderSystem::InitSystem()
 	DeviceCreateInfo.queueCreateInfoCount = 1;
 	DeviceCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	
-	Result = vkCreateDevice(PhysicalDevice, &DeviceCreateInfo, nullptr, &Device);
+	SAFE_VK(vkCreateDevice(PhysicalDevice, &DeviceCreateInfo, nullptr, &Device));
 
 	VkPhysicalDeviceMemoryProperties PhysicalDeviceMemoryProperties;
 
@@ -234,24 +232,24 @@ void RenderSystem::InitSystem()
 	Win32SurfaceCreateInfo.pNext = nullptr;
 	Win32SurfaceCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
 
-	Result = vkCreateWin32SurfaceKHR(Instance, &Win32SurfaceCreateInfo, nullptr, &Surface);
+	SAFE_VK(vkCreateWin32SurfaceKHR(Instance, &Win32SurfaceCreateInfo, nullptr, &Surface));
 
 	VkSurfaceCapabilitiesKHR SurfaceCapabilities;
 
-	Result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(PhysicalDevice, Surface, &SurfaceCapabilities);
+	SAFE_VK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(PhysicalDevice, Surface, &SurfaceCapabilities));
 
 	uint32_t SurfaceFormatsCount;
-	Result = vkGetPhysicalDeviceSurfaceFormatsKHR(PhysicalDevice, Surface, &SurfaceFormatsCount, nullptr);
+	SAFE_VK(vkGetPhysicalDeviceSurfaceFormatsKHR(PhysicalDevice, Surface, &SurfaceFormatsCount, nullptr));
 	VkSurfaceFormatKHR *SurfaceFormats = new VkSurfaceFormatKHR[SurfaceFormatsCount];
-	Result = vkGetPhysicalDeviceSurfaceFormatsKHR(PhysicalDevice, Surface, &SurfaceFormatsCount, SurfaceFormats);
+	SAFE_VK(vkGetPhysicalDeviceSurfaceFormatsKHR(PhysicalDevice, Surface, &SurfaceFormatsCount, SurfaceFormats));
 
 	uint32_t PresentModesCount;
-	Result = vkGetPhysicalDeviceSurfacePresentModesKHR(PhysicalDevice, Surface, &PresentModesCount, nullptr);
+	SAFE_VK(vkGetPhysicalDeviceSurfacePresentModesKHR(PhysicalDevice, Surface, &PresentModesCount, nullptr));
 	VkPresentModeKHR *PresentModes = new VkPresentModeKHR[PresentModesCount];
-	Result = vkGetPhysicalDeviceSurfacePresentModesKHR(PhysicalDevice, Surface, &PresentModesCount, PresentModes);
+	SAFE_VK(vkGetPhysicalDeviceSurfacePresentModesKHR(PhysicalDevice, Surface, &PresentModesCount, PresentModes));
 
 	VkBool32 SurfaceSupport;
-	Result = vkGetPhysicalDeviceSurfaceSupportKHR(PhysicalDevice, QueueFamilyIndex, Surface, &SurfaceSupport);
+	SAFE_VK(vkGetPhysicalDeviceSurfaceSupportKHR(PhysicalDevice, QueueFamilyIndex, Surface, &SurfaceSupport));
 
 	ResolutionWidth = SurfaceCapabilities.currentExtent.width;
 	ResolutionHeight = SurfaceCapabilities.currentExtent.height;
@@ -277,7 +275,7 @@ void RenderSystem::InitSystem()
 	SwapchainCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 	SwapchainCreateInfo.surface = Surface;
 
-	Result = vkCreateSwapchainKHR(Device, &SwapchainCreateInfo, nullptr, &SwapChain);
+	SAFE_VK(vkCreateSwapchainKHR(Device, &SwapchainCreateInfo, nullptr, &SwapChain));
 
 	vkGetDeviceQueue(Device, QueueFamilyIndex, 0, &CommandQueue);
 
@@ -287,8 +285,8 @@ void RenderSystem::InitSystem()
 	CommandPoolCreateInfo.queueFamilyIndex = QueueFamilyIndex;
 	CommandPoolCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 
-	Result = vkCreateCommandPool(Device, &CommandPoolCreateInfo, nullptr, &CommandPools[0]);
-	Result = vkCreateCommandPool(Device, &CommandPoolCreateInfo, nullptr, &CommandPools[1]);
+	SAFE_VK(vkCreateCommandPool(Device, &CommandPoolCreateInfo, nullptr, &CommandPools[0]));
+	SAFE_VK(vkCreateCommandPool(Device, &CommandPoolCreateInfo, nullptr, &CommandPools[1]));
 
 	VkCommandBufferAllocateInfo CommandBufferAllocateInfo;
 	CommandBufferAllocateInfo.commandBufferCount = 1;
@@ -297,9 +295,9 @@ void RenderSystem::InitSystem()
 	CommandBufferAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 
 	CommandBufferAllocateInfo.commandPool = CommandPools[0];
-	Result = vkAllocateCommandBuffers(Device, &CommandBufferAllocateInfo, &CommandBuffers[0]);
+	SAFE_VK(vkAllocateCommandBuffers(Device, &CommandBufferAllocateInfo, &CommandBuffers[0]));
 	CommandBufferAllocateInfo.commandPool = CommandPools[1];
-	Result = vkAllocateCommandBuffers(Device, &CommandBufferAllocateInfo, &CommandBuffers[1]);
+	SAFE_VK(vkAllocateCommandBuffers(Device, &CommandBufferAllocateInfo, &CommandBuffers[1]));
 
 	CurrentFrameIndex = 0;
 
@@ -308,19 +306,19 @@ void RenderSystem::InitSystem()
 	SemaphoreCreateInfo.pNext = nullptr;
 	SemaphoreCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-	Result = vkCreateSemaphore(Device, &SemaphoreCreateInfo, nullptr, &ImageAvailabilitySemaphore);
-	Result = vkCreateSemaphore(Device, &SemaphoreCreateInfo, nullptr, &ImagePresentationSemaphore);
+	SAFE_VK(vkCreateSemaphore(Device, &SemaphoreCreateInfo, nullptr, &ImageAvailabilitySemaphore));
+	SAFE_VK(vkCreateSemaphore(Device, &SemaphoreCreateInfo, nullptr, &ImagePresentationSemaphore));
 
 	VkFenceCreateInfo FenceCreateInfo;
 	FenceCreateInfo.flags = 0;
 	FenceCreateInfo.pNext = nullptr;
 	FenceCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	
-	Result = vkCreateFence(Device, &FenceCreateInfo, nullptr, &Fences[0]);
+	SAFE_VK(vkCreateFence(Device, &FenceCreateInfo, nullptr, &Fences[0]));
 	
 	FenceCreateInfo.flags = VkFenceCreateFlagBits::VK_FENCE_CREATE_SIGNALED_BIT;
 
-	Result = vkCreateFence(Device, &FenceCreateInfo, nullptr, &Fences[1]);
+	SAFE_VK(vkCreateFence(Device, &FenceCreateInfo, nullptr, &Fences[1]));
 
 	VkDescriptorPoolSize DescriptorPoolSizes[3];
 	DescriptorPoolSizes[0].descriptorCount = 20000;
@@ -338,8 +336,8 @@ void RenderSystem::InitSystem()
 	DescriptorPoolCreateInfo.pPoolSizes = DescriptorPoolSizes;
 	DescriptorPoolCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 
-	Result = vkCreateDescriptorPool(Device, &DescriptorPoolCreateInfo, nullptr, &DescriptorPools[0]);
-	Result = vkCreateDescriptorPool(Device, &DescriptorPoolCreateInfo, nullptr, &DescriptorPools[1]);
+	SAFE_VK(vkCreateDescriptorPool(Device, &DescriptorPoolCreateInfo, nullptr, &DescriptorPools[0]));
+	SAFE_VK(vkCreateDescriptorPool(Device, &DescriptorPoolCreateInfo, nullptr, &DescriptorPools[1]));
 
 	VkDescriptorSetLayoutBinding DescriptorSetLayoutBinding;
 	DescriptorSetLayoutBinding.binding = 0;
@@ -355,17 +353,17 @@ void RenderSystem::InitSystem()
 	DescriptorSetLayoutCreateInfo.pNext = nullptr;
 	DescriptorSetLayoutCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	
-	Result = vkCreateDescriptorSetLayout(Device, &DescriptorSetLayoutCreateInfo, nullptr, &ConstantBuffersSetLayout);
+	SAFE_VK(vkCreateDescriptorSetLayout(Device, &DescriptorSetLayoutCreateInfo, nullptr, &ConstantBuffersSetLayout));
 
 	DescriptorSetLayoutBinding.descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
 	DescriptorSetLayoutBinding.stageFlags = VkShaderStageFlagBits::VK_SHADER_STAGE_FRAGMENT_BIT;
 
-	Result = vkCreateDescriptorSetLayout(Device, &DescriptorSetLayoutCreateInfo, nullptr, &TexturesSetLayout);
+	SAFE_VK(vkCreateDescriptorSetLayout(Device, &DescriptorSetLayoutCreateInfo, nullptr, &TexturesSetLayout));
 
 	DescriptorSetLayoutBinding.descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLER;
 	DescriptorSetLayoutBinding.stageFlags = VkShaderStageFlagBits::VK_SHADER_STAGE_FRAGMENT_BIT;
 
-	Result = vkCreateDescriptorSetLayout(Device, &DescriptorSetLayoutCreateInfo, nullptr, &SamplersSetLayout);
+	SAFE_VK(vkCreateDescriptorSetLayout(Device, &DescriptorSetLayoutCreateInfo, nullptr, &SamplersSetLayout));
 
 	VkDescriptorSetLayout DescriptorSetLayouts[3] = { ConstantBuffersSetLayout, TexturesSetLayout, SamplersSetLayout };
 
@@ -378,7 +376,7 @@ void RenderSystem::InitSystem()
 	PipelineLayoutCreateInfo.setLayoutCount = 3;
 	PipelineLayoutCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 
-	Result = vkCreatePipelineLayout(Device, &PipelineLayoutCreateInfo, nullptr, &PipelineLayout);
+	SAFE_VK(vkCreatePipelineLayout(Device, &PipelineLayoutCreateInfo, nullptr, &PipelineLayout));
 
 	VkDescriptorSetAllocateInfo DescriptorSetAllocateInfo;
 	DescriptorSetAllocateInfo.descriptorPool = DescriptorPools[0];
@@ -387,36 +385,36 @@ void RenderSystem::InitSystem()
 	DescriptorSetAllocateInfo.pSetLayouts = &SamplersSetLayout;
 	DescriptorSetAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 
-	Result = vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, &SamplersSets[0]);
+	SAFE_VK(vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, &SamplersSets[0]));
 
 	DescriptorSetAllocateInfo.descriptorPool = DescriptorPools[1];
 
-	Result = vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, &SamplersSets[1]);
+	SAFE_VK(vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, &SamplersSets[1]));
 
 	for (uint32_t i = 0; i < 20000; i++)
 	{
 		DescriptorSetAllocateInfo.descriptorPool = DescriptorPools[0];
 		DescriptorSetAllocateInfo.pSetLayouts = &ConstantBuffersSetLayout;
 		
-		Result = vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, &ConstantBuffersSets[0][i]);
+		SAFE_VK(vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, &ConstantBuffersSets[0][i]));
 
 		DescriptorSetAllocateInfo.descriptorPool = DescriptorPools[1];
 
-		Result = vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, &ConstantBuffersSets[1][i]);
+		SAFE_VK(vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, &ConstantBuffersSets[1][i]));
 
 		DescriptorSetAllocateInfo.descriptorPool = DescriptorPools[0];
 		DescriptorSetAllocateInfo.pSetLayouts = &TexturesSetLayout;
 
-		Result = vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, &TexturesSets[0][i]);
+		SAFE_VK(vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, &TexturesSets[0][i]));
 
 		DescriptorSetAllocateInfo.descriptorPool = DescriptorPools[1];
 
-		Result = vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, &TexturesSets[1][i]);
+		SAFE_VK(vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, &TexturesSets[1][i]));
 	}
 
 	uint32_t SwapChainImagesCount;
-	Result = vkGetSwapchainImagesKHR(Device, SwapChain, &SwapChainImagesCount, nullptr);
-	Result = vkGetSwapchainImagesKHR(Device, SwapChain, &SwapChainImagesCount, BackBufferTextures);
+	SAFE_VK(vkGetSwapchainImagesKHR(Device, SwapChain, &SwapChainImagesCount, nullptr));
+	SAFE_VK(vkGetSwapchainImagesKHR(Device, SwapChain, &SwapChainImagesCount, BackBufferTextures));
 
 	VkImageViewCreateInfo ImageViewCreateInfo;
 	ImageViewCreateInfo.components.a = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -435,9 +433,9 @@ void RenderSystem::InitSystem()
 	ImageViewCreateInfo.viewType = VkImageViewType::VK_IMAGE_VIEW_TYPE_2D;
 
 	ImageViewCreateInfo.image = BackBufferTextures[0];
-	Result = vkCreateImageView(Device, &ImageViewCreateInfo, nullptr, &BackBufferRTVs[0]);
+	SAFE_VK(vkCreateImageView(Device, &ImageViewCreateInfo, nullptr, &BackBufferRTVs[0]));
 	ImageViewCreateInfo.image = BackBufferTextures[1];
-	Result = vkCreateImageView(Device, &ImageViewCreateInfo, nullptr, &BackBufferRTVs[1]);
+	SAFE_VK(vkCreateImageView(Device, &ImageViewCreateInfo, nullptr, &BackBufferRTVs[1]));
 
 	VkImageCreateInfo ImageCreateInfo;
 	ImageCreateInfo.arrayLayers = 1;
@@ -458,7 +456,7 @@ void RenderSystem::InitSystem()
 	ImageCreateInfo.tiling = VkImageTiling::VK_IMAGE_TILING_OPTIMAL;
 	ImageCreateInfo.usage = VkImageUsageFlagBits::VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
-	Result = vkCreateImage(Device, &ImageCreateInfo, nullptr, &DepthBufferTexture);
+	SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &DepthBufferTexture));
 
 	VkMemoryRequirements MemoryRequirements;
 
@@ -480,9 +478,9 @@ void RenderSystem::InitSystem()
 	MemoryAllocateInfo.pNext = nullptr;
 	MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 
-	Result = vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &DepthBufferTextureMemoryHeap);
+	SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &DepthBufferTextureMemoryHeap));
 
-	Result = vkBindImageMemory(Device, DepthBufferTexture, DepthBufferTextureMemoryHeap, 0);
+	SAFE_VK(vkBindImageMemory(Device, DepthBufferTexture, DepthBufferTextureMemoryHeap, 0));
 
 	ImageViewCreateInfo.components.a = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
 	ImageViewCreateInfo.components.b = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -500,7 +498,7 @@ void RenderSystem::InitSystem()
 	ImageViewCreateInfo.subresourceRange.levelCount = 1;
 	ImageViewCreateInfo.viewType = VkImageViewType::VK_IMAGE_VIEW_TYPE_2D;
 
-	Result = vkCreateImageView(Device, &ImageViewCreateInfo, nullptr, &DepthBufferDSV);
+	SAFE_VK(vkCreateImageView(Device, &ImageViewCreateInfo, nullptr, &DepthBufferDSV));
 
 	VkAttachmentDescription AttachmentDescriptions[2];
 	AttachmentDescriptions[0].finalLayout = VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -551,7 +549,7 @@ void RenderSystem::InitSystem()
 	RenderPassCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 	RenderPassCreateInfo.subpassCount = 1;
 
-	Result = vkCreateRenderPass(Device, &RenderPassCreateInfo, nullptr, &RenderPass);
+	SAFE_VK(vkCreateRenderPass(Device, &RenderPassCreateInfo, nullptr, &RenderPass));
 
 	VkImageView FrameBufferAttachments[2] = { BackBufferRTVs[0], DepthBufferDSV };
 
@@ -566,11 +564,11 @@ void RenderSystem::InitSystem()
 	FramebufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 	FramebufferCreateInfo.width = ResolutionWidth;
 
-	Result = vkCreateFramebuffer(Device, &FramebufferCreateInfo, nullptr, &FrameBuffers[0]);
+	SAFE_VK(vkCreateFramebuffer(Device, &FramebufferCreateInfo, nullptr, &FrameBuffers[0]));
 
 	FrameBufferAttachments[0] = BackBufferRTVs[1];
 
-	Result = vkCreateFramebuffer(Device, &FramebufferCreateInfo, nullptr, &FrameBuffers[1]);
+	SAFE_VK(vkCreateFramebuffer(Device, &FramebufferCreateInfo, nullptr, &FrameBuffers[1]));
 
 	VkBufferCreateInfo BufferCreateInfo;
 	BufferCreateInfo.flags = 0;
@@ -582,7 +580,7 @@ void RenderSystem::InitSystem()
 	BufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
-	Result = vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &GPUConstantBuffer);
+	SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &GPUConstantBuffer));
 
 	vkGetBufferMemoryRequirements(Device, GPUConstantBuffer, &MemoryRequirements);
 
@@ -601,13 +599,13 @@ void RenderSystem::InitSystem()
 	MemoryAllocateInfo.pNext = nullptr;
 	MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 
-	Result = vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPUConstantBufferMemoryHeap);
+	SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPUConstantBufferMemoryHeap));
 
-	Result = vkBindBufferMemory(Device, GPUConstantBuffer, GPUConstantBufferMemoryHeap, 0);
+	SAFE_VK(vkBindBufferMemory(Device, GPUConstantBuffer, GPUConstantBufferMemoryHeap, 0));
 
 	BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
-	Result = vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUConstantBuffers[0]);
+	SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUConstantBuffers[0]));
 
 	vkGetBufferMemoryRequirements(Device, GPUConstantBuffer, &MemoryRequirements);
 
@@ -626,11 +624,11 @@ void RenderSystem::InitSystem()
 	MemoryAllocateInfo.pNext = nullptr;
 	MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 
-	Result = vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUConstantBufferMemoryHeaps[0]);
+	SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUConstantBufferMemoryHeaps[0]));
 
-	Result = vkBindBufferMemory(Device, CPUConstantBuffers[0], CPUConstantBufferMemoryHeaps[0], 0);
+	SAFE_VK(vkBindBufferMemory(Device, CPUConstantBuffers[0], CPUConstantBufferMemoryHeaps[0], 0));
 
-	Result = vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUConstantBuffers[1]);
+	SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUConstantBuffers[1]));
 
 	vkGetBufferMemoryRequirements(Device, GPUConstantBuffer, &MemoryRequirements);
 
@@ -649,9 +647,9 @@ void RenderSystem::InitSystem()
 	MemoryAllocateInfo.pNext = nullptr;
 	MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 
-	Result = vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUConstantBufferMemoryHeaps[1]);
+	SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUConstantBufferMemoryHeaps[1]));
 
-	Result = vkBindBufferMemory(Device, CPUConstantBuffers[1], CPUConstantBufferMemoryHeaps[1], 0);
+	SAFE_VK(vkBindBufferMemory(Device, CPUConstantBuffers[1], CPUConstantBufferMemoryHeaps[1], 0));
 
 	VkSamplerCreateInfo SamplerCreateInfo;
 	SamplerCreateInfo.addressModeU = SamplerCreateInfo.addressModeV = SamplerCreateInfo.addressModeW = VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
@@ -671,7 +669,7 @@ void RenderSystem::InitSystem()
 	SamplerCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 	SamplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
 
-	Result = vkCreateSampler(Device, &SamplerCreateInfo, nullptr, &Sampler);
+	SAFE_VK(vkCreateSampler(Device, &SamplerCreateInfo, nullptr, &Sampler));
 
 	MemoryAllocateInfo.allocationSize = BUFFER_MEMORY_HEAP_SIZE;
 	MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
@@ -688,7 +686,7 @@ void RenderSystem::InitSystem()
 	MemoryAllocateInfo.pNext = nullptr;
 	MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 
-	Result = vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &BufferMemoryHeaps[CurrentBufferMemoryHeapIndex]);
+	SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &BufferMemoryHeaps[CurrentBufferMemoryHeapIndex]));
 
 	MemoryAllocateInfo.allocationSize = TEXTURE_MEMORY_HEAP_SIZE;
 	MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
@@ -705,7 +703,7 @@ void RenderSystem::InitSystem()
 	MemoryAllocateInfo.pNext = nullptr;
 	MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 
-	Result = vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &TextureMemoryHeaps[CurrentTextureMemoryHeapIndex]);
+	SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &TextureMemoryHeaps[CurrentTextureMemoryHeapIndex]));
 
 	BufferCreateInfo.flags = 0;
 	BufferCreateInfo.pNext = nullptr;
@@ -716,7 +714,7 @@ void RenderSystem::InitSystem()
 	BufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
-	Result = vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &UploadBuffer);
+	SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &UploadBuffer));
 
 	vkGetBufferMemoryRequirements(Device, UploadBuffer, &MemoryRequirements);
 
@@ -735,18 +733,16 @@ void RenderSystem::InitSystem()
 	MemoryAllocateInfo.pNext = nullptr;
 	MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 
-	Result = vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &UploadHeap);
+	SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &UploadHeap));
 
-	Result = vkBindBufferMemory(Device, UploadBuffer, UploadHeap, 0);
+	SAFE_VK(vkBindBufferMemory(Device, UploadBuffer, UploadHeap, 0));
 }
 
 void RenderSystem::ShutdownSystem()
 {
-	VkResult Result;
-
 	CurrentFrameIndex = (CurrentFrameIndex + 1) % 2;
 
-	Result = vkWaitForFences(Device, 1, &Fences[CurrentFrameIndex], VK_FALSE, UINT64_MAX);
+	SAFE_VK(vkWaitForFences(Device, 1, &Fences[CurrentFrameIndex], VK_FALSE, UINT64_MAX));
 
 	for (RenderMesh* renderMesh : RenderMeshDestructionQueue)
 	{
@@ -813,6 +809,9 @@ void RenderSystem::ShutdownSystem()
 	vkDestroyDescriptorSetLayout(Device, TexturesSetLayout, nullptr);
 	vkDestroyDescriptorSetLayout(Device, SamplersSetLayout, nullptr);
 
+	SAFE_VK(vkResetDescriptorPool(Device, DescriptorPools[0], 0));
+	SAFE_VK(vkResetDescriptorPool(Device, DescriptorPools[1], 0));
+
 	vkDestroyDescriptorPool(Device, DescriptorPools[0], nullptr);
 	vkDestroyDescriptorPool(Device, DescriptorPools[1], nullptr);
 
@@ -841,9 +840,7 @@ void RenderSystem::ShutdownSystem()
 
 void RenderSystem::TickSystem(float DeltaTime)
 {
-	VkResult Result;
-
-	Result = vkAcquireNextImageKHR(Device, SwapChain, UINT64_MAX, ImageAvailabilitySemaphore, VK_NULL_HANDLE, &CurrentBackBufferIndex);
+	SAFE_VK(vkAcquireNextImageKHR(Device, SwapChain, UINT64_MAX, ImageAvailabilitySemaphore, VK_NULL_HANDLE, &CurrentBackBufferIndex));
 
 	VkCommandBufferBeginInfo CommandBufferBeginInfo;
 	CommandBufferBeginInfo.flags = 0;
@@ -851,7 +848,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 	CommandBufferBeginInfo.pNext = nullptr;
 	CommandBufferBeginInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-	Result = vkBeginCommandBuffer(CommandBuffers[CurrentFrameIndex], &CommandBufferBeginInfo);
+	SAFE_VK(vkBeginCommandBuffer(CommandBuffers[CurrentFrameIndex], &CommandBufferBeginInfo));
 
 	XMMATRIX ViewProjMatrix = Engine::GetEngine().GetGameFramework().GetCamera().GetViewProjMatrix();
 
@@ -864,7 +861,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	OPTICK_EVENT("Draw Calls")
 
-	Result = vkMapMemory(Device, CPUConstantBufferMemoryHeaps[CurrentFrameIndex], 0, VK_WHOLE_SIZE, 0, &ConstantBufferData);
+	SAFE_VK(vkMapMemory(Device, CPUConstantBufferMemoryHeaps[CurrentFrameIndex], 0, VK_WHOLE_SIZE, 0, &ConstantBufferData));
 	
 	for (int k = 0; k < VisbleStaticMeshComponentsCount; k++)
 	{
@@ -1083,7 +1080,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	vkCmdPipelineBarrier(CommandBuffers[CurrentFrameIndex], VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, ImageMemoryBarriers);
 
-	Result = vkEndCommandBuffer(CommandBuffers[CurrentFrameIndex]);
+	SAFE_VK(vkEndCommandBuffer(CommandBuffers[CurrentFrameIndex]));
 
 	VkPipelineStageFlags WaitDstStageMask = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
 
@@ -1098,7 +1095,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 	SubmitInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	SubmitInfo.waitSemaphoreCount = 1;
 
-	Result = vkQueueSubmit(CommandQueue, 1, &SubmitInfo, Fences[CurrentFrameIndex]);
+	SAFE_VK(vkQueueSubmit(CommandQueue, 1, &SubmitInfo, Fences[CurrentFrameIndex]));
 
 	VkPresentInfoKHR PresentInfo;
 	PresentInfo.pImageIndices = &CurrentBackBufferIndex;
@@ -1110,20 +1107,18 @@ void RenderSystem::TickSystem(float DeltaTime)
 	PresentInfo.swapchainCount = 1;
 	PresentInfo.waitSemaphoreCount = 1;
 
-	Result = vkQueuePresentKHR(CommandQueue, &PresentInfo);
+	SAFE_VK(vkQueuePresentKHR(CommandQueue, &PresentInfo));
 
 	CurrentFrameIndex = (CurrentFrameIndex + 1) % 2;
 	
-	Result = vkWaitForFences(Device, 1, &Fences[CurrentFrameIndex], VK_FALSE, UINT64_MAX);
+	SAFE_VK(vkWaitForFences(Device, 1, &Fences[CurrentFrameIndex], VK_FALSE, UINT64_MAX));
 
-	Result = vkResetFences(Device, 1, &Fences[CurrentFrameIndex]);
+	SAFE_VK(vkResetFences(Device, 1, &Fences[CurrentFrameIndex]));
 }
 
 RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMeshCreateInfo)
 {
 	RenderMesh *renderMesh = new RenderMesh();
-
-	VkResult Result;
 
 	VkPhysicalDeviceMemoryProperties PhysicalDeviceMemoryProperties;
 
@@ -1139,7 +1134,7 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 	BufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
-	Result = vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &renderMesh->VertexBuffer);
+	SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &renderMesh->VertexBuffer));
 
 	VkMemoryRequirements MemoryRequirements;
 
@@ -1167,12 +1162,12 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 		MemoryAllocateInfo.pNext = nullptr;
 		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 
-		Result = vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &BufferMemoryHeaps[CurrentBufferMemoryHeapIndex]);
+		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &BufferMemoryHeaps[CurrentBufferMemoryHeapIndex]));
 
 		AlignedResourceOffset = 0;
 	}
 
-	Result = vkBindBufferMemory(Device, renderMesh->VertexBuffer, BufferMemoryHeaps[CurrentBufferMemoryHeapIndex], AlignedResourceOffset);
+	SAFE_VK(vkBindBufferMemory(Device, renderMesh->VertexBuffer, BufferMemoryHeaps[CurrentBufferMemoryHeapIndex], AlignedResourceOffset));
 
 	BufferMemoryHeapOffsets[CurrentBufferMemoryHeapIndex] = AlignedResourceOffset + MemoryRequirements.size;
 
@@ -1185,7 +1180,7 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 	BufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
-	Result = vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &renderMesh->IndexBuffer);
+	SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &renderMesh->IndexBuffer));
 
 	vkGetBufferMemoryRequirements(Device, renderMesh->IndexBuffer, &MemoryRequirements);
 
@@ -1211,18 +1206,18 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 		MemoryAllocateInfo.pNext = nullptr;
 		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 
-		Result = vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &BufferMemoryHeaps[CurrentBufferMemoryHeapIndex]);
+		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &BufferMemoryHeaps[CurrentBufferMemoryHeapIndex]));
 
 		AlignedResourceOffset = 0;
 	}
 
-	Result = vkBindBufferMemory(Device, renderMesh->IndexBuffer, BufferMemoryHeaps[CurrentBufferMemoryHeapIndex], AlignedResourceOffset);
+	SAFE_VK(vkBindBufferMemory(Device, renderMesh->IndexBuffer, BufferMemoryHeaps[CurrentBufferMemoryHeapIndex], AlignedResourceOffset));
 
 	BufferMemoryHeapOffsets[CurrentBufferMemoryHeapIndex] = AlignedResourceOffset + MemoryRequirements.size;
 	
 	void *MappedData;
 
-	Result = vkMapMemory(Device, UploadHeap, 0, VK_WHOLE_SIZE, 0, &MappedData);
+	SAFE_VK(vkMapMemory(Device, UploadHeap, 0, VK_WHOLE_SIZE, 0, &MappedData));
 	memcpy((BYTE*)MappedData, renderMeshCreateInfo.VertexData, sizeof(Vertex) * renderMeshCreateInfo.VertexCount);
 	memcpy((BYTE*)MappedData + sizeof(Vertex) * renderMeshCreateInfo.VertexCount, renderMeshCreateInfo.IndexData, sizeof(WORD) * renderMeshCreateInfo.IndexCount);
 	vkUnmapMemory(Device, UploadHeap);
@@ -1233,7 +1228,7 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 	CommandBufferBeginInfo.pNext = nullptr;
 	CommandBufferBeginInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-	Result = vkBeginCommandBuffer(CommandBuffers[0], &CommandBufferBeginInfo);
+	SAFE_VK(vkBeginCommandBuffer(CommandBuffers[0], &CommandBufferBeginInfo));
 
 	VkBufferMemoryBarrier BufferMemoryBarriers[2];
 	BufferMemoryBarriers[0].buffer = UploadBuffer;
@@ -1282,7 +1277,7 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 
 	vkCmdPipelineBarrier(CommandBuffers[0], VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT, VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, 0, 0, nullptr, 2, BufferMemoryBarriers, 0, nullptr);
 
-	Result = vkEndCommandBuffer(CommandBuffers[0]);
+	SAFE_VK(vkEndCommandBuffer(CommandBuffers[0]));
 
 	VkSubmitInfo SubmitInfo;
 	SubmitInfo.commandBufferCount = 1;
@@ -1295,9 +1290,9 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 	SubmitInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	SubmitInfo.waitSemaphoreCount = 0;
 
-	Result = vkQueueSubmit(CommandQueue, 1, &SubmitInfo, VK_NULL_HANDLE);
+	SAFE_VK(vkQueueSubmit(CommandQueue, 1, &SubmitInfo, VK_NULL_HANDLE));
 
-	Result = vkQueueWaitIdle(CommandQueue);
+	SAFE_VK(vkQueueWaitIdle(CommandQueue));
 
 	return renderMesh;
 }
@@ -1305,8 +1300,6 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& renderTextureCreateInfo)
 {
 	RenderTexture *renderTexture = new RenderTexture();
-
-	VkResult Result;
 
 	VkPhysicalDeviceMemoryProperties PhysicalDeviceMemoryProperties;
 
@@ -1331,7 +1324,7 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 	ImageCreateInfo.tiling = VkImageTiling::VK_IMAGE_TILING_OPTIMAL;
 	ImageCreateInfo.usage = VkImageUsageFlagBits::VK_IMAGE_USAGE_SAMPLED_BIT | VkImageUsageFlagBits::VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-	Result = vkCreateImage(Device, &ImageCreateInfo, nullptr, &renderTexture->Texture);
+	SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &renderTexture->Texture));
 
 	VkMemoryRequirements MemoryRequirements;
 
@@ -1359,18 +1352,18 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 		MemoryAllocateInfo.pNext = nullptr;
 		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 
-		Result = vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &TextureMemoryHeaps[CurrentTextureMemoryHeapIndex]);
+		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &TextureMemoryHeaps[CurrentTextureMemoryHeapIndex]));
 
 		AlignedResourceOffset = 0;
 	}
 
-	Result = vkBindImageMemory(Device, renderTexture->Texture, TextureMemoryHeaps[CurrentTextureMemoryHeapIndex], AlignedResourceOffset);
+	SAFE_VK(vkBindImageMemory(Device, renderTexture->Texture, TextureMemoryHeaps[CurrentTextureMemoryHeapIndex], AlignedResourceOffset));
 
 	TextureMemoryHeapOffsets[CurrentTextureMemoryHeapIndex] = AlignedResourceOffset + MemoryRequirements.size;
 
 	void *MappedData;
 
-	Result = vkMapMemory(Device, UploadHeap, 0, VK_WHOLE_SIZE, 0, &MappedData);
+	SAFE_VK(vkMapMemory(Device, UploadHeap, 0, VK_WHOLE_SIZE, 0, &MappedData));
 
 	BYTE *TexelData = renderTextureCreateInfo.TexelData;
 
@@ -1393,7 +1386,7 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 	CommandBufferBeginInfo.pNext = nullptr;
 	CommandBufferBeginInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-	Result = vkBeginCommandBuffer(CommandBuffers[0], &CommandBufferBeginInfo);
+	SAFE_VK(vkBeginCommandBuffer(CommandBuffers[0], &CommandBufferBeginInfo));
 
 	VkBufferMemoryBarrier BufferMemoryBarrier;
 	BufferMemoryBarrier.buffer = UploadBuffer;
@@ -1462,7 +1455,7 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 
 	vkCmdPipelineBarrier(CommandBuffers[0], VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT, VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VkPipelineStageFlagBits::VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &ImageMemoryBarrier);
 
-	Result = vkEndCommandBuffer(CommandBuffers[0]);
+	SAFE_VK(vkEndCommandBuffer(CommandBuffers[0]));
 
 	VkSubmitInfo SubmitInfo;
 	SubmitInfo.commandBufferCount = 1;
@@ -1475,9 +1468,9 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 	SubmitInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	SubmitInfo.waitSemaphoreCount = 0;
 
-	Result = vkQueueSubmit(CommandQueue, 1, &SubmitInfo, VK_NULL_HANDLE);
+	SAFE_VK(vkQueueSubmit(CommandQueue, 1, &SubmitInfo, VK_NULL_HANDLE));
 
-	Result = vkQueueWaitIdle(CommandQueue);
+	SAFE_VK(vkQueueWaitIdle(CommandQueue));
 
 	VkImageViewCreateInfo ImageViewCreateInfo;
 	ImageViewCreateInfo.components.a = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -1496,7 +1489,7 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 	ImageViewCreateInfo.subresourceRange.levelCount = renderTextureCreateInfo.MIPLevels;
 	ImageViewCreateInfo.viewType = VkImageViewType::VK_IMAGE_VIEW_TYPE_2D;
 
-	Result = vkCreateImageView(Device, &ImageViewCreateInfo, nullptr, &renderTexture->TextureView);
+	SAFE_VK(vkCreateImageView(Device, &ImageViewCreateInfo, nullptr, &renderTexture->TextureView));
 
 	return renderTexture;
 }
@@ -1504,8 +1497,6 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInfo& renderMaterialCreateInfo)
 {
 	RenderMaterial *renderMaterial = new RenderMaterial();
-
-	VkResult Result;
 
 	VkShaderModule VertexShaderModule, PixelShaderModule;
 
@@ -1516,7 +1507,7 @@ RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInf
 	ShaderModuleCreateInfo.pNext = nullptr;
 	ShaderModuleCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 
-	Result = vkCreateShaderModule(Device, &ShaderModuleCreateInfo, nullptr, &VertexShaderModule);
+	SAFE_VK(vkCreateShaderModule(Device, &ShaderModuleCreateInfo, nullptr, &VertexShaderModule));
 
 	ShaderModuleCreateInfo.codeSize = renderMaterialCreateInfo.PixelShaderByteCodeLength;
 	ShaderModuleCreateInfo.flags = 0;
@@ -1524,7 +1515,7 @@ RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInf
 	ShaderModuleCreateInfo.pNext = nullptr;
 	ShaderModuleCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 
-	Result = vkCreateShaderModule(Device, &ShaderModuleCreateInfo, nullptr, &PixelShaderModule);
+	SAFE_VK(vkCreateShaderModule(Device, &ShaderModuleCreateInfo, nullptr, &PixelShaderModule));
 
 	VkPipelineColorBlendAttachmentState PipelineColorBlendAttachmentState;
 	ZeroMemory(&PipelineColorBlendAttachmentState, sizeof(PipelineColorBlendAttachmentState));
@@ -1659,7 +1650,7 @@ RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInf
 	GraphicsPipelineCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 	GraphicsPipelineCreateInfo.subpass = 0;
 
-	Result = vkCreateGraphicsPipelines(Device, VK_NULL_HANDLE, 1, &GraphicsPipelineCreateInfo, nullptr, &renderMaterial->Pipeline);
+	SAFE_VK(vkCreateGraphicsPipelines(Device, VK_NULL_HANDLE, 1, &GraphicsPipelineCreateInfo, nullptr, &renderMaterial->Pipeline));
 
 	vkDestroyShaderModule(Device, VertexShaderModule, nullptr);
 	vkDestroyShaderModule(Device, PixelShaderModule, nullptr);
@@ -1680,4 +1671,117 @@ void RenderSystem::DestroyRenderTexture(RenderTexture* renderTexture)
 void RenderSystem::DestroyRenderMaterial(RenderMaterial* renderMaterial)
 {
 	RenderMaterialDestructionQueue.push_back(renderMaterial);
+}
+
+inline void RenderSystem::CheckVulkanCallResult(VkResult Result, const wchar_t* Function)
+{
+	if (Result != VkResult::VK_SUCCESS)
+	{
+		wchar_t VulkanErrorMessageBuffer[2048];
+		wchar_t VulkanErrorCodeBuffer[512];
+
+		const wchar_t *VulkanErrorCodePtr = GetVulkanErrorMessageFromVkResult(Result);
+
+		if (VulkanErrorCodePtr) wcscpy(VulkanErrorCodeBuffer, VulkanErrorCodePtr);
+		else wsprintf(VulkanErrorCodeBuffer, (const wchar_t*)u"0x%08X (неизвестный код)", Result);
+
+		wsprintf(VulkanErrorMessageBuffer, (const wchar_t*)u"Произошла ошибка при попытке вызова следующей Vulkan-функции:\r\n%s\r\nКод ошибки: %s", Function, VulkanErrorCodeBuffer);
+
+		int IntResult = MessageBox(NULL, VulkanErrorMessageBuffer, (const wchar_t*)u"Ошибка Vulkan", MB_OK | MB_ICONERROR);
+
+		ExitProcess(0);
+	}
+}
+
+inline const wchar_t* RenderSystem::GetVulkanErrorMessageFromVkResult(VkResult Result)
+{
+	switch (Result)
+	{
+		case VkResult::VK_ERROR_OUT_OF_HOST_MEMORY:
+			return (const wchar_t*)u"VK_ERROR_OUT_OF_HOST_MEMORY";
+			break;
+		case VkResult::VK_ERROR_OUT_OF_DEVICE_MEMORY:
+			return (const wchar_t*)u"VK_ERROR_OUT_OF_DEVICE_MEMORY";
+			break;
+		case VkResult::VK_ERROR_INITIALIZATION_FAILED:
+			return (const wchar_t*)u"VK_ERROR_INITIALIZATION_FAILED";
+			break;
+		case VkResult::VK_ERROR_DEVICE_LOST:
+			return (const wchar_t*)u"VK_ERROR_DEVICE_LOST";
+			break;
+		case VkResult::VK_ERROR_MEMORY_MAP_FAILED:
+			return (const wchar_t*)u"VK_ERROR_MEMORY_MAP_FAILED";
+			break;
+		case VkResult::VK_ERROR_LAYER_NOT_PRESENT:
+			return (const wchar_t*)u"VK_ERROR_LAYER_NOT_PRESENT";
+			break;
+		case VkResult::VK_ERROR_EXTENSION_NOT_PRESENT:
+			return (const wchar_t*)u"VK_ERROR_EXTENSION_NOT_PRESENT";
+			break;
+		case VkResult::VK_ERROR_FEATURE_NOT_PRESENT:
+			return (const wchar_t*)u"VK_ERROR_FEATURE_NOT_PRESENT";
+			break;
+		case VkResult::VK_ERROR_INCOMPATIBLE_DRIVER:
+			return (const wchar_t*)u"VK_ERROR_INCOMPATIBLE_DRIVER";
+			break;
+		case VkResult::VK_ERROR_TOO_MANY_OBJECTS:
+			return (const wchar_t*)u"VK_ERROR_TOO_MANY_OBJECTS";
+			break;
+		case VkResult::VK_ERROR_FORMAT_NOT_SUPPORTED:
+			return (const wchar_t*)u"VK_ERROR_FORMAT_NOT_SUPPORTED";
+			break;
+		case VkResult::VK_ERROR_FRAGMENTED_POOL:
+			return (const wchar_t*)u"VK_ERROR_FRAGMENTED_POOL";
+			break;
+		case VkResult::VK_ERROR_UNKNOWN:
+			return (const wchar_t*)u"VK_ERROR_UNKNOWN";
+			break;
+		case VkResult::VK_ERROR_OUT_OF_POOL_MEMORY:
+			return (const wchar_t*)u"VK_ERROR_OUT_OF_POOL_MEMORY";
+			break;
+		case VkResult::VK_ERROR_INVALID_EXTERNAL_HANDLE:
+			return (const wchar_t*)u"VK_ERROR_INVALID_EXTERNAL_HANDLE";
+			break;
+		case VkResult::VK_ERROR_FRAGMENTATION:
+			return (const wchar_t*)u"VK_ERROR_FRAGMENTATION";
+			break;
+		case VkResult::VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS:
+			return (const wchar_t*)u"VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS";
+			break;
+		case VkResult::VK_ERROR_SURFACE_LOST_KHR:
+			return (const wchar_t*)u"VK_ERROR_SURFACE_LOST_KHR";
+			break;
+		case VkResult::VK_ERROR_NATIVE_WINDOW_IN_USE_KHR:
+			return (const wchar_t*)u"VK_ERROR_NATIVE_WINDOW_IN_USE_KHR";
+			break;
+		case VkResult::VK_ERROR_OUT_OF_DATE_KHR:
+			return (const wchar_t*)u"VK_ERROR_OUT_OF_DATE_KHR";
+			break;
+		case VkResult::VK_ERROR_INCOMPATIBLE_DISPLAY_KHR:
+			return (const wchar_t*)u"VK_ERROR_INCOMPATIBLE_DISPLAY_KHR";
+			break;
+		case VkResult::VK_ERROR_VALIDATION_FAILED_EXT:
+			return (const wchar_t*)u"VK_ERROR_VALIDATION_FAILED_EXT";
+			break;
+		case VkResult::VK_ERROR_INVALID_SHADER_NV:
+			return (const wchar_t*)u"VK_ERROR_INVALID_SHADER_NV";
+			break;
+		case VkResult::VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT:
+			return (const wchar_t*)u"VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT";
+			break;
+		case VkResult::VK_ERROR_NOT_PERMITTED_EXT:
+			return (const wchar_t*)u"VK_ERROR_NOT_PERMITTED_EXT";
+			break;
+		case VkResult::VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT:
+			return (const wchar_t*)u"VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT";
+			break;
+		case VkResult::VK_ERROR_PIPELINE_COMPILE_REQUIRED_EXT:
+			return (const wchar_t*)u"VK_ERROR_PIPELINE_COMPILE_REQUIRED_EXT";
+			break;
+		default:
+			return nullptr;
+			break;
+	}
+
+	return nullptr;
 }

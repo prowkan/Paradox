@@ -53,6 +53,8 @@ struct Texel
 	BYTE R, G, B, A;
 };
 
+#define SAFE_VK(Func) CheckVulkanCallResult(Func, L#Func);
+
 class RenderSystem
 {
 	public:
@@ -131,4 +133,7 @@ class RenderSystem
 		vector<RenderTexture*> RenderTextureDestructionQueue;
 
 		CullingSubSystem cullingSubSystem;
+
+		inline void CheckVulkanCallResult(VkResult Result, const wchar_t* Function);
+		inline const wchar_t* GetVulkanErrorMessageFromVkResult(VkResult Result);
 };
