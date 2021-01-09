@@ -987,7 +987,7 @@ void RenderSystem::DestroyRenderMaterial(RenderMaterial* renderMaterial)
 	RenderMaterialDestructionQueue.push_back(renderMaterial);
 }
 
-void RenderSystem::CheckDXCallResult(HRESULT hr, const wchar_t* Function)
+inline void RenderSystem::CheckDXCallResult(HRESULT hr, const wchar_t* Function)
 {
 	if (FAILED(hr))
 	{
@@ -1009,7 +1009,7 @@ void RenderSystem::CheckDXCallResult(HRESULT hr, const wchar_t* Function)
 	}
 }
 
-const wchar_t* RenderSystem::GetDXErrorMessageFromHRESULT(HRESULT hr)
+inline const wchar_t* RenderSystem::GetDXErrorMessageFromHRESULT(HRESULT hr)
 {
 	switch (hr)
 	{

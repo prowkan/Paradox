@@ -3,11 +3,13 @@
 #include "MetaClass.h"
 #include "Component.h"
 
+#include <Engine/Engine.h>
+
 MetaClass *GameObject::GameObjectMetaClass;
 
 Component* GameObject::CreateDefaultComponent(MetaClass* metaClass)
 {
-	void *componentPtr = malloc(metaClass->GetClassSize());
+	void *componentPtr = Engine::GetEngine().GetMemoryManager().AllocateComponent(metaClass);
 	metaClass->ObjectConstructorFunc(componentPtr);
 	Component *component = (Component*)componentPtr;
 	component->SetMetaClass(metaClass);

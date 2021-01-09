@@ -295,7 +295,7 @@ void World::UnLoadWorld()
 
 GameObject* World::SpawnGameObject(MetaClass* metaClass)
 {
-	void *gameObjectPtr = malloc(metaClass->GetClassSize());
+	void *gameObjectPtr = Engine::GetEngine().GetMemoryManager().AllocateGameObject(metaClass);
 	metaClass->ObjectConstructorFunc(gameObjectPtr);
 	GameObject *gameObject = (GameObject*)gameObjectPtr;
 	gameObject->SetMetaClass(metaClass);
