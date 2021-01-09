@@ -176,6 +176,7 @@
     <ClInclude Include="Game\MetaClass.h" />
     <ClInclude Include="Game\World.h" />
     <ClInclude Include="Input\InputSystem.h" />
+    <ClInclude Include="MemoryManager\Heap.h" />
     <ClInclude Include="MemoryManager\MemoryManager.h" />
     <ClInclude Include="MemoryManager\Pool.h" />
     <ClInclude Include="Render\CullingSubSystem.h" />
@@ -202,6 +203,7 @@
     <ClCompile Include="Game\MetaClass.cpp" />
     <ClCompile Include="Game\World.cpp" />
     <ClCompile Include="Input\InputSystem.cpp" />
+    <ClCompile Include="MemoryManager\Heap.cpp" />
     <ClCompile Include="MemoryManager\MemoryManager.cpp" />
     <ClCompile Include="MemoryManager\Pool.cpp" />
     <ClCompile Include="Render\CullingSubSystem.cpp" />

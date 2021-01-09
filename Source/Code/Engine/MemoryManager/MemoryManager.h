@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Pool.h"
+#include "Heap.h"
 
 class MetaClass;
 
@@ -11,6 +12,7 @@ class MemoryManager
 		void InitManager();
 		void ShutdownManager();
 
+		void* AllocateGameObject(MetaClass* metaClass);
 		void* AllocateComponent(MetaClass* metaClass);
 
 	private:
@@ -18,4 +20,6 @@ class MemoryManager
 		Pool TransformComponentsPool;
 		Pool BoundingBoxComponentsPool;
 		Pool StaticMeshComponentsPool;
+
+		Heap GameObjectsHeap;
 };
