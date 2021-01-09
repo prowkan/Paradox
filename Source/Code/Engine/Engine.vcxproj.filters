@@ -81,6 +81,12 @@
     <ClInclude Include="Render\CullingSubSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="MemoryManager\MemoryManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MemoryManager\Pool.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="StdAfx.cpp">
@@ -147,6 +153,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Render\CullingSubSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MemoryManager\MemoryManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MemoryManager\Pool.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
