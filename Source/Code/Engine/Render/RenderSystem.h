@@ -1,22 +1,24 @@
 #pragma once
 
+#include <Containers/COMRCPtr.h>
+
 #include "CullingSubSystem.h"
 
 struct RenderMesh
 {
-	ID3D11Buffer *VertexBuffer, *IndexBuffer;
+	COMRCPtr<ID3D11Buffer> VertexBuffer, IndexBuffer;
 };
 
 struct RenderTexture
 {
-	ID3D11Texture2D *Texture;
-	ID3D11ShaderResourceView *TextureSRV;
+	COMRCPtr<ID3D11Texture2D> Texture;
+	COMRCPtr<ID3D11ShaderResourceView> TextureSRV;
 };
 
 struct RenderMaterial
 {
-	ID3D11VertexShader *VertexShader;
-	ID3D11PixelShader *PixelShader;
+	COMRCPtr<ID3D11VertexShader> VertexShader;
+	COMRCPtr<ID3D11PixelShader> PixelShader;
 };
 
 struct RenderMeshCreateInfo
@@ -55,7 +57,7 @@ struct Texel
 };
 
 #define SAFE_DX(Func) CheckDXCallResult(Func, L#Func);
-#define SAFE_RELEASE(Object) if (Object) { ULONG RefCount = Object->Release(); Object = nullptr; }
+#define UUIDOF(Value) __uuidof(Value), (void**)&Value
 
 class RenderSystem
 {
@@ -75,28 +77,28 @@ class RenderSystem
 
 	private:
 
-		ID3D11Device *Device;
-		IDXGISwapChain *SwapChain;
+		COMRCPtr<ID3D11Device> Device;
+		COMRCPtr<IDXGISwapChain> SwapChain;
 
 		int ResolutionWidth;
 		int ResolutionHeight;
 
-		ID3D11DeviceContext *DeviceContext;
+		COMRCPtr<ID3D11DeviceContext> DeviceContext;
 
 		ID3D11Texture2D *BackBufferTexture;
 		ID3D11RenderTargetView *BackBufferRTV;
 
-		ID3D11Texture2D *DepthBufferTexture;
-		ID3D11DepthStencilView *DepthBufferDSV;
+		COMRCPtr<ID3D11Texture2D> DepthBufferTexture;
+		COMRCPtr<ID3D11DepthStencilView> DepthBufferDSV;
 
-		ID3D11Buffer *ConstantBuffers[20000];
+		COMRCPtr<ID3D11Buffer> ConstantBuffers[20000];
 
-		ID3D11SamplerState *Sampler;
+		COMRCPtr<ID3D11SamplerState> Sampler;
 
-		ID3D11InputLayout *InputLayout;
-		ID3D11RasterizerState *RasterizerState;
-		ID3D11BlendState *BlendState;
-		ID3D11DepthStencilState *DepthStencilState;
+		COMRCPtr<ID3D11InputLayout> InputLayout;
+		COMRCPtr<ID3D11RasterizerState> RasterizerState;
+		COMRCPtr<ID3D11BlendState> BlendState;
+		COMRCPtr<ID3D11DepthStencilState> DepthStencilState;
 
 		vector<RenderMesh*> RenderMeshDestructionQueue;
 		vector<RenderMaterial*> RenderMaterialDestructionQueue;

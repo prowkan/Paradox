@@ -8,6 +8,8 @@
 #include "Components/Common/TransformComponent.h"
 #include "Components/Render/Meshes/StaticMeshComponent.h"
 
+#include <Containers/COMRCPtr.h>
+
 #include <Engine/Engine.h>
 
 #include <ResourceManager/Resources/Render/Meshes/StaticMeshResource.h>
@@ -222,9 +224,9 @@ void World::LoadWorld()
 
 		)";
 
-	ID3DBlob *ErrorBlob = nullptr;
+	COMRCPtr<ID3DBlob> ErrorBlob;
 
-	ID3DBlob *VertexShaderBlob, *PixelShaderBlob;
+	COMRCPtr<ID3DBlob> VertexShaderBlob, PixelShaderBlob;
 
 	HRESULT hr;
 
@@ -252,11 +254,6 @@ void World::LoadWorld()
 
 		Engine::GetEngine().GetResourceManager().AddResource<MaterialResource>(MaterialResourceName, &materialResourceCreateInfo);
 	}
-
-	ULONG RefCount;
-
-	RefCount = VertexShaderBlob->Release();
-	RefCount = PixelShaderBlob->Release();
 
 	UINT ResourceCounter = 0;
 
@@ -298,7 +295,7 @@ void World::UnLoadWorld()
 
 GameObject* World::SpawnGameObject(MetaClass* metaClass)
 {
-	void *gameObjectPtr = malloc(metaClass->GetClassSize());
+	void *gameObjectPtr = Engine::GetEngine().GetMemoryManager().AllocateGameObject(metaClass);
 	metaClass->ObjectConstructorFunc(gameObjectPtr);
 	GameObject *gameObject = (GameObject*)gameObjectPtr;
 	gameObject->SetMetaClass(metaClass);

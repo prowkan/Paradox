@@ -163,6 +163,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Containers\COMRCPtr.h" />
     <ClInclude Include="Core\Application.h" />
     <ClInclude Include="Engine\Engine.h" />
     <ClInclude Include="Game\Camera.h" />
@@ -176,6 +177,9 @@
     <ClInclude Include="Game\MetaClass.h" />
     <ClInclude Include="Game\World.h" />
     <ClInclude Include="Input\InputSystem.h" />
+    <ClInclude Include="MemoryManager\Heap.h" />
+    <ClInclude Include="MemoryManager\MemoryManager.h" />
+    <ClInclude Include="MemoryManager\Pool.h" />
     <ClInclude Include="Render\CullingSubSystem.h" />
     <ClInclude Include="Render\RenderScene.h" />
     <ClInclude Include="Render\RenderSystem.h" />
@@ -187,6 +191,7 @@
     <ClInclude Include="StdAfx.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Containers\COMRCPtr.cpp" />
     <ClCompile Include="Core\Application.cpp" />
     <ClCompile Include="Engine\Engine.cpp" />
     <ClCompile Include="Game\Camera.cpp" />
@@ -200,6 +205,9 @@
     <ClCompile Include="Game\MetaClass.cpp" />
     <ClCompile Include="Game\World.cpp" />
     <ClCompile Include="Input\InputSystem.cpp" />
+    <ClCompile Include="MemoryManager\Heap.cpp" />
+    <ClCompile Include="MemoryManager\MemoryManager.cpp" />
+    <ClCompile Include="MemoryManager\Pool.cpp" />
     <ClCompile Include="Render\CullingSubSystem.cpp" />
     <ClCompile Include="Render\RenderScene.cpp" />
     <ClCompile Include="Render\RenderSystem.cpp" />
