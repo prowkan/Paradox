@@ -172,8 +172,8 @@
     <ClInclude Include="Game\Components\Common\TransformComponent.h" />
     <ClInclude Include="Game\Components\Render\Meshes\StaticMeshComponent.h" />
     <ClInclude Include="Game\GameFramework.h" />
-    <ClInclude Include="Game\GameObject.h" />
-    <ClInclude Include="Game\GameObjects\Render\Meshes\StaticMeshObject.h" />
+    <ClInclude Include="Game\Entity.h" />
+    <ClInclude Include="Game\Entities\Render\Meshes\StaticMeshEntity.h" />
     <ClInclude Include="Game\MetaClass.h" />
     <ClInclude Include="Game\World.h" />
     <ClInclude Include="Input\InputSystem.h" />
@@ -200,8 +200,8 @@
     <ClCompile Include="Game\Components\Common\TransformComponent.cpp" />
     <ClCompile Include="Game\Components\Render\Meshes\StaticMeshComponent.cpp" />
     <ClCompile Include="Game\GameFramework.cpp" />
-    <ClCompile Include="Game\GameObject.cpp" />
-    <ClCompile Include="Game\GameObjects\Render\Meshes\StaticMeshObject.cpp" />
+    <ClCompile Include="Game\Entity.cpp" />
+    <ClCompile Include="Game\Entities\Render\Meshes\StaticMeshEntity.cpp" />
     <ClCompile Include="Game\MetaClass.cpp" />
     <ClCompile Include="Game\World.cpp" />
     <ClCompile Include="Input\InputSystem.cpp" />

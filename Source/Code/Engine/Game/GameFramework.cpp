@@ -2,8 +2,8 @@
 
 #include "MetaClass.h"
 
-#include "GameObject.h"
-#include "GameObjects/Render/Meshes/StaticMeshObject.h"
+#include "Entity.h"
+#include "Entities/Render/Meshes/StaticMeshEntity.h"
 
 #include "Component.h"
 #include "Components/Common/TransformComponent.h"
@@ -15,13 +15,13 @@
 
 void GameFramework::InitFramework()
 {
-	DECLARE_CLASS(GameObject)
-	DECLARE_CLASS_WITH_BASE_CLASS(StaticMeshObject, GameObject)
+	DECLARE_CLASS(Entity)
+	DECLARE_CLASS_WITH_BASE_CLASS(StaticMeshEntity, Entity)
 
 	DECLARE_CLASS(Component)
-	DECLARE_CLASS_WITH_BASE_CLASS(TransformComponent, GameObject)
-	DECLARE_CLASS_WITH_BASE_CLASS(BoundingBoxComponent, GameObject)
-	DECLARE_CLASS_WITH_BASE_CLASS(StaticMeshComponent, GameObject)
+	DECLARE_CLASS_WITH_BASE_CLASS(TransformComponent, Component)
+	DECLARE_CLASS_WITH_BASE_CLASS(BoundingBoxComponent, Component)
+	DECLARE_CLASS_WITH_BASE_CLASS(StaticMeshComponent, Component)
 
 	camera.InitCamera();
 	world.LoadWorld();

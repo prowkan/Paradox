@@ -2,7 +2,7 @@
 
 #include <Game/MetaClass.h>
 
-#include <Game/GameObjects/Render/Meshes/StaticMeshObject.h>
+#include <Game/Entities/Render/Meshes/StaticMeshEntity.h>
 
 #include <Game/Components/Common/TransformComponent.h>
 #include <Game/Components/Common/BoundingBoxComponent.h>
@@ -10,7 +10,7 @@
 
 void MemoryManager::InitManager()
 {
-	GameObjectsHeap.CreateHeap(20000 * sizeof(StaticMeshObject));
+	EntitiesHeap.CreateHeap(20000 * sizeof(StaticMeshEntity));
 
 	TransformComponentsPool.CreatePool(sizeof(TransformComponent), 20000);
 	BoundingBoxComponentsPool.CreatePool(sizeof(BoundingBoxComponent), 20000);
@@ -23,12 +23,12 @@ void MemoryManager::ShutdownManager()
 	BoundingBoxComponentsPool.DestroyPool();
 	StaticMeshComponentsPool.DestroyPool();
 
-	GameObjectsHeap.DestroyHeap();
+	EntitiesHeap.DestroyHeap();
 }
 
-void* MemoryManager::AllocateGameObject(MetaClass* metaClass)
+void* MemoryManager::AllocateEntity(MetaClass* metaClass)
 {
-	return GameObjectsHeap.AllocateMemory(metaClass->GetClassSize());
+	return EntitiesHeap.AllocateMemory(metaClass->GetClassSize());
 }
 
 void* MemoryManager::AllocateComponent(MetaClass* metaClass)

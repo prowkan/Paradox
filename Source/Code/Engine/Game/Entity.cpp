@@ -1,13 +1,13 @@
-#include "GameObject.h"
+#include "Entity.h"
 
 #include "MetaClass.h"
 #include "Component.h"
 
 #include <Engine/Engine.h>
 
-MetaClass *GameObject::GameObjectMetaClass;
+MetaClass *Entity::EntityMetaClass;
 
-Component* GameObject::CreateDefaultComponent(MetaClass* metaClass)
+Component* Entity::CreateDefaultComponent(MetaClass* metaClass)
 {
 	void *componentPtr = Engine::GetEngine().GetMemoryManager().AllocateComponent(metaClass);
 	metaClass->ObjectConstructorFunc(componentPtr);

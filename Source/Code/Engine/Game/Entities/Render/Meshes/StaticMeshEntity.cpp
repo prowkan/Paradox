@@ -1,4 +1,4 @@
-#include "StaticMeshObject.h"
+#include "StaticMeshEntity.h"
 
 #include "../../../MetaClass.h"
 
@@ -6,9 +6,9 @@
 #include "../../../Components/Common/BoundingBoxComponent.h"
 #include "../../../Components/Render/Meshes/StaticMeshComponent.h"
 
-MetaClass *StaticMeshObject::StaticMeshObjectMetaClass;
+MetaClass *StaticMeshEntity::StaticMeshEntityMetaClass;
 
-void StaticMeshObject::InitDefaultProperties()
+void StaticMeshEntity::InitDefaultProperties()
 {
 	transformComponent = (TransformComponent*)CreateDefaultComponent(TransformComponent::GetMetaClassStatic());
 	boundingBoxComponent = (BoundingBoxComponent*)CreateDefaultComponent(BoundingBoxComponent::GetMetaClassStatic());

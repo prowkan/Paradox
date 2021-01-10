@@ -1,7 +1,7 @@
 #include "StaticMeshComponent.h"
 
 #include "../../../MetaClass.h"
-#include "../../../GameObject.h"
+#include "../../../Entity.h"
 
 #include "../../Common/TransformComponent.h"
 #include "../../Common/BoundingBoxComponent.h"
