@@ -94,10 +94,14 @@ void RenderSystem::InitSystem()
 	CurrentBackBufferIndex = SwapChain->GetCurrentBackBufferIndex();
 	CurrentFrameIndex = 0;
 
-	SAFE_DX(Device->CreateFence(1, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE, UUIDOF(Fences[0])));
-	SAFE_DX(Device->CreateFence(1, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE, UUIDOF(Fences[1])));
+	SAFE_DX(Device->CreateFence(1, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE, UUIDOF(FrameSyncFences[0])));
+	SAFE_DX(Device->CreateFence(1, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE, UUIDOF(FrameSyncFences[1])));
 
-	Event = CreateEvent(NULL, FALSE, FALSE, (const wchar_t*)u"Event");
+	FrameSyncEvent = CreateEvent(NULL, FALSE, FALSE, (const wchar_t*)u"FrameSyncEvent");
+	
+	SAFE_DX(Device->CreateFence(0, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE, UUIDOF(CopySyncFence)));
+	
+	CopySyncEvent = CreateEvent(NULL, FALSE, FALSE, (const wchar_t*)u"CopySyncEvent");
 
 	D3D12_DESCRIPTOR_HEAP_DESC DescriptorHeapDesc;
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
@@ -373,10 +377,10 @@ void RenderSystem::ShutdownSystem()
 {
 	CurrentFrameIndex = (CurrentFrameIndex + 1) % 2;
 
-	if (Fences[CurrentFrameIndex]->GetCompletedValue() != 1)
+	if (FrameSyncFences[CurrentFrameIndex]->GetCompletedValue() != 1)
 	{
-		SAFE_DX(Fences[CurrentFrameIndex]->SetEventOnCompletion(1, Event));
-		DWORD WaitResult = WaitForSingleObject(Event, INFINITE);
+		SAFE_DX(FrameSyncFences[CurrentFrameIndex]->SetEventOnCompletion(1, FrameSyncEvent));
+		DWORD WaitResult = WaitForSingleObject(FrameSyncEvent, INFINITE);
 	}
 
 	for (RenderMesh* renderMesh : RenderMeshDestructionQueue)
@@ -402,7 +406,7 @@ void RenderSystem::ShutdownSystem()
 
 	BOOL Result;
 
-	Result = CloseHandle(Event);
+	Result = CloseHandle(FrameSyncEvent);
 }
 
 void RenderSystem::TickSystem(float DeltaTime)
@@ -570,18 +574,18 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	SAFE_DX(SwapChain->Present(0, DXGI_PRESENT_ALLOW_TEARING));
 
-	SAFE_DX(CommandQueue->Signal(Fences[CurrentFrameIndex], 1));
+	SAFE_DX(CommandQueue->Signal(FrameSyncFences[CurrentFrameIndex], 1));
 
 	CurrentFrameIndex = (CurrentFrameIndex + 1) % 2;
 	CurrentBackBufferIndex = SwapChain->GetCurrentBackBufferIndex();
 
-	if (Fences[CurrentFrameIndex]->GetCompletedValue() != 1)
+	if (FrameSyncFences[CurrentFrameIndex]->GetCompletedValue() != 1)
 	{
-		SAFE_DX(Fences[CurrentFrameIndex]->SetEventOnCompletion(1, Event));
-		DWORD WaitResult = WaitForSingleObject(Event, INFINITE);
+		SAFE_DX(FrameSyncFences[CurrentFrameIndex]->SetEventOnCompletion(1, FrameSyncEvent));
+		DWORD WaitResult = WaitForSingleObject(FrameSyncEvent, INFINITE);
 	}
 
-	SAFE_DX(Fences[CurrentFrameIndex]->Signal(0));
+	SAFE_DX(FrameSyncFences[CurrentFrameIndex]->Signal(0));
 }
 
 RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMeshCreateInfo)
@@ -707,15 +711,15 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 
 	CommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CommandList);
 
-	SAFE_DX(CommandQueue->Signal(Fences[0], 2));
+	SAFE_DX(CommandQueue->Signal(CopySyncFence, 1));
 
-	if (Fences[0]->GetCompletedValue() != 2)
+	if (CopySyncFence->GetCompletedValue() != 1)
 	{
-		SAFE_DX(Fences[0]->SetEventOnCompletion(2, Event));
-		DWORD WaitResult = WaitForSingleObject(Event, INFINITE);
+		SAFE_DX(CopySyncFence->SetEventOnCompletion(1, CopySyncEvent));
+		DWORD WaitResult = WaitForSingleObject(CopySyncEvent, INFINITE);
 	}
 
-	SAFE_DX(Fences[0]->Signal(1));
+	SAFE_DX(CopySyncFence->Signal(0));
 
 	renderMesh->VertexBufferAddress = renderMesh->VertexBuffer->GetGPUVirtualAddress();
 	renderMesh->IndexBufferAddress = renderMesh->IndexBuffer->GetGPUVirtualAddress();
@@ -832,15 +836,15 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 
 	CommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CommandList);
 
-	SAFE_DX(CommandQueue->Signal(Fences[0], 2));
+	SAFE_DX(CommandQueue->Signal(CopySyncFence, 1));
 
-	if (Fences[0]->GetCompletedValue() != 2)
+	if (CopySyncFence->GetCompletedValue() != 1)
 	{
-		SAFE_DX(Fences[0]->SetEventOnCompletion(2, Event));
-		DWORD WaitResult = WaitForSingleObject(Event, INFINITE);
+		SAFE_DX(CopySyncFence->SetEventOnCompletion(1, CopySyncEvent));
+		DWORD WaitResult = WaitForSingleObject(CopySyncEvent, INFINITE);
 	}
 
-	SAFE_DX(Fences[0]->Signal(1));
+	SAFE_DX(CopySyncFence->Signal(0));
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
 	SRVDesc.Format = renderTextureCreateInfo.SRGB ? DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM;

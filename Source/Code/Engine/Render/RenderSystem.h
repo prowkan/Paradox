@@ -89,8 +89,8 @@ class RenderSystem
 
 		UINT CurrentBackBufferIndex, CurrentFrameIndex;
 
-		COMRCPtr<ID3D12Fence> Fences[2];
-		HANDLE Event;
+		COMRCPtr<ID3D12Fence> FrameSyncFences[2], CopySyncFence;
+		HANDLE FrameSyncEvent, CopySyncEvent;
 
 		COMRCPtr<ID3D12DescriptorHeap> RTDescriptorHeap, DSDescriptorHeap, CBSRUADescriptorHeap, SamplersDescriptorHeap;
 		COMRCPtr<ID3D12DescriptorHeap> ConstantBufferDescriptorHeap, TexturesDescriptorHeap;
