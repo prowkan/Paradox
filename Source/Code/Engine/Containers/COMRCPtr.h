@@ -5,8 +5,7 @@ class COMRCPtr
 {
 	public:
 
-		COMRCPtr() : Pointer(nullptr) {};
-		COMRCPtr(T *Pointer) : Pointer(Pointer) {};
+		COMRCPtr(T *Pointer = nullptr) : Pointer(Pointer) {};
 
 		~COMRCPtr() { if (Pointer) { ULONG RefCount = Pointer->Release(); Pointer = nullptr; } }
 

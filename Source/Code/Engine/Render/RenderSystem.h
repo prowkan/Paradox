@@ -57,6 +57,7 @@ struct Texel
 };
 
 #define SAFE_DX(Func) CheckDXCallResult(Func, L#Func);
+#define UUIDOF(Value) __uuidof(Value), (void**)&Value
 
 class RenderSystem
 {
