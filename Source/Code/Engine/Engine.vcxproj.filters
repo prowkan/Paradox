@@ -105,6 +105,9 @@
     <ClInclude Include="MultiThreading\Task.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="MultiThreading\Tasks\FrustumCullingTask.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="StdAfx.cpp">
@@ -195,6 +198,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MultiThreading\Task.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MultiThreading\Tasks\FrustumCullingTask.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

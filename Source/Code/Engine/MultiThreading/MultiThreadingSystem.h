@@ -14,6 +14,12 @@ class MultiThreadingSystem
 		ThreadSafeQueue<Task*>& GetTaskQueue() { return TaskQueue; }
 		HANDLE& GetTaskQueueEvent() { return TaskQueueEvent; }
 
+		void AddTask(Task *task)
+		{
+			TaskQueue.Push(task);
+			BOOL Result = SetEvent(TaskQueueEvent);
+		}
+
 	private:
 
 		static const int MAX_WORKER_THREADS = 16;
