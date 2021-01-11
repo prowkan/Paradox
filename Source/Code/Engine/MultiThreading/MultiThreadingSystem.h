@@ -13,6 +13,7 @@ class MultiThreadingSystem
 
 		ThreadSafeQueue<Task*>& GetTaskQueue() { return TaskQueue; }
 		HANDLE& GetTaskQueueEvent() { return TaskQueueEvent; }
+		HANDLE& GetThreadStopEvent(const UINT ThreadID) { return ThreadStopEvents[ThreadID]; }
 
 		void AddTask(Task *task)
 		{
@@ -20,10 +21,15 @@ class MultiThreadingSystem
 			BOOL Result = SetEvent(TaskQueueEvent);
 		}
 
+		static bool GetExitFlagValue() { return WorkerThreadExitFlag.load(memory_order::memory_order_seq_cst); }
+
 	private:
+
 
 		static const int MAX_WORKER_THREADS = 16;
 		HANDLE WorkerThreads[MAX_WORKER_THREADS];
+		static atomic<bool> WorkerThreadExitFlag;
+		HANDLE ThreadStopEvents[MAX_WORKER_THREADS];
 		UINT ThreadIndices[MAX_WORKER_THREADS];
 		UINT WorkerThreadsCount;
 

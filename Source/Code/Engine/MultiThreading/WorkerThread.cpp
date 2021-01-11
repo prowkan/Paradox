@@ -15,10 +15,11 @@ DWORD WINAPI WorkerThreadFunc(LPVOID lpThreadParameter)
 
 	ThreadSafeQueue<Task*>& TaskQueue = Engine::GetEngine().GetMultiThreadingSystem().GetTaskQueue();
 	HANDLE& TaskQueueEvent = Engine::GetEngine().GetMultiThreadingSystem().GetTaskQueueEvent();
+	HANDLE& ThreadStopEvent = Engine::GetEngine().GetMultiThreadingSystem().GetThreadStopEvent(ThreadID);
 
 	OPTICK_THREAD("Worker Thread");
 
-	while (true)
+	while (!MultiThreadingSystem::GetExitFlagValue())
 	{
 		Task *task;
 
@@ -31,6 +32,8 @@ DWORD WINAPI WorkerThreadFunc(LPVOID lpThreadParameter)
 			DWORD WaitResult = WaitForSingleObject(TaskQueueEvent, INFINITE);
 		}
 	}
+
+	BOOL Result = SetEvent(ThreadStopEvent);
 
 	return 0;
 }
