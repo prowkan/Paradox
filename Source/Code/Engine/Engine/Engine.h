@@ -1,5 +1,6 @@
 #pragma once
 
+#include <MultiThreading/MultiThreadingSystem.h>
 #include <MemoryManager/MemoryManager.h>
 
 #include <Input/InputSystem.h>
@@ -19,6 +20,7 @@ class Engine
 		void ShutdownEngine();
 		void TickEngine(float DeltaTime);
 
+		MultiThreadingSystem& GetMultiThreadingSystem() { return multiThreadingSystem; }
 		MemoryManager& GetMemoryManager() { return memoryManager; }
 
 		InputSystem& GetInputSystem() { return inputSystem; }
@@ -32,6 +34,7 @@ class Engine
 
 		static Engine engine;
 
+		MultiThreadingSystem multiThreadingSystem;
 		MemoryManager memoryManager;
 
 		InputSystem inputSystem;
