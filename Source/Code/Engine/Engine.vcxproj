@@ -180,6 +180,8 @@
     <ClInclude Include="MemoryManager\Heap.h" />
     <ClInclude Include="MemoryManager\MemoryManager.h" />
     <ClInclude Include="MemoryManager\Pool.h" />
+    <ClInclude Include="MultiThreading\MultiThreadingSystem.h" />
+    <ClInclude Include="MultiThreading\WorkerThread.h" />
     <ClInclude Include="Render\CullingSubSystem.h" />
     <ClInclude Include="Render\RenderScene.h" />
     <ClInclude Include="Render\RenderSystem.h" />
@@ -208,6 +210,8 @@
     <ClCompile Include="MemoryManager\Heap.cpp" />
     <ClCompile Include="MemoryManager\MemoryManager.cpp" />
     <ClCompile Include="MemoryManager\Pool.cpp" />
+    <ClCompile Include="MultiThreading\MultiThreadingSystem.cpp" />
+    <ClCompile Include="MultiThreading\WorkerThread.cpp" />
     <ClCompile Include="Render\CullingSubSystem.cpp" />
     <ClCompile Include="Render\RenderScene.cpp" />
     <ClCompile Include="Render\RenderSystem.cpp" />
