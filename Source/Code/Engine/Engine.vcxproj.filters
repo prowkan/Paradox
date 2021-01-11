@@ -99,6 +99,12 @@
     <ClInclude Include="MultiThreading\WorkerThread.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="MultiThreading\ThreadSafeQueue.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MultiThreading\Task.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="StdAfx.cpp">
@@ -183,6 +189,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MultiThreading\WorkerThread.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MultiThreading\ThreadSafeQueue.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MultiThreading\Task.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

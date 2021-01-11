@@ -4,6 +4,8 @@
 
 void MultiThreadingSystem::InitSystem()
 {
+	TaskQueueEvent = CreateEvent(NULL, FALSE, FALSE, L"TaskQueueEvent");
+
 	SYSTEM_INFO SystemInfo;
 
 	GetSystemInfo(&SystemInfo);
