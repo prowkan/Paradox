@@ -29,7 +29,7 @@ DWORD WINAPI WorkerThreadFunc(LPVOID lpThreadParameter)
 		}
 		else
 		{
-			DWORD WaitResult = WaitForSingleObject(TaskQueueEvent, INFINITE);
+			DWORD WaitResult = WaitForSingleObject(TaskQueueEvent, 100);
 		}
 	}
 

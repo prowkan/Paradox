@@ -84,8 +84,8 @@ class RenderSystem
 		int ResolutionHeight;
 
 		COMRCPtr<ID3D12CommandQueue> CommandQueue;
-		COMRCPtr<ID3D12CommandAllocator> CommandAllocators[2];
-		COMRCPtr<ID3D12GraphicsCommandList> CommandList;
+		COMRCPtr<ID3D12CommandAllocator> CommandAllocators[2], ThreadCommandAllocators[2][16];
+		COMRCPtr<ID3D12GraphicsCommandList> CommandList, ThreadCommandLists[16];
 
 		UINT CurrentBackBufferIndex, CurrentFrameIndex;
 

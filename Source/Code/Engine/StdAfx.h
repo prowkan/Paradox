@@ -38,3 +38,6 @@
 
 using namespace std;
 using namespace DirectX;
+
+#undef min
+#undef max

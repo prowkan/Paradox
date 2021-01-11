@@ -20,7 +20,7 @@ void MultiThreadingSystem::InitSystem()
 	{
 		ThreadIndices[i] = i;
 		WorkerThreads[i] = CreateThread(NULL, 0, &WorkerThreadFunc, &ThreadIndices[i], 0, NULL);
-		ThreadStopEvents[i] = CreateEvent(NULL, FALSE, FALSE, L"ThreadStopEvent");
+		ThreadStopEvents[i] = CreateEvent(NULL, FALSE, FALSE, NULL);
 	}
 }
 
@@ -30,8 +30,10 @@ void MultiThreadingSystem::ShutdownSystem()
 
 	for (UINT i = 0; i < WorkerThreadsCount; i++)
 	{
-		BOOL Result = SetEvent(TaskQueueEvent);
+		//BOOL Result = SetEvent(TaskQueueEvent);
 		DWORD WaitResult = WaitForSingleObject(ThreadStopEvents[i], INFINITE);
+
+		BOOL Result;
 
 		Result = CloseHandle(WorkerThreads[i]);
 		Result = CloseHandle(ThreadStopEvents[i]);
