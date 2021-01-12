@@ -3,7 +3,7 @@
 #include <Render/RenderScene.h>
 
 class MetaClass;
-class GameObject;
+class Entity;
 
 class World
 {
@@ -13,15 +13,15 @@ class World
 		void UnLoadWorld();
 		void TickWorld(float DeltaTime);
 
-		GameObject* SpawnGameObject(MetaClass* metaClass);
+		Entity* SpawnEntity(MetaClass* metaClass);
 
-		vector<GameObject*>& GetGameObjects() { return GameObjects; }
+		vector<Entity*>& GetEntities() { return Entities; }
 
 		RenderScene& GetRenderScene() { return renderScene; }
 
 	private:
 
-		vector<GameObject*> GameObjects;
+		vector<Entity*> Entities;
 
 		RenderScene renderScene;
 };

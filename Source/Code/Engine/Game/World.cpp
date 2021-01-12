@@ -1,9 +1,9 @@
 #include "World.h"
 
 #include "MetaClass.h"
-#include "GameObject.h"
+#include "Entity.h"
 
-#include "GameObjects/Render/Meshes/StaticMeshObject.h"
+#include "Entities/Render/Meshes/StaticMeshEntity.h"
 
 #include "Components/Common/TransformComponent.h"
 #include "Components/Render/Meshes/StaticMeshComponent.h"
@@ -267,21 +267,21 @@ void World::LoadWorld()
 			sprintf(StaticMeshResourceName, "Cube_%d", ResourceCounter);
 			sprintf(MaterialResourceName, "Standart_%d", ResourceCounter);
 
-			StaticMeshObject *staticMeshObject = GameObject::DynamicCast<StaticMeshObject>(SpawnGameObject(StaticMeshObject::GetMetaClassStatic()));
-			staticMeshObject->GetTransformComponent()->SetLocation(XMFLOAT3(i * 5.0f + 2.5f, -0.0f, j * 5.0f + 2.5f));
-			staticMeshObject->GetStaticMeshComponent()->SetStaticMesh(Engine::GetEngine().GetResourceManager().GetResource<StaticMeshResource>(StaticMeshResourceName));
-			staticMeshObject->GetStaticMeshComponent()->SetMaterial(Engine::GetEngine().GetResourceManager().GetResource<MaterialResource>(MaterialResourceName));
+			StaticMeshEntity *staticMeshEntity = Entity::DynamicCast<StaticMeshEntity>(SpawnEntity(StaticMeshEntity::GetMetaClassStatic()));
+			staticMeshEntity->GetTransformComponent()->SetLocation(XMFLOAT3(i * 5.0f + 2.5f, -0.0f, j * 5.0f + 2.5f));
+			staticMeshEntity->GetStaticMeshComponent()->SetStaticMesh(Engine::GetEngine().GetResourceManager().GetResource<StaticMeshResource>(StaticMeshResourceName));
+			staticMeshEntity->GetStaticMeshComponent()->SetMaterial(Engine::GetEngine().GetResourceManager().GetResource<MaterialResource>(MaterialResourceName));
 
 			ResourceCounter = (ResourceCounter + 1) % 4000;
 
 			sprintf(StaticMeshResourceName, "Cube_%d", ResourceCounter);
 			sprintf(MaterialResourceName, "Standart_%d", ResourceCounter);
 
-			staticMeshObject = GameObject::DynamicCast<StaticMeshObject>(SpawnGameObject(StaticMeshObject::GetMetaClassStatic()));
-			staticMeshObject->GetTransformComponent()->SetLocation(XMFLOAT3(i * 10.0f + 5.0f, -2.0f, j * 10.0f + 5.0f));
-			staticMeshObject->GetTransformComponent()->SetScale(XMFLOAT3(5.0f, 1.0f, 5.0f));
-			staticMeshObject->GetStaticMeshComponent()->SetStaticMesh(Engine::GetEngine().GetResourceManager().GetResource<StaticMeshResource>(StaticMeshResourceName));
-			staticMeshObject->GetStaticMeshComponent()->SetMaterial(Engine::GetEngine().GetResourceManager().GetResource<MaterialResource>(MaterialResourceName));
+			staticMeshEntity = Entity::DynamicCast<StaticMeshEntity>(SpawnEntity(StaticMeshEntity::GetMetaClassStatic()));
+			staticMeshEntity->GetTransformComponent()->SetLocation(XMFLOAT3(i * 10.0f + 5.0f, -2.0f, j * 10.0f + 5.0f));
+			staticMeshEntity->GetTransformComponent()->SetScale(XMFLOAT3(5.0f, 1.0f, 5.0f));
+			staticMeshEntity->GetStaticMeshComponent()->SetStaticMesh(Engine::GetEngine().GetResourceManager().GetResource<StaticMeshResource>(StaticMeshResourceName));
+			staticMeshEntity->GetStaticMeshComponent()->SetMaterial(Engine::GetEngine().GetResourceManager().GetResource<MaterialResource>(MaterialResourceName));
 
 			ResourceCounter = (ResourceCounter + 1) % 4000;
 		}
@@ -293,16 +293,16 @@ void World::UnLoadWorld()
 	Engine::GetEngine().GetResourceManager().DestroyAllResources();
 }
 
-GameObject* World::SpawnGameObject(MetaClass* metaClass)
+Entity* World::SpawnEntity(MetaClass* metaClass)
 {
-	void *gameObjectPtr = Engine::GetEngine().GetMemoryManager().AllocateGameObject(metaClass);
-	metaClass->ObjectConstructorFunc(gameObjectPtr);
-	GameObject *gameObject = (GameObject*)gameObjectPtr;
-	gameObject->SetMetaClass(metaClass);
-	gameObject->SetWorld(this);
-	gameObject->InitDefaultProperties();
-	GameObjects.push_back(gameObject);
-	return gameObject;
+	void *entityPtr = Engine::GetEngine().GetMemoryManager().AllocateEntity(metaClass);
+	metaClass->ObjectConstructorFunc(entityPtr);
+	Entity *entity = (Entity*)entityPtr;
+	entity->SetMetaClass(metaClass);
+	entity->SetWorld(this);
+	entity->InitDefaultProperties();
+	Entities.push_back(entity);
+	return entity;
 }
 
 

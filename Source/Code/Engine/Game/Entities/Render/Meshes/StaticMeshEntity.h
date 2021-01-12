@@ -1,20 +1,20 @@
 #pragma once
 
-#include "../../../GameObject.h"
+#include "../../../Entity.h"
 
 class TransformComponent;
 class BoundingBoxComponent;
 class StaticMeshComponent;
 
-class StaticMeshObject : public GameObject
+class StaticMeshEntity : public Entity
 {
 	public:
 
-		static void StaticConstructor(void* Pointer) { new (Pointer) StaticMeshObject(); }
+		static void StaticConstructor(void* Pointer) { new (Pointer) StaticMeshEntity(); }
 
-		static MetaClass* GetMetaClassStatic() { return StaticMeshObjectMetaClass; }
+		static MetaClass* GetMetaClassStatic() { return StaticMeshEntityMetaClass; }
 
-		static MetaClass *StaticMeshObjectMetaClass;
+		static MetaClass *StaticMeshEntityMetaClass;
 
 		virtual void InitDefaultProperties() override;
 

@@ -2,7 +2,7 @@
 
 class MetaClass;
 class Component;
-class GameObject;
+class Entity;
 
 class Component
 {
@@ -20,8 +20,8 @@ class Component
 		virtual void RegisterComponent() {}
 		virtual void UnRegisterComponent() {}
 
-		GameObject* GetOwner() { return Owner; }
-		void SetOwner(GameObject* NewOwner) { Owner = NewOwner; }
+		Entity* GetOwner() { return Owner; }
+		void SetOwner(Entity* NewOwner) { Owner = NewOwner; }
 
 		template<typename T>
 		static T* DynamicCast(Component* component)
@@ -37,7 +37,7 @@ class Component
 
 		MetaClass *metaClass;
 
-		GameObject *Owner;
+		Entity *Owner;
 
 	private:
 };

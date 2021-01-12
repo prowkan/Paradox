@@ -6,6 +6,9 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <queue>
+#include <atomic>
+#include <mutex>
 
 #include <Windows.h>
 #include <DbgHelp.h>
