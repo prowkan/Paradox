@@ -15,7 +15,6 @@ DWORD WINAPI WorkerThreadFunc(LPVOID lpThreadParameter)
 
 	ThreadSafeQueue<Task*>& TaskQueue = Engine::GetEngine().GetMultiThreadingSystem().GetTaskQueue();
 	HANDLE& TaskQueueEvent = Engine::GetEngine().GetMultiThreadingSystem().GetTaskQueueEvent();
-	HANDLE& ThreadStopEvent = Engine::GetEngine().GetMultiThreadingSystem().GetThreadStopEvent(ThreadID);
 
 	char OptickThreadName[256];
 	sprintf(OptickThreadName, "Worker Thread %u", ThreadID + 1);
@@ -35,8 +34,6 @@ DWORD WINAPI WorkerThreadFunc(LPVOID lpThreadParameter)
 			DWORD WaitResult = WaitForSingleObject(TaskQueueEvent, 100);
 		}
 	}
-
-	BOOL Result = SetEvent(ThreadStopEvent);
 
 	return 0;
 }
