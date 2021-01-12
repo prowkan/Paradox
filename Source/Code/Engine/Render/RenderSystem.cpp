@@ -312,11 +312,15 @@ void RenderSystem::InitSystem()
 	FenceCreateInfo.pNext = nullptr;
 	FenceCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	
-	SAFE_VK(vkCreateFence(Device, &FenceCreateInfo, nullptr, &Fences[0]));
+	SAFE_VK(vkCreateFence(Device, &FenceCreateInfo, nullptr, &FrameSyncFences[0]));
 	
 	FenceCreateInfo.flags = VkFenceCreateFlagBits::VK_FENCE_CREATE_SIGNALED_BIT;
+	
+	SAFE_VK(vkCreateFence(Device, &FenceCreateInfo, nullptr, &FrameSyncFences[1]));
 
-	SAFE_VK(vkCreateFence(Device, &FenceCreateInfo, nullptr, &Fences[1]));
+	FenceCreateInfo.flags = 0;
+
+	SAFE_VK(vkCreateFence(Device, &FenceCreateInfo, nullptr, &CopySyncFence));
 
 	VkDescriptorPoolSize DescriptorPoolSizes[3];
 	DescriptorPoolSizes[0].descriptorCount = 20000;
@@ -740,7 +744,7 @@ void RenderSystem::ShutdownSystem()
 {
 	CurrentFrameIndex = (CurrentFrameIndex + 1) % 2;
 
-	SAFE_VK(vkWaitForFences(Device, 1, &Fences[CurrentFrameIndex], VK_FALSE, UINT64_MAX));
+	SAFE_VK(vkWaitForFences(Device, 1, &FrameSyncFences[CurrentFrameIndex], VK_FALSE, UINT64_MAX));
 
 	for (RenderMesh* renderMesh : RenderMeshDestructionQueue)
 	{
@@ -787,8 +791,9 @@ void RenderSystem::ShutdownSystem()
 	vkDestroyImage(Device, DepthBufferTexture, nullptr);
 	vkFreeMemory(Device, DepthBufferTextureMemoryHeap, nullptr);
 
-	vkDestroyFence(Device, Fences[0], nullptr);
-	vkDestroyFence(Device, Fences[1], nullptr);
+	vkDestroyFence(Device, FrameSyncFences[0], nullptr);
+	vkDestroyFence(Device, FrameSyncFences[1], nullptr);
+	vkDestroyFence(Device, CopySyncFence, nullptr);
 	vkDestroySemaphore(Device, ImageAvailabilitySemaphore, nullptr);
 	vkDestroySemaphore(Device, ImagePresentationSemaphore, nullptr);
 
@@ -1093,7 +1098,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 	SubmitInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	SubmitInfo.waitSemaphoreCount = 1;
 
-	SAFE_VK(vkQueueSubmit(CommandQueue, 1, &SubmitInfo, Fences[CurrentFrameIndex]));
+	SAFE_VK(vkQueueSubmit(CommandQueue, 1, &SubmitInfo, FrameSyncFences[CurrentFrameIndex]));
 
 	VkPresentInfoKHR PresentInfo;
 	PresentInfo.pImageIndices = &CurrentBackBufferIndex;
@@ -1109,9 +1114,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	CurrentFrameIndex = (CurrentFrameIndex + 1) % 2;
 	
-	SAFE_VK(vkWaitForFences(Device, 1, &Fences[CurrentFrameIndex], VK_FALSE, UINT64_MAX));
+	SAFE_VK(vkWaitForFences(Device, 1, &FrameSyncFences[CurrentFrameIndex], VK_FALSE, UINT64_MAX));
 
-	SAFE_VK(vkResetFences(Device, 1, &Fences[CurrentFrameIndex]));
+	SAFE_VK(vkResetFences(Device, 1, &FrameSyncFences[CurrentFrameIndex]));
 }
 
 RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMeshCreateInfo)
@@ -1288,9 +1293,11 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 	SubmitInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	SubmitInfo.waitSemaphoreCount = 0;
 
-	SAFE_VK(vkQueueSubmit(CommandQueue, 1, &SubmitInfo, VK_NULL_HANDLE));
+	SAFE_VK(vkQueueSubmit(CommandQueue, 1, &SubmitInfo, CopySyncFence));
 
-	SAFE_VK(vkQueueWaitIdle(CommandQueue));
+	SAFE_VK(vkWaitForFences(Device, 1, &CopySyncFence, VK_FALSE, INFINITE));
+
+	SAFE_VK(vkResetFences(Device, 1, &CopySyncFence));
 
 	return renderMesh;
 }
@@ -1466,9 +1473,11 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 	SubmitInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	SubmitInfo.waitSemaphoreCount = 0;
 
-	SAFE_VK(vkQueueSubmit(CommandQueue, 1, &SubmitInfo, VK_NULL_HANDLE));
+	SAFE_VK(vkQueueSubmit(CommandQueue, 1, &SubmitInfo, CopySyncFence));
 
-	SAFE_VK(vkQueueWaitIdle(CommandQueue));
+	SAFE_VK(vkWaitForFences(Device, 1, &CopySyncFence, VK_FALSE, INFINITE));
+
+	SAFE_VK(vkResetFences(Device, 1, &CopySyncFence));
 
 	VkImageViewCreateInfo ImageViewCreateInfo;
 	ImageViewCreateInfo.components.a = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
