@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Containers/COMRCPtr.h>
+
 #include "CullingSubSystem.h"
 
 struct RenderMesh

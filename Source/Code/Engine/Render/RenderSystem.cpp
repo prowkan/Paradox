@@ -4,8 +4,6 @@
 
 #include <Engine/Engine.h>
 
-#include <Game/GameObjects/Render/Meshes/StaticMeshObject.h>
-
 #include <Game/Components/Common/TransformComponent.h>
 #include <Game/Components/Common/BoundingBoxComponent.h>
 #include <Game/Components/Render/Meshes/StaticMeshComponent.h>
