@@ -20,7 +20,11 @@ void MultiThreadingSystem::InitSystem()
 	{
 		ThreadIndices[i] = i;
 		WorkerThreads[i] = CreateThread(NULL, 0, &WorkerThreadFunc, &ThreadIndices[i], 0, NULL);
-		ThreadStopEvents[i] = CreateEvent(NULL, FALSE, FALSE, L"ThreadStopEvent");
+
+		wchar_t ThreadStopEventName[256];
+		wsprintf(ThreadStopEventName, L"ThreadStopEvent_%u", i);
+
+		ThreadStopEvents[i] = CreateEvent(NULL, FALSE, FALSE, ThreadStopEventName);
 	}
 }
 
