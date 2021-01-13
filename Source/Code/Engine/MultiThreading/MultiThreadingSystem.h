@@ -33,4 +33,6 @@ class MultiThreadingSystem
 
 		ThreadSafeQueue<Task*> TaskQueue;
 		HANDLE TaskQueueEvent;
+
+		HANDLE RenderThread;
 };

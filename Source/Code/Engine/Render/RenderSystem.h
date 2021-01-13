@@ -67,6 +67,8 @@ class RenderSystem
 		void ShutdownSystem();
 		void TickSystem(float DeltaTime);
 
+		void RenderThreadFunc();
+
 		RenderMesh* CreateRenderMesh(const RenderMeshCreateInfo& renderMeshCreateInfo);
 		RenderTexture* CreateRenderTexture(const RenderTextureCreateInfo& renderTextureCreateInfo);
 		RenderMaterial* CreateRenderMaterial(const RenderMaterialCreateInfo& renderMaterialCreateInfo);
@@ -131,4 +133,11 @@ class RenderSystem
 
 		inline void CheckDXCallResult(HRESULT hr, const wchar_t* Function);
 		inline const wchar_t* GetDXErrorMessageFromHRESULT(HRESULT hr);
+
+		vector<StaticMeshComponent*> RenderQueues[2];
+
+		uint32_t CurrentWriteRenderQueueIndex = 1;
+		uint32_t CurrentReadRenderQueueIndex = 0;
+
+		HANDLE RenderThreadSyncEvents[2][2];		
 };

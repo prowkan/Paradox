@@ -1,6 +1,7 @@
 #include "MultiThreadingSystem.h"
 
 #include "WorkerThread.h"
+#include "RenderThread.h"
 
 atomic<bool> MultiThreadingSystem::WorkerThreadExitFlag;
 
@@ -12,7 +13,7 @@ void MultiThreadingSystem::InitSystem()
 
 	GetSystemInfo(&SystemInfo);
 
-	WorkerThreadsCount = SystemInfo.dwNumberOfProcessors;
+	WorkerThreadsCount = SystemInfo.dwNumberOfProcessors - 1;
 
 	WorkerThreadExitFlag.store(false, memory_order::memory_order_seq_cst);
 
@@ -21,6 +22,8 @@ void MultiThreadingSystem::InitSystem()
 		ThreadIndices[i] = i;
 		WorkerThreads[i] = CreateThread(NULL, 0, &WorkerThreadFunc, &ThreadIndices[i], 0, NULL);
 	}
+
+	RenderThread = CreateThread(NULL, 0, &RenderThreadFunc, NULL, 0, NULL);
 }
 
 void MultiThreadingSystem::ShutdownSystem()
@@ -39,4 +42,9 @@ void MultiThreadingSystem::ShutdownSystem()
 
 	BOOL Result = CloseHandle(TaskQueueEvent);
 	TaskQueueEvent = INVALID_HANDLE_VALUE;
+
+	DWORD WaitResult = WaitForSingleObject(RenderThread, INFINITE);
+
+	Result = CloseHandle(RenderThread);
+	RenderThread = INVALID_HANDLE_VALUE;
 }

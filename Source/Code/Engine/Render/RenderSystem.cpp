@@ -369,6 +369,11 @@ void RenderSystem::InitSystem()
 	ResourceDesc.Width = UPLOAD_HEAP_SIZE;
 
 	SAFE_DX(Device->CreatePlacedResource(UploadHeap, 0, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(UploadBuffer)));
+
+	RenderThreadSyncEvents[0][0] = CreateEvent(NULL, FALSE, FALSE, L"RenderThreadSyncEvents00");
+	RenderThreadSyncEvents[0][1] = CreateEvent(NULL, FALSE, FALSE, L"RenderThreadSyncEvents01");
+	RenderThreadSyncEvents[1][0] = CreateEvent(NULL, FALSE, TRUE, L"RenderThreadSyncEvents10");
+	RenderThreadSyncEvents[1][1] = CreateEvent(NULL, FALSE, TRUE, L"RenderThreadSyncEvents11");
 }
 
 void RenderSystem::ShutdownSystem()
@@ -409,6 +414,33 @@ void RenderSystem::ShutdownSystem()
 
 void RenderSystem::TickSystem(float DeltaTime)
 {
+	DWORD WaitResult = WaitForSingleObject(RenderThreadSyncEvents[1][CurrentWriteRenderQueueIndex], INFINITE);
+
+	CurrentWriteRenderQueueIndex = (CurrentWriteRenderQueueIndex + 1) % 2;
+
+	XMMATRIX ViewProjMatrix = Engine::GetEngine().GetGameFramework().GetCamera().GetViewProjMatrix();
+
+	vector<StaticMeshComponent*> AllStaticMeshComponents = Engine::GetEngine().GetGameFramework().GetWorld().GetRenderScene().GetStaticMeshComponents();
+	vector<StaticMeshComponent*> VisbleStaticMeshComponents = cullingSubSystem.GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ViewProjMatrix);
+	size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.size();
+
+	RenderQueues[CurrentWriteRenderQueueIndex].clear();
+	RenderQueues[CurrentWriteRenderQueueIndex].insert(RenderQueues[CurrentWriteRenderQueueIndex].end(), VisbleStaticMeshComponents.begin(), VisbleStaticMeshComponents.end());
+
+	BOOL Result = SetEvent(RenderThreadSyncEvents[0][CurrentWriteRenderQueueIndex]);
+}
+
+void RenderSystem::RenderThreadFunc()
+{
+	OPTICK_EVENT("Draw Calls")
+
+	DWORD WaitResult = WaitForSingleObject(RenderThreadSyncEvents[0][CurrentReadRenderQueueIndex], INFINITE);
+
+	XMMATRIX ViewProjMatrix = Engine::GetEngine().GetGameFramework().GetCamera().GetViewProjMatrix();
+
+	vector<StaticMeshComponent*>& VisbleStaticMeshComponents = RenderQueues[CurrentReadRenderQueueIndex];
+	size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.size();
+
 	SAFE_DX(CommandAllocators[CurrentFrameIndex]->Reset());
 	SAFE_DX(CommandList->Reset(CommandAllocators[CurrentFrameIndex], nullptr));
 
@@ -424,20 +456,12 @@ void RenderSystem::TickSystem(float DeltaTime)
 	CommandList->SetDescriptorHeaps(2, DescriptorHeaps);
 	CommandList->SetGraphicsRootSignature(RootSignature);
 
-	XMMATRIX ViewProjMatrix = Engine::GetEngine().GetGameFramework().GetCamera().GetViewProjMatrix();
-
 	D3D12_RANGE ReadRange, WrittenRange;
 
 	ReadRange.Begin = ReadRange.End = 0;
 
 	void *ConstantBufferData;
 	SIZE_T ConstantBufferOffset = 0;
-
-	vector<StaticMeshComponent*> AllStaticMeshComponents = Engine::GetEngine().GetGameFramework().GetWorld().GetRenderScene().GetStaticMeshComponents();
-	vector<StaticMeshComponent*> VisbleStaticMeshComponents = cullingSubSystem.GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ViewProjMatrix);
-	size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.size();
-
-	OPTICK_EVENT("Draw Calls")
 
 	SAFE_DX(CPUConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
 
@@ -531,7 +555,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[2] = { ConstantBufferCBVs[k], renderTexture->TextureSRV };
 
 		Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		
+
 		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
 
 		D3D12_VERTEX_BUFFER_VIEW VertexBufferView;
@@ -584,6 +608,10 @@ void RenderSystem::TickSystem(float DeltaTime)
 	}
 
 	SAFE_DX(FrameSyncFences[CurrentFrameIndex]->Signal(0));
+
+	BOOL Result = SetEvent(RenderThreadSyncEvents[1][CurrentReadRenderQueueIndex]);
+
+	CurrentReadRenderQueueIndex = (CurrentReadRenderQueueIndex + 1) % 2;
 }
 
 RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMeshCreateInfo)
