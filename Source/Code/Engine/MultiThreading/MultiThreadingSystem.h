@@ -12,12 +12,10 @@ class MultiThreadingSystem
 		void ShutdownSystem();
 
 		ThreadSafeQueue<Task*>& GetTaskQueue() { return TaskQueue; }
-		HANDLE& GetTaskQueueEvent() { return TaskQueueEvent; }
-
+		
 		void AddTask(Task *task)
 		{
 			TaskQueue.Push(task);
-			BOOL Result = SetEvent(TaskQueueEvent);
 		}
 
 		static bool GetExitFlagValue() { return WorkerThreadExitFlag.load(memory_order::memory_order_seq_cst); }
@@ -32,5 +30,4 @@ class MultiThreadingSystem
 		UINT WorkerThreadsCount;
 
 		ThreadSafeQueue<Task*> TaskQueue;
-		HANDLE TaskQueueEvent;
 };

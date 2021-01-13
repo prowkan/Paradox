@@ -14,7 +14,7 @@ DWORD WINAPI WorkerThreadFunc(LPVOID lpThreadParameter)
 	SetThreadDescription(GetCurrentThread(), ThreadName);
 
 	ThreadSafeQueue<Task*>& TaskQueue = Engine::GetEngine().GetMultiThreadingSystem().GetTaskQueue();
-	HANDLE& TaskQueueEvent = Engine::GetEngine().GetMultiThreadingSystem().GetTaskQueueEvent();
+	HANDLE& TaskQueueEvent = TaskQueue.GetQueueEvent();
 
 	char OptickThreadName[256];
 	sprintf(OptickThreadName, "Worker Thread %u", ThreadID + 1);
