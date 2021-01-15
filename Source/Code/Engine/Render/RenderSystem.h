@@ -186,4 +186,7 @@ class RenderSystem
 
 		inline void CheckDXCallResult(HRESULT hr, const wchar_t* Function);
 		inline const wchar_t* GetDXErrorMessageFromHRESULT(HRESULT hr);
+
+		UINT FramesCount = 0;
+		UINT64 MilliSeconds = 0;
 };

@@ -582,6 +582,37 @@ void RenderSystem::TickSystem(float DeltaTime)
 	}
 
 	SAFE_DX(FrameSyncFences[CurrentFrameIndex]->Signal(0));
+
+	FramesCount++;
+	MilliSeconds += UINT64(DeltaTime * 1000);
+
+	if (MilliSeconds > 500)
+	{
+		float FPS = 1000.0f * (float)FramesCount / (float)MilliSeconds;
+
+		COORD ConsoleCursorPosition;
+		ConsoleCursorPosition.X = 0;
+		ConsoleCursorPosition.Y = 0;
+
+		SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), ConsoleCursorPosition);
+
+		char FPSStringBuf[256];
+		sprintf(FPSStringBuf, "FPS: %4.2f", FPS);
+
+		wchar_t FPSStringBufUTF16[256];
+
+		for (size_t i = 0; i < strlen(FPSStringBuf); i++)
+		{
+			FPSStringBufUTF16[i] = FPSStringBuf[i];
+		}
+
+		FPSStringBufUTF16[strlen(FPSStringBuf)] = 0;
+
+		WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), FPSStringBufUTF16, (DWORD)wcslen(FPSStringBufUTF16), NULL, NULL);
+
+		FramesCount = 0;
+		MilliSeconds = 0;
+	}
 }
 
 RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMeshCreateInfo)
