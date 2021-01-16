@@ -152,11 +152,98 @@ void World::LoadWorld()
 		}
 	}
 
+	CompressedTexelBlock *CompressedTexelBlockData = new CompressedTexelBlock[128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4 + 2 * 2 + 1 * 1];
+
+	CompressedTexelBlock *CompressedTexelBlocks[8];
+
+	CompressedTexelBlocks[0] = CompressedTexelBlockData;
+	CompressedTexelBlocks[1] = CompressedTexelBlocks[0] + 128 * 128;
+	CompressedTexelBlocks[2] = CompressedTexelBlocks[1] + 64 * 64;
+	CompressedTexelBlocks[3] = CompressedTexelBlocks[2] + 32 * 32;
+	CompressedTexelBlocks[4] = CompressedTexelBlocks[3] + 16 * 16;
+	CompressedTexelBlocks[5] = CompressedTexelBlocks[4] + 8 * 8;
+	CompressedTexelBlocks[6] = CompressedTexelBlocks[5] + 4 * 4;
+	CompressedTexelBlocks[7] = CompressedTexelBlocks[6] + 2 * 2;
+
+	for (int k = 0; k < 8; k++)
+	{
+		int MIPSize = 128 >> k;
+
+		for (int y = 0; y < MIPSize; y++)
+		{
+			for (int x = 0; x < MIPSize; x++)
+			{
+				Color MinColor{ 255, 255, 255 }, MaxColor{ 0, 0, 0 };
+
+				for (int j = 0; j < 4; j++)
+				{
+					for (int i = 0; i < 4; i++)
+					{
+						if (Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R < MinColor.R) MinColor.R = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R;
+						if (Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G < MinColor.G) MinColor.G = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G;
+						if (Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B < MinColor.B) MinColor.B = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B;
+
+						if (Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R > MaxColor.R) MaxColor.R = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R;
+						if (Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G > MaxColor.G) MaxColor.G = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G;
+						if (Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B > MaxColor.B) MaxColor.B = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B;
+					}
+				}
+
+				Color Colors[4];
+				Colors[0] = MinColor;
+				Colors[1] = MaxColor;
+				Colors[2] = 2 * Colors[0] / 3 + Colors[1] / 3;
+				Colors[3] = Colors[0] / 3 + 2 * Colors[1] / 3;
+
+				CompressedTexelBlocks[k][y * MIPSize + x].Colors[0] = 0;
+				CompressedTexelBlocks[k][y * MIPSize + x].Colors[1] = 0;
+
+				CompressedTexelBlocks[k][y * MIPSize + x].Colors[0] |= ((((BYTE)(((float)MinColor.R / 255.0f) * 31.0f)) & 0b11111) << 11);
+				CompressedTexelBlocks[k][y * MIPSize + x].Colors[0] |= ((((BYTE)(((float)MinColor.G / 255.0f) * 63.0f)) & 0b111111) << 5);
+				CompressedTexelBlocks[k][y * MIPSize + x].Colors[0] |= ((((BYTE)(((float)MinColor.B / 255.0f) * 31.0f)) & 0b11111));
+
+				CompressedTexelBlocks[k][y * MIPSize + x].Colors[1] |= ((((BYTE)(((float)MaxColor.R / 255.0f) * 31.0f)) & 0b11111) << 11);
+				CompressedTexelBlocks[k][y * MIPSize + x].Colors[1] |= ((((BYTE)(((float)MaxColor.G / 255.0f) * 63.0f)) & 0b111111) << 5);
+				CompressedTexelBlocks[k][y * MIPSize + x].Colors[1] |= ((((BYTE)(((float)MaxColor.B / 255.0f) * 31.0f)) & 0b11111));
+
+				CompressedTexelBlocks[k][y * MIPSize + x].Texels[0] = 0;
+				CompressedTexelBlocks[k][y * MIPSize + x].Texels[1] = 0;
+				CompressedTexelBlocks[k][y * MIPSize + x].Texels[2] = 0;
+				CompressedTexelBlocks[k][y * MIPSize + x].Texels[3] = 0;
+
+				for (int j = 0; j < 4; j++)
+				{
+					for (int i = 0; i < 4; i++)
+					{
+						Color TexelColor{ (float)Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R, (float)Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G, (float)Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B };
+
+						float Dist = DistanceBetweenColor(TexelColor, Colors[0]);
+						uint8_t ArgMin = 0;
+
+						for (uint8_t x = 1; x < 4; x++)
+						{
+							float NewDist = DistanceBetweenColor(TexelColor, Colors[x]);
+
+							if (NewDist < Dist)
+							{
+								Dist = NewDist;
+								ArgMin = x;
+							}
+						}
+
+						CompressedTexelBlocks[k][y * MIPSize + x].Texels[j] |= ((ArgMin & 0b11) << (2 * i));
+					}
+				}
+			}
+		}
+	}
+
 	Texture2DResourceCreateInfo texture2DResourceCreateInfo;
 	texture2DResourceCreateInfo.Height = 512;
 	texture2DResourceCreateInfo.MIPLevels = 8;
 	texture2DResourceCreateInfo.SRGB = TRUE;
-	texture2DResourceCreateInfo.TexelData = (BYTE*)TexelData;
+	texture2DResourceCreateInfo.Compressed = TRUE;
+	texture2DResourceCreateInfo.TexelData = (BYTE*)CompressedTexelBlockData;
 	texture2DResourceCreateInfo.Width = 512;
 
 	for (int k = 0; k < 4000; k++)
