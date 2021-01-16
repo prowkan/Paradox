@@ -14,7 +14,7 @@
 
 void RenderSystem::InitSystem()
 {
-	UINT DeviceCreationFlags = 0;
+	UINT DeviceCreationFlags = D3D11_CREATE_DEVICE_FLAG::D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 	
 #ifdef _DEBUG
 	DeviceCreationFlags |= D3D11_CREATE_DEVICE_FLAG::D3D11_CREATE_DEVICE_DEBUG;
@@ -263,7 +263,6 @@ void RenderSystem::InitSystem()
 	hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE::DWRITE_FACTORY_TYPE_ISOLATED, _uuidof(IDWriteFactory), (IUnknown**)&DWFactory);
 
 	hr = DWFactory->CreateTextFormat(L"Arial", nullptr, DWRITE_FONT_WEIGHT::DWRITE_FONT_WEIGHT_BOLD, DWRITE_FONT_STYLE::DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH::DWRITE_FONT_STRETCH_NORMAL, 48.0f, L"en-us", &DWTextFormat);
-
 }
 
 void RenderSystem::ShutdownSystem()
