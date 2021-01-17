@@ -89,7 +89,7 @@ class RenderSystem
 		int ResolutionHeight;
 
 		VkQueue CommandQueue;
-		VkCommandPool CommandPools[2];
+		VkCommandPool CommandPool;
 		VkCommandBuffer CommandBuffers[2];
 
 		UINT CurrentBackBufferIndex, CurrentFrameIndex;

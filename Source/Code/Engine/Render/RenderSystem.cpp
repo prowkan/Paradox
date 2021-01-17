@@ -283,19 +283,16 @@ void RenderSystem::InitSystem()
 	CommandPoolCreateInfo.queueFamilyIndex = QueueFamilyIndex;
 	CommandPoolCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 
-	SAFE_VK(vkCreateCommandPool(Device, &CommandPoolCreateInfo, nullptr, &CommandPools[0]));
-	SAFE_VK(vkCreateCommandPool(Device, &CommandPoolCreateInfo, nullptr, &CommandPools[1]));
+	SAFE_VK(vkCreateCommandPool(Device, &CommandPoolCreateInfo, nullptr, &CommandPool));
 
 	VkCommandBufferAllocateInfo CommandBufferAllocateInfo;
-	CommandBufferAllocateInfo.commandBufferCount = 1;
+	CommandBufferAllocateInfo.commandBufferCount = 2;
 	CommandBufferAllocateInfo.level = VkCommandBufferLevel::VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	CommandBufferAllocateInfo.pNext = nullptr;
 	CommandBufferAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 
-	CommandBufferAllocateInfo.commandPool = CommandPools[0];
-	SAFE_VK(vkAllocateCommandBuffers(Device, &CommandBufferAllocateInfo, &CommandBuffers[0]));
-	CommandBufferAllocateInfo.commandPool = CommandPools[1];
-	SAFE_VK(vkAllocateCommandBuffers(Device, &CommandBufferAllocateInfo, &CommandBuffers[1]));
+	CommandBufferAllocateInfo.commandPool = CommandPool;
+	SAFE_VK(vkAllocateCommandBuffers(Device, &CommandBufferAllocateInfo, CommandBuffers));
 
 	CurrentFrameIndex = 0;
 
@@ -819,11 +816,9 @@ void RenderSystem::ShutdownSystem()
 	vkDestroyDescriptorPool(Device, DescriptorPools[0], nullptr);
 	vkDestroyDescriptorPool(Device, DescriptorPools[1], nullptr);
 
-	vkFreeCommandBuffers(Device, CommandPools[0], 1, &CommandBuffers[0]);
-	vkFreeCommandBuffers(Device, CommandPools[1], 1, &CommandBuffers[1]);
+	vkFreeCommandBuffers(Device, CommandPool, 2, CommandBuffers);
 
-	vkDestroyCommandPool(Device, CommandPools[0], nullptr);
-	vkDestroyCommandPool(Device, CommandPools[1], nullptr);
+	vkDestroyCommandPool(Device, CommandPool, nullptr);
 
 	vkDestroySwapchainKHR(Device, SwapChain, nullptr);
 	vkDestroySurfaceKHR(Instance, Surface, nullptr);
