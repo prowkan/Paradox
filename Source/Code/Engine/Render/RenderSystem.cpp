@@ -304,18 +304,17 @@ void RenderSystem::InitSystem()
 	SemaphoreCreateInfo.pNext = nullptr;
 	SemaphoreCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-	SAFE_VK(vkCreateSemaphore(Device, &SemaphoreCreateInfo, nullptr, &ImageAvailabilitySemaphore));
-	SAFE_VK(vkCreateSemaphore(Device, &SemaphoreCreateInfo, nullptr, &ImagePresentationSemaphore));
+	SAFE_VK(vkCreateSemaphore(Device, &SemaphoreCreateInfo, nullptr, &ImageAvailabilitySemaphores[0]));
+	SAFE_VK(vkCreateSemaphore(Device, &SemaphoreCreateInfo, nullptr, &ImageAvailabilitySemaphores[1]));
+	SAFE_VK(vkCreateSemaphore(Device, &SemaphoreCreateInfo, nullptr, &ImagePresentationSemaphores[0]));
+	SAFE_VK(vkCreateSemaphore(Device, &SemaphoreCreateInfo, nullptr, &ImagePresentationSemaphores[1]));
 
 	VkFenceCreateInfo FenceCreateInfo;
-	FenceCreateInfo.flags = 0;
+	FenceCreateInfo.flags = VkFenceCreateFlagBits::VK_FENCE_CREATE_SIGNALED_BIT;
 	FenceCreateInfo.pNext = nullptr;
 	FenceCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	
 	SAFE_VK(vkCreateFence(Device, &FenceCreateInfo, nullptr, &FrameSyncFences[0]));
-	
-	FenceCreateInfo.flags = VkFenceCreateFlagBits::VK_FENCE_CREATE_SIGNALED_BIT;
-	
 	SAFE_VK(vkCreateFence(Device, &FenceCreateInfo, nullptr, &FrameSyncFences[1]));
 
 	FenceCreateInfo.flags = 0;
@@ -794,8 +793,10 @@ void RenderSystem::ShutdownSystem()
 	vkDestroyFence(Device, FrameSyncFences[0], nullptr);
 	vkDestroyFence(Device, FrameSyncFences[1], nullptr);
 	vkDestroyFence(Device, CopySyncFence, nullptr);
-	vkDestroySemaphore(Device, ImageAvailabilitySemaphore, nullptr);
-	vkDestroySemaphore(Device, ImagePresentationSemaphore, nullptr);
+	vkDestroySemaphore(Device, ImageAvailabilitySemaphores[0], nullptr);
+	vkDestroySemaphore(Device, ImageAvailabilitySemaphores[1], nullptr);
+	vkDestroySemaphore(Device, ImagePresentationSemaphores[0], nullptr);
+	vkDestroySemaphore(Device, ImagePresentationSemaphores[1], nullptr);
 
 	vkDestroySampler(Device, Sampler, nullptr);
 
@@ -843,7 +844,11 @@ void RenderSystem::ShutdownSystem()
 
 void RenderSystem::TickSystem(float DeltaTime)
 {
-	SAFE_VK(vkAcquireNextImageKHR(Device, SwapChain, UINT64_MAX, ImageAvailabilitySemaphore, VK_NULL_HANDLE, &CurrentBackBufferIndex));
+	SAFE_VK(vkWaitForFences(Device, 1, &FrameSyncFences[CurrentFrameIndex], VK_FALSE, UINT64_MAX));
+
+	SAFE_VK(vkResetFences(Device, 1, &FrameSyncFences[CurrentFrameIndex]));
+
+	SAFE_VK(vkAcquireNextImageKHR(Device, SwapChain, UINT64_MAX, ImageAvailabilitySemaphores[CurrentFrameIndex], VK_NULL_HANDLE, &CurrentBackBufferIndex));
 
 	VkCommandBufferBeginInfo CommandBufferBeginInfo;
 	CommandBufferBeginInfo.flags = 0;
@@ -1091,9 +1096,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 	SubmitInfo.commandBufferCount = 1;
 	SubmitInfo.pCommandBuffers = &CommandBuffers[CurrentFrameIndex];
 	SubmitInfo.pNext = nullptr;
-	SubmitInfo.pSignalSemaphores = &ImagePresentationSemaphore;
+	SubmitInfo.pSignalSemaphores = &ImagePresentationSemaphores[CurrentFrameIndex];
 	SubmitInfo.pWaitDstStageMask = &WaitDstStageMask;
-	SubmitInfo.pWaitSemaphores = &ImageAvailabilitySemaphore;
+	SubmitInfo.pWaitSemaphores = &ImageAvailabilitySemaphores[CurrentFrameIndex];
 	SubmitInfo.signalSemaphoreCount = 1;
 	SubmitInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	SubmitInfo.waitSemaphoreCount = 1;
@@ -1105,7 +1110,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 	PresentInfo.pNext = nullptr;
 	PresentInfo.pResults = nullptr;
 	PresentInfo.pSwapchains = &SwapChain;
-	PresentInfo.pWaitSemaphores = &ImagePresentationSemaphore;
+	PresentInfo.pWaitSemaphores = &ImagePresentationSemaphores[CurrentFrameIndex];
 	PresentInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 	PresentInfo.swapchainCount = 1;
 	PresentInfo.waitSemaphoreCount = 1;
@@ -1113,10 +1118,6 @@ void RenderSystem::TickSystem(float DeltaTime)
 	SAFE_VK(vkQueuePresentKHR(CommandQueue, &PresentInfo));
 
 	CurrentFrameIndex = (CurrentFrameIndex + 1) % 2;
-	
-	SAFE_VK(vkWaitForFences(Device, 1, &FrameSyncFences[CurrentFrameIndex], VK_FALSE, UINT64_MAX));
-
-	SAFE_VK(vkResetFences(Device, 1, &FrameSyncFences[CurrentFrameIndex]));
 }
 
 RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMeshCreateInfo)
