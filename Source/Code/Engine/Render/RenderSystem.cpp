@@ -301,10 +301,8 @@ void RenderSystem::InitSystem()
 	SemaphoreCreateInfo.pNext = nullptr;
 	SemaphoreCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-	SAFE_VK(vkCreateSemaphore(Device, &SemaphoreCreateInfo, nullptr, &ImageAvailabilitySemaphores[0]));
-	SAFE_VK(vkCreateSemaphore(Device, &SemaphoreCreateInfo, nullptr, &ImageAvailabilitySemaphores[1]));
-	SAFE_VK(vkCreateSemaphore(Device, &SemaphoreCreateInfo, nullptr, &ImagePresentationSemaphores[0]));
-	SAFE_VK(vkCreateSemaphore(Device, &SemaphoreCreateInfo, nullptr, &ImagePresentationSemaphores[1]));
+	SAFE_VK(vkCreateSemaphore(Device, &SemaphoreCreateInfo, nullptr, &ImageAvailabilitySemaphore));
+	SAFE_VK(vkCreateSemaphore(Device, &SemaphoreCreateInfo, nullptr, &ImagePresentationSemaphore));
 
 	VkFenceCreateInfo FenceCreateInfo;
 	FenceCreateInfo.flags = VkFenceCreateFlagBits::VK_FENCE_CREATE_SIGNALED_BIT;
@@ -790,10 +788,8 @@ void RenderSystem::ShutdownSystem()
 	vkDestroyFence(Device, FrameSyncFences[0], nullptr);
 	vkDestroyFence(Device, FrameSyncFences[1], nullptr);
 	vkDestroyFence(Device, CopySyncFence, nullptr);
-	vkDestroySemaphore(Device, ImageAvailabilitySemaphores[0], nullptr);
-	vkDestroySemaphore(Device, ImageAvailabilitySemaphores[1], nullptr);
-	vkDestroySemaphore(Device, ImagePresentationSemaphores[0], nullptr);
-	vkDestroySemaphore(Device, ImagePresentationSemaphores[1], nullptr);
+	vkDestroySemaphore(Device, ImageAvailabilitySemaphore, nullptr);
+	vkDestroySemaphore(Device, ImagePresentationSemaphore, nullptr);
 
 	vkDestroySampler(Device, Sampler, nullptr);
 
@@ -843,7 +839,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	SAFE_VK(vkResetFences(Device, 1, &FrameSyncFences[CurrentFrameIndex]));
 
-	SAFE_VK(vkAcquireNextImageKHR(Device, SwapChain, UINT64_MAX, ImageAvailabilitySemaphores[CurrentFrameIndex], VK_NULL_HANDLE, &CurrentBackBufferIndex));
+	SAFE_VK(vkAcquireNextImageKHR(Device, SwapChain, UINT64_MAX, ImageAvailabilitySemaphore, VK_NULL_HANDLE, &CurrentBackBufferIndex));
 
 	VkCommandBufferBeginInfo CommandBufferBeginInfo;
 	CommandBufferBeginInfo.flags = 0;
@@ -1091,9 +1087,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 	SubmitInfo.commandBufferCount = 1;
 	SubmitInfo.pCommandBuffers = &CommandBuffers[CurrentFrameIndex];
 	SubmitInfo.pNext = nullptr;
-	SubmitInfo.pSignalSemaphores = &ImagePresentationSemaphores[CurrentFrameIndex];
+	SubmitInfo.pSignalSemaphores = &ImagePresentationSemaphore;
 	SubmitInfo.pWaitDstStageMask = &WaitDstStageMask;
-	SubmitInfo.pWaitSemaphores = &ImageAvailabilitySemaphores[CurrentFrameIndex];
+	SubmitInfo.pWaitSemaphores = &ImageAvailabilitySemaphore;
 	SubmitInfo.signalSemaphoreCount = 1;
 	SubmitInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	SubmitInfo.waitSemaphoreCount = 1;
@@ -1105,7 +1101,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 	PresentInfo.pNext = nullptr;
 	PresentInfo.pResults = nullptr;
 	PresentInfo.pSwapchains = &SwapChain;
-	PresentInfo.pWaitSemaphores = &ImagePresentationSemaphores[CurrentFrameIndex];
+	PresentInfo.pWaitSemaphores = &ImagePresentationSemaphore;
 	PresentInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 	PresentInfo.swapchainCount = 1;
 	PresentInfo.waitSemaphoreCount = 1;

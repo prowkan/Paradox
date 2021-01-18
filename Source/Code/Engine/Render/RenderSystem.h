@@ -94,7 +94,7 @@ class RenderSystem
 
 		UINT CurrentBackBufferIndex, CurrentFrameIndex;
 
-		VkSemaphore ImageAvailabilitySemaphores[2], ImagePresentationSemaphores[2];
+		VkSemaphore ImageAvailabilitySemaphore, ImagePresentationSemaphore;
 		VkFence FrameSyncFences[2], CopySyncFence;
 		
 		VkDescriptorPool DescriptorPools[2];
