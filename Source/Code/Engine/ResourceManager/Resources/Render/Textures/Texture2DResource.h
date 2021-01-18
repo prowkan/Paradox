@@ -9,6 +9,7 @@ struct Texture2DResourceCreateInfo
 	UINT Width, Height;
 	UINT MIPLevels;
 	BOOL SRGB;
+	BOOL Compressed;
 	BYTE *TexelData;
 };
 
