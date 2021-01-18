@@ -1308,7 +1308,7 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 	ImageCreateInfo.extent.height = renderTextureCreateInfo.Height;
 	ImageCreateInfo.extent.width = renderTextureCreateInfo.Width;
 	ImageCreateInfo.flags = 0;
-	ImageCreateInfo.format = renderTextureCreateInfo.SRGB ? VkFormat::VK_FORMAT_R8G8B8A8_SRGB : VkFormat::VK_FORMAT_R8G8B8A8_UNORM;
+	ImageCreateInfo.format = renderTextureCreateInfo.SRGB ? VkFormat::VK_FORMAT_BC1_RGB_SRGB_BLOCK : VkFormat::VK_FORMAT_BC1_RGB_UNORM_BLOCK;
 	ImageCreateInfo.imageType = VkImageType::VK_IMAGE_TYPE_2D;
 	ImageCreateInfo.initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
 	ImageCreateInfo.mipLevels = renderTextureCreateInfo.MIPLevels;
@@ -1366,13 +1366,13 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 
 	for (UINT i = 0; i < renderTextureCreateInfo.MIPLevels; i++)
 	{
-		for (UINT j = 0; j < renderTextureCreateInfo.Height >> i; j++)
+		for (UINT j = 0; j < (renderTextureCreateInfo.Height / 4) >> i; j++)
 		{
-			memcpy((BYTE*)MappedData + j * 4 * (renderTextureCreateInfo.Width >> i), (BYTE*)TexelData + j * 4 * (renderTextureCreateInfo.Width >> i), 4 * (renderTextureCreateInfo.Width >> i));
+			memcpy((BYTE*)MappedData + j * 8 * ((renderTextureCreateInfo.Width / 4) >> i), (BYTE*)TexelData + j * 8 * ((renderTextureCreateInfo.Width / 4) >> i), 8 * ((renderTextureCreateInfo.Width / 4) >> i));
 		}
 
-		TexelData += 4 * (renderTextureCreateInfo.Width >> i) * (renderTextureCreateInfo.Height >> i);
-		MappedData = (BYTE*)MappedData + 4 * (renderTextureCreateInfo.Width >> i) * (renderTextureCreateInfo.Height >> i);
+		TexelData += 8 * ((renderTextureCreateInfo.Width / 4) >> i) * ((renderTextureCreateInfo.Height / 4) >> i);
+		MappedData = (BYTE*)MappedData + 8 * ((renderTextureCreateInfo.Width / 4) >> i) * ((renderTextureCreateInfo.Height / 4) >> i);
 	}
 
 	vkUnmapMemory(Device, UploadHeap);
@@ -1419,7 +1419,7 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 	for (uint32_t i = 0; i < renderTextureCreateInfo.MIPLevels; i++)
 	{
 		BufferImageCopies[i].bufferImageHeight = renderTextureCreateInfo.Height >> i;
-		BufferImageCopies[i].bufferOffset = (i == 0) ? 0 : BufferImageCopies[i - 1].bufferOffset + 4 * (BufferImageCopies[i - 1].imageExtent.width * BufferImageCopies[i - 1].imageExtent.height);
+		BufferImageCopies[i].bufferOffset = (i == 0) ? 0 : BufferImageCopies[i - 1].bufferOffset + 8 * ((BufferImageCopies[i - 1].imageExtent.width / 4) * (BufferImageCopies[i - 1].imageExtent.height / 4));
 		BufferImageCopies[i].bufferRowLength = renderTextureCreateInfo.Width >> i;
 		BufferImageCopies[i].imageExtent.depth = 1;
 		BufferImageCopies[i].imageExtent.height = renderTextureCreateInfo.Height >> i;
@@ -1477,7 +1477,7 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 	ImageViewCreateInfo.components.g = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
 	ImageViewCreateInfo.components.r = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
 	ImageViewCreateInfo.flags = 0;
-	ImageViewCreateInfo.format = renderTextureCreateInfo.SRGB ? VkFormat::VK_FORMAT_R8G8B8A8_SRGB : VkFormat::VK_FORMAT_R8G8B8A8_UNORM;
+	ImageViewCreateInfo.format = renderTextureCreateInfo.SRGB ? VkFormat::VK_FORMAT_BC1_RGB_SRGB_BLOCK : VkFormat::VK_FORMAT_BC1_RGB_UNORM_BLOCK;
 	ImageViewCreateInfo.image = renderTexture->Texture;
 	ImageViewCreateInfo.pNext = nullptr;
 	ImageViewCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
