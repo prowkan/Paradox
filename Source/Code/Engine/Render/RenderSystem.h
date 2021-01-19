@@ -186,25 +186,4 @@ class RenderSystem
 
 		inline void CheckDXCallResult(HRESULT hr, const wchar_t* Function);
 		inline const wchar_t* GetDXErrorMessageFromHRESULT(HRESULT hr);
-
-		UINT FramesCount = 0;
-		UINT64 MilliSeconds = 0;
-
-		float FPS;
-
-		COMRCPtr<ID3D11Device> D3D11Device;
-		COMRCPtr<ID3D11DeviceContext> D3D11DeviceContext;
-
-		COMRCPtr<ID3D11On12Device> D3D11On12Device;
-
-		COMRCPtr<ID2D1Device6> D2DDevice;
-		COMRCPtr<ID2D1DeviceContext6> D2DDeviceContext;
-
-		COMRCPtr<ID3D11Resource> WrappedBackBufferTextures[2];
-		COMRCPtr<ID2D1Bitmap1> BackBufferBitmaps[2];
-
-		COMRCPtr<ID2D1SolidColorBrush> WhiteTextBrush, BlueTextBrush;
-
-		COMRCPtr<IDWriteFactory> DWFactory;
-		COMRCPtr<IDWriteTextFormat> DWTextFormat;
 };
