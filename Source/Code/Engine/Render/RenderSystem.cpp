@@ -204,65 +204,6 @@ void RenderSystem::InitSystem()
 	DepthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK::D3D11_DEPTH_WRITE_MASK_ALL;
 
 	SAFE_DX(Device->CreateDepthStencilState(&DepthStencilDesc, &DepthStencilState));
-
-	HRESULT hr;
-
-	IDXGIDevice *DXGIDevice;
-
-	hr = Device->QueryInterface<IDXGIDevice>(&DXGIDevice);
-
-	COMRCPtr<ID2D1Factory7> D2DFactory;
-
-	D2D1_FACTORY_OPTIONS D2D1FactoryOptions;
-	D2D1FactoryOptions.debugLevel = D2D1_DEBUG_LEVEL::D2D1_DEBUG_LEVEL_INFORMATION;
-
-	hr = D2D1CreateFactory(D2D1_FACTORY_TYPE::D2D1_FACTORY_TYPE_SINGLE_THREADED, __uuidof(ID2D1Factory7), &D2D1FactoryOptions, (void**)&D2DFactory);
-
-	hr = D2DFactory->CreateDevice(DXGIDevice, &D2DDevice);
-
-	hr = D2DDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS::D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &D2DDeviceContext);
-
-	COMRCPtr<IDXGISurface> DXGISurface;
-
-	FLOAT dpiX = 0.0f, dpiY = 0.0f;
-
-	D2D1_BITMAP_PROPERTIES1 BitmapProperties;
-	BitmapProperties.bitmapOptions = D2D1_BITMAP_OPTIONS::D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS::D2D1_BITMAP_OPTIONS_CANNOT_DRAW;
-	BitmapProperties.colorContext = nullptr;
-	BitmapProperties.dpiX = dpiX;
-	BitmapProperties.dpiY = dpiY;
-	BitmapProperties.pixelFormat = D2D1::PixelFormat(DXGI_FORMAT::DXGI_FORMAT_UNKNOWN, D2D1_ALPHA_MODE::D2D1_ALPHA_MODE_PREMULTIPLIED);
-
-	hr = BackBufferTexture->QueryInterface<IDXGISurface>(&DXGISurface);
-	hr = D2DDeviceContext->CreateBitmapFromDxgiSurface(DXGISurface, &BitmapProperties, &BackBufferBitmap);
-
-	D2D1_BRUSH_PROPERTIES BrushProperties;
-	BrushProperties.opacity = 1.0f;
-	BrushProperties.transform.m[0][0] = 1.0f;
-	BrushProperties.transform.m[0][1] = 0.0f;
-	BrushProperties.transform.m[1][0] = 0.0f;
-	BrushProperties.transform.m[1][1] = 1.0f;
-	BrushProperties.transform.m[2][0] = 0.0f;
-	BrushProperties.transform.m[2][1] = 0.0f;
-
-	D2D1_COLOR_F TextBrushColor;
-	TextBrushColor.a = 1.0f;
-	TextBrushColor.b = 1.0f;
-	TextBrushColor.g = 0.5f;
-	TextBrushColor.r = 0.0f;
-
-	hr = D2DDeviceContext->CreateSolidColorBrush(&TextBrushColor, &BrushProperties, &BlueTextBrush);
-
-	TextBrushColor.a = 1.0f;
-	TextBrushColor.b = 1.0f;
-	TextBrushColor.g = 1.0f;
-	TextBrushColor.r = 1.0f;
-
-	hr = D2DDeviceContext->CreateSolidColorBrush(&TextBrushColor, &BrushProperties, &WhiteTextBrush);
-
-	hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE::DWRITE_FACTORY_TYPE_ISOLATED, _uuidof(IDWriteFactory), (IUnknown**)&DWFactory);
-
-	hr = DWFactory->CreateTextFormat(L"Arial", nullptr, DWRITE_FONT_WEIGHT::DWRITE_FONT_WEIGHT_BOLD, DWRITE_FONT_STYLE::DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH::DWRITE_FONT_STRETCH_NORMAL, 48.0f, L"en-us", &DWTextFormat);
 }
 
 void RenderSystem::ShutdownSystem()
@@ -362,50 +303,6 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		DeviceContext->DrawIndexed(8 * 8 * 6 * 6, 0, 0);
 	}
-
-	FramesCount++;
-	MilliSeconds += UINT64(DeltaTime * 1000);
-
-	char FPSStringBuf[256];
-	wchar_t FPSStringBufUTF16[256];
-
-	if (MilliSeconds > 500)
-	{
-		FPS = 1000.0f * (float)FramesCount / (float)MilliSeconds;
-
-		FramesCount = 0;
-		MilliSeconds = 0;
-	}
-
-	sprintf(FPSStringBuf, "FPS: %4.2f", FPS);
-
-	for (size_t i = 0; i < strlen(FPSStringBuf); i++)
-	{
-		FPSStringBufUTF16[i] = FPSStringBuf[i];
-	}
-
-	FPSStringBufUTF16[strlen(FPSStringBuf)] = 0;
-
-	D2DDeviceContext->SetTarget(BackBufferBitmap);
-	D2DDeviceContext->BeginDraw();
-
-	D2D1_RECT_F TextRect;
-
-	TextRect.top = 12.0f;
-	TextRect.bottom = 60.0f;
-	TextRect.left = 12.0f;
-	TextRect.right = 500.0f;
-
-	D2DDeviceContext->DrawText(FPSStringBufUTF16, (UINT32)wcslen(FPSStringBufUTF16), DWTextFormat, &TextRect, WhiteTextBrush);
-
-	TextRect.top = 10.0f;
-	TextRect.bottom = 60.0f;
-	TextRect.left = 10.0f;
-	TextRect.right = 500.0f;
-
-	D2DDeviceContext->DrawText(FPSStringBufUTF16, (UINT32)wcslen(FPSStringBufUTF16), DWTextFormat, &TextRect, BlueTextBrush);
-
-	D2DDeviceContext->EndDraw();
 
 	SAFE_DX(SwapChain->Present(0, 0));
 }
