@@ -10,18 +10,15 @@
 #include "Components/Common/BoundingBoxComponent.h"
 #include "Components/Render/Meshes/StaticMeshComponent.h"
 
-#define DECLARE_CLASS(Class) Class::Class ## MetaClass = new MetaClass(&CallObjectConstructor<Class>, sizeof(Class), # Class);
-#define DECLARE_CLASS_WITH_BASE_CLASS(Class, BaseClass) Class::Class ## MetaClass = new MetaClass(&CallObjectConstructor<Class>, sizeof(Class), # Class, BaseClass::BaseClass ## MetaClass);
-
 void GameFramework::InitFramework()
 {
-	DECLARE_CLASS(Entity)
-	DECLARE_CLASS_WITH_BASE_CLASS(StaticMeshEntity, Entity)
+	Entity::InitMetaClass();
+	StaticMeshEntity::InitMetaClass();
 
-	DECLARE_CLASS(Component)
-	DECLARE_CLASS_WITH_BASE_CLASS(TransformComponent, Component)
-	DECLARE_CLASS_WITH_BASE_CLASS(BoundingBoxComponent, Component)
-	DECLARE_CLASS_WITH_BASE_CLASS(StaticMeshComponent, Component)
+	Component::InitMetaClass();
+	TransformComponent::InitMetaClass();
+	BoundingBoxComponent::InitMetaClass();
+	StaticMeshComponent::InitMetaClass();
 
 	camera.InitCamera();
 	world.LoadWorld();
