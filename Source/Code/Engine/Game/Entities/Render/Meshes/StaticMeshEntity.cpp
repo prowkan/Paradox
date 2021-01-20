@@ -6,11 +6,11 @@
 #include "../../../Components/Common/BoundingBoxComponent.h"
 #include "../../../Components/Render/Meshes/StaticMeshComponent.h"
 
-MetaClass *StaticMeshEntity::StaticMeshEntityMetaClass;
+DEFINE_METACLASS_VARIABLE(StaticMeshEntity)
 
 void StaticMeshEntity::InitDefaultProperties()
 {
-	transformComponent = (TransformComponent*)CreateDefaultComponent(TransformComponent::GetMetaClassStatic());
-	boundingBoxComponent = (BoundingBoxComponent*)CreateDefaultComponent(BoundingBoxComponent::GetMetaClassStatic());
-	staticMeshComponent = (StaticMeshComponent*)CreateDefaultComponent(StaticMeshComponent::GetMetaClassStatic());
+	transformComponent = Component::DynamicCast<TransformComponent>(CreateDefaultComponent(TransformComponent::GetMetaClassStatic()));
+	boundingBoxComponent = Component::DynamicCast<BoundingBoxComponent>(CreateDefaultComponent(BoundingBoxComponent::GetMetaClassStatic()));
+	staticMeshComponent = Component::DynamicCast<StaticMeshComponent>(CreateDefaultComponent(StaticMeshComponent::GetMetaClassStatic()));
 }
