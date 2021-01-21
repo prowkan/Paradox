@@ -4,15 +4,11 @@
 
 class TransformComponent : public Component
 {
+	DECLARE_CLASS_WITH_BASE_CLASS(TransformComponent, Component)
+
 	public:
 
-		static void StaticConstructor(void* Pointer) { new (Pointer) TransformComponent(); }
-
-		static MetaClass* GetMetaClassStatic() { return TransformComponentMetaClass; }
-
 		virtual void InitComponentDefaultProperties() override;
-
-		static MetaClass *TransformComponentMetaClass;
 
 		XMFLOAT3 GetLocation() { return Location; }
 		void SetLocation(const XMFLOAT3& NewLocation) { Location = NewLocation; }

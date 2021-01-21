@@ -4,15 +4,11 @@
 
 class BoundingBoxComponent : public Component
 {
+	DECLARE_CLASS_WITH_BASE_CLASS(BoundingBoxComponent, Component)
+
 	public:
 
-		static void StaticConstructor(void* Pointer) { new (Pointer) BoundingBoxComponent(); }
-
-		static MetaClass* GetMetaClassStatic() { return BoundingBoxComponentMetaClass; }
-
 		virtual void InitComponentDefaultProperties() override;
-
-		static MetaClass *BoundingBoxComponentMetaClass;
 
 		XMFLOAT3 GetCenter() { return Center; }
 		XMFLOAT3 GetHalfSize() { return HalfSize; }

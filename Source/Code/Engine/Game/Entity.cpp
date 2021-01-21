@@ -5,7 +5,7 @@
 
 #include <Engine/Engine.h>
 
-MetaClass *Entity::EntityMetaClass;
+DEFINE_METACLASS_VARIABLE(Entity)
 
 Component* Entity::CreateDefaultComponent(MetaClass* metaClass)
 {
