@@ -1672,110 +1672,110 @@ void RenderSystem::DestroyRenderMaterial(RenderMaterial* renderMaterial)
 	RenderMaterialDestructionQueue.push_back(renderMaterial);
 }
 
-inline void RenderSystem::CheckVulkanCallResult(VkResult Result, const wchar_t* Function)
+inline void RenderSystem::CheckVulkanCallResult(VkResult Result, const char16_t* Function)
 {
 	if (Result != VkResult::VK_SUCCESS)
 	{
-		wchar_t VulkanErrorMessageBuffer[2048];
-		wchar_t VulkanErrorCodeBuffer[512];
+		char16_t VulkanErrorMessageBuffer[2048];
+		char16_t VulkanErrorCodeBuffer[512];
 
-		const wchar_t *VulkanErrorCodePtr = GetVulkanErrorMessageFromVkResult(Result);
+		const char16_t *VulkanErrorCodePtr = GetVulkanErrorMessageFromVkResult(Result);
 
-		if (VulkanErrorCodePtr) wcscpy(VulkanErrorCodeBuffer, VulkanErrorCodePtr);
-		else wsprintf(VulkanErrorCodeBuffer, (const wchar_t*)u"0x%08X (неизвестный код)", Result);
+		if (VulkanErrorCodePtr) wcscpy((wchar_t*)VulkanErrorCodeBuffer, (const wchar_t*)VulkanErrorCodePtr);
+		else wsprintf((wchar_t*)VulkanErrorCodeBuffer, (const wchar_t*)u"0x%08X (неизвестный код)", Result);
 
-		wsprintf(VulkanErrorMessageBuffer, (const wchar_t*)u"Произошла ошибка при попытке вызова следующей Vulkan-функции:\r\n%s\r\nКод ошибки: %s", Function, VulkanErrorCodeBuffer);
+		wsprintf((wchar_t*)VulkanErrorMessageBuffer, (const wchar_t*)u"Произошла ошибка при попытке вызова следующей Vulkan-функции:\r\n%s\r\nКод ошибки: %s", (const wchar_t*)Function, (const wchar_t*)VulkanErrorCodeBuffer);
 
-		int IntResult = MessageBox(NULL, VulkanErrorMessageBuffer, (const wchar_t*)u"Ошибка Vulkan", MB_OK | MB_ICONERROR);
+		int IntResult = MessageBox(NULL, (const wchar_t*)VulkanErrorMessageBuffer, (const wchar_t*)u"Ошибка Vulkan", MB_OK | MB_ICONERROR);
 
 		ExitProcess(0);
 	}
 }
 
-inline const wchar_t* RenderSystem::GetVulkanErrorMessageFromVkResult(VkResult Result)
+inline const char16_t* RenderSystem::GetVulkanErrorMessageFromVkResult(VkResult Result)
 {
 	switch (Result)
 	{
 		case VkResult::VK_ERROR_OUT_OF_HOST_MEMORY:
-			return (const wchar_t*)u"VK_ERROR_OUT_OF_HOST_MEMORY";
+			return u"VK_ERROR_OUT_OF_HOST_MEMORY";
 			break;
 		case VkResult::VK_ERROR_OUT_OF_DEVICE_MEMORY:
-			return (const wchar_t*)u"VK_ERROR_OUT_OF_DEVICE_MEMORY";
+			return u"VK_ERROR_OUT_OF_DEVICE_MEMORY";
 			break;
 		case VkResult::VK_ERROR_INITIALIZATION_FAILED:
-			return (const wchar_t*)u"VK_ERROR_INITIALIZATION_FAILED";
+			return u"VK_ERROR_INITIALIZATION_FAILED";
 			break;
 		case VkResult::VK_ERROR_DEVICE_LOST:
-			return (const wchar_t*)u"VK_ERROR_DEVICE_LOST";
+			return u"VK_ERROR_DEVICE_LOST";
 			break;
 		case VkResult::VK_ERROR_MEMORY_MAP_FAILED:
-			return (const wchar_t*)u"VK_ERROR_MEMORY_MAP_FAILED";
+			return u"VK_ERROR_MEMORY_MAP_FAILED";
 			break;
 		case VkResult::VK_ERROR_LAYER_NOT_PRESENT:
-			return (const wchar_t*)u"VK_ERROR_LAYER_NOT_PRESENT";
+			return u"VK_ERROR_LAYER_NOT_PRESENT";
 			break;
 		case VkResult::VK_ERROR_EXTENSION_NOT_PRESENT:
-			return (const wchar_t*)u"VK_ERROR_EXTENSION_NOT_PRESENT";
+			return u"VK_ERROR_EXTENSION_NOT_PRESENT";
 			break;
 		case VkResult::VK_ERROR_FEATURE_NOT_PRESENT:
-			return (const wchar_t*)u"VK_ERROR_FEATURE_NOT_PRESENT";
+			return u"VK_ERROR_FEATURE_NOT_PRESENT";
 			break;
 		case VkResult::VK_ERROR_INCOMPATIBLE_DRIVER:
-			return (const wchar_t*)u"VK_ERROR_INCOMPATIBLE_DRIVER";
+			return u"VK_ERROR_INCOMPATIBLE_DRIVER";
 			break;
 		case VkResult::VK_ERROR_TOO_MANY_OBJECTS:
-			return (const wchar_t*)u"VK_ERROR_TOO_MANY_OBJECTS";
+			return u"VK_ERROR_TOO_MANY_OBJECTS";
 			break;
 		case VkResult::VK_ERROR_FORMAT_NOT_SUPPORTED:
-			return (const wchar_t*)u"VK_ERROR_FORMAT_NOT_SUPPORTED";
+			return u"VK_ERROR_FORMAT_NOT_SUPPORTED";
 			break;
 		case VkResult::VK_ERROR_FRAGMENTED_POOL:
-			return (const wchar_t*)u"VK_ERROR_FRAGMENTED_POOL";
+			return u"VK_ERROR_FRAGMENTED_POOL";
 			break;
 		case VkResult::VK_ERROR_UNKNOWN:
-			return (const wchar_t*)u"VK_ERROR_UNKNOWN";
+			return u"VK_ERROR_UNKNOWN";
 			break;
 		case VkResult::VK_ERROR_OUT_OF_POOL_MEMORY:
-			return (const wchar_t*)u"VK_ERROR_OUT_OF_POOL_MEMORY";
+			return u"VK_ERROR_OUT_OF_POOL_MEMORY";
 			break;
 		case VkResult::VK_ERROR_INVALID_EXTERNAL_HANDLE:
-			return (const wchar_t*)u"VK_ERROR_INVALID_EXTERNAL_HANDLE";
+			return u"VK_ERROR_INVALID_EXTERNAL_HANDLE";
 			break;
 		case VkResult::VK_ERROR_FRAGMENTATION:
-			return (const wchar_t*)u"VK_ERROR_FRAGMENTATION";
+			return u"VK_ERROR_FRAGMENTATION";
 			break;
 		case VkResult::VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS:
-			return (const wchar_t*)u"VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS";
+			return u"VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS";
 			break;
 		case VkResult::VK_ERROR_SURFACE_LOST_KHR:
-			return (const wchar_t*)u"VK_ERROR_SURFACE_LOST_KHR";
+			return u"VK_ERROR_SURFACE_LOST_KHR";
 			break;
 		case VkResult::VK_ERROR_NATIVE_WINDOW_IN_USE_KHR:
-			return (const wchar_t*)u"VK_ERROR_NATIVE_WINDOW_IN_USE_KHR";
+			return u"VK_ERROR_NATIVE_WINDOW_IN_USE_KHR";
 			break;
 		case VkResult::VK_ERROR_OUT_OF_DATE_KHR:
-			return (const wchar_t*)u"VK_ERROR_OUT_OF_DATE_KHR";
+			return u"VK_ERROR_OUT_OF_DATE_KHR";
 			break;
 		case VkResult::VK_ERROR_INCOMPATIBLE_DISPLAY_KHR:
-			return (const wchar_t*)u"VK_ERROR_INCOMPATIBLE_DISPLAY_KHR";
+			return u"VK_ERROR_INCOMPATIBLE_DISPLAY_KHR";
 			break;
 		case VkResult::VK_ERROR_VALIDATION_FAILED_EXT:
-			return (const wchar_t*)u"VK_ERROR_VALIDATION_FAILED_EXT";
+			return u"VK_ERROR_VALIDATION_FAILED_EXT";
 			break;
 		case VkResult::VK_ERROR_INVALID_SHADER_NV:
-			return (const wchar_t*)u"VK_ERROR_INVALID_SHADER_NV";
+			return u"VK_ERROR_INVALID_SHADER_NV";
 			break;
 		case VkResult::VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT:
-			return (const wchar_t*)u"VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT";
+			return u"VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT";
 			break;
 		case VkResult::VK_ERROR_NOT_PERMITTED_EXT:
-			return (const wchar_t*)u"VK_ERROR_NOT_PERMITTED_EXT";
+			return u"VK_ERROR_NOT_PERMITTED_EXT";
 			break;
 		case VkResult::VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT:
-			return (const wchar_t*)u"VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT";
+			return u"VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT";
 			break;
 		case VkResult::VK_ERROR_PIPELINE_COMPILE_REQUIRED_EXT:
-			return (const wchar_t*)u"VK_ERROR_PIPELINE_COMPILE_REQUIRED_EXT";
+			return u"VK_ERROR_PIPELINE_COMPILE_REQUIRED_EXT";
 			break;
 		default:
 			return nullptr;

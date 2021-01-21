@@ -91,7 +91,7 @@ LONG WINAPI Application::UnhandledExceptionFilter(_EXCEPTION_POINTERS* Exception
 			break;
 	}
 
-	wsprintf((wchar_t*)ErrorMessageBuffer, (const wchar_t*)u"Поймано необработанное исключение.\r\nКод исключения: 0x%08X (%s)\r\nАдрес исключения: 0x%p", ExceptionInfo->ExceptionRecord->ExceptionCode, ExceptionCodeBuffer, ExceptionInfo->ExceptionRecord->ExceptionAddress);
+	wsprintf((wchar_t*)ErrorMessageBuffer, (const wchar_t*)u"Поймано необработанное исключение.\r\nКод исключения: 0x%08X (%s)\r\nАдрес исключения: 0x%p", ExceptionInfo->ExceptionRecord->ExceptionCode, (const wchar_t*)ExceptionCodeBuffer, ExceptionInfo->ExceptionRecord->ExceptionAddress);
 
 	int IntResult = MessageBox(NULL, (const wchar_t*)ErrorMessageBuffer, (const wchar_t*)u"Критическая ошибка", MB_OK | MB_ICONERROR);
 
@@ -104,9 +104,9 @@ LONG WINAPI Application::UnhandledExceptionFilter(_EXCEPTION_POINTERS* Exception
 
 	GetLocalTime(&SystemTime);
 
-	wsprintf((wchar_t*)MiniDumpFileName, (const wchar_t*)u"%s_Crash_%02d-%02d-%02d_%02d-%02d-%04d.dmp", ModuleFileName, SystemTime.wHour, SystemTime.wMinute, SystemTime.wSecond, SystemTime.wDay, SystemTime.wMonth, SystemTime.wYear);
+	wsprintf((wchar_t*)MiniDumpFileName, (const wchar_t*)u"%s_Crash_%02d-%02d-%02d_%02d-%02d-%04d.dmp", (const wchar_t*)ModuleFileName, SystemTime.wHour, SystemTime.wMinute, SystemTime.wSecond, SystemTime.wDay, SystemTime.wMonth, SystemTime.wYear);
 
-	HANDLE MiniDumpFile = CreateFile((wchar_t*)MiniDumpFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
+	HANDLE MiniDumpFile = CreateFile((const wchar_t*)MiniDumpFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
 
 	MINIDUMP_EXCEPTION_INFORMATION MiniDumpExceptionInformation;
 	MiniDumpExceptionInformation.ClientPointers = TRUE;
