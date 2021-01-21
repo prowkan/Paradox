@@ -7,7 +7,7 @@ class ThreadSafeQueue
 
 		ThreadSafeQueue()
 		{
-			QueueEvent = CreateEvent(NULL, TRUE, FALSE, L"QueueEvent");
+			QueueEvent = CreateEvent(NULL, TRUE, FALSE, (const wchar_t*)u"QueueEvent");
 		}
 
 		~ThreadSafeQueue()

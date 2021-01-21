@@ -4,7 +4,7 @@ class Application
 {
 	public:
 
-		static void StartApplication(const wchar_t* WindowTitle, HINSTANCE hInstance);
+		static void StartApplication(const char16_t* WindowTitle, HINSTANCE hInstance);
 		static void StopApplication();
 		static void RunMainLoop();
 

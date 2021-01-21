@@ -111,7 +111,7 @@ inline float DistanceBetweenColor(const Color& Color1, const Color& Color2)
 	return powf((float)Color1.R - (float)Color2.R, 2.0f) + powf((float)Color1.G - (float)Color2.G, 2.0f) + powf((float)Color1.B - (float)Color2.B, 2.0f);
 }
 
-#define SAFE_DX(Func) CheckDXCallResult(Func, L#Func);
+#define SAFE_DX(Func) CheckDXCallResult(Func, u#Func);
 #define UUIDOF(Value) __uuidof(Value), (void**)&Value
 
 class RenderSystem
@@ -161,6 +161,6 @@ class RenderSystem
 
 		CullingSubSystem cullingSubSystem;
 
-		inline void CheckDXCallResult(HRESULT hr, const wchar_t* Function);
-		inline const wchar_t* GetDXErrorMessageFromHRESULT(HRESULT hr);
+		inline void CheckDXCallResult(HRESULT hr, const char16_t* Function);
+		inline const char16_t* GetDXErrorMessageFromHRESULT(HRESULT hr);
 };
