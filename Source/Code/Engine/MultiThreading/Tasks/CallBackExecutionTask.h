@@ -16,8 +16,6 @@ class CallBackExecutionTask : public Task
 		virtual void Execute(const UINT ThreadID) override
 		{
 			CallBack(ThreadID, ArgValue1, ArgValue2);
-
-			Task::Finish();
 		}
 
 	private:
