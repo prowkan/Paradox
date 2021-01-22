@@ -8,13 +8,9 @@ class StaticMeshComponent;
 
 class StaticMeshEntity : public Entity
 {
+	DECLARE_CLASS_WITH_BASE_CLASS(StaticMeshEntity, Entity)
+
 	public:
-
-		static void StaticConstructor(void* Pointer) { new (Pointer) StaticMeshEntity(); }
-
-		static MetaClass* GetMetaClassStatic() { return StaticMeshEntityMetaClass; }
-
-		static MetaClass *StaticMeshEntityMetaClass;
 
 		virtual void InitDefaultProperties() override;
 

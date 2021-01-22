@@ -1,8 +1,6 @@
 #include "BoundingBoxComponent.h"
 
-#include "../../MetaClass.h"
-
-MetaClass *BoundingBoxComponent::BoundingBoxComponentMetaClass;
+DEFINE_METACLASS_VARIABLE(BoundingBoxComponent)
 
 void BoundingBoxComponent::InitComponentDefaultProperties()
 {

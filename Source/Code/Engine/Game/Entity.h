@@ -7,11 +7,9 @@ class World;
 
 class Entity
 {
+	DECLARE_CLASS(Entity)
+
 	public:
-
-		static void StaticConstructor(void* Pointer) { new (Pointer) Entity(); }
-
-		static MetaClass* GetMetaClassStatic() { return EntityMetaClass; }
 
 		MetaClass* GetMetaClass() { return metaClass; }
 		void SetMetaClass(MetaClass* NewMetaClass) { metaClass = NewMetaClass; }
@@ -43,8 +41,6 @@ class Entity
 
 			return nullptr;
 		}
-
-		static MetaClass *EntityMetaClass;
 
 	protected:
 

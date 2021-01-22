@@ -10,15 +10,11 @@ class BoundingBoxComponent;
 
 class StaticMeshComponent : public Component
 {
+	DECLARE_CLASS_WITH_BASE_CLASS(StaticMeshComponent, Component)
+
 	public:
 
-		static void StaticConstructor(void* Pointer) { new (Pointer) StaticMeshComponent(); }
-
-		static MetaClass* GetMetaClassStatic() { return StaticMeshComponentMetaClass; }
-
 		virtual void InitComponentDefaultProperties() override;
-
-		static MetaClass *StaticMeshComponentMetaClass;
 
 		virtual void RegisterComponent() override;
 		virtual void UnRegisterComponent() override;

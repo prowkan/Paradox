@@ -409,6 +409,14 @@ void RenderSystem::ShutdownSystem()
 
 void RenderSystem::TickSystem(float DeltaTime)
 {
+	if (FrameSyncFences[CurrentFrameIndex]->GetCompletedValue() != 1)
+	{
+		SAFE_DX(FrameSyncFences[CurrentFrameIndex]->SetEventOnCompletion(1, FrameSyncEvent));
+		DWORD WaitResult = WaitForSingleObject(FrameSyncEvent, INFINITE);
+	}
+
+	SAFE_DX(FrameSyncFences[CurrentFrameIndex]->Signal(0)); 
+	
 	SAFE_DX(CommandAllocators[CurrentFrameIndex]->Reset());
 	SAFE_DX(CommandList->Reset(CommandAllocators[CurrentFrameIndex], nullptr));
 
@@ -574,14 +582,6 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	CurrentFrameIndex = (CurrentFrameIndex + 1) % 2;
 	CurrentBackBufferIndex = SwapChain->GetCurrentBackBufferIndex();
-
-	if (FrameSyncFences[CurrentFrameIndex]->GetCompletedValue() != 1)
-	{
-		SAFE_DX(FrameSyncFences[CurrentFrameIndex]->SetEventOnCompletion(1, FrameSyncEvent));
-		DWORD WaitResult = WaitForSingleObject(FrameSyncEvent, INFINITE);
-	}
-
-	SAFE_DX(FrameSyncFences[CurrentFrameIndex]->Signal(0));
 }
 
 RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMeshCreateInfo)
@@ -732,7 +732,7 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 	ResourceDesc.DepthOrArraySize = 1;
 	ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	ResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE;
-	ResourceDesc.Format = renderTextureCreateInfo.SRGB ? DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM;
+	ResourceDesc.Format = renderTextureCreateInfo.SRGB ? DXGI_FORMAT::DXGI_FORMAT_BC1_UNORM_SRGB : DXGI_FORMAT::DXGI_FORMAT_BC1_UNORM;
 	ResourceDesc.Height = renderTextureCreateInfo.Height;
 	ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	ResourceDesc.MipLevels = renderTextureCreateInfo.MIPLevels;
@@ -794,7 +794,7 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 			memcpy((BYTE*)MappedData + PlacedSubResourceFootPrints[i].Offset + j * PlacedSubResourceFootPrints[i].Footprint.RowPitch, (BYTE*)TexelData + j * RowsSizesInBytes[i], RowsSizesInBytes[i]);
 		}
 
-		TexelData += 4 * (renderTextureCreateInfo.Width >> i) * (renderTextureCreateInfo.Height >> i);
+		TexelData += /*4 */ 8 * ((renderTextureCreateInfo.Width / 4) >> i) * ((renderTextureCreateInfo.Height / 4) >> i);
 	}
 
 	UploadBuffer->Unmap(0, &WrittenRange);
@@ -843,7 +843,7 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 	SAFE_DX(CopySyncFence->Signal(0));
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
-	SRVDesc.Format = renderTextureCreateInfo.SRGB ? DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM;
+	SRVDesc.Format = renderTextureCreateInfo.SRGB ? DXGI_FORMAT::DXGI_FORMAT_BC1_UNORM_SRGB : DXGI_FORMAT::DXGI_FORMAT_BC1_UNORM;
 	SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	SRVDesc.Texture2D.MipLevels = renderTextureCreateInfo.MIPLevels;
 	SRVDesc.Texture2D.MostDetailedMip = 0;
@@ -924,21 +924,21 @@ void RenderSystem::DestroyRenderMaterial(RenderMaterial* renderMaterial)
 	RenderMaterialDestructionQueue.push_back(renderMaterial);
 }
 
-inline void RenderSystem::CheckDXCallResult(HRESULT hr, const wchar_t* Function)
+inline void RenderSystem::CheckDXCallResult(HRESULT hr, const char16_t* Function)
 {
 	if (FAILED(hr))
 	{
-		wchar_t DXErrorMessageBuffer[2048];
-		wchar_t DXErrorCodeBuffer[512];
+		char16_t DXErrorMessageBuffer[2048];
+		char16_t DXErrorCodeBuffer[512];
 
-		const wchar_t *DXErrorCodePtr = GetDXErrorMessageFromHRESULT(hr);
+		const char16_t *DXErrorCodePtr = GetDXErrorMessageFromHRESULT(hr);
 
-		if (DXErrorCodePtr) wcscpy(DXErrorCodeBuffer, DXErrorCodePtr);
-		else wsprintf(DXErrorCodeBuffer, (const wchar_t*)u"0x%08X (неизвестный код)", hr);
+		if (DXErrorCodePtr) wcscpy((wchar_t*)DXErrorCodeBuffer, (const wchar_t*)DXErrorCodePtr);
+		else wsprintf((wchar_t*)DXErrorCodeBuffer, (const wchar_t*)u"0x%08X (неизвестный код)", hr);
 
-		wsprintf(DXErrorMessageBuffer, (const wchar_t*)u"Произошла ошибка при попытке вызова следующей DirectX-функции:\r\n%s\r\nКод ошибки: %s", Function, DXErrorCodeBuffer);
+		wsprintf((wchar_t*)DXErrorMessageBuffer, (const wchar_t*)u"Произошла ошибка при попытке вызова следующей DirectX-функции:\r\n%s\r\nКод ошибки: %s", (const wchar_t*)Function, (const wchar_t*)DXErrorCodeBuffer);
 
-		int IntResult = MessageBox(NULL, DXErrorMessageBuffer, (const wchar_t*)u"Ошибка DirectX", MB_OK | MB_ICONERROR);
+		int IntResult = MessageBox(NULL, (const wchar_t*)DXErrorMessageBuffer, (const wchar_t*)u"Ошибка DirectX", MB_OK | MB_ICONERROR);
 
 		if (hr == DXGI_ERROR_DEVICE_REMOVED) SAFE_DX(Device->GetDeviceRemovedReason());
 
@@ -946,189 +946,189 @@ inline void RenderSystem::CheckDXCallResult(HRESULT hr, const wchar_t* Function)
 	}
 }
 
-inline const wchar_t* RenderSystem::GetDXErrorMessageFromHRESULT(HRESULT hr)
+inline const char16_t* RenderSystem::GetDXErrorMessageFromHRESULT(HRESULT hr)
 {
 	switch (hr)
 	{
 		case E_UNEXPECTED:
-			return (const wchar_t*)u"E_UNEXPECTED"; 
+			return u"E_UNEXPECTED"; 
 			break; 
 		case E_NOTIMPL:
-			return (const wchar_t*)u"E_NOTIMPL";
+			return u"E_NOTIMPL";
 			break;
 		case E_OUTOFMEMORY:
-			return (const wchar_t*)u"E_OUTOFMEMORY";
+			return u"E_OUTOFMEMORY";
 			break; 
 		case E_INVALIDARG:
-			return (const wchar_t*)u"E_INVALIDARG";
+			return u"E_INVALIDARG";
 			break; 
 		case E_NOINTERFACE:
-			return (const wchar_t*)u"E_NOINTERFACE";
+			return u"E_NOINTERFACE";
 			break; 
 		case E_POINTER:
-			return (const wchar_t*)u"E_POINTER"; 
+			return u"E_POINTER"; 
 			break; 
 		case E_HANDLE:
-			return (const wchar_t*)u"E_HANDLE"; 
+			return u"E_HANDLE"; 
 			break;
 		case E_ABORT:
-			return (const wchar_t*)u"E_ABORT"; 
+			return u"E_ABORT"; 
 			break; 
 		case E_FAIL:
-			return (const wchar_t*)u"E_FAIL"; 
+			return u"E_FAIL"; 
 			break;
 		case E_ACCESSDENIED:
-			return (const wchar_t*)u"E_ACCESSDENIED";
+			return u"E_ACCESSDENIED";
 			break; 
 		case E_PENDING:
-			return (const wchar_t*)u"E_PENDING";
+			return u"E_PENDING";
 			break; 
 		case E_BOUNDS:
-			return (const wchar_t*)u"E_BOUNDS";
+			return u"E_BOUNDS";
 			break; 
 		case E_CHANGED_STATE:
-			return (const wchar_t*)u"E_CHANGED_STATE";
+			return u"E_CHANGED_STATE";
 			break; 
 		case E_ILLEGAL_STATE_CHANGE:
-			return (const wchar_t*)u"E_ILLEGAL_STATE_CHANGE";
+			return u"E_ILLEGAL_STATE_CHANGE";
 			break; 
 		case E_ILLEGAL_METHOD_CALL:
-			return (const wchar_t*)u"E_ILLEGAL_METHOD_CALL";
+			return u"E_ILLEGAL_METHOD_CALL";
 			break; 
 		case E_STRING_NOT_NULL_TERMINATED:
-			return (const wchar_t*)u"E_STRING_NOT_NULL_TERMINATED"; 
+			return u"E_STRING_NOT_NULL_TERMINATED"; 
 			break; 
 		case E_ILLEGAL_DELEGATE_ASSIGNMENT:
-			return (const wchar_t*)u"E_ILLEGAL_DELEGATE_ASSIGNMENT";
+			return u"E_ILLEGAL_DELEGATE_ASSIGNMENT";
 			break; 
 		case E_ASYNC_OPERATION_NOT_STARTED:
-			return (const wchar_t*)u"E_ASYNC_OPERATION_NOT_STARTED"; 
+			return u"E_ASYNC_OPERATION_NOT_STARTED"; 
 			break; 
 		case E_APPLICATION_EXITING:
-			return (const wchar_t*)u"E_APPLICATION_EXITING";
+			return u"E_APPLICATION_EXITING";
 			break; 
 		case E_APPLICATION_VIEW_EXITING:
-			return (const wchar_t*)u"E_APPLICATION_VIEW_EXITING";
+			return u"E_APPLICATION_VIEW_EXITING";
 			break; 
 		case DXGI_ERROR_INVALID_CALL:
-			return (const wchar_t*)u"DXGI_ERROR_INVALID_CALL";
+			return u"DXGI_ERROR_INVALID_CALL";
 			break; 
 		case DXGI_ERROR_NOT_FOUND:
-			return (const wchar_t*)u"DXGI_ERROR_NOT_FOUND";
+			return u"DXGI_ERROR_NOT_FOUND";
 			break; 
 		case DXGI_ERROR_MORE_DATA:
-			return (const wchar_t*)u"DXGI_ERROR_MORE_DATA";
+			return u"DXGI_ERROR_MORE_DATA";
 			break; 
 		case DXGI_ERROR_UNSUPPORTED:
-			return (const wchar_t*)u"DXGI_ERROR_UNSUPPORTED";
+			return u"DXGI_ERROR_UNSUPPORTED";
 			break; 
 		case DXGI_ERROR_DEVICE_REMOVED:
-			return (const wchar_t*)u"DXGI_ERROR_DEVICE_REMOVED";
+			return u"DXGI_ERROR_DEVICE_REMOVED";
 			break; 
 		case DXGI_ERROR_DEVICE_HUNG:
-			return (const wchar_t*)u"DXGI_ERROR_DEVICE_HUNG";
+			return u"DXGI_ERROR_DEVICE_HUNG";
 			break; 
 		case DXGI_ERROR_DEVICE_RESET:
-			return (const wchar_t*)u"DXGI_ERROR_DEVICE_RESET";
+			return u"DXGI_ERROR_DEVICE_RESET";
 			break; 
 		case DXGI_ERROR_WAS_STILL_DRAWING:
-			return (const wchar_t*)u"DXGI_ERROR_WAS_STILL_DRAWING";
+			return u"DXGI_ERROR_WAS_STILL_DRAWING";
 			break; 
 		case DXGI_ERROR_FRAME_STATISTICS_DISJOINT:
-			return (const wchar_t*)u"DXGI_ERROR_FRAME_STATISTICS_DISJOINT";
+			return u"DXGI_ERROR_FRAME_STATISTICS_DISJOINT";
 			break; 
 		case DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE:
-			return (const wchar_t*)u"DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE"; 
+			return u"DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE"; 
 			break; 
 		case DXGI_ERROR_DRIVER_INTERNAL_ERROR:
-			return (const wchar_t*)u"DXGI_ERROR_DRIVER_INTERNAL_ERROR";
+			return u"DXGI_ERROR_DRIVER_INTERNAL_ERROR";
 			break; 
 		case DXGI_ERROR_NONEXCLUSIVE:
-			return (const wchar_t*)u"DXGI_ERROR_NONEXCLUSIVE";
+			return u"DXGI_ERROR_NONEXCLUSIVE";
 			break; 
 		case DXGI_ERROR_NOT_CURRENTLY_AVAILABLE:
-			return (const wchar_t*)u"DXGI_ERROR_NOT_CURRENTLY_AVAILABLE"; 
+			return u"DXGI_ERROR_NOT_CURRENTLY_AVAILABLE"; 
 			break; 
 		case DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED:
-			return (const wchar_t*)u"DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED";
+			return u"DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED";
 			break; 
 		case DXGI_ERROR_REMOTE_OUTOFMEMORY:
-			return (const wchar_t*)u"DXGI_ERROR_REMOTE_OUTOFMEMORY"; 
+			return u"DXGI_ERROR_REMOTE_OUTOFMEMORY"; 
 			break; 
 		case DXGI_ERROR_ACCESS_LOST:
-			return (const wchar_t*)u"DXGI_ERROR_ACCESS_LOST";
+			return u"DXGI_ERROR_ACCESS_LOST";
 			break; 
 		case DXGI_ERROR_WAIT_TIMEOUT:
-			return (const wchar_t*)u"DXGI_ERROR_WAIT_TIMEOUT";
+			return u"DXGI_ERROR_WAIT_TIMEOUT";
 			break; 
 		case DXGI_ERROR_SESSION_DISCONNECTED:
-			return (const wchar_t*)u"DXGI_ERROR_SESSION_DISCONNECTED";
+			return u"DXGI_ERROR_SESSION_DISCONNECTED";
 			break; 
 		case DXGI_ERROR_RESTRICT_TO_OUTPUT_STALE:
-			return (const wchar_t*)u"DXGI_ERROR_RESTRICT_TO_OUTPUT_STALE";
+			return u"DXGI_ERROR_RESTRICT_TO_OUTPUT_STALE";
 			break; 
 		case DXGI_ERROR_CANNOT_PROTECT_CONTENT:
-			return (const wchar_t*)u"DXGI_ERROR_CANNOT_PROTECT_CONTENT";
+			return u"DXGI_ERROR_CANNOT_PROTECT_CONTENT";
 			break; 
 		case DXGI_ERROR_ACCESS_DENIED:
-			return (const wchar_t*)u"DXGI_ERROR_ACCESS_DENIED"; 
+			return u"DXGI_ERROR_ACCESS_DENIED"; 
 			break; 
 		case DXGI_ERROR_NAME_ALREADY_EXISTS:
-			return (const wchar_t*)u"DXGI_ERROR_NAME_ALREADY_EXISTS";
+			return u"DXGI_ERROR_NAME_ALREADY_EXISTS";
 			break; 
 		case DXGI_ERROR_SDK_COMPONENT_MISSING:
-			return (const wchar_t*)u"DXGI_ERROR_SDK_COMPONENT_MISSING"; 
+			return u"DXGI_ERROR_SDK_COMPONENT_MISSING"; 
 			break; 
 		case DXGI_ERROR_NOT_CURRENT:
-			return (const wchar_t*)u"DXGI_ERROR_NOT_CURRENT";
+			return u"DXGI_ERROR_NOT_CURRENT";
 			break; 
 		case DXGI_ERROR_HW_PROTECTION_OUTOFMEMORY:
-			return (const wchar_t*)u"DXGI_ERROR_HW_PROTECTION_OUTOFMEMORY"; 
+			return u"DXGI_ERROR_HW_PROTECTION_OUTOFMEMORY"; 
 			break; 
 		case DXGI_ERROR_DYNAMIC_CODE_POLICY_VIOLATION:
-			return (const wchar_t*)u"DXGI_ERROR_DYNAMIC_CODE_POLICY_VIOLATION"; 
+			return u"DXGI_ERROR_DYNAMIC_CODE_POLICY_VIOLATION"; 
 			break; 
 		case DXGI_ERROR_NON_COMPOSITED_UI:
-			return (const wchar_t*)u"DXGI_ERROR_NON_COMPOSITED_UI";
+			return u"DXGI_ERROR_NON_COMPOSITED_UI";
 			break; 
 		case DXGI_ERROR_MODE_CHANGE_IN_PROGRESS:
-			return (const wchar_t*)u"DXGI_ERROR_MODE_CHANGE_IN_PROGRESS";
+			return u"DXGI_ERROR_MODE_CHANGE_IN_PROGRESS";
 			break; 
 		case DXGI_ERROR_CACHE_CORRUPT:
-			return (const wchar_t*)u"DXGI_ERROR_CACHE_CORRUPT";
+			return u"DXGI_ERROR_CACHE_CORRUPT";
 			break;
 		case DXGI_ERROR_CACHE_FULL:
-			return (const wchar_t*)u"DXGI_ERROR_CACHE_FULL";
+			return u"DXGI_ERROR_CACHE_FULL";
 			break;
 		case DXGI_ERROR_CACHE_HASH_COLLISION:
-			return (const wchar_t*)u"DXGI_ERROR_CACHE_HASH_COLLISION";
+			return u"DXGI_ERROR_CACHE_HASH_COLLISION";
 			break;
 		case DXGI_ERROR_ALREADY_EXISTS:
-			return (const wchar_t*)u"DXGI_ERROR_ALREADY_EXISTS"; 
+			return u"DXGI_ERROR_ALREADY_EXISTS"; 
 			break;
 		case D3D10_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS:
-			return (const wchar_t*)u"D3D10_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS";
+			return u"D3D10_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS";
 			break; 
 		case D3D10_ERROR_FILE_NOT_FOUND:
-			return (const wchar_t*)u"D3D10_ERROR_FILE_NOT_FOUND";
+			return u"D3D10_ERROR_FILE_NOT_FOUND";
 			break;
 		case D3D11_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS:
-			return (const wchar_t*)u"D3D11_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS";
+			return u"D3D11_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS";
 			break;
 		case D3D11_ERROR_FILE_NOT_FOUND:
-			return (const wchar_t*)u"D3D11_ERROR_FILE_NOT_FOUND"; 
+			return u"D3D11_ERROR_FILE_NOT_FOUND"; 
 			break;
 		case D3D11_ERROR_TOO_MANY_UNIQUE_VIEW_OBJECTS:
-			return (const wchar_t*)u"D3D11_ERROR_TOO_MANY_UNIQUE_VIEW_OBJECTS"; 
+			return u"D3D11_ERROR_TOO_MANY_UNIQUE_VIEW_OBJECTS"; 
 			break; 
 		case D3D11_ERROR_DEFERRED_CONTEXT_MAP_WITHOUT_INITIAL_DISCARD:
-			return (const wchar_t*)u"D3D11_ERROR_DEFERRED_CONTEXT_MAP_WITHOUT_INITIAL_DISCARD";
+			return u"D3D11_ERROR_DEFERRED_CONTEXT_MAP_WITHOUT_INITIAL_DISCARD";
 			break;
 		case D3D12_ERROR_ADAPTER_NOT_FOUND:
-			return (const wchar_t*)u"D3D12_ERROR_ADAPTER_NOT_FOUND";
+			return u"D3D12_ERROR_ADAPTER_NOT_FOUND";
 			break;
 		case D3D12_ERROR_DRIVER_VERSION_MISMATCH:
-			return (const wchar_t*)u"D3D12_ERROR_DRIVER_VERSION_MISMATCH"; 
+			return u"D3D12_ERROR_DRIVER_VERSION_MISMATCH"; 
 			break;
 		default:
 			return nullptr;

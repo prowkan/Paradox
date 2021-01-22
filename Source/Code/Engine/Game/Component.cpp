@@ -1,5 +1,3 @@
 #include "Component.h"
 
-#include "MetaClass.h"
-
-MetaClass *Component::ComponentMetaClass;
+DEFINE_METACLASS_VARIABLE(Component)
