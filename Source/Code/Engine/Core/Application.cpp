@@ -15,98 +15,98 @@ LRESULT CALLBACK Application::MainWindowProc(HWND hWnd, UINT Msg, WPARAM wParam,
 
 LONG WINAPI Application::UnhandledExceptionFilter(_EXCEPTION_POINTERS* ExceptionInfo)
 {
-	wchar_t ErrorMessageBuffer[1024];
-	wchar_t ExceptionCodeBuffer[256];
+	char16_t ErrorMessageBuffer[1024];
+	char16_t ExceptionCodeBuffer[256];
 
 	switch (ExceptionInfo->ExceptionRecord->ExceptionCode)
 	{
 		case EXCEPTION_ACCESS_VIOLATION:
-			wcscpy(ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_ACCESS_VIOLATION");
+			wcscpy((wchar_t*)ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_ACCESS_VIOLATION");
 			break;
 		case EXCEPTION_DATATYPE_MISALIGNMENT:
-			wcscpy(ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_DATATYPE_MISALIGNMENT");
+			wcscpy((wchar_t*)ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_DATATYPE_MISALIGNMENT");
 			break;
 		case EXCEPTION_BREAKPOINT:
-			wcscpy(ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_BREAKPOINT");
+			wcscpy((wchar_t*)ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_BREAKPOINT");
 			break;
 		case EXCEPTION_SINGLE_STEP:
-			wcscpy(ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_SINGLE_STEP");
+			wcscpy((wchar_t*)ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_SINGLE_STEP");
 			break;
 		case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
-			wcscpy(ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_ARRAY_BOUNDS_EXCEEDED");
+			wcscpy((wchar_t*)ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_ARRAY_BOUNDS_EXCEEDED");
 			break;
 		case EXCEPTION_FLT_DENORMAL_OPERAND:
-			wcscpy(ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_FLT_DENORMAL_OPERAND");
+			wcscpy((wchar_t*)ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_FLT_DENORMAL_OPERAND");
 			break;
 		case EXCEPTION_FLT_DIVIDE_BY_ZERO:
-			wcscpy(ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_FLT_DIVIDE_BY_ZERO");
+			wcscpy((wchar_t*)ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_FLT_DIVIDE_BY_ZERO");
 			break;
 		case EXCEPTION_FLT_INEXACT_RESULT:
-			wcscpy(ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_FLT_INEXACT_RESULT");
+			wcscpy((wchar_t*)ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_FLT_INEXACT_RESULT");
 			break;
 		case EXCEPTION_FLT_INVALID_OPERATION:
-			wcscpy(ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_FLT_INVALID_OPERATION");
+			wcscpy((wchar_t*)ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_FLT_INVALID_OPERATION");
 			break;
 		case EXCEPTION_FLT_OVERFLOW:
-			wcscpy(ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_FLT_OVERFLOW");
+			wcscpy((wchar_t*)ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_FLT_OVERFLOW");
 			break;
 		case EXCEPTION_FLT_STACK_CHECK:
-			wcscpy(ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_FLT_STACK_CHECK");
+			wcscpy((wchar_t*)ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_FLT_STACK_CHECK");
 			break;
 		case EXCEPTION_FLT_UNDERFLOW:
-			wcscpy(ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_FLT_UNDERFLOW");
+			wcscpy((wchar_t*)ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_FLT_UNDERFLOW");
 			break;
 		case EXCEPTION_INT_DIVIDE_BY_ZERO:
-			wcscpy(ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_INT_DIVIDE_BY_ZERO");
+			wcscpy((wchar_t*)ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_INT_DIVIDE_BY_ZERO");
 			break;
 		case EXCEPTION_INT_OVERFLOW:
-			wcscpy(ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_INT_OVERFLOW");
+			wcscpy((wchar_t*)ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_INT_OVERFLOW");
 			break;
 		case EXCEPTION_PRIV_INSTRUCTION:
-			wcscpy(ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_PRIV_INSTRUCTION");
+			wcscpy((wchar_t*)ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_PRIV_INSTRUCTION");
 			break;
 		case EXCEPTION_IN_PAGE_ERROR:
-			wcscpy(ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_IN_PAGE_ERROR");
+			wcscpy((wchar_t*)ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_IN_PAGE_ERROR");
 			break;
 		case EXCEPTION_ILLEGAL_INSTRUCTION:
-			wcscpy(ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_ILLEGAL_INSTRUCTION");
+			wcscpy((wchar_t*)ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_ILLEGAL_INSTRUCTION");
 			break;
 		case EXCEPTION_NONCONTINUABLE_EXCEPTION:
-			wcscpy(ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_NONCONTINUABLE_EXCEPTION");
+			wcscpy((wchar_t*)ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_NONCONTINUABLE_EXCEPTION");
 			break;
 		case EXCEPTION_STACK_OVERFLOW:
-			wcscpy(ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_STACK_OVERFLOW");
+			wcscpy((wchar_t*)ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_STACK_OVERFLOW");
 			break;
 		case EXCEPTION_INVALID_DISPOSITION:
-			wcscpy(ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_INVALID_DISPOSITION");
+			wcscpy((wchar_t*)ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_INVALID_DISPOSITION");
 			break;
 		case EXCEPTION_GUARD_PAGE:
-			wcscpy(ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_GUARD_PAGE");
+			wcscpy((wchar_t*)ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_GUARD_PAGE");
 			break;
 		case EXCEPTION_INVALID_HANDLE:
-			wcscpy(ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_INVALID_HANDLE");
+			wcscpy((wchar_t*)ExceptionCodeBuffer, (const wchar_t*)u"EXCEPTION_INVALID_HANDLE");
 			break;
 		default:
-			wcscpy(ExceptionCodeBuffer, (const wchar_t*)u"неизвестный код");
+			wcscpy((wchar_t*)ExceptionCodeBuffer, (const wchar_t*)u"неизвестный код");
 			break;
 	}
 
-	wsprintf(ErrorMessageBuffer, (const wchar_t*)u"Поймано необработанное исключение.\r\nКод исключения: 0x%08X (%s)\r\nАдрес исключения: 0x%p", ExceptionInfo->ExceptionRecord->ExceptionCode, ExceptionCodeBuffer, ExceptionInfo->ExceptionRecord->ExceptionAddress);
+	wsprintf((wchar_t*)ErrorMessageBuffer, (const wchar_t*)u"Поймано необработанное исключение.\r\nКод исключения: 0x%08X (%s)\r\nАдрес исключения: 0x%p", ExceptionInfo->ExceptionRecord->ExceptionCode, (const wchar_t*)ExceptionCodeBuffer, ExceptionInfo->ExceptionRecord->ExceptionAddress);
 
-	int IntResult = MessageBox(NULL, ErrorMessageBuffer, (const wchar_t*)u"Критическая ошибка", MB_OK | MB_ICONERROR);
+	int IntResult = MessageBox(NULL, (const wchar_t*)ErrorMessageBuffer, (const wchar_t*)u"Критическая ошибка", MB_OK | MB_ICONERROR);
 
-	wchar_t MiniDumpFileName[256];
-	wchar_t ModuleFileName[256];
+	char16_t MiniDumpFileName[256];
+	char16_t ModuleFileName[256];
 
-	DWORD DResult = GetModuleFileName(NULL, ModuleFileName, 256);
+	DWORD DResult = GetModuleFileName(NULL, (wchar_t*)ModuleFileName, 256);
 
 	SYSTEMTIME SystemTime;
 
 	GetLocalTime(&SystemTime);
 
-	wsprintf(MiniDumpFileName, (const wchar_t*)u"%s_Crash_%02d-%02d-%02d_%02d-%02d-%04d.dmp", ModuleFileName, SystemTime.wHour, SystemTime.wMinute, SystemTime.wSecond, SystemTime.wDay, SystemTime.wMonth, SystemTime.wYear);
+	wsprintf((wchar_t*)MiniDumpFileName, (const wchar_t*)u"%s_Crash_%02d-%02d-%02d_%02d-%02d-%04d.dmp", (const wchar_t*)ModuleFileName, SystemTime.wHour, SystemTime.wMinute, SystemTime.wSecond, SystemTime.wDay, SystemTime.wMonth, SystemTime.wYear);
 
-	HANDLE MiniDumpFile = CreateFile(MiniDumpFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
+	HANDLE MiniDumpFile = CreateFile((const wchar_t*)MiniDumpFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
 
 	MINIDUMP_EXCEPTION_INFORMATION MiniDumpExceptionInformation;
 	MiniDumpExceptionInformation.ClientPointers = TRUE;
@@ -118,14 +118,14 @@ LONG WINAPI Application::UnhandledExceptionFilter(_EXCEPTION_POINTERS* Exception
 	return EXCEPTION_CONTINUE_SEARCH;
 }
 
-void Application::StartApplication(const wchar_t* WindowTitle, HINSTANCE hInstance)
+void Application::StartApplication(const char16_t* WindowTitle, HINSTANCE hInstance)
 {
 	LPTOP_LEVEL_EXCEPTION_FILTER TopLevelExceptionFilter = SetUnhandledExceptionFilter(&Application::UnhandledExceptionFilter);
 
 	BOOL Result;
 
 	Result = AllocConsole();
-	Result = SetConsoleTitle(WindowTitle);
+	Result = SetConsoleTitle((wchar_t*)WindowTitle);
 	freopen("CONOUT$", "w", stdout);
 
 	WNDCLASSEX WndClassEx;
@@ -149,7 +149,7 @@ void Application::StartApplication(const wchar_t* WindowTitle, HINSTANCE hInstan
 	int ScreenWidth = GetSystemMetrics(SM_CXSCREEN);
 	int ScreenHeight = GetSystemMetrics(SM_CYSCREEN);
 
-	Application::MainWindowHandle = CreateWindowEx(0, (const wchar_t*)u"MainWindowClass", WindowTitle, WindowStyle, 0, 0, ScreenWidth, ScreenHeight, NULL, NULL, hInstance, NULL);
+	Application::MainWindowHandle = CreateWindowEx(0, (const wchar_t*)u"MainWindowClass", (const wchar_t*)WindowTitle, WindowStyle, 0, 0, ScreenWidth, ScreenHeight, NULL, NULL, hInstance, NULL);
 
 	Result = UpdateWindow(Application::MainWindowHandle);
 	Result = ShowWindow(Application::MainWindowHandle, SW_SHOW);
