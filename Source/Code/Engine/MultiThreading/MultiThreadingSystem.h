@@ -30,4 +30,6 @@ class MultiThreadingSystem
 		UINT WorkerThreadsCount;
 
 		ThreadSafeQueue<Task*> TaskQueue;
+
+		HANDLE RenderThread;
 };

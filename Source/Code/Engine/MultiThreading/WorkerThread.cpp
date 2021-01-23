@@ -28,6 +28,7 @@ DWORD WINAPI WorkerThreadFunc(LPVOID lpThreadParameter)
 		if (TaskQueue.Pop(task))
 		{
 			task->Execute(ThreadID);
+			task->Finish();
 		}
 		else
 		{

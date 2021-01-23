@@ -204,6 +204,11 @@ void RenderSystem::InitSystem()
 	DepthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK::D3D11_DEPTH_WRITE_MASK_ALL;
 
 	SAFE_DX(Device->CreateDepthStencilState(&DepthStencilDesc, &DepthStencilState));
+
+	RenderThreadSyncEvents[0][0] = CreateEvent(NULL, FALSE, FALSE, L"RenderThreadSyncEvents00");
+	RenderThreadSyncEvents[0][1] = CreateEvent(NULL, FALSE, FALSE, L"RenderThreadSyncEvents01");
+	RenderThreadSyncEvents[1][0] = CreateEvent(NULL, FALSE, TRUE, L"RenderThreadSyncEvents10");
+	RenderThreadSyncEvents[1][1] = CreateEvent(NULL, FALSE, TRUE, L"RenderThreadSyncEvents11");
 }
 
 void RenderSystem::ShutdownSystem()
@@ -233,17 +238,32 @@ void RenderSystem::ShutdownSystem()
 
 void RenderSystem::TickSystem(float DeltaTime)
 {
+	DWORD WaitResult = WaitForSingleObject(RenderThreadSyncEvents[1][CurrentWriteRenderQueueIndex], INFINITE);
+
+	CurrentWriteRenderQueueIndex = (CurrentWriteRenderQueueIndex + 1) % 2;
+
+	XMMATRIX ViewProjMatrix = Engine::GetEngine().GetGameFramework().GetCamera().GetViewProjMatrix();
+
+	vector<StaticMeshComponent*> AllStaticMeshComponents = Engine::GetEngine().GetGameFramework().GetWorld().GetRenderScene().GetStaticMeshComponents();
+	vector<StaticMeshComponent*> VisbleStaticMeshComponents = cullingSubSystem.GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ViewProjMatrix);
+	size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.size();
+
+	RenderQueues[CurrentWriteRenderQueueIndex].clear();
+	RenderQueues[CurrentWriteRenderQueueIndex].insert(RenderQueues[CurrentWriteRenderQueueIndex].end(), VisbleStaticMeshComponents.begin(), VisbleStaticMeshComponents.end());
+
+	BOOL Result = SetEvent(RenderThreadSyncEvents[0][CurrentWriteRenderQueueIndex]);
+}
+
+void RenderSystem::RenderThreadFunc()
+
+	DWORD WaitResult = WaitForSingleObject(RenderThreadSyncEvents[0][CurrentReadRenderQueueIndex], INFINITE);
+
 	DeviceContext->ClearState();
 
 	XMMATRIX ViewProjMatrix = Engine::GetEngine().GetGameFramework().GetCamera().GetViewProjMatrix();
 
 	D3D11_MAPPED_SUBRESOURCE MappedSubResource;
 
-	vector<StaticMeshComponent*> AllStaticMeshComponents = Engine::GetEngine().GetGameFramework().GetWorld().GetRenderScene().GetStaticMeshComponents();
-	vector<StaticMeshComponent*> VisbleStaticMeshComponents = cullingSubSystem.GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ViewProjMatrix);
-	size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.size();
-
-	OPTICK_EVENT("Draw Calls")
 
 	for (int k = 0; k < VisbleStaticMeshComponentsCount; k++)
 	{
