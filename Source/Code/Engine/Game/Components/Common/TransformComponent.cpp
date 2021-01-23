@@ -1,8 +1,6 @@
 #include "TransformComponent.h"
 
-#include "../../MetaClass.h"
-
-MetaClass *TransformComponent::TransformComponentMetaClass;
+DEFINE_METACLASS_VARIABLE(TransformComponent)
 
 void TransformComponent::InitComponentDefaultProperties()
 {

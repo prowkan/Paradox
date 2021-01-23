@@ -7,8 +7,6 @@ atomic<bool> MultiThreadingSystem::WorkerThreadExitFlag;
 
 void MultiThreadingSystem::InitSystem()
 {
-	TaskQueueEvent = CreateEvent(NULL, FALSE, FALSE, L"TaskQueueEvent");
-
 	SYSTEM_INFO SystemInfo;
 
 	GetSystemInfo(&SystemInfo);
@@ -32,16 +30,12 @@ void MultiThreadingSystem::ShutdownSystem()
 
 	for (UINT i = 0; i < WorkerThreadsCount; i++)
 	{
-		BOOL Result = SetEvent(TaskQueueEvent);
 		DWORD WaitResult = WaitForSingleObject(WorkerThreads[i], INFINITE);
 
-		Result = CloseHandle(WorkerThreads[i]);
+		BOOL Result = CloseHandle(WorkerThreads[i]);
 	
 		WorkerThreads[i] = INVALID_HANDLE_VALUE;
 	}
-
-	BOOL Result = CloseHandle(TaskQueueEvent);
-	TaskQueueEvent = INVALID_HANDLE_VALUE;
 
 	DWORD WaitResult = WaitForSingleObject(RenderThread, INFINITE);
 

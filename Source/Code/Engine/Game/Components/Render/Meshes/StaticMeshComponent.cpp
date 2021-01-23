@@ -1,6 +1,5 @@
 #include "StaticMeshComponent.h"
 
-#include "../../../MetaClass.h"
 #include "../../../Entity.h"
 
 #include "../../Common/TransformComponent.h"
@@ -8,7 +7,7 @@
 
 #include <Engine/Engine.h>
 
-MetaClass *StaticMeshComponent::StaticMeshComponentMetaClass;
+DEFINE_METACLASS_VARIABLE(StaticMeshComponent)
 
 void StaticMeshComponent::InitComponentDefaultProperties()
 {

@@ -8,13 +8,13 @@ DWORD WINAPI WorkerThreadFunc(LPVOID lpThreadParameter)
 {
 	const UINT ThreadID = *(UINT*)lpThreadParameter;
 
-	wchar_t ThreadName[256];
-	wsprintf(ThreadName, L"Worker Thread %u", ThreadID + 1);
+	char16_t ThreadName[256];
+	wsprintf((wchar_t*)ThreadName, (const wchar_t*)u"Worker Thread %u", ThreadID + 1);
 
-	SetThreadDescription(GetCurrentThread(), ThreadName);
+	SetThreadDescription(GetCurrentThread(), (const wchar_t*)ThreadName);
 
 	ThreadSafeQueue<Task*>& TaskQueue = Engine::GetEngine().GetMultiThreadingSystem().GetTaskQueue();
-	HANDLE& TaskQueueEvent = Engine::GetEngine().GetMultiThreadingSystem().GetTaskQueueEvent();
+	HANDLE& TaskQueueEvent = TaskQueue.GetQueueEvent();
 
 	char OptickThreadName[256];
 	sprintf(OptickThreadName, "Worker Thread %u", ThreadID + 1);
@@ -28,6 +28,7 @@ DWORD WINAPI WorkerThreadFunc(LPVOID lpThreadParameter)
 		if (TaskQueue.Pop(task))
 		{
 			task->Execute(ThreadID);
+			task->Finish();
 		}
 		else
 		{

@@ -10,6 +10,7 @@ void Texture2DResource::CreateResource(const void* ResourceData)
 	renderTextureCreateInfo.Height = texture2DResourceCreateInfo.Height;
 	renderTextureCreateInfo.MIPLevels = texture2DResourceCreateInfo.MIPLevels;
 	renderTextureCreateInfo.SRGB = texture2DResourceCreateInfo.SRGB;
+	renderTextureCreateInfo.Compressed = texture2DResourceCreateInfo.Compressed;
 	renderTextureCreateInfo.TexelData = texture2DResourceCreateInfo.TexelData;
 	renderTextureCreateInfo.Width = texture2DResourceCreateInfo.Width;
 

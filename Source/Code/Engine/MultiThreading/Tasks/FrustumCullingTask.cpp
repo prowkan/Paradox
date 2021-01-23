@@ -29,8 +29,6 @@ void FrustumCullingTask::Execute(const UINT ThreadID)
 
 		if (CullBoxVsFrustum(BoundingBoxVertices, WorldMatrix, FrustumPlanes)) OutputStaticMeshesArray.push_back(InputStaticMeshesArray[i]);
 	}
-
-	Task::Finish();
 }
 
 bool FrustumCullingTask::CullBoxVsFrustum(const XMVECTOR* BoundingBoxVertices, const XMMATRIX& WorldMatrix, const XMVECTOR* FrustumPlanes)
