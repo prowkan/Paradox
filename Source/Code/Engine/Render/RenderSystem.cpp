@@ -255,15 +255,17 @@ void RenderSystem::TickSystem(float DeltaTime)
 }
 
 void RenderSystem::RenderThreadFunc()
-
+{
 	DWORD WaitResult = WaitForSingleObject(RenderThreadSyncEvents[0][CurrentReadRenderQueueIndex], INFINITE);
 
 	DeviceContext->ClearState();
 
 	XMMATRIX ViewProjMatrix = Engine::GetEngine().GetGameFramework().GetCamera().GetViewProjMatrix();
 
-	D3D11_MAPPED_SUBRESOURCE MappedSubResource;
+	vector<StaticMeshComponent*>& VisbleStaticMeshComponents = RenderQueues[CurrentReadRenderQueueIndex];
+	size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.size();
 
+	D3D11_MAPPED_SUBRESOURCE MappedSubResource;
 
 	for (int k = 0; k < VisbleStaticMeshComponentsCount; k++)
 	{
@@ -325,6 +327,10 @@ void RenderSystem::RenderThreadFunc()
 	}
 
 	SAFE_DX(SwapChain->Present(0, 0));
+
+	BOOL Result = SetEvent(RenderThreadSyncEvents[1][CurrentReadRenderQueueIndex]);
+
+	CurrentReadRenderQueueIndex = (CurrentReadRenderQueueIndex + 1) % 2;
 }
 
 RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMeshCreateInfo)

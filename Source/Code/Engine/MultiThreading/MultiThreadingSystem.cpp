@@ -39,6 +39,6 @@ void MultiThreadingSystem::ShutdownSystem()
 
 	DWORD WaitResult = WaitForSingleObject(RenderThread, INFINITE);
 
-	Result = CloseHandle(RenderThread);
+	BOOL Result = CloseHandle(RenderThread);
 	RenderThread = INVALID_HANDLE_VALUE;
 }
