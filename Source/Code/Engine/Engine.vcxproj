@@ -166,6 +166,8 @@
     <ClInclude Include="Containers\COMRCPtr.h" />
     <ClInclude Include="Core\Application.h" />
     <ClInclude Include="Engine\Engine.h" />
+    <ClInclude Include="FlashUI\SWFFile.h" />
+    <ClInclude Include="FlashUI\SWFParser.h" />
     <ClInclude Include="Game\Camera.h" />
     <ClInclude Include="Game\Component.h" />
     <ClInclude Include="Game\Components\Common\BoundingBoxComponent.h" />
@@ -199,6 +201,8 @@
     <ClCompile Include="Containers\COMRCPtr.cpp" />
     <ClCompile Include="Core\Application.cpp" />
     <ClCompile Include="Engine\Engine.cpp" />
+    <ClCompile Include="FlashUI\SWFFile.cpp" />
+    <ClCompile Include="FlashUI\SWFParser.cpp" />
     <ClCompile Include="Game\Camera.cpp" />
     <ClCompile Include="Game\Component.cpp" />
     <ClCompile Include="Game\Components\Common\BoundingBoxComponent.cpp" />
