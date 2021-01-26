@@ -3,10 +3,18 @@
 
 #include "Engine.h"
 
+#include <FlashUI/SWFFile.h>
+#include <FlashUI/SWFParser.h>
+
 Engine Engine::engine;
 
 void Engine::InitEngine()
 {
+	SWFFile File;
+	File.Open(u"GameContent/UI/Test.swf");
+	SWFParser::ParseFile(File);
+	File.Close();
+
 	multiThreadingSystem.InitSystem();
 	memoryManager.InitManager();
 	inputSystem.InitSystem();
