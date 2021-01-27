@@ -15,4 +15,8 @@ void SWFParser::ParseFile(SWFFile& File)
 	uint8_t SWFVersion = File.Read<uint8_t>();
 
 	uint32_t SWFFileLength = File.Read<uint32_t>();
+
+	SWFRect FrameSize = File.ReadRect();
+
+	cout << FrameSize.XMin << " " << FrameSize.XMax << " " << FrameSize.YMin << " " << FrameSize.YMax << endl;
 }

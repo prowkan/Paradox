@@ -24,12 +24,50 @@ void SWFFile::Close()
 
 uint32_t SWFFile::ReadUnsignedBits(uint32_t BitsCount)
 {
-	uint32_t RemainingBits = BitsCount;
+	uint32_t Value = 0;
+
+	uint8_t CurrentByte = *(uint8_t*)(SWFFileData + this->CurrentByte);
+
+	for (uint32_t CurrentBit = 0; CurrentBit < BitsCount; CurrentBit++)
+	{
+		Value |= (((1 << (7 - this->CurrentBit)) & CurrentByte) >> (7 - this->CurrentBit)) << (BitsCount - CurrentBit - 1);
+
+		this->CurrentBit++;
+
+		if (this->CurrentBit >= 8)
+		{
+			this->CurrentBit = 0;
+			this->CurrentByte++;
+
+			CurrentByte = *(uint8_t*)(SWFFileData + this->CurrentByte);
+		}
+	}
+
+	return Value;
 }
 
 int32_t SWFFile::ReadSignedBits(uint32_t BitsCount)
 {
+	int32_t Value = 0;
 
+	uint8_t CurrentByte = *(uint8_t*)(SWFFileData + this->CurrentByte);
+
+	for (uint32_t CurrentBit = 0; CurrentBit < BitsCount; CurrentBit++)
+	{
+		Value |= (((1 << (7 - this->CurrentBit)) & CurrentByte) >> (7 - this->CurrentBit)) << (BitsCount - CurrentBit - 1);
+
+		this->CurrentBit++;
+
+		if (this->CurrentBit >= 8)
+		{
+			this->CurrentBit = 0;
+			this->CurrentByte++;
+
+			CurrentByte = *(uint8_t*)(SWFFileData + this->CurrentByte);
+		}
+	}
+
+	return Value;
 }
 
 SWFRect SWFFile::ReadRect()
