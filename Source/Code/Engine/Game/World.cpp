@@ -279,10 +279,18 @@ void World::LoadWorld()
 				float4x4 WVPMatrix;
 			};
 
+			#if SHADER_MODEL_VERSION >= 51
+
+			ConstantBuffer<VSConstants> VertexShaderConstants : register(b0);
+
+			#else
+
 			cbuffer cb0 : register(b0)
 			{
 				VSConstants VertexShaderConstants;
 			};
+
+			#endif
 
 			VSOutput VS(VSInput VertexShaderInput)
 			{
@@ -320,8 +328,28 @@ void World::LoadWorld()
 
 	HRESULT hr;
 
-	hr = D3DCompile(VertexShaderSourceCode, strlen(VertexShaderSourceCode), "VertexShader", nullptr, nullptr, "VS", "vs_5_0", D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &VertexShaderBlob, &ErrorBlob);
-	hr = D3DCompile(PixelShaderSourceCode, strlen(PixelShaderSourceCode), "PixelShader", nullptr, nullptr, "PS", "ps_5_0", D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &PixelShaderBlob, &ErrorBlob);
+	DirectXVersion DXVersion = Engine::GetEngine().GetRenderSystem().GetRenderDevice()->GetDirectXVersion();
+
+	D3D_SHADER_MACRO ShaderDefines[2];
+
+	ShaderDefines[0].Name = "SHADER_MODEL_VERSION";
+	ShaderDefines[1].Name = nullptr;
+	ShaderDefines[1].Definition = nullptr;
+
+	if (DXVersion == DirectXVersion::DirectX12)
+	{
+		ShaderDefines[0].Definition = "51";
+
+		hr = D3DCompile(VertexShaderSourceCode, strlen(VertexShaderSourceCode), "VertexShader", ShaderDefines, nullptr, "VS", "vs_5_1", D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &VertexShaderBlob, &ErrorBlob);
+		hr = D3DCompile(PixelShaderSourceCode, strlen(PixelShaderSourceCode), "PixelShader", ShaderDefines, nullptr, "PS", "ps_5_1", D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &PixelShaderBlob, &ErrorBlob);
+	}
+	else
+	{
+		ShaderDefines[0].Definition = "50";
+
+		hr = D3DCompile(VertexShaderSourceCode, strlen(VertexShaderSourceCode), "VertexShader", ShaderDefines, nullptr, "VS", "vs_5_0", D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &VertexShaderBlob, &ErrorBlob);
+		hr = D3DCompile(PixelShaderSourceCode, strlen(PixelShaderSourceCode), "PixelShader", ShaderDefines, nullptr, "PS", "ps_5_0", D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &PixelShaderBlob, &ErrorBlob);
+	}
 
 	MaterialResourceCreateInfo materialResourceCreateInfo;
 	materialResourceCreateInfo.PixelShaderByteCodeData = PixelShaderBlob->GetBufferPointer();

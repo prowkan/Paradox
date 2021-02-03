@@ -21,6 +21,8 @@ class RenderSystem
 		void DestroyRenderTexture(RenderTexture* renderTexture);
 		void DestroyRenderMaterial(RenderMaterial* renderMaterial);
 
+		RenderDevice* GetRenderDevice() { return renderDevice; }
+
 	private:
 
 		RenderDevice *renderDevice;

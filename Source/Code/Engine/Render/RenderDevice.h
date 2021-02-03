@@ -99,6 +99,8 @@ inline float DistanceBetweenColor(const Color& Color1, const Color& Color2)
 #define SAFE_DX(Func) CheckDXCallResult(Func, u#Func);
 #define UUIDOF(Value) __uuidof(Value), (void**)&Value
 
+enum class DirectXVersion { DirectX11, DirectX12 };
+
 class RenderDevice
 {
 	public:
@@ -114,6 +116,8 @@ class RenderDevice
 		virtual void DestroyRenderMesh(RenderMesh* renderMesh) = 0;
 		virtual void DestroyRenderTexture(RenderTexture* renderTexture) = 0;
 		virtual void DestroyRenderMaterial(RenderMaterial* renderMaterial) = 0;
+
+		virtual DirectXVersion GetDirectXVersion() = 0;
 
 	private:
 };

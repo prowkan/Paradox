@@ -38,6 +38,8 @@ class RenderDeviceDX11 : public RenderDevice
 		virtual void DestroyRenderTexture(RenderTexture* renderTexture) override;
 		virtual void DestroyRenderMaterial(RenderMaterial* renderMaterial) override;
 
+		virtual DirectXVersion GetDirectXVersion() override { return DirectXVersion::DirectX11; }
+
 	private:
 
 		COMRCPtr<ID3D11Device> Device;

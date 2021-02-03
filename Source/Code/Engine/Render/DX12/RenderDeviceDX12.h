@@ -38,6 +38,8 @@ class RenderDeviceDX12 : public RenderDevice
 		virtual void DestroyRenderTexture(RenderTexture* renderTexture) override;
 		virtual void DestroyRenderMaterial(RenderMaterial* renderMaterial) override;
 
+		virtual DirectXVersion GetDirectXVersion() override { return DirectXVersion::DirectX12; }
+
 	private:
 
 		COMRCPtr<ID3D12Device> Device;
