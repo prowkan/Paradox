@@ -41,11 +41,11 @@ void RenderSystem::InitSystem()
 
 	UINT DisplayModesCount;
 	SAFE_DX(Monitor->GetDisplayModeList(DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM, 0, &DisplayModesCount, nullptr));
-	DXGI_MODE_DESC *DisplayModes = new DXGI_MODE_DESC[DisplayModesCount];
+	DXGI_MODE_DESC *DisplayModes = new DXGI_MODE_DESC[(size_t)DisplayModesCount];
 	SAFE_DX(Monitor->GetDisplayModeList(DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM, 0, &DisplayModesCount, DisplayModes));
 
-	ResolutionWidth = DisplayModes[DisplayModesCount - 1].Width;
-	ResolutionHeight = DisplayModes[DisplayModesCount - 1].Height;
+	ResolutionWidth = DisplayModes[(size_t)DisplayModesCount - 1].Width;
+	ResolutionHeight = DisplayModes[(size_t)DisplayModesCount - 1].Height;
 
 	SAFE_DX(D3D12CreateDevice(Adapter, D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_11_0, UUIDOF(Device)));
 
@@ -78,8 +78,8 @@ void RenderSystem::InitSystem()
 	SwapChainDesc.Width = ResolutionWidth;
 
 	DXGI_SWAP_CHAIN_FULLSCREEN_DESC SwapChainFullScreenDesc;
-	SwapChainFullScreenDesc.RefreshRate.Numerator = DisplayModes[DisplayModesCount - 1].RefreshRate.Numerator;
-	SwapChainFullScreenDesc.RefreshRate.Denominator = DisplayModes[DisplayModesCount - 1].RefreshRate.Denominator;
+	SwapChainFullScreenDesc.RefreshRate.Numerator = DisplayModes[(size_t)DisplayModesCount - 1].RefreshRate.Numerator;
+	SwapChainFullScreenDesc.RefreshRate.Denominator = DisplayModes[(size_t)DisplayModesCount - 1].RefreshRate.Denominator;
 	SwapChainFullScreenDesc.Scaling = DXGI_MODE_SCALING::DXGI_MODE_SCALING_UNSPECIFIED;
 	SwapChainFullScreenDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER::DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 	SwapChainFullScreenDesc.Windowed = TRUE;
@@ -452,7 +452,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	SAFE_DX(CPUConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
 
-	for (int k = 0; k < VisbleStaticMeshComponentsCount; k++)
+	for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
 	{
 		XMMATRIX WorldMatrix = VisbleStaticMeshComponents[k]->GetTransformComponent()->GetTransformMatrix();
 		XMMATRIX WVPMatrix = WorldMatrix * ViewProjMatrix;

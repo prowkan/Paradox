@@ -11,7 +11,7 @@ class ResourceManager
 		{
 			T* resource = new T();
 			resource->CreateResource(ResourceData);
-			ResourceTable.insert(pair<string, Resource*>(ResourceName, resource));
+			ResourceTable.emplace(ResourceName, resource);
 		}
 
 		template<typename T>
