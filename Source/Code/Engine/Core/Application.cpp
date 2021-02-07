@@ -7,6 +7,7 @@
 
 bool Application::AppExitFlag;
 HWND Application::MainWindowHandle;
+atomic<bool> Application::ExceptionFlag;
 
 LRESULT CALLBACK Application::MainWindowProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
@@ -18,6 +19,13 @@ LRESULT CALLBACK Application::MainWindowProc(HWND hWnd, UINT Msg, WPARAM wParam,
 
 LONG WINAPI Application::UnhandledExceptionFilter(_EXCEPTION_POINTERS* ExceptionInfo)
 {
+	if (Application::ExceptionFlag.load(memory_order::memory_order_seq_cst) == true)
+	{
+		return EXCEPTION_CONTINUE_EXECUTION;
+	}
+	
+	Application::ExceptionFlag.store(true, memory_order::memory_order_seq_cst);
+
 	char16_t ErrorMessageBuffer[1024];
 	char16_t ExceptionCodeBuffer[256];
 
@@ -158,6 +166,7 @@ void Application::StartApplication(const char16_t* WindowTitle, HINSTANCE hInsta
 	Result = ShowWindow(Application::MainWindowHandle, SW_SHOW);
 
 	Application::AppExitFlag = false;
+	Application::ExceptionFlag.store(false, memory_order::memory_order_seq_cst);
 
 	Engine::GetEngine().InitEngine();
 }
