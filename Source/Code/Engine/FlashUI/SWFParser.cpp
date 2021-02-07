@@ -19,4 +19,12 @@ void SWFParser::ParseFile(SWFFile& File)
 	SWFRect FrameSize = File.ReadRect();
 
 	cout << FrameSize.XMin << " " << FrameSize.XMax << " " << FrameSize.YMin << " " << FrameSize.YMax << endl;
+
+	uint8_t FrameRateParts[2];
+	FrameRateParts[0] = File.Read<uint8_t>();
+	FrameRateParts[1] = File.Read<uint8_t>();
+
+	float FrameRate = (float)FrameRateParts[1];
+
+	uint16_t FramesCount = File.Read<uint16_t>();
 }
