@@ -458,6 +458,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		XMMATRIX WVPMatrix = WorldMatrix * ViewProjMatrix;
 
 		memcpy((BYTE*)ConstantBufferData + ConstantBufferOffset, &WVPMatrix, sizeof(XMMATRIX));
+		memcpy((BYTE*)ConstantBufferData + ConstantBufferOffset + sizeof(XMMATRIX), &WorldMatrix, sizeof(XMMATRIX));
 
 		ConstantBufferOffset += 256;
 	}
@@ -866,7 +867,7 @@ RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInf
 {
 	RenderMaterial *renderMaterial = new RenderMaterial();
 
-	D3D12_INPUT_ELEMENT_DESC InputElementDescs[2];
+	D3D12_INPUT_ELEMENT_DESC InputElementDescs[5];
 	InputElementDescs[0].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
 	InputElementDescs[0].Format = DXGI_FORMAT::DXGI_FORMAT_R32G32B32_FLOAT;
 	InputElementDescs[0].InputSlot = 0;
@@ -881,6 +882,27 @@ RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInf
 	InputElementDescs[1].InstanceDataStepRate = 0;
 	InputElementDescs[1].SemanticIndex = 0;
 	InputElementDescs[1].SemanticName = "TEXCOORD";
+	InputElementDescs[2].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+	InputElementDescs[2].Format = DXGI_FORMAT::DXGI_FORMAT_R32G32B32_FLOAT;
+	InputElementDescs[2].InputSlot = 0;
+	InputElementDescs[2].InputSlotClass = D3D12_INPUT_CLASSIFICATION::D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+	InputElementDescs[2].InstanceDataStepRate = 0;
+	InputElementDescs[2].SemanticIndex = 0;
+	InputElementDescs[2].SemanticName = "NORMAL";
+	InputElementDescs[3].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+	InputElementDescs[3].Format = DXGI_FORMAT::DXGI_FORMAT_R32G32B32_FLOAT;
+	InputElementDescs[3].InputSlot = 0;
+	InputElementDescs[3].InputSlotClass = D3D12_INPUT_CLASSIFICATION::D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+	InputElementDescs[3].InstanceDataStepRate = 0;
+	InputElementDescs[3].SemanticIndex = 0;
+	InputElementDescs[3].SemanticName = "TANGENT";
+	InputElementDescs[4].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+	InputElementDescs[4].Format = DXGI_FORMAT::DXGI_FORMAT_R32G32B32_FLOAT;
+	InputElementDescs[4].InputSlot = 0;
+	InputElementDescs[4].InputSlotClass = D3D12_INPUT_CLASSIFICATION::D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+	InputElementDescs[4].InstanceDataStepRate = 0;
+	InputElementDescs[4].SemanticIndex = 0;
+	InputElementDescs[4].SemanticName = "BINORMAL";
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC GraphicsPipelineStateDesc;
 	ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
@@ -890,7 +912,7 @@ RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInf
 	GraphicsPipelineStateDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK::D3D12_DEPTH_WRITE_MASK_ALL;
 	GraphicsPipelineStateDesc.DSVFormat = DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 	GraphicsPipelineStateDesc.Flags = D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_NONE;
-	GraphicsPipelineStateDesc.InputLayout.NumElements = 2;
+	GraphicsPipelineStateDesc.InputLayout.NumElements = 5;
 	GraphicsPipelineStateDesc.InputLayout.pInputElementDescs = InputElementDescs;
 	GraphicsPipelineStateDesc.NodeMask = 0;
 	GraphicsPipelineStateDesc.NumRenderTargets = 1;

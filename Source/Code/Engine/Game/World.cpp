@@ -32,21 +32,39 @@ void World::LoadWorld()
 		{
 			Vertices[0 + 9 * i + j].Position = XMFLOAT3(-1.0f + j * 0.25f, 1.0f - i * 0.25f, -1.0f);
 			Vertices[0 + 9 * i + j].TexCoord = XMFLOAT2(j * 0.125f, i * 0.125f);
+			Vertices[0 + 9 * i + j].Normal = XMFLOAT3(0.0f, 0.0f, -1.0f);
+			Vertices[0 + 9 * i + j].Tangent = XMFLOAT3(1.0f, 0.0f, 0.0f);
+			Vertices[0 + 9 * i + j].Binormal = XMFLOAT3(0.0f, -1.0f, 0.0f);
 
 			Vertices[81 + 9 * i + j].Position = XMFLOAT3(1.0f, 1.0f - i * 0.25f, -1.0f + j * 0.25f);
 			Vertices[81 + 9 * i + j].TexCoord = XMFLOAT2(j * 0.125f, i * 0.125f);
+			Vertices[81 + 9 * i + j].Normal = XMFLOAT3(1.0f, 0.0f, 0.0f);
+			Vertices[81 + 9 * i + j].Tangent = XMFLOAT3(0.0f, 0.0f, 1.0f);
+			Vertices[81 + 9 * i + j].Binormal = XMFLOAT3(0.0f, -1.0f, 0.0f);
 
 			Vertices[2 * 81 + 9 * i + j].Position = XMFLOAT3(1.0f - j * 0.25f, 1.0f - i * 0.25f, 1.0f);
 			Vertices[2 * 81 + 9 * i + j].TexCoord = XMFLOAT2(j * 0.125f, i * 0.125f);
+			Vertices[2 * 81 + 9 * i + j].Normal = XMFLOAT3(0.0f, 0.0f, 1.0f);
+			Vertices[2 * 81 + 9 * i + j].Tangent = XMFLOAT3(-1.0f, 0.0f, 0.0f);
+			Vertices[2 * 81 + 9 * i + j].Binormal = XMFLOAT3(0.0f, -1.0f, 0.0f);
 
 			Vertices[3 * 81 + 9 * i + j].Position = XMFLOAT3(-1.0f, 1.0f - i * 0.25f, 1.0f - j * 0.25f);
 			Vertices[3 * 81 + 9 * i + j].TexCoord = XMFLOAT2(j * 0.125f, i * 0.125f);
+			Vertices[3 * 81 + 9 * i + j].Normal = XMFLOAT3(-1.0f, 0.0f, 0.0f);
+			Vertices[3 * 81 + 9 * i + j].Tangent = XMFLOAT3(0.0f, 0.0f, -1.0f);
+			Vertices[3 * 81 + 9 * i + j].Binormal = XMFLOAT3(0.0f, -1.0f, 0.0f);
 
 			Vertices[4 * 81 + 9 * i + j].Position = XMFLOAT3(-1.0f + j * 0.25f, 1.0f, 1.0f - i * 0.25f);
 			Vertices[4 * 81 + 9 * i + j].TexCoord = XMFLOAT2(j * 0.125f, i * 0.125f);
+			Vertices[4 * 81 + 9 * i + j].Normal = XMFLOAT3(0.0f, 1.0f, 0.0f);
+			Vertices[4 * 81 + 9 * i + j].Tangent = XMFLOAT3(1.0f, 0.0f, 0.0f);
+			Vertices[4 * 81 + 9 * i + j].Binormal = XMFLOAT3(0.0f, 0.0f, -1.0f);
 
 			Vertices[5 * 81 + 9 * i + j].Position = XMFLOAT3(-1.0f + j * 0.25f, -1.0f, -1.0f + i * 0.25f);
 			Vertices[5 * 81 + 9 * i + j].TexCoord = XMFLOAT2(j * 0.125f, i * 0.125f);
+			Vertices[5 * 81 + 9 * i + j].Normal = XMFLOAT3(0.0f, -1.0f, 0.0f);
+			Vertices[5 * 81 + 9 * i + j].Tangent = XMFLOAT3(1.0f, 0.0f, 0.0f);
+			Vertices[5 * 81 + 9 * i + j].Binormal = XMFLOAT3(0.0f, 0.0f, 1.0f);
 		}
 	}
 
@@ -266,17 +284,24 @@ void World::LoadWorld()
 			{
 				float3 Position : POSITION;
 				float2 TexCoord : TEXCOORD;
+				float3 Normal : NORMAL;
+				float3 Tangent : TANGENT;
+				float3 Binormal : BINORMAL;
 			};
 
 			struct VSOutput
 			{
 				float4 Position : SV_Position;
 				float2 TexCoord : TEXCOORD;
+				float3 Normal : NORMAL;
+				float3 Tangent : TANGENT;
+				float3 Binormal : BINORMAL;
 			};
 
 			struct VSConstants
 			{
 				float4x4 WVPMatrix;
+				float4x4 WorldMatrix;
 			};
 
 			ConstantBuffer<VSConstants> VertexShaderConstants : register(b0);
@@ -287,6 +312,9 @@ void World::LoadWorld()
 
 				VertexShaderOutput.Position = mul(float4(VertexShaderInput.Position, 1.0f), VertexShaderConstants.WVPMatrix);
 				VertexShaderOutput.TexCoord = VertexShaderInput.TexCoord;
+				VertexShaderOutput.Normal = normalize(mul(VertexShaderInput.Normal, (float3x3)VertexShaderConstants.WorldMatrix));
+				VertexShaderOutput.Tangent = normalize(mul(VertexShaderInput.Tangent, (float3x3)VertexShaderConstants.WorldMatrix));
+				VertexShaderOutput.Binormal = normalize(mul(VertexShaderInput.Binormal, (float3x3)VertexShaderConstants.WorldMatrix));
 
 				return VertexShaderOutput;
 			}
@@ -299,6 +327,9 @@ void World::LoadWorld()
 			{
 				float4 Position : SV_Position;
 				float2 TexCoord : TEXCOORD;
+				float3 Normal : NORMAL;
+				float3 Tangent : TANGENT;
+				float3 Binormal : BINORMAL;
 			};
 
 			Texture2D Texture : register(t0);

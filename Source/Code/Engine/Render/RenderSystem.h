@@ -50,6 +50,9 @@ struct Vertex
 {
 	XMFLOAT3 Position;
 	XMFLOAT2 TexCoord;
+	XMFLOAT3 Normal;
+	XMFLOAT3 Tangent;
+	XMFLOAT3 Binormal;
 };
 
 struct Texel
