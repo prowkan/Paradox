@@ -337,7 +337,11 @@ void World::LoadWorld()
 
 			float4 PS(PSInput PixelShaderInput) : SV_Target
 			{
-				return float4(Texture.Sample(Sampler, PixelShaderInput.TexCoord).rgb, 1.0f);
+				float3 BaseColor = Texture.Sample(Sampler, PixelShaderInput.TexCoord).rgb;
+				float3 Light = normalize(float3(-1.0f, 1.0f, -1.0f));
+				float3 Normal = normalize(PixelShaderInput.Normal);
+
+				return float4(BaseColor * (0.1f + max(0.0f, dot(Light, Normal))), 1.0f);
 			}
 
 		)";
