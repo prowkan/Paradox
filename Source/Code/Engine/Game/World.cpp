@@ -276,6 +276,166 @@ void World::LoadWorld()
 		Engine::GetEngine().GetResourceManager().AddResource<Texture2DResource>(Texture2DResourceName, &texture2DResourceCreateInfo);
 	}
 
+	for (int y = 0; y < 512; y++)
+	{
+		for (int x = 0; x < 512; x++)
+		{
+			Texels[0][y * 512 + x].R = 127;
+			Texels[0][y * 512 + x].G = 127;
+			Texels[0][y * 512 + x].B = 255;
+			Texels[0][y * 512 + x].A = 255;
+		}
+	}
+
+	for (int y = 128 - 28; y < 128 + 28; y++)
+	{
+		for (int x = y; x < 512 - y; x++)
+		{
+			Texels[0][y * 512 + x].R = 127;
+			Texels[0][y * 512 + x].G = 0;
+			Texels[0][y * 512 + x].B = 255;
+			Texels[0][y * 512 + x].A = 255;
+		}
+	}
+
+	for (int y = 256 + 128 - 28; y < 256 + 128 + 28; y++)
+	{
+		for (int x = 512 - y; x < y; x++)
+		{
+			Texels[0][y * 512 + x].R = 127;
+			Texels[0][y * 512 + x].G = 255;
+			Texels[0][y * 512 + x].B = 255;
+			Texels[0][y * 512 + x].A = 255;
+		}
+	}
+
+	for (int x = 128 - 28; x < 128 + 28; x++)
+	{
+		for (int y = x; y < 512 - x; y++)
+		{
+			Texels[0][y * 512 + x].R = 0;
+			Texels[0][y * 512 + x].G = 127;
+			Texels[0][y * 512 + x].B = 255;
+			Texels[0][y * 512 + x].A = 255;
+		}
+	}
+
+	for (int x = 256 + 128 - 28; x < 256 + 128 + 28; x++)
+	{
+		for (int y = 512 - x; y < x; y++)
+		{
+			Texels[0][y * 512 + x].R = 255;
+			Texels[0][y * 512 + x].G = 127;
+			Texels[0][y * 512 + x].B = 255;
+			Texels[0][y * 512 + x].A = 255;
+		}
+	}
+
+	for (int k = 1; k < 8; k++)
+	{
+		int MIPSize = 512 >> k;
+
+		for (int y = 0; y < MIPSize; y++)
+		{
+			for (int x = 0; x < MIPSize; x++)
+			{
+				Texels[k][y * MIPSize + x].R = BYTE(0.25f * ((float)Texels[k - 1][(2 * y) * (2 * MIPSize) + (2 * x)].R + (float)Texels[k - 1][(2 * y) * (2 * MIPSize) + (2 * x + 1)].R + (float)Texels[k - 1][(2 * y + 1) * (2 * MIPSize) + (2 * x)].R + (float)Texels[k - 1][(2 * y + 1) * (2 * MIPSize) + (2 * x + 1)].R));
+				Texels[k][y * MIPSize + x].G = BYTE(0.25f * ((float)Texels[k - 1][(2 * y) * (2 * MIPSize) + (2 * x)].G + (float)Texels[k - 1][(2 * y) * (2 * MIPSize) + (2 * x + 1)].G + (float)Texels[k - 1][(2 * y + 1) * (2 * MIPSize) + (2 * x)].G + (float)Texels[k - 1][(2 * y + 1) * (2 * MIPSize) + (2 * x + 1)].G));
+				Texels[k][y * MIPSize + x].B = BYTE(0.25f * ((float)Texels[k - 1][(2 * y) * (2 * MIPSize) + (2 * x)].B + (float)Texels[k - 1][(2 * y) * (2 * MIPSize) + (2 * x + 1)].B + (float)Texels[k - 1][(2 * y + 1) * (2 * MIPSize) + (2 * x)].B + (float)Texels[k - 1][(2 * y + 1) * (2 * MIPSize) + (2 * x + 1)].B));
+				Texels[k][y * MIPSize + x].A = 255;
+			}
+		}
+	}
+
+	for (int k = 0; k < 8; k++)
+	{
+		int MIPSize = 128 >> k;
+
+		for (int y = 0; y < MIPSize; y++)
+		{
+			for (int x = 0; x < MIPSize; x++)
+			{
+				Color MinColor{ 255, 255, 255 }, MaxColor{ 0, 0, 0 };
+
+				for (int j = 0; j < 4; j++)
+				{
+					for (int i = 0; i < 4; i++)
+					{
+						if (Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R < MinColor.R) MinColor.R = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R;
+						if (Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G < MinColor.G) MinColor.G = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G;
+						if (Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B < MinColor.B) MinColor.B = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B;
+
+						if (Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R > MaxColor.R) MaxColor.R = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R;
+						if (Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G > MaxColor.G) MaxColor.G = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G;
+						if (Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B > MaxColor.B) MaxColor.B = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B;
+					}
+				}
+
+				Color Colors[4];
+				Colors[0] = MinColor;
+				Colors[1] = MaxColor;
+				Colors[2] = 2 * Colors[0] / 3 + Colors[1] / 3;
+				Colors[3] = Colors[0] / 3 + 2 * Colors[1] / 3;
+
+				CompressedTexelBlocks[k][y * MIPSize + x].Colors[0] = 0;
+				CompressedTexelBlocks[k][y * MIPSize + x].Colors[1] = 0;
+
+				CompressedTexelBlocks[k][y * MIPSize + x].Colors[0] |= ((((BYTE)(((float)MinColor.R / 255.0f) * 31.0f)) & 0b11111) << 11);
+				CompressedTexelBlocks[k][y * MIPSize + x].Colors[0] |= ((((BYTE)(((float)MinColor.G / 255.0f) * 63.0f)) & 0b111111) << 5);
+				CompressedTexelBlocks[k][y * MIPSize + x].Colors[0] |= ((((BYTE)(((float)MinColor.B / 255.0f) * 31.0f)) & 0b11111));
+
+				CompressedTexelBlocks[k][y * MIPSize + x].Colors[1] |= ((((BYTE)(((float)MaxColor.R / 255.0f) * 31.0f)) & 0b11111) << 11);
+				CompressedTexelBlocks[k][y * MIPSize + x].Colors[1] |= ((((BYTE)(((float)MaxColor.G / 255.0f) * 63.0f)) & 0b111111) << 5);
+				CompressedTexelBlocks[k][y * MIPSize + x].Colors[1] |= ((((BYTE)(((float)MaxColor.B / 255.0f) * 31.0f)) & 0b11111));
+
+				CompressedTexelBlocks[k][y * MIPSize + x].Texels[0] = 0;
+				CompressedTexelBlocks[k][y * MIPSize + x].Texels[1] = 0;
+				CompressedTexelBlocks[k][y * MIPSize + x].Texels[2] = 0;
+				CompressedTexelBlocks[k][y * MIPSize + x].Texels[3] = 0;
+
+				for (int j = 0; j < 4; j++)
+				{
+					for (int i = 0; i < 4; i++)
+					{
+						Color TexelColor{ (float)Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R, (float)Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G, (float)Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B };
+
+						float Dist = DistanceBetweenColor(TexelColor, Colors[0]);
+						uint8_t ArgMin = 0;
+
+						for (uint8_t x = 1; x < 4; x++)
+						{
+							float NewDist = DistanceBetweenColor(TexelColor, Colors[x]);
+
+							if (NewDist < Dist)
+							{
+								Dist = NewDist;
+								ArgMin = x;
+							}
+						}
+
+						CompressedTexelBlocks[k][y * MIPSize + x].Texels[j] |= ((ArgMin & 0b11) << (2 * i));
+					}
+				}
+			}
+		}
+	}
+
+	texture2DResourceCreateInfo.Height = 512;
+	texture2DResourceCreateInfo.MIPLevels = 8;
+	texture2DResourceCreateInfo.SRGB = FALSE;
+	texture2DResourceCreateInfo.Compressed = TRUE;
+	texture2DResourceCreateInfo.TexelData = (BYTE*)CompressedTexelBlockData;
+	texture2DResourceCreateInfo.Width = 512;
+
+	for (int k = 0; k < 4000; k++)
+	{
+		char Texture2DResourceName[255];
+
+		sprintf(Texture2DResourceName, "Normal_%d", k);
+
+		Engine::GetEngine().GetResourceManager().AddResource<Texture2DResource>(Texture2DResourceName, &texture2DResourceCreateInfo);
+	}
+
 	delete[] TexelData;
 
 	const char *VertexShaderSourceCode = R"(
@@ -332,14 +492,17 @@ void World::LoadWorld()
 				float3 Binormal : BINORMAL;
 			};
 
-			Texture2D Texture : register(t0);
+			Texture2D DiffuseMap : register(t0);
+			Texture2D NormalMap : register(t1);
+
 			SamplerState Sampler : register(s0);
 
 			float4 PS(PSInput PixelShaderInput) : SV_Target
 			{
-				float3 BaseColor = Texture.Sample(Sampler, PixelShaderInput.TexCoord).rgb;
+				float3 BaseColor = DiffuseMap.Sample(Sampler, PixelShaderInput.TexCoord).rgb;
 				float3 Light = normalize(float3(-1.0f, 1.0f, -1.0f));
-				float3 Normal = normalize(PixelShaderInput.Normal);
+				float3 Normal = normalize(2.0f * NormalMap.Sample(Sampler, PixelShaderInput.TexCoord).rgb - 1.0f);
+				Normal = normalize(Normal.x * normalize(PixelShaderInput.Tangent) + Normal.y * normalize(PixelShaderInput.Binormal) + Normal.z * normalize(PixelShaderInput.Normal));
 
 				return float4(BaseColor * (0.1f + max(0.0f, dot(Light, Normal))), 1.0f);
 			}
@@ -360,7 +523,7 @@ void World::LoadWorld()
 	materialResourceCreateInfo.PixelShaderByteCodeLength = (UINT)PixelShaderBlob->GetBufferSize();
 	materialResourceCreateInfo.VertexShaderByteCodeData = VertexShaderBlob->GetBufferPointer();
 	materialResourceCreateInfo.VertexShaderByteCodeLength = (UINT)VertexShaderBlob->GetBufferSize();
-	materialResourceCreateInfo.Textures.resize(1);
+	materialResourceCreateInfo.Textures.resize(2);
 
 	for (int k = 0; k < 4000; k++)
 	{
@@ -371,8 +534,9 @@ void World::LoadWorld()
 		char Texture2DResourceName[255];
 
 		sprintf(Texture2DResourceName, "Checker_%d", k);
-
 		materialResourceCreateInfo.Textures[0] = Engine::GetEngine().GetResourceManager().GetResource<Texture2DResource>(Texture2DResourceName);
+		sprintf(Texture2DResourceName, "Normal_%d", k);
+		materialResourceCreateInfo.Textures[1] = Engine::GetEngine().GetResourceManager().GetResource<Texture2DResource>(Texture2DResourceName);
 
 		Engine::GetEngine().GetResourceManager().AddResource<MaterialResource>(MaterialResourceName, &materialResourceCreateInfo);
 	}
