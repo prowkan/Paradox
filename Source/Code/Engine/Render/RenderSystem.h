@@ -42,8 +42,8 @@ struct RenderMaterialCreateInfo
 {
 	void *VertexShaderByteCodeData;
 	void *PixelShaderByteCodeData;
-	UINT VertexShaderByteCodeLength;
-	UINT PixelShaderByteCodeLength;
+	size_t VertexShaderByteCodeLength;
+	size_t PixelShaderByteCodeLength;
 };
 
 struct Vertex

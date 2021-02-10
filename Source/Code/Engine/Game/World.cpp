@@ -582,9 +582,9 @@ void World::LoadWorld()
 
 	MaterialResourceCreateInfo materialResourceCreateInfo;
 	materialResourceCreateInfo.PixelShaderByteCodeData = PixelShaderBlob->GetBufferPointer();
-	materialResourceCreateInfo.PixelShaderByteCodeLength = (UINT)PixelShaderBlob->GetBufferSize();
+	materialResourceCreateInfo.PixelShaderByteCodeLength = PixelShaderBlob->GetBufferSize();
 	materialResourceCreateInfo.VertexShaderByteCodeData = VertexShaderBlob->GetBufferPointer();
-	materialResourceCreateInfo.VertexShaderByteCodeLength = (UINT)VertexShaderBlob->GetBufferSize();
+	materialResourceCreateInfo.VertexShaderByteCodeLength = VertexShaderBlob->GetBufferSize();
 	materialResourceCreateInfo.Textures.resize(2);
 
 	for (int k = 0; k < 4000; k++)
@@ -612,8 +612,8 @@ void World::LoadWorld()
 			char StaticMeshResourceName[255];
 			char MaterialResourceName[255];
 
-			sprintf(StaticMeshResourceName, "Cube_%d", ResourceCounter);
-			sprintf(MaterialResourceName, "Standart_%d", ResourceCounter);
+			sprintf(StaticMeshResourceName, "Cube_%u", ResourceCounter);
+			sprintf(MaterialResourceName, "Standart_%u", ResourceCounter);
 
 			StaticMeshEntity *staticMeshEntity = Entity::DynamicCast<StaticMeshEntity>(SpawnEntity(StaticMeshEntity::GetMetaClassStatic()));
 			staticMeshEntity->GetTransformComponent()->SetLocation(XMFLOAT3(i * 5.0f + 2.5f, -0.0f, j * 5.0f + 2.5f));

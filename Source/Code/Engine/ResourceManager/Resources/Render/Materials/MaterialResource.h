@@ -8,10 +8,10 @@ class Texture2DResource;
 
 struct MaterialResourceCreateInfo
 {
-	UINT VertexShaderByteCodeLength;
 	void *VertexShaderByteCodeData;
-	UINT PixelShaderByteCodeLength;
 	void *PixelShaderByteCodeData;
+	size_t VertexShaderByteCodeLength;
+	size_t PixelShaderByteCodeLength;
 	vector<Texture2DResource*> Textures;
 };
 

@@ -9,7 +9,7 @@
 
 DWORD WINAPI WorkerThreadFunc(LPVOID lpThreadParameter)
 {
-	const UINT ThreadID = *(UINT*)lpThreadParameter;
+	const UINT ThreadID = *(UINT*)lpThreadParameter; //-V206
 
 	char16_t ThreadName[256];
 	wsprintf((wchar_t*)ThreadName, (const wchar_t*)u"Worker Thread %u", ThreadID + 1);

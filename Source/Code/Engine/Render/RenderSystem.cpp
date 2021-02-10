@@ -528,7 +528,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 	CommandList->ClearRenderTargetView(BackBufferRTVs[CurrentBackBufferIndex], ClearColor, 0, nullptr);
 	CommandList->ClearDepthStencilView(DepthBufferDSV, D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
-	for (int k = 0; k < VisbleStaticMeshComponentsCount; k++)
+	for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
 	{
 		StaticMeshComponent *staticMeshComponent = VisbleStaticMeshComponents[k];
 
