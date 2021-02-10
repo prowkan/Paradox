@@ -730,12 +730,37 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 {
 	RenderTexture *renderTexture = new RenderTexture();
 
+	DXGI_FORMAT TextureFormat;
+
+	if (renderTextureCreateInfo.Compressed)
+	{
+		if (renderTextureCreateInfo.SRGB)
+		{
+			TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC1_UNORM_SRGB;
+		}
+		else
+		{
+			TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC1_UNORM;
+		}
+	}
+	else
+	{
+		if (renderTextureCreateInfo.SRGB)
+		{
+			TextureFormat = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		}
+		else
+		{
+			TextureFormat = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM;
+		}
+	}
+
 	D3D12_RESOURCE_DESC ResourceDesc;
 	ResourceDesc.Alignment = 0;
 	ResourceDesc.DepthOrArraySize = 1;
 	ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	ResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE;
-	ResourceDesc.Format = renderTextureCreateInfo.SRGB ? DXGI_FORMAT::DXGI_FORMAT_BC1_UNORM_SRGB : DXGI_FORMAT::DXGI_FORMAT_BC1_UNORM;
+	ResourceDesc.Format = TextureFormat;
 	ResourceDesc.Height = renderTextureCreateInfo.Height;
 	ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	ResourceDesc.MipLevels = renderTextureCreateInfo.MIPLevels;
@@ -770,10 +795,10 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 
 	TextureMemoryHeapOffsets[CurrentTextureMemoryHeapIndex] = AlignedResourceOffset + ResourceAllocationInfo.SizeInBytes;
 
-	D3D12_PLACED_SUBRESOURCE_FOOTPRINT PlacedSubResourceFootPrints[16];
+	D3D12_PLACED_SUBRESOURCE_FOOTPRINT PlacedSubResourceFootPrints[MAX_MIP_LEVELS_IN_TEXTURE];
 
-	UINT NumsRows[16];
-	UINT64 RowsSizesInBytes[16], TotalBytes;
+	UINT NumsRows[MAX_MIP_LEVELS_IN_TEXTURE];
+	UINT64 RowsSizesInBytes[MAX_MIP_LEVELS_IN_TEXTURE], TotalBytes;
 
 	Device->GetCopyableFootprints(&ResourceDesc, 0, renderTextureCreateInfo.MIPLevels, 0, PlacedSubResourceFootPrints, NumsRows, RowsSizesInBytes, &TotalBytes);
 
@@ -797,7 +822,14 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 			memcpy((BYTE*)MappedData + PlacedSubResourceFootPrints[i].Offset + j * PlacedSubResourceFootPrints[i].Footprint.RowPitch, (BYTE*)TexelData + j * RowsSizesInBytes[i], RowsSizesInBytes[i]);
 		}
 
-		TexelData += /*4 */ 8 * ((renderTextureCreateInfo.Width / 4) >> i) * ((renderTextureCreateInfo.Height / 4) >> i);
+		if (renderTextureCreateInfo.Compressed)
+		{
+			TexelData += 8 * ((renderTextureCreateInfo.Width / 4) >> i) * ((renderTextureCreateInfo.Height / 4) >> i);
+		}
+		else
+		{
+			TexelData += 4  * (renderTextureCreateInfo.Width >> i) * (renderTextureCreateInfo.Height >> i);
+		}
 	}
 
 	UploadBuffer->Unmap(0, &WrittenRange);
@@ -846,7 +878,7 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 	SAFE_DX(CopySyncFence->Signal(0));
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
-	SRVDesc.Format = renderTextureCreateInfo.SRGB ? DXGI_FORMAT::DXGI_FORMAT_BC1_UNORM_SRGB : DXGI_FORMAT::DXGI_FORMAT_BC1_UNORM;
+	SRVDesc.Format = TextureFormat;
 	SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	SRVDesc.Texture2D.MipLevels = renderTextureCreateInfo.MIPLevels;
 	SRVDesc.Texture2D.MostDetailedMip = 0;
