@@ -20,7 +20,7 @@ void MultiThreadingSystem::InitSystem()
 	for (UINT i = 0; i < WorkerThreadsCount; i++)
 	{
 		ThreadIndices[i] = i;
-		WorkerThreads[i] = CreateThread(NULL, 0, &WorkerThreadFunc, &ThreadIndices[i], 0, NULL);
+		WorkerThreads[i] = CreateThread(NULL, 0, &WorkerThreadFunc, &ThreadIndices[i], 0, NULL); //-V513
 	}
 }
 
