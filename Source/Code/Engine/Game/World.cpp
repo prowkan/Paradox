@@ -196,39 +196,44 @@ void World::LoadWorld()
 			{
 				Color MinColor{ 255, 255, 255 }, MaxColor{ 0, 0, 0 };
 
-				for (int j = 0; j < 4; j++)
+				float Distance = -1.0f;
+				int j1max, i1max, j2max, i2max;
+
+				for (int j1 = 0; j1 < 4; j1++)
 				{
-					for (int i = 0; i < 4; i++)
+					for (int i1 = 0; i1 < 4; i1++)
 					{
-#if 1
-						if (Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R < MinColor.R) MinColor.R = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R;
-						if (Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G < MinColor.G) MinColor.G = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G;
-						if (Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B < MinColor.B) MinColor.B = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B;
+						Color color1{ Texels[k][(4 * y + j1) * (4 * MIPSize) + (4 * x + i1)].R, Texels[k][(4 * y + j1) * (4 * MIPSize) + (4 * x + i1)].G, Texels[k][(4 * y + j1) * (4 * MIPSize) + (4 * x + i1)].B };
 
-						if (Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R > MaxColor.R) MaxColor.R = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R;
-						if (Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G > MaxColor.G) MaxColor.G = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G;
-						if (Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B > MaxColor.B) MaxColor.B = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B;
-#endif
-#if 0
-						if ((Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R <= MinColor.R) &&
-							(Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G <= MinColor.G) &&
-							(Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B <= MinColor.B))
+						for (int j2 = 0; j2 < 4; j2++)
 						{
-							MinColor.R = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R;
-							MinColor.G = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G;
-							MinColor.B = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B;
-						}
+							for (int i2 = 0; i2 < 4; i2++)
+							{
+								Color color2{ Texels[k][(4 * y + j2) * (4 * MIPSize) + (4 * x + i2)].R, Texels[k][(4 * y + j2) * (4 * MIPSize) + (4 * x + i2)].G, Texels[k][(4 * y + j2) * (4 * MIPSize) + (4 * x + i2)].B };
 
-						if ((Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R >= MaxColor.R) &&
-							(Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G >= MaxColor.G) &&
-							(Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B >= MaxColor.B))
-						{
-							MaxColor.R = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R;
-							MaxColor.G = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G;
-							MaxColor.B = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B;
+								float TestDistance = DistanceBetweenColor(color1, color2);
+
+								if (TestDistance > Distance)
+								{
+									Distance = TestDistance;
+									j1max = j1;
+									i1max = i1;
+									j2max = j2;
+									i2max = i2;
+								}
+							}
 						}
-#endif
 					}
+				}
+
+				MinColor = Color{ (float)Texels[k][(4 * y + j1max) * (4 * MIPSize) + (4 * x + i1max)].R, (float)Texels[k][(4 * y + j1max) * (4 * MIPSize) + (4 * x + i1max)].G, (float)Texels[k][(4 * y + j1max) * (4 * MIPSize) + (4 * x + i1max)].B };
+				MaxColor = Color{ (float)Texels[k][(4 * y + j2max) * (4 * MIPSize) + (4 * x + i2max)].R, (float)Texels[k][(4 * y + j2max) * (4 * MIPSize) + (4 * x + i2max)].G, (float)Texels[k][(4 * y + j2max) * (4 * MIPSize) + (4 * x + i2max)].B };
+
+				if ((MinColor.R < MaxColor.R) || ((MinColor.R == MinColor.R) && (MinColor.G < MaxColor.G)) || ((MinColor.R == MinColor.R) && (MinColor.G == MaxColor.G) && (MinColor.B < MaxColor.B)))
+				{
+					Color TmpColor = MinColor;
+					MinColor = MaxColor;
+					MaxColor = TmpColor;
 				}
 
 				Color Colors[4];
@@ -286,9 +291,9 @@ void World::LoadWorld()
 						CompressedTexelBlocks[k][y * MIPSize + x].Texels[j] |= ((ArgMin & 0b11) << (2 * i));
 					}
 				}
-			}
-		}
-	}
+							}
+						}
+					}
 
 	Texture2DResourceCreateInfo texture2DResourceCreateInfo;
 	texture2DResourceCreateInfo.Height = 512;
@@ -388,39 +393,44 @@ void World::LoadWorld()
 			{
 				Color MinColor{ 255, 255, 255 }, MaxColor{ 0, 0, 0 };
 
-				for (int j = 0; j < 4; j++)
+				float Distance = -1.0f;
+				int j1max, i1max, j2max, i2max;
+
+				for (int j1 = 0; j1 < 4; j1++)
 				{
-					for (int i = 0; i < 4; i++)
+					for (int i1 = 0; i1 < 4; i1++)
 					{
-#if 1
-						if (Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R < MinColor.R) MinColor.R = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R;
-						if (Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G < MinColor.G) MinColor.G = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G;
-						if (Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B < MinColor.B) MinColor.B = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B;
+						Color color1{ Texels[k][(4 * y + j1) * (4 * MIPSize) + (4 * x + i1)].R, Texels[k][(4 * y + j1) * (4 * MIPSize) + (4 * x + i1)].G, Texels[k][(4 * y + j1) * (4 * MIPSize) + (4 * x + i1)].B };
 
-						if (Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R > MaxColor.R) MaxColor.R = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R;
-						if (Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G > MaxColor.G) MaxColor.G = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G;
-						if (Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B > MaxColor.B) MaxColor.B = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B;
-#endif
-#if 0
-						if ((Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R <= MinColor.R) &&
-							(Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G <= MinColor.G) &&
-							(Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B <= MinColor.B))
+						for (int j2 = 0; j2 < 4; j2++)
 						{
-							MinColor.R = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R;
-							MinColor.G = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G;
-							MinColor.B = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B;
-						}
+							for (int i2 = 0; i2 < 4; i2++)
+							{
+								Color color2{ Texels[k][(4 * y + j2) * (4 * MIPSize) + (4 * x + i2)].R, Texels[k][(4 * y + j2) * (4 * MIPSize) + (4 * x + i2)].G, Texels[k][(4 * y + j2) * (4 * MIPSize) + (4 * x + i2)].B };
 
-						if ((Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R >= MaxColor.R) &&
-							(Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G >= MaxColor.G) &&
-							(Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B >= MaxColor.B))
-						{
-							MaxColor.R = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R;
-							MaxColor.G = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G;
-							MaxColor.B = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B;
+								float TestDistance = DistanceBetweenColor(color1, color2);
+
+								if (TestDistance > Distance)
+								{
+									Distance = TestDistance;
+									j1max = j1;
+									i1max = i1;
+									j2max = j2;
+									i2max = i2;
+								}
+							}
 						}
-#endif
 					}
+				}
+
+				MinColor = Color{ (float)Texels[k][(4 * y + j1max) * (4 * MIPSize) + (4 * x + i1max)].R, (float)Texels[k][(4 * y + j1max) * (4 * MIPSize) + (4 * x + i1max)].G, (float)Texels[k][(4 * y + j1max) * (4 * MIPSize) + (4 * x + i1max)].B };
+				MaxColor = Color{ (float)Texels[k][(4 * y + j2max) * (4 * MIPSize) + (4 * x + i2max)].R, (float)Texels[k][(4 * y + j2max) * (4 * MIPSize) + (4 * x + i2max)].G, (float)Texels[k][(4 * y + j2max) * (4 * MIPSize) + (4 * x + i2max)].B };
+
+				if ((MinColor.R < MaxColor.R) || ((MinColor.R == MinColor.R) && (MinColor.G < MaxColor.G)) || ((MinColor.R == MinColor.R) && (MinColor.G == MaxColor.G) && (MinColor.B < MaxColor.B)))
+				{
+					Color TmpColor = MinColor;
+					MinColor = MaxColor;
+					MaxColor = TmpColor;
 				}
 
 				Color Colors[4];
