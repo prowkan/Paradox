@@ -189,4 +189,6 @@ class RenderSystem
 
 		inline void CheckDXCallResult(HRESULT hr, const char16_t* Function);
 		inline const char16_t* GetDXErrorMessageFromHRESULT(HRESULT hr);
+
+		static const UINT MAX_MIP_LEVELS_IN_TEXTURE = 16;
 };
