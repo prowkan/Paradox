@@ -323,8 +323,8 @@ void World::LoadWorld()
 		for (int x = y; x < 512 - y; x++)
 		{
 			Texels[0][y * 512 + x].R = 127;
-			Texels[0][y * 512 + x].G = 0;
-			Texels[0][y * 512 + x].B = 255;
+			Texels[0][y * 512 + x].G = 37;
+			Texels[0][y * 512 + x].B = 218;
 			Texels[0][y * 512 + x].A = 255;
 		}
 	}
@@ -334,8 +334,8 @@ void World::LoadWorld()
 		for (int x = 512 - y; x < y; x++)
 		{
 			Texels[0][y * 512 + x].R = 127;
-			Texels[0][y * 512 + x].G = 255;
-			Texels[0][y * 512 + x].B = 255;
+			Texels[0][y * 512 + x].G = 218;
+			Texels[0][y * 512 + x].B = 218;
 			Texels[0][y * 512 + x].A = 255;
 		}
 	}
@@ -344,9 +344,9 @@ void World::LoadWorld()
 	{
 		for (int y = x; y < 512 - x; y++)
 		{
-			Texels[0][y * 512 + x].R = 0;
+			Texels[0][y * 512 + x].R = 37;
 			Texels[0][y * 512 + x].G = 127;
-			Texels[0][y * 512 + x].B = 255;
+			Texels[0][y * 512 + x].B = 218;
 			Texels[0][y * 512 + x].A = 255;
 		}
 	}
@@ -355,9 +355,9 @@ void World::LoadWorld()
 	{
 		for (int y = 512 - x; y < x; y++)
 		{
-			Texels[0][y * 512 + x].R = 255;
+			Texels[0][y * 512 + x].R = 218;
 			Texels[0][y * 512 + x].G = 127;
-			Texels[0][y * 512 + x].B = 255;
+			Texels[0][y * 512 + x].B = 218;
 			Texels[0][y * 512 + x].A = 255;
 		}
 	}
