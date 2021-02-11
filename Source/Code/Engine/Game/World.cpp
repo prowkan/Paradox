@@ -173,18 +173,18 @@ void World::LoadWorld()
 		}
 	}
 
-	CompressedTexelBlock *CompressedTexelBlockData = new CompressedTexelBlock[128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4 + 2 * 2 + 1 * 1];
+	CompressedTexelBlockBC1 *CompressedTexelBlockDataBC1 = new CompressedTexelBlockBC1[128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4 + 2 * 2 + 1 * 1];
 
-	CompressedTexelBlock *CompressedTexelBlocks[8];
+	CompressedTexelBlockBC1 *CompressedTexelBlocksBC1[8];
 
-	CompressedTexelBlocks[0] = CompressedTexelBlockData;
-	CompressedTexelBlocks[1] = CompressedTexelBlocks[0] + 128 * 128;
-	CompressedTexelBlocks[2] = CompressedTexelBlocks[1] + 64 * 64;
-	CompressedTexelBlocks[3] = CompressedTexelBlocks[2] + 32 * 32;
-	CompressedTexelBlocks[4] = CompressedTexelBlocks[3] + 16 * 16;
-	CompressedTexelBlocks[5] = CompressedTexelBlocks[4] + 8 * 8;
-	CompressedTexelBlocks[6] = CompressedTexelBlocks[5] + 4 * 4;
-	CompressedTexelBlocks[7] = CompressedTexelBlocks[6] + 2 * 2;
+	CompressedTexelBlocksBC1[0] = CompressedTexelBlockDataBC1;
+	CompressedTexelBlocksBC1[1] = CompressedTexelBlocksBC1[0] + 128 * 128;
+	CompressedTexelBlocksBC1[2] = CompressedTexelBlocksBC1[1] + 64 * 64;
+	CompressedTexelBlocksBC1[3] = CompressedTexelBlocksBC1[2] + 32 * 32;
+	CompressedTexelBlocksBC1[4] = CompressedTexelBlocksBC1[3] + 16 * 16;
+	CompressedTexelBlocksBC1[5] = CompressedTexelBlocksBC1[4] + 8 * 8;
+	CompressedTexelBlocksBC1[6] = CompressedTexelBlocksBC1[5] + 4 * 4;
+	CompressedTexelBlocksBC1[7] = CompressedTexelBlocksBC1[6] + 2 * 2;
 
 	for (int k = 0; k < 8; k++)
 	{
@@ -240,24 +240,24 @@ void World::LoadWorld()
 				Colors[0] = MaxColor;
 				Colors[1] = MinColor;
 
-				CompressedTexelBlocks[k][y * MIPSize + x].Colors[0] = 0;
-				CompressedTexelBlocks[k][y * MIPSize + x].Colors[1] = 0;
+				CompressedTexelBlocksBC1[k][y * MIPSize + x].Colors[0] = 0;
+				CompressedTexelBlocksBC1[k][y * MIPSize + x].Colors[1] = 0;
 
-				CompressedTexelBlocks[k][y * MIPSize + x].Colors[0] |= ((((BYTE)((Colors[0].R / 255.0f) * 31.0f)) & 0b11111) << 11);
-				CompressedTexelBlocks[k][y * MIPSize + x].Colors[0] |= ((((BYTE)((Colors[0].G / 255.0f) * 63.0f)) & 0b111111) << 5);
-				CompressedTexelBlocks[k][y * MIPSize + x].Colors[0] |= ((((BYTE)((Colors[0].B / 255.0f) * 31.0f)) & 0b11111));
+				CompressedTexelBlocksBC1[k][y * MIPSize + x].Colors[0] |= ((((BYTE)((Colors[0].R / 255.0f) * 31.0f)) & 0b11111) << 11);
+				CompressedTexelBlocksBC1[k][y * MIPSize + x].Colors[0] |= ((((BYTE)((Colors[0].G / 255.0f) * 63.0f)) & 0b111111) << 5);
+				CompressedTexelBlocksBC1[k][y * MIPSize + x].Colors[0] |= ((((BYTE)((Colors[0].B / 255.0f) * 31.0f)) & 0b11111));
 
-				CompressedTexelBlocks[k][y * MIPSize + x].Colors[1] |= ((((BYTE)((Colors[1].R / 255.0f) * 31.0f)) & 0b11111) << 11);
-				CompressedTexelBlocks[k][y * MIPSize + x].Colors[1] |= ((((BYTE)((Colors[1].G / 255.0f) * 63.0f)) & 0b111111) << 5);
-				CompressedTexelBlocks[k][y * MIPSize + x].Colors[1] |= ((((BYTE)((Colors[1].B / 255.0f) * 31.0f)) & 0b11111));
+				CompressedTexelBlocksBC1[k][y * MIPSize + x].Colors[1] |= ((((BYTE)((Colors[1].R / 255.0f) * 31.0f)) & 0b11111) << 11);
+				CompressedTexelBlocksBC1[k][y * MIPSize + x].Colors[1] |= ((((BYTE)((Colors[1].G / 255.0f) * 63.0f)) & 0b111111) << 5);
+				CompressedTexelBlocksBC1[k][y * MIPSize + x].Colors[1] |= ((((BYTE)((Colors[1].B / 255.0f) * 31.0f)) & 0b11111));
 
-				CompressedTexelBlocks[k][y * MIPSize + x].Texels[0] = 0;
-				CompressedTexelBlocks[k][y * MIPSize + x].Texels[1] = 0;
-				CompressedTexelBlocks[k][y * MIPSize + x].Texels[2] = 0;
-				CompressedTexelBlocks[k][y * MIPSize + x].Texels[3] = 0;
+				CompressedTexelBlocksBC1[k][y * MIPSize + x].Texels[0] = 0;
+				CompressedTexelBlocksBC1[k][y * MIPSize + x].Texels[1] = 0;
+				CompressedTexelBlocksBC1[k][y * MIPSize + x].Texels[2] = 0;
+				CompressedTexelBlocksBC1[k][y * MIPSize + x].Texels[3] = 0;
 
 
-				if (CompressedTexelBlocks[k][y * MIPSize + x].Colors[0] > CompressedTexelBlocks[k][y * MIPSize + x].Colors[1])
+				if (CompressedTexelBlocksBC1[k][y * MIPSize + x].Colors[0] > CompressedTexelBlocksBC1[k][y * MIPSize + x].Colors[1])
 				{
 					Colors[2] = 2 * Colors[0] / 3 + Colors[1] / 3;
 					Colors[3] = Colors[0] / 3 + 2 * Colors[1] / 3;
@@ -288,19 +288,20 @@ void World::LoadWorld()
 							}
 						}
 
-						CompressedTexelBlocks[k][y * MIPSize + x].Texels[j] |= ((ArgMin & 0b11) << (2 * i));
+						CompressedTexelBlocksBC1[k][y * MIPSize + x].Texels[j] |= ((ArgMin & 0b11) << (2 * i));
 					}
 				}
-							}
-						}
-					}
+			}
+		}
+	}
 
 	Texture2DResourceCreateInfo texture2DResourceCreateInfo;
 	texture2DResourceCreateInfo.Height = 512;
 	texture2DResourceCreateInfo.MIPLevels = 8;
 	texture2DResourceCreateInfo.SRGB = TRUE;
 	texture2DResourceCreateInfo.Compressed = TRUE;
-	texture2DResourceCreateInfo.TexelData = (BYTE*)CompressedTexelBlockData;
+	texture2DResourceCreateInfo.CompressionType = BlockCompression::BC1;
+	texture2DResourceCreateInfo.TexelData = (BYTE*)CompressedTexelBlockDataBC1;
 	texture2DResourceCreateInfo.Width = 512;
 
 	for (int k = 0; k < 4000; k++)
@@ -383,6 +384,19 @@ void World::LoadWorld()
 		}
 	}
 
+	CompressedTexelBlockBC5 *CompressedTexelBlockDataBC5 = new CompressedTexelBlockBC5[128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4 + 2 * 2 + 1 * 1];
+
+	CompressedTexelBlockBC5 *CompressedTexelBlocksBC5[8];
+
+	CompressedTexelBlocksBC5[0] = CompressedTexelBlockDataBC5;
+	CompressedTexelBlocksBC5[1] = CompressedTexelBlocksBC5[0] + 128 * 128;
+	CompressedTexelBlocksBC5[2] = CompressedTexelBlocksBC5[1] + 64 * 64;
+	CompressedTexelBlocksBC5[3] = CompressedTexelBlocksBC5[2] + 32 * 32;
+	CompressedTexelBlocksBC5[4] = CompressedTexelBlocksBC5[3] + 16 * 16;
+	CompressedTexelBlocksBC5[5] = CompressedTexelBlocksBC5[4] + 8 * 8;
+	CompressedTexelBlocksBC5[6] = CompressedTexelBlocksBC5[5] + 4 * 4;
+	CompressedTexelBlocksBC5[7] = CompressedTexelBlocksBC5[6] + 2 * 2;
+
 	for (int k = 0; k < 8; k++)
 	{
 		int MIPSize = 128 >> k;
@@ -391,79 +405,89 @@ void World::LoadWorld()
 		{
 			for (int x = 0; x < MIPSize; x++)
 			{
-				Color MinColor{ 255, 255, 255 }, MaxColor{ 0, 0, 0 };
+				float MinRed = 255.0f, MaxRed = 0.0f, MinGreen = 255.0f, MaxGreen = 0.0f;
 
-				float Distance = -1.0f;
-				int j1max, i1max, j2max, i2max;
-
-				for (int j1 = 0; j1 < 4; j1++)
+				for (int j = 0; j < 4; j++)
 				{
-					for (int i1 = 0; i1 < 4; i1++)
+					for (int i = 0; i < 4; i++)
 					{
-						Color color1{ Texels[k][(4 * y + j1) * (4 * MIPSize) + (4 * x + i1)].R, Texels[k][(4 * y + j1) * (4 * MIPSize) + (4 * x + i1)].G, Texels[k][(4 * y + j1) * (4 * MIPSize) + (4 * x + i1)].B };
+						if ((float)Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R < MinRed) MinRed = (float)Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R;
+						if ((float)Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R > MaxRed) MaxRed = (float)Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R;
 
-						for (int j2 = 0; j2 < 4; j2++)
-						{
-							for (int i2 = 0; i2 < 4; i2++)
-							{
-								Color color2{ Texels[k][(4 * y + j2) * (4 * MIPSize) + (4 * x + i2)].R, Texels[k][(4 * y + j2) * (4 * MIPSize) + (4 * x + i2)].G, Texels[k][(4 * y + j2) * (4 * MIPSize) + (4 * x + i2)].B };
-
-								float TestDistance = DistanceBetweenColor(color1, color2);
-
-								if (TestDistance > Distance)
-								{
-									Distance = TestDistance;
-									j1max = j1;
-									i1max = i1;
-									j2max = j2;
-									i2max = i2;
-								}
-							}
-						}
+						if ((float)Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G < MinGreen) MinGreen = (float)Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G;
+						if ((float)Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G > MaxGreen) MaxGreen = (float)Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G;
 					}
 				}
 
-				MinColor = Color{ (float)Texels[k][(4 * y + j1max) * (4 * MIPSize) + (4 * x + i1max)].R, (float)Texels[k][(4 * y + j1max) * (4 * MIPSize) + (4 * x + i1max)].G, (float)Texels[k][(4 * y + j1max) * (4 * MIPSize) + (4 * x + i1max)].B };
-				MaxColor = Color{ (float)Texels[k][(4 * y + j2max) * (4 * MIPSize) + (4 * x + i2max)].R, (float)Texels[k][(4 * y + j2max) * (4 * MIPSize) + (4 * x + i2max)].G, (float)Texels[k][(4 * y + j2max) * (4 * MIPSize) + (4 * x + i2max)].B };
+				float RedColorTable[8], GreenColorTable[8];
 
-				if ((MinColor.R < MaxColor.R) || ((MinColor.R == MinColor.R) && (MinColor.G < MaxColor.G)) || ((MinColor.R == MinColor.R) && (MinColor.G == MaxColor.G) && (MinColor.B < MaxColor.B)))
+				RedColorTable[0] = MaxRed;
+				RedColorTable[1] = MinRed;
+
+				GreenColorTable[0] = MaxGreen;
+				GreenColorTable[1] = MinGreen;
+
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].Red[0] = (BYTE)RedColorTable[0];
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].Red[1] = (BYTE)RedColorTable[1];
+
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].Green[0] = (BYTE)GreenColorTable[0];
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].Green[1] = (BYTE)GreenColorTable[1];
+
+				if (RedColorTable[0] > RedColorTable[1])
 				{
-					Color TmpColor = MinColor;
-					MinColor = MaxColor;
-					MaxColor = TmpColor;
-				}
-
-				Color Colors[4];
-				Colors[0] = MaxColor;
-				Colors[1] = MinColor;
-
-				CompressedTexelBlocks[k][y * MIPSize + x].Colors[0] = 0;
-				CompressedTexelBlocks[k][y * MIPSize + x].Colors[1] = 0;
-
-				CompressedTexelBlocks[k][y * MIPSize + x].Colors[0] |= ((((BYTE)((Colors[0].R / 255.0f) * 31.0f)) & 0b11111) << 11);
-				CompressedTexelBlocks[k][y * MIPSize + x].Colors[0] |= ((((BYTE)((Colors[0].G / 255.0f) * 63.0f)) & 0b111111) << 5);
-				CompressedTexelBlocks[k][y * MIPSize + x].Colors[0] |= ((((BYTE)((Colors[0].B / 255.0f) * 31.0f)) & 0b11111));
-
-				CompressedTexelBlocks[k][y * MIPSize + x].Colors[1] |= ((((BYTE)((Colors[1].R / 255.0f) * 31.0f)) & 0b11111) << 11);
-				CompressedTexelBlocks[k][y * MIPSize + x].Colors[1] |= ((((BYTE)((Colors[1].G / 255.0f) * 63.0f)) & 0b111111) << 5);
-				CompressedTexelBlocks[k][y * MIPSize + x].Colors[1] |= ((((BYTE)((Colors[1].B / 255.0f) * 31.0f)) & 0b11111));
-
-				CompressedTexelBlocks[k][y * MIPSize + x].Texels[0] = 0;
-				CompressedTexelBlocks[k][y * MIPSize + x].Texels[1] = 0;
-				CompressedTexelBlocks[k][y * MIPSize + x].Texels[2] = 0;
-				CompressedTexelBlocks[k][y * MIPSize + x].Texels[3] = 0;
-								
-
-				if (CompressedTexelBlocks[k][y * MIPSize + x].Colors[0] > CompressedTexelBlocks[k][y * MIPSize + x].Colors[1])
-				{
-					Colors[2] = 2 * Colors[0] / 3 + Colors[1] / 3;
-					Colors[3] = Colors[0] / 3 + 2 * Colors[1] / 3;
+					RedColorTable[2] = (6.0f * RedColorTable[0] + 1.0f * RedColorTable[1]) / 7.0f;
+					RedColorTable[3] = (5.0f * RedColorTable[0] + 2.0f * RedColorTable[1]) / 7.0f;
+					RedColorTable[4] = (4.0f * RedColorTable[0] + 3.0f * RedColorTable[1]) / 7.0f;
+					RedColorTable[5] = (3.0f * RedColorTable[0] + 4.0f * RedColorTable[1]) / 7.0f;
+					RedColorTable[6] = (2.0f * RedColorTable[0] + 5.0f * RedColorTable[1]) / 7.0f;
+					RedColorTable[7] = (1.0f * RedColorTable[0] + 6.0f * RedColorTable[1]) / 7.0f;
 				}
 				else
 				{
-					Colors[2] = Colors[0] / 2 + Colors[1] / 2;
-					Colors[3] = Color{ 0.0f, 0.0f, 0.0f };
+					RedColorTable[2] = (4.0f * RedColorTable[0] + 1.0f * RedColorTable[1]) / 5.0f;
+					RedColorTable[3] = (3.0f * RedColorTable[0] + 2.0f * RedColorTable[1]) / 5.0f;
+					RedColorTable[4] = (2.0f * RedColorTable[0] + 3.0f * RedColorTable[1]) / 5.0f;
+					RedColorTable[5] = (1.0f * RedColorTable[0] + 4.0f * RedColorTable[1]) / 5.0f;
+					RedColorTable[6] = 0.0f;
+					RedColorTable[7] = 255.0f;
 				}
+
+				if (GreenColorTable[0] > GreenColorTable[1])
+				{
+					GreenColorTable[2] = (6.0f * GreenColorTable[0] + 1.0f * GreenColorTable[1]) / 7.0f;
+					GreenColorTable[3] = (5.0f * GreenColorTable[0] + 2.0f * GreenColorTable[1]) / 7.0f;
+					GreenColorTable[4] = (4.0f * GreenColorTable[0] + 3.0f * GreenColorTable[1]) / 7.0f;
+					GreenColorTable[5] = (3.0f * GreenColorTable[0] + 4.0f * GreenColorTable[1]) / 7.0f;
+					GreenColorTable[6] = (2.0f * GreenColorTable[0] + 5.0f * GreenColorTable[1]) / 7.0f;
+					GreenColorTable[7] = (1.0f * GreenColorTable[0] + 6.0f * GreenColorTable[1]) / 7.0f;
+				}
+				else
+				{
+					GreenColorTable[2] = (4.0f * GreenColorTable[0] + 1.0f * GreenColorTable[1]) / 5.0f;
+					GreenColorTable[3] = (3.0f * GreenColorTable[0] + 2.0f * GreenColorTable[1]) / 5.0f;
+					GreenColorTable[4] = (2.0f * GreenColorTable[0] + 3.0f * GreenColorTable[1]) / 5.0f;
+					GreenColorTable[5] = (1.0f * GreenColorTable[0] + 4.0f * GreenColorTable[1]) / 5.0f;
+					GreenColorTable[6] = 0.0f;
+					GreenColorTable[7] = 255.0f;
+				}
+
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[0] = 0;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[1] = 0;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[2] = 0;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[3] = 0;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[4] = 0;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[5] = 0;
+				
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[0] = 0;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[1] = 0;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[2] = 0;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[3] = 0;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[4] = 0;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[5] = 0;
+
+				uint8_t RedIndices[16], GreenIndices[16];
+
+				size_t CurrentIndex = 0;
 
 				for (int j = 0; j < 4; j++)
 				{
@@ -471,23 +495,78 @@ void World::LoadWorld()
 					{
 						Color TexelColor{ (float)Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R, (float)Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G, (float)Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B };
 
-						float Dist = DistanceBetweenColor(TexelColor, Colors[0]);
-						uint8_t ArgMin = 0;
+						float RedDist = fabs(TexelColor.R - RedColorTable[0]);
+						float GreenDist = fabs(TexelColor.G - GreenColorTable[0]);
+						uint8_t RedArgMin = 0, GreenArgMin = 0;
 
-						for (uint8_t x = 1; x < 4; x++)
+						for (uint8_t x = 1; x < 8; x++)
 						{
-							float NewDist = DistanceBetweenColor(TexelColor, Colors[x]);
+							float NewRedDist = fabs(TexelColor.R - RedColorTable[x]);
+							float NewGreenDist = fabs(TexelColor.G - GreenColorTable[x]);
 
-							if (NewDist < Dist)
+							if (NewRedDist < RedDist)
 							{
-								Dist = NewDist;
-								ArgMin = x;
+								RedDist = NewRedDist;
+								RedArgMin = x;
+							}
+
+							if (NewGreenDist < GreenDist)
+							{
+								GreenDist = NewGreenDist;
+								GreenArgMin = x;
 							}
 						}
 
-						CompressedTexelBlocks[k][y * MIPSize + x].Texels[j] |= ((ArgMin & 0b11) << (2 * i));
+						RedIndices[CurrentIndex] = RedArgMin;
+						GreenIndices[CurrentIndex] = GreenArgMin;
+
+						CurrentIndex++;
 					}
 				}
+
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[0] |= (RedIndices[0] & 0b111);
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[0] |= (RedIndices[1] & 0b111) << 3;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[0] |= (RedIndices[2] & 0b011) << 6;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[1] |= (RedIndices[2] & 0b100) >> 2;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[1] |= (RedIndices[3] & 0b111) << 1;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[1] |= (RedIndices[4] & 0b111) << 4;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[1] |= (RedIndices[5] & 0b001) << 7;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[2] |= (RedIndices[5] & 0b110) >> 1;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[2] |= (RedIndices[6] & 0b111) << 2;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[2] |= (RedIndices[7] & 0b111) << 5;
+
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[3] |= (RedIndices[8] & 0b111);
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[3] |= (RedIndices[9] & 0b111) << 3;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[3] |= (RedIndices[10] & 0b011) << 6;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[4] |= (RedIndices[10] & 0b100) >> 2;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[4] |= (RedIndices[11] & 0b111) << 1;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[4] |= (RedIndices[12] & 0b111) << 4;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[4] |= (RedIndices[13] & 0b001) << 7;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[5] |= (RedIndices[13] & 0b110) >> 1;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[5] |= (RedIndices[14] & 0b111) << 2;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[5] |= (RedIndices[15] & 0b111) << 5;
+
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[0] |= (GreenIndices[0] & 0b111);
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[0] |= (GreenIndices[1] & 0b111) << 3;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[0] |= (GreenIndices[2] & 0b001) << 6;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[1] |= (GreenIndices[2] & 0b110) >> 2;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[1] |= (GreenIndices[3] & 0b111) << 1;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[1] |= (GreenIndices[4] & 0b111) << 4;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[1] |= (GreenIndices[5] & 0b001) << 7;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[2] |= (GreenIndices[5] & 0b110) >> 1;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[2] |= (GreenIndices[6] & 0b111) << 2;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[2] |= (GreenIndices[7] & 0b111) << 5;
+
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[3] |= (GreenIndices[8] & 0b111);
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[3] |= (GreenIndices[9] & 0b111) << 3;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[3] |= (GreenIndices[10] & 0b011) << 6;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[4] |= (GreenIndices[10] & 0b100) >> 2;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[4] |= (GreenIndices[11] & 0b111) << 1;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[4] |= (GreenIndices[12] & 0b111) << 4;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[4] |= (GreenIndices[13] & 0b001) << 7;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[5] |= (GreenIndices[13] & 0b110) >> 1;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[5] |= (GreenIndices[14] & 0b111) << 2;
+				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[5] |= (GreenIndices[15] & 0b111) << 5;
 			}
 		}
 	}
@@ -496,7 +575,8 @@ void World::LoadWorld()
 	texture2DResourceCreateInfo.MIPLevels = 8;
 	texture2DResourceCreateInfo.SRGB = FALSE;
 	texture2DResourceCreateInfo.Compressed = TRUE;
-	texture2DResourceCreateInfo.TexelData = (BYTE*)CompressedTexelBlockData;
+	texture2DResourceCreateInfo.CompressionType = BlockCompression::BC5;
+	texture2DResourceCreateInfo.TexelData = (BYTE*)CompressedTexelBlockDataBC5;
 	texture2DResourceCreateInfo.Width = 512;
 
 	for (int k = 0; k < 4000; k++)
@@ -509,6 +589,8 @@ void World::LoadWorld()
 	}
 
 	delete[] TexelData;
+	delete[] CompressedTexelBlockDataBC1;
+	delete[] CompressedTexelBlockDataBC5;
 
 	const char *VertexShaderSourceCode = R"(
 	
@@ -573,7 +655,9 @@ void World::LoadWorld()
 			{
 				float3 BaseColor = DiffuseMap.Sample(Sampler, PixelShaderInput.TexCoord).rgb;
 				float3 Light = normalize(float3(-1.0f, 1.0f, -1.0f));
-				float3 Normal = normalize(2.0f * NormalMap.Sample(Sampler, PixelShaderInput.TexCoord).rgb - 1.0f);
+				float3 Normal;
+				Normal.xy = 2.0f * NormalMap.Sample(Sampler, PixelShaderInput.TexCoord).xy - 1.0f;
+				Normal.z = sqrt(max(0.0f, 1.0f - Normal.x * Normal.x - Normal.y * Normal.y));
 				Normal = normalize(Normal.x * normalize(PixelShaderInput.Tangent) + Normal.y * normalize(PixelShaderInput.Binormal) + Normal.z * normalize(PixelShaderInput.Normal));
 
 				return float4(BaseColor * (0.1f + max(0.0f, dot(Light, Normal))), 1.0f);

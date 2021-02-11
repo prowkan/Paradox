@@ -21,6 +21,8 @@ struct RenderMaterial
 	COMRCPtr<ID3D12PipelineState> PipelineState;
 };
 
+enum class BlockCompression { BC1, BC2, BC3, BC4, BC5 };
+
 struct RenderMeshCreateInfo
 {
 	void *VertexData;
@@ -35,6 +37,7 @@ struct RenderTextureCreateInfo
 	UINT MIPLevels;
 	BOOL SRGB;
 	BOOL Compressed;
+	BlockCompression CompressionType;
 	BYTE *TexelData;
 };
 
@@ -60,10 +63,18 @@ struct Texel
 	BYTE R, G, B, A;
 };
 
-struct CompressedTexelBlock
+struct CompressedTexelBlockBC1
 {
 	uint16_t Colors[2];
 	uint8_t Texels[4];
+};
+
+struct CompressedTexelBlockBC5
+{
+	uint8_t Red[2];
+	uint8_t RedIndices[6];
+	uint8_t Green[2];
+	uint8_t GreenIndices[6];
 };
 
 struct Color

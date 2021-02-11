@@ -738,11 +738,45 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 	{
 		if (renderTextureCreateInfo.SRGB)
 		{
-			TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC1_UNORM_SRGB;
+			switch (renderTextureCreateInfo.CompressionType)
+			{
+				case BlockCompression::BC1:
+					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC1_UNORM_SRGB;
+					break;
+				case BlockCompression::BC2:
+					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC2_UNORM_SRGB;
+					break;
+				case BlockCompression::BC3:
+					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC3_UNORM_SRGB;
+					break;
+				default:
+					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
+					break;
+			}
 		}
 		else
 		{
-			TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC1_UNORM;
+			switch (renderTextureCreateInfo.CompressionType)
+			{
+				case BlockCompression::BC1:
+					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC1_UNORM;
+					break;
+				case BlockCompression::BC2:
+					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC2_UNORM;
+					break;
+				case BlockCompression::BC3:
+					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC3_UNORM;
+					break;
+				case BlockCompression::BC4:
+					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC4_UNORM;
+					break;
+				case BlockCompression::BC5:
+					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC5_UNORM;
+					break;
+				default:
+					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
+					break;
+			}
 		}
 	}
 	else
@@ -826,11 +860,14 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 
 		if (renderTextureCreateInfo.Compressed)
 		{
-			TexelData += 8 * ((renderTextureCreateInfo.Width / 4) >> i) * ((renderTextureCreateInfo.Height / 4) >> i);
+			if (renderTextureCreateInfo.CompressionType == BlockCompression::BC1)
+				TexelData += 8 * ((renderTextureCreateInfo.Width / 4) >> i) * ((renderTextureCreateInfo.Height / 4) >> i);
+			else if (renderTextureCreateInfo.CompressionType == BlockCompression::BC5)
+				TexelData += 16 * ((renderTextureCreateInfo.Width / 4) >> i) * ((renderTextureCreateInfo.Height / 4) >> i);
 		}
 		else
 		{
-			TexelData += 4  * (renderTextureCreateInfo.Width >> i) * (renderTextureCreateInfo.Height >> i);
+			TexelData += 4 * (renderTextureCreateInfo.Width >> i) * (renderTextureCreateInfo.Height >> i);
 		}
 	}
 
