@@ -616,6 +616,7 @@ void World::LoadWorld()
 			{
 				float4x4 WVPMatrix;
 				float4x4 WorldMatrix;
+				float3x3 VectorTransformMatrix;
 			};
 
 			ConstantBuffer<VSConstants> VertexShaderConstants : register(b0);
@@ -626,9 +627,9 @@ void World::LoadWorld()
 
 				VertexShaderOutput.Position = mul(float4(VertexShaderInput.Position, 1.0f), VertexShaderConstants.WVPMatrix);
 				VertexShaderOutput.TexCoord = VertexShaderInput.TexCoord;
-				VertexShaderOutput.Normal = normalize(mul(VertexShaderInput.Normal, (float3x3)VertexShaderConstants.WorldMatrix));
-				VertexShaderOutput.Tangent = normalize(mul(VertexShaderInput.Tangent, (float3x3)VertexShaderConstants.WorldMatrix));
-				VertexShaderOutput.Binormal = normalize(mul(VertexShaderInput.Binormal, (float3x3)VertexShaderConstants.WorldMatrix));
+				VertexShaderOutput.Normal = normalize(mul(VertexShaderInput.Normal, VertexShaderConstants.VectorTransformMatrix));
+				VertexShaderOutput.Tangent = normalize(mul(VertexShaderInput.Tangent, VertexShaderConstants.VectorTransformMatrix));
+				VertexShaderOutput.Binormal = normalize(mul(VertexShaderInput.Binormal, VertexShaderConstants.VectorTransformMatrix));
 
 				return VertexShaderOutput;
 			}
