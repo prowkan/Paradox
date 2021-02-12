@@ -203,13 +203,13 @@ void World::LoadWorld()
 				{
 					for (int i1 = 0; i1 < 4; i1++)
 					{
-						Color color1{ Texels[k][(4 * y + j1) * (4 * MIPSize) + (4 * x + i1)].R, Texels[k][(4 * y + j1) * (4 * MIPSize) + (4 * x + i1)].G, Texels[k][(4 * y + j1) * (4 * MIPSize) + (4 * x + i1)].B };
+						Color color1{ (float)Texels[k][(4 * y + j1) * (4 * MIPSize) + (4 * x + i1)].R, (float)Texels[k][(4 * y + j1) * (4 * MIPSize) + (4 * x + i1)].G, (float)Texels[k][(4 * y + j1) * (4 * MIPSize) + (4 * x + i1)].B };
 
 						for (int j2 = 0; j2 < 4; j2++)
 						{
 							for (int i2 = 0; i2 < 4; i2++)
 							{
-								Color color2{ Texels[k][(4 * y + j2) * (4 * MIPSize) + (4 * x + i2)].R, Texels[k][(4 * y + j2) * (4 * MIPSize) + (4 * x + i2)].G, Texels[k][(4 * y + j2) * (4 * MIPSize) + (4 * x + i2)].B };
+								Color color2{ (float)Texels[k][(4 * y + j2) * (4 * MIPSize) + (4 * x + i2)].R, (float)Texels[k][(4 * y + j2) * (4 * MIPSize) + (4 * x + i2)].G, (float)Texels[k][(4 * y + j2) * (4 * MIPSize) + (4 * x + i2)].B };
 
 								float TestDistance = DistanceBetweenColor(color1, color2);
 
@@ -647,21 +647,34 @@ void World::LoadWorld()
 				float3 Binormal : BINORMAL;
 			};
 
+			struct PSOutput
+			{
+				float4 GBuffer0 : SV_Target0;
+				float4 GBuffer1 : SV_Target1;
+			};
+
 			Texture2D DiffuseMap : register(t0);
 			Texture2D NormalMap : register(t1);
 
 			SamplerState Sampler : register(s0);
 
-			float4 PS(PSInput PixelShaderInput) : SV_Target
+			PSOutput PS(PSInput PixelShaderInput)
 			{
+				PSOutput PixelShaderOutput;
+
 				float3 BaseColor = DiffuseMap.Sample(Sampler, PixelShaderInput.TexCoord).rgb;
-				float3 Light = normalize(float3(-1.0f, 1.0f, -1.0f));
+				//float3 Light = normalize(float3(-1.0f, 1.0f, -1.0f));
 				float3 Normal;
 				Normal.xy = 2.0f * NormalMap.Sample(Sampler, PixelShaderInput.TexCoord).xy - 1.0f;
 				Normal.z = sqrt(max(0.0f, 1.0f - Normal.x * Normal.x - Normal.y * Normal.y));
 				Normal = normalize(Normal.x * normalize(PixelShaderInput.Tangent) + Normal.y * normalize(PixelShaderInput.Binormal) + Normal.z * normalize(PixelShaderInput.Normal));
 
-				return float4(BaseColor * (0.1f + max(0.0f, dot(Light, Normal))), 1.0f);
+				//return float4(BaseColor * (0.1f + max(0.0f, dot(Light, Normal))), 1.0f);
+
+				PixelShaderOutput.GBuffer0 = float4(BaseColor, 0.0f);
+				PixelShaderOutput.GBuffer1 = float4(Normal * 0.5f + 0.5f, 0.0f);
+
+				return PixelShaderOutput;
 			}
 
 		)";

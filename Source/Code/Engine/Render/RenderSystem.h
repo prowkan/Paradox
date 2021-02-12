@@ -172,6 +172,9 @@ class RenderSystem
 		COMRCPtr<ID3D12Resource> BackBufferTextures[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE BackBufferRTVs[2];
 
+		COMRCPtr<ID3D12Resource> GBufferTextures[2];
+		D3D12_CPU_DESCRIPTOR_HANDLE GBufferRTVs[2];
+
 		COMRCPtr<ID3D12Resource> DepthBufferTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE DepthBufferDSV;
 
