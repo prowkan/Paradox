@@ -592,107 +592,25 @@ void World::LoadWorld()
 	delete[] CompressedTexelBlockDataBC1;
 	delete[] CompressedTexelBlockDataBC5;
 
-	const char *VertexShaderSourceCode = R"(
-	
-			struct VSInput
-			{
-				float3 Position : POSITION;
-				float2 TexCoord : TEXCOORD;
-				float3 Normal : NORMAL;
-				float3 Tangent : TANGENT;
-				float3 Binormal : BINORMAL;
-			};
+	HANDLE VertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/ShaderModel51/MaterialBase_VertexShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+	LARGE_INTEGER VertexShaderByteCodeLength;
+	BOOL Result = GetFileSizeEx(VertexShaderFile, &VertexShaderByteCodeLength);
+	void *VertexShaderByteCodeData = malloc(VertexShaderByteCodeLength.QuadPart);
+	Result = ReadFile(VertexShaderFile, VertexShaderByteCodeData, (DWORD)VertexShaderByteCodeLength.QuadPart, NULL, NULL);
+	Result = CloseHandle(VertexShaderFile);
 
-			struct VSOutput
-			{
-				float4 Position : SV_Position;
-				float2 TexCoord : TEXCOORD;
-				float3 Normal : NORMAL;
-				float3 Tangent : TANGENT;
-				float3 Binormal : BINORMAL;
-			};
-
-			struct VSConstants
-			{
-				float4x4 WVPMatrix;
-				float4x4 WorldMatrix;
-				float3x3 VectorTransformMatrix;
-			};
-
-			ConstantBuffer<VSConstants> VertexShaderConstants : register(b0);
-
-			VSOutput VS(VSInput VertexShaderInput)
-			{
-				VSOutput VertexShaderOutput;
-
-				VertexShaderOutput.Position = mul(float4(VertexShaderInput.Position, 1.0f), VertexShaderConstants.WVPMatrix);
-				VertexShaderOutput.TexCoord = VertexShaderInput.TexCoord;
-				VertexShaderOutput.Normal = normalize(mul(VertexShaderInput.Normal, VertexShaderConstants.VectorTransformMatrix));
-				VertexShaderOutput.Tangent = normalize(mul(VertexShaderInput.Tangent, VertexShaderConstants.VectorTransformMatrix));
-				VertexShaderOutput.Binormal = normalize(mul(VertexShaderInput.Binormal, VertexShaderConstants.VectorTransformMatrix));
-
-				return VertexShaderOutput;
-			}
-
-		)";
-
-	const char *PixelShaderSourceCode = R"(
-
-			struct PSInput
-			{
-				float4 Position : SV_Position;
-				float2 TexCoord : TEXCOORD;
-				float3 Normal : NORMAL;
-				float3 Tangent : TANGENT;
-				float3 Binormal : BINORMAL;
-			};
-
-			struct PSOutput
-			{
-				float4 GBuffer0 : SV_Target0;
-				float4 GBuffer1 : SV_Target1;
-			};
-
-			Texture2D DiffuseMap : register(t0);
-			Texture2D NormalMap : register(t1);
-
-			SamplerState Sampler : register(s0);
-
-			PSOutput PS(PSInput PixelShaderInput)
-			{
-				PSOutput PixelShaderOutput;
-
-				float3 BaseColor = DiffuseMap.Sample(Sampler, PixelShaderInput.TexCoord).rgb;
-				//float3 Light = normalize(float3(-1.0f, 1.0f, -1.0f));
-				float3 Normal;
-				Normal.xy = 2.0f * NormalMap.Sample(Sampler, PixelShaderInput.TexCoord).xy - 1.0f;
-				Normal.z = sqrt(max(0.0f, 1.0f - Normal.x * Normal.x - Normal.y * Normal.y));
-				Normal = normalize(Normal.x * normalize(PixelShaderInput.Tangent) + Normal.y * normalize(PixelShaderInput.Binormal) + Normal.z * normalize(PixelShaderInput.Normal));
-
-				//return float4(BaseColor * (0.1f + max(0.0f, dot(Light, Normal))), 1.0f);
-
-				PixelShaderOutput.GBuffer0 = float4(BaseColor, 0.0f);
-				PixelShaderOutput.GBuffer1 = float4(Normal * 0.5f + 0.5f, 0.0f);
-
-				return PixelShaderOutput;
-			}
-
-		)";
-
-	COMRCPtr<ID3DBlob> ErrorBlob;
-
-	COMRCPtr<ID3DBlob> VertexShaderBlob, PixelShaderBlob;
-
-	HRESULT hr;
-
-	hr = D3DCompile(VertexShaderSourceCode, strlen(VertexShaderSourceCode), "VertexShader", nullptr, nullptr, "VS", "vs_5_1", D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &VertexShaderBlob, &ErrorBlob);
-	hr = D3DCompile(PixelShaderSourceCode, strlen(PixelShaderSourceCode), "PixelShader", nullptr, nullptr, "PS", "ps_5_1", D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &PixelShaderBlob, &ErrorBlob);
+	HANDLE PixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/ShaderModel51/MaterialBase_PixelShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+	LARGE_INTEGER PixelShaderByteCodeLength;
+	Result = GetFileSizeEx(PixelShaderFile, &PixelShaderByteCodeLength);
+	void *PixelShaderByteCodeData = malloc(PixelShaderByteCodeLength.QuadPart);
+	Result = ReadFile(PixelShaderFile, PixelShaderByteCodeData, (DWORD)PixelShaderByteCodeLength.QuadPart, NULL, NULL);
+	Result = CloseHandle(PixelShaderFile);
 
 	MaterialResourceCreateInfo materialResourceCreateInfo;
-	materialResourceCreateInfo.PixelShaderByteCodeData = PixelShaderBlob->GetBufferPointer();
-	materialResourceCreateInfo.PixelShaderByteCodeLength = PixelShaderBlob->GetBufferSize();
-	materialResourceCreateInfo.VertexShaderByteCodeData = VertexShaderBlob->GetBufferPointer();
-	materialResourceCreateInfo.VertexShaderByteCodeLength = VertexShaderBlob->GetBufferSize();
+	materialResourceCreateInfo.PixelShaderByteCodeData = PixelShaderByteCodeData;
+	materialResourceCreateInfo.PixelShaderByteCodeLength = PixelShaderByteCodeLength.QuadPart;
+	materialResourceCreateInfo.VertexShaderByteCodeData = VertexShaderByteCodeData;
+	materialResourceCreateInfo.VertexShaderByteCodeLength = VertexShaderByteCodeLength.QuadPart;
 	materialResourceCreateInfo.Textures.resize(2);
 
 	for (int k = 0; k < 4000; k++)
@@ -710,6 +628,9 @@ void World::LoadWorld()
 
 		Engine::GetEngine().GetResourceManager().AddResource<MaterialResource>(MaterialResourceName, &materialResourceCreateInfo);
 	}
+
+	free(VertexShaderByteCodeData);
+	free(PixelShaderByteCodeData);
 
 	UINT ResourceCounter = 0;
 
