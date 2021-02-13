@@ -163,12 +163,11 @@
     <None Include="CompileShaders.bat" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="MaterialBase_PixelShader.hlsl">
-      <FileType>Document</FileType>
-    </None>
-    <None Include="MaterialBase_VertexShader.hlsl">
-      <FileType>Document</FileType>
-    </None>
+    <FxCompile Include="DeferredLighting.hlsl" />
+    <FxCompile Include="FullScreenQuad.hlsl" />
+    <FxCompile Include="HDRToneMapping.hlsl" />
+    <FxCompile Include="MaterialBase_PixelShader.hlsl" />
+    <FxCompile Include="MaterialBase_VertexShader.hlsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

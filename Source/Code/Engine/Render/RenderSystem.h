@@ -165,7 +165,8 @@ class RenderSystem
 		COMRCPtr<ID3D12DescriptorHeap> ConstantBufferDescriptorHeap, TexturesDescriptorHeap;
 		COMRCPtr<ID3D12DescriptorHeap> FrameResourcesDescriptorHeaps[2], FrameSamplersDescriptorHeaps[2];
 
-		UINT TexturesDescriptorsCount = 0;
+		UINT RTDescriptorsCount = 0, DSDescriptorsCount = 0, CBSRUADescriptorsCount = 0, SamplersDescriptorsCount = 0;
+		UINT ConstantBufferDescriptorsCount = 0, TexturesDescriptorsCount = 0;
 
 		COMRCPtr<ID3D12RootSignature> RootSignature;
 
@@ -173,10 +174,16 @@ class RenderSystem
 		D3D12_CPU_DESCRIPTOR_HANDLE BackBufferRTVs[2];
 
 		COMRCPtr<ID3D12Resource> GBufferTextures[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE GBufferRTVs[2];
+		D3D12_CPU_DESCRIPTOR_HANDLE GBufferRTVs[2], GBufferSRVs[2];
 
 		COMRCPtr<ID3D12Resource> DepthBufferTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE DepthBufferDSV;
+		D3D12_CPU_DESCRIPTOR_HANDLE DepthBufferDSV, DepthBufferSRV;
+
+		COMRCPtr<ID3D12Resource> LBufferTexture;
+		D3D12_CPU_DESCRIPTOR_HANDLE LBufferRTV, LBufferSRV;
+
+		COMRCPtr<ID3D12PipelineState> DeferredLightingPipelineState;
+		COMRCPtr<ID3D12PipelineState> HDRToneMappingPipelineState;
 
 		COMRCPtr<ID3D12Resource> GPUConstantBuffer, CPUConstantBuffers[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs[20000];
