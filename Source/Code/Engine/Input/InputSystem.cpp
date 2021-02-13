@@ -27,8 +27,10 @@ void InputSystem::TickSystem(float DeltaTime)
 {
 	if (GetForegroundWindow() != Application::GetMainWindowHandle()) return;
 
-	XMFLOAT3 CameraLocation = Engine::GetEngine().GetGameFramework().GetCamera().GetCameraLocation();
-	XMFLOAT3 CameraRotation = Engine::GetEngine().GetGameFramework().GetCamera().GetCameraRotation();
+	Camera& camera = Engine::GetEngine().GetGameFramework().GetCamera();
+
+	XMFLOAT3 CameraLocation = camera.GetCameraLocation();
+	XMFLOAT3 CameraRotation = camera.GetCameraRotation();
 
 	if (GetAsyncKeyState(VK_UP) & 0x8000) CameraRotation.x -= 1.0f * DeltaTime;
 	if (GetAsyncKeyState(VK_DOWN) & 0x8000) CameraRotation.x += 1.0f * DeltaTime;
@@ -72,6 +74,6 @@ void InputSystem::TickSystem(float DeltaTime)
 	CameraLocation.y += CameraOffset.y;
 	CameraLocation.z += CameraOffset.z;
 
-	Engine::GetEngine().GetGameFramework().GetCamera().SetCameraLocation(CameraLocation);
-	Engine::GetEngine().GetGameFramework().GetCamera().SetCameraRotation(CameraRotation);
+	camera.SetCameraLocation(CameraLocation);
+	camera.SetCameraRotation(CameraRotation);
 }
