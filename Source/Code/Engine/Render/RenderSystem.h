@@ -21,6 +21,8 @@ struct RenderMaterial
 	COMRCPtr<ID3D12PipelineState> PipelineState;
 };
 
+enum class BlockCompression { BC1, BC2, BC3, BC4, BC5 };
+
 struct RenderMeshCreateInfo
 {
 	void *VertexData;
@@ -35,6 +37,7 @@ struct RenderTextureCreateInfo
 	UINT MIPLevels;
 	BOOL SRGB;
 	BOOL Compressed;
+	BlockCompression CompressionType;
 	BYTE *TexelData;
 };
 
@@ -50,6 +53,9 @@ struct Vertex
 {
 	XMFLOAT3 Position;
 	XMFLOAT2 TexCoord;
+	XMFLOAT3 Normal;
+	XMFLOAT3 Tangent;
+	XMFLOAT3 Binormal;
 };
 
 struct Texel
@@ -57,10 +63,18 @@ struct Texel
 	BYTE R, G, B, A;
 };
 
-struct CompressedTexelBlock
+struct CompressedTexelBlockBC1
 {
 	uint16_t Colors[2];
 	uint8_t Texels[4];
+};
+
+struct CompressedTexelBlockBC5
+{
+	uint8_t Red[2];
+	uint8_t RedIndices[6];
+	uint8_t Green[2];
+	uint8_t GreenIndices[6];
 };
 
 struct Color
@@ -108,7 +122,7 @@ inline Color operator/(const Color& color, const float Scalar)
 
 inline float DistanceBetweenColor(const Color& Color1, const Color& Color2)
 {
-	return powf((float)Color1.R - (float)Color2.R, 2.0f) + powf((float)Color1.G - (float)Color2.G, 2.0f) + powf((float)Color1.B - (float)Color2.B, 2.0f);
+	return powf(Color1.R - Color2.R, 2.0f) + powf(Color1.G - Color2.G, 2.0f) + powf(Color1.B - Color2.B, 2.0f);
 }
 
 #define SAFE_DX(Func) CheckDXCallResult(Func, u#Func);
@@ -151,15 +165,25 @@ class RenderSystem
 		COMRCPtr<ID3D12DescriptorHeap> ConstantBufferDescriptorHeap, TexturesDescriptorHeap;
 		COMRCPtr<ID3D12DescriptorHeap> FrameResourcesDescriptorHeaps[2], FrameSamplersDescriptorHeaps[2];
 
-		UINT TexturesDescriptorsCount = 0;
+		UINT RTDescriptorsCount = 0, DSDescriptorsCount = 0, CBSRUADescriptorsCount = 0, SamplersDescriptorsCount = 0;
+		UINT ConstantBufferDescriptorsCount = 0, TexturesDescriptorsCount = 0;
 
 		COMRCPtr<ID3D12RootSignature> RootSignature;
 
 		COMRCPtr<ID3D12Resource> BackBufferTextures[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE BackBufferRTVs[2];
 
+		COMRCPtr<ID3D12Resource> GBufferTextures[2];
+		D3D12_CPU_DESCRIPTOR_HANDLE GBufferRTVs[2], GBufferSRVs[2];
+
 		COMRCPtr<ID3D12Resource> DepthBufferTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE DepthBufferDSV;
+		D3D12_CPU_DESCRIPTOR_HANDLE DepthBufferDSV, DepthBufferSRV;
+
+		COMRCPtr<ID3D12Resource> LBufferTexture;
+		D3D12_CPU_DESCRIPTOR_HANDLE LBufferRTV, LBufferSRV;
+
+		COMRCPtr<ID3D12PipelineState> DeferredLightingPipelineState;
+		COMRCPtr<ID3D12PipelineState> HDRToneMappingPipelineState;
 
 		COMRCPtr<ID3D12Resource> GPUConstantBuffer, CPUConstantBuffers[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs[20000];
