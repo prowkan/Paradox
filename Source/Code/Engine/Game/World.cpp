@@ -540,50 +540,6 @@ void World::LoadWorld()
 				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[3] = GreenIndicesBytes[1][0];
 				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[4] = GreenIndicesBytes[1][1];
 				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[5] = GreenIndicesBytes[1][2];
-
-				/*CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[0] |= (RedIndices[0] & 0b111);
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[0] |= (RedIndices[1] & 0b111) << 3;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[0] |= (RedIndices[2] & 0b011) << 6;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[1] |= (RedIndices[2] & 0b100) >> 2;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[1] |= (RedIndices[3] & 0b111) << 1;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[1] |= (RedIndices[4] & 0b111) << 4;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[1] |= (RedIndices[5] & 0b001) << 7;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[2] |= (RedIndices[5] & 0b110) >> 1;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[2] |= (RedIndices[6] & 0b111) << 2;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[2] |= (RedIndices[7] & 0b111) << 5;
-
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[3] |= (RedIndices[8] & 0b111);
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[3] |= (RedIndices[9] & 0b111) << 3;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[3] |= (RedIndices[10] & 0b011) << 6;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[4] |= (RedIndices[10] & 0b100) >> 2;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[4] |= (RedIndices[11] & 0b111) << 1;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[4] |= (RedIndices[12] & 0b111) << 4;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[4] |= (RedIndices[13] & 0b001) << 7;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[5] |= (RedIndices[13] & 0b110) >> 1;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[5] |= (RedIndices[14] & 0b111) << 2;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[5] |= (RedIndices[15] & 0b111) << 5;
-
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[0] |= (GreenIndices[0] & 0b111);
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[0] |= (GreenIndices[1] & 0b111) << 3;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[0] |= (GreenIndices[2] & 0b001) << 6;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[1] |= (GreenIndices[2] & 0b110) >> 2;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[1] |= (GreenIndices[3] & 0b111) << 1;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[1] |= (GreenIndices[4] & 0b111) << 4;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[1] |= (GreenIndices[5] & 0b001) << 7;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[2] |= (GreenIndices[5] & 0b110) >> 1;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[2] |= (GreenIndices[6] & 0b111) << 2;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[2] |= (GreenIndices[7] & 0b111) << 5;
-
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[3] |= (GreenIndices[8] & 0b111);
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[3] |= (GreenIndices[9] & 0b111) << 3;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[3] |= (GreenIndices[10] & 0b011) << 6;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[4] |= (GreenIndices[10] & 0b100) >> 2;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[4] |= (GreenIndices[11] & 0b111) << 1;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[4] |= (GreenIndices[12] & 0b111) << 4;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[4] |= (GreenIndices[13] & 0b001) << 7;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[5] |= (GreenIndices[13] & 0b110) >> 1;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[5] |= (GreenIndices[14] & 0b111) << 2;
-				CompressedTexelBlocksBC5[k][y * MIPSize + x].GreenIndices[5] |= (GreenIndices[15] & 0b111) << 5;*/
 			}
 		}
 	}
@@ -609,14 +565,14 @@ void World::LoadWorld()
 	delete[] CompressedTexelBlockDataBC1;
 	delete[] CompressedTexelBlockDataBC5;
 
-	HANDLE VertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/ShaderModel51/MaterialBase_VertexShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+	HANDLE VertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/MaterialBase_VertexShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER VertexShaderByteCodeLength;
 	BOOL Result = GetFileSizeEx(VertexShaderFile, &VertexShaderByteCodeLength);
 	void *VertexShaderByteCodeData = malloc(VertexShaderByteCodeLength.QuadPart);
 	Result = ReadFile(VertexShaderFile, VertexShaderByteCodeData, (DWORD)VertexShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(VertexShaderFile);
 
-	HANDLE PixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/ShaderModel51/MaterialBase_PixelShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+	HANDLE PixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/MaterialBase_PixelShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER PixelShaderByteCodeLength;
 	Result = GetFileSizeEx(PixelShaderFile, &PixelShaderByteCodeLength);
 	void *PixelShaderByteCodeData = malloc(PixelShaderByteCodeLength.QuadPart);
