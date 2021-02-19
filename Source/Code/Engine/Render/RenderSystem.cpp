@@ -44,8 +44,11 @@ void RenderSystem::InitSystem()
 	DXGI_MODE_DESC *DisplayModes = new DXGI_MODE_DESC[(size_t)DisplayModesCount];
 	SAFE_DX(Monitor->GetDisplayModeList(DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM, 0, &DisplayModesCount, DisplayModes));
 
-	ResolutionWidth = DisplayModes[(size_t)DisplayModesCount - 1].Width;
-	ResolutionHeight = DisplayModes[(size_t)DisplayModesCount - 1].Height;
+	/*ResolutionWidth = DisplayModes[(size_t)DisplayModesCount - 1].Width;
+	ResolutionHeight = DisplayModes[(size_t)DisplayModesCount - 1].Height;*/
+
+	ResolutionWidth = 1280;
+	ResolutionHeight = 720;
 
 	SAFE_DX(D3D12CreateDevice(Adapter, D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_11_0, UUIDOF(Device)));
 
