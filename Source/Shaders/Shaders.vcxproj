@@ -171,6 +171,8 @@
     <FxCompile Include="MaterialBase_VertexShader.hlsl" />
     <FxCompile Include="SkyPixelShader.hlsl" />
     <FxCompile Include="SkyVertexShader.hlsl" />
+    <FxCompile Include="SunPixelShader.hlsl" />
+    <FxCompile Include="SunVertexShader.hlsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -190,6 +190,14 @@ class RenderSystem
 		COMRCPtr<ID3D12Resource> SkyTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE SkyTextureSRV;
 
+		COMRCPtr<ID3D12Resource> SunVertexBuffer, SunIndexBuffer;
+		D3D12_GPU_VIRTUAL_ADDRESS SunVertexBufferAddress, SunIndexBufferAddress;
+		COMRCPtr<ID3D12Resource> GPUSunConstantBuffer, CPUSunConstantBuffers[2];
+		D3D12_CPU_DESCRIPTOR_HANDLE SunConstantBufferCBV;
+		COMRCPtr<ID3D12PipelineState> SunPipelineState;
+		COMRCPtr<ID3D12Resource> SunTexture;
+		D3D12_CPU_DESCRIPTOR_HANDLE SunTextureSRV;
+
 		COMRCPtr<ID3D12PipelineState> DeferredLightingPipelineState;
 		COMRCPtr<ID3D12PipelineState> HDRToneMappingPipelineState;
 		COMRCPtr<ID3D12PipelineState> FogPipelineState;
