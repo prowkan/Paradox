@@ -182,8 +182,17 @@ class RenderSystem
 		COMRCPtr<ID3D12Resource> LBufferTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE LBufferRTV, LBufferSRV;
 
+		COMRCPtr<ID3D12Resource> SkyVertexBuffer, SkyIndexBuffer;
+		D3D12_GPU_VIRTUAL_ADDRESS SkyVertexBufferAddress, SkyIndexBufferAddress;
+		COMRCPtr<ID3D12Resource> GPUSkyConstantBuffer, CPUSkyConstantBuffers[2];
+		D3D12_CPU_DESCRIPTOR_HANDLE SkyConstantBufferCBV;
+		COMRCPtr<ID3D12PipelineState> SkyPipelineState;
+		COMRCPtr<ID3D12Resource> SkyTexture;
+		D3D12_CPU_DESCRIPTOR_HANDLE SkyTextureSRV;
+
 		COMRCPtr<ID3D12PipelineState> DeferredLightingPipelineState;
 		COMRCPtr<ID3D12PipelineState> HDRToneMappingPipelineState;
+		COMRCPtr<ID3D12PipelineState> FogPipelineState;
 
 		COMRCPtr<ID3D12Resource> GPUConstantBuffer, CPUConstantBuffers[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs[20000];

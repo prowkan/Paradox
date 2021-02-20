@@ -28,5 +28,8 @@
     <FxCompile Include="HDRToneMapping.hlsl" />
     <FxCompile Include="MaterialBase_PixelShader.hlsl" />
     <FxCompile Include="MaterialBase_VertexShader.hlsl" />
+    <FxCompile Include="SkyVertexShader.hlsl" />
+    <FxCompile Include="SkyPixelShader.hlsl" />
+    <FxCompile Include="Fog.hlsl" />
   </ItemGroup>
 </Project>

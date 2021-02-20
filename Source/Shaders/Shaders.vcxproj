@@ -164,10 +164,13 @@
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="DeferredLighting.hlsl" />
+    <FxCompile Include="Fog.hlsl" />
     <FxCompile Include="FullScreenQuad.hlsl" />
     <FxCompile Include="HDRToneMapping.hlsl" />
     <FxCompile Include="MaterialBase_PixelShader.hlsl" />
     <FxCompile Include="MaterialBase_VertexShader.hlsl" />
+    <FxCompile Include="SkyPixelShader.hlsl" />
+    <FxCompile Include="SkyVertexShader.hlsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
