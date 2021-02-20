@@ -8,6 +8,8 @@ class Camera
 		void ShutdownCamera();
 		void TickCamera(float DeltaTime);
 
+		XMMATRIX GetViewMatrix() { return ViewMatrix; }
+		XMMATRIX GetProjMatrix() { return ProjMatrix; }
 		XMMATRIX GetViewProjMatrix() { return ViewProjMatrix; }
 
 		XMFLOAT3 GetCameraLocation() { return CameraLocation; }
@@ -21,5 +23,7 @@ class Camera
 		XMFLOAT3 CameraLocation;
 		XMFLOAT3 CameraRotation;
 
+		XMMATRIX ViewMatrix;
+		XMMATRIX ProjMatrix;
 		XMMATRIX ViewProjMatrix;
 };
