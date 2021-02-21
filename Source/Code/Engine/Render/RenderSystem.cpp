@@ -2206,6 +2206,38 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
+	SAFE_DX(CPUDeferredLightingConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
+
+	XMMATRIX InvViewProjMatrix = XMMatrixInverse(nullptr, ViewProjMatrix);
+
+	memcpy(ConstantBufferData, &InvViewProjMatrix, sizeof(XMMATRIX));
+	memcpy((BYTE*)ConstantBufferData + sizeof(XMMATRIX), &CameraLocation, sizeof(XMFLOAT3));
+
+	WrittenRange.Begin = 0;
+	WrittenRange.End = 256;
+
+	CPUDeferredLightingConstantBuffers[CurrentFrameIndex]->Unmap(0, &WrittenRange);
+
+	ResourceBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	ResourceBarrier.Transition.pResource = GPUDeferredLightingConstantBuffer;
+	ResourceBarrier.Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
+	ResourceBarrier.Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+	ResourceBarrier.Transition.Subresource = 0;
+	ResourceBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+
+	CommandList->ResourceBarrier(1, &ResourceBarrier);
+
+	CommandList->CopyBufferRegion(GPUDeferredLightingConstantBuffer, 0, CPUDeferredLightingConstantBuffers[CurrentFrameIndex], 0, 256);
+
+	ResourceBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	ResourceBarrier.Transition.pResource = GPUDeferredLightingConstantBuffer;
+	ResourceBarrier.Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+	ResourceBarrier.Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
+	ResourceBarrier.Transition.Subresource = 0;
+	ResourceBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+
+	CommandList->ResourceBarrier(1, &ResourceBarrier);
+
 	DestRangeSize = 5;
 	SourceRangeSizes[0] = 1;
 	SourceRangeSizes[1] = 2;
