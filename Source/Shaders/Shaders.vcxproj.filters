@@ -26,12 +26,13 @@
     <FxCompile Include="DeferredLighting.hlsl" />
     <FxCompile Include="FullScreenQuad.hlsl" />
     <FxCompile Include="HDRToneMapping.hlsl" />
-    <FxCompile Include="MaterialBase_PixelShader.hlsl" />
-    <FxCompile Include="MaterialBase_VertexShader.hlsl" />
     <FxCompile Include="SkyVertexShader.hlsl" />
     <FxCompile Include="SkyPixelShader.hlsl" />
     <FxCompile Include="Fog.hlsl" />
     <FxCompile Include="SunVertexShader.hlsl" />
     <FxCompile Include="SunPixelShader.hlsl" />
+    <FxCompile Include="MaterialBase_VertexShader_ShadowMapPass.hlsl" />
+    <FxCompile Include="MaterialBase_VertexShader_GBufferOpaquePass.hlsl" />
+    <FxCompile Include="MaterialBase_PixelShader_GBufferOpaquePass.hlsl" />
   </ItemGroup>
 </Project>

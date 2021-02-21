@@ -18,7 +18,8 @@ struct RenderTexture
 
 struct RenderMaterial
 {
-	COMRCPtr<ID3D12PipelineState> PipelineState;
+	COMRCPtr<ID3D12PipelineState> GBufferOpaquePassPipelineState;
+	COMRCPtr<ID3D12PipelineState> ShadowMapPassPipelineState;
 };
 
 enum class BlockCompression { BC1, BC2, BC3, BC4, BC5 };
@@ -43,10 +44,14 @@ struct RenderTextureCreateInfo
 
 struct RenderMaterialCreateInfo
 {
-	void *VertexShaderByteCodeData;
-	void *PixelShaderByteCodeData;
-	size_t VertexShaderByteCodeLength;
-	size_t PixelShaderByteCodeLength;
+	void *GBufferOpaquePassVertexShaderByteCodeData;
+	void *GBufferOpaquePassPixelShaderByteCodeData;
+	size_t GBufferOpaquePassVertexShaderByteCodeLength;
+	size_t GBufferOpaquePassPixelShaderByteCodeLength;
+	void *ShadowMapPassVertexShaderByteCodeData;
+	void *ShadowMapPassPixelShaderByteCodeData;
+	size_t ShadowMapPassVertexShaderByteCodeLength;
+	size_t ShadowMapPassPixelShaderByteCodeLength;
 };
 
 struct Vertex
@@ -179,6 +184,9 @@ class RenderSystem
 		COMRCPtr<ID3D12Resource> DepthBufferTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE DepthBufferDSV, DepthBufferSRV;
 
+		COMRCPtr<ID3D12Resource> CascadedShadowMapTextures[4];
+		D3D12_CPU_DESCRIPTOR_HANDLE CascadedShadowMapDSVs[4], CascadedShadowMapSRVs[4];
+
 		COMRCPtr<ID3D12Resource> LBufferTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE LBufferRTV, LBufferSRV;
 
@@ -204,6 +212,9 @@ class RenderSystem
 
 		COMRCPtr<ID3D12Resource> GPUConstantBuffer, CPUConstantBuffers[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs[20000];
+
+		COMRCPtr<ID3D12Resource> GPUConstantBuffers2[4], CPUConstantBuffers2[4][2];
+		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs2[4][20000];
 
 		D3D12_CPU_DESCRIPTOR_HANDLE Sampler;
 

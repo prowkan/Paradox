@@ -167,8 +167,9 @@
     <FxCompile Include="Fog.hlsl" />
     <FxCompile Include="FullScreenQuad.hlsl" />
     <FxCompile Include="HDRToneMapping.hlsl" />
-    <FxCompile Include="MaterialBase_PixelShader.hlsl" />
-    <FxCompile Include="MaterialBase_VertexShader.hlsl" />
+    <FxCompile Include="MaterialBase_PixelShader_GBufferOpaquePass.hlsl" />
+    <FxCompile Include="MaterialBase_VertexShader_GBufferOpaquePass.hlsl" />
+    <FxCompile Include="MaterialBase_VertexShader_ShadowMapPass.hlsl" />
     <FxCompile Include="SkyPixelShader.hlsl" />
     <FxCompile Include="SkyVertexShader.hlsl" />
     <FxCompile Include="SunPixelShader.hlsl" />

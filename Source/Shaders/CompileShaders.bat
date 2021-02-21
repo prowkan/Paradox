@@ -1,7 +1,8 @@
 @echo off
 
-"C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\fxc.exe" -T vs_5_1 -E VS -Zpr -Fo .\..\..\Build\GameContent\Shaders\MaterialBase_VertexShader.dxbc MaterialBase_VertexShader.hlsl
-"C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\fxc.exe" -T ps_5_1 -E PS -Zpr -Fo .\..\..\Build\GameContent\Shaders\MaterialBase_PixelShader.dxbc MaterialBase_PixelShader.hlsl
+"C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\fxc.exe" -T vs_5_1 -E VS -Zpr -Fo .\..\..\Build\GameContent\Shaders\MaterialBase_VertexShader_GBufferOpaquePass.dxbc MaterialBase_VertexShader_GBufferOpaquePass.hlsl
+"C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\fxc.exe" -T ps_5_1 -E PS -Zpr -Fo .\..\..\Build\GameContent\Shaders\MaterialBase_PixelShader_GBufferOpaquePass.dxbc MaterialBase_PixelShader_GBufferOpaquePass.hlsl
+"C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\fxc.exe" -T vs_5_1 -E VS -Zpr -Fo .\..\..\Build\GameContent\Shaders\MaterialBase_VertexShader_ShadowMapPass.dxbc MaterialBase_VertexShader_ShadowMapPass.hlsl
 
 "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\fxc.exe" -T vs_5_1 -E VS -Zpr -Fo .\..\..\Build\GameContent\Shaders\SkyVertexShader.dxbc SkyVertexShader.hlsl
 "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\fxc.exe" -T ps_5_1 -E PS -Zpr -Fo .\..\..\Build\GameContent\Shaders\SkyPixelShader.dxbc SkyPixelShader.hlsl
