@@ -187,6 +187,9 @@ class RenderSystem
 		COMRCPtr<ID3D12Resource> CascadedShadowMapTextures[4];
 		D3D12_CPU_DESCRIPTOR_HANDLE CascadedShadowMapDSVs[4], CascadedShadowMapSRVs[4];
 
+		COMRCPtr<ID3D12Resource> ShadowMaskTexture;
+		D3D12_CPU_DESCRIPTOR_HANDLE ShadowMaskRTV, ShadowMaskSRV;
+
 		COMRCPtr<ID3D12Resource> LBufferTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE LBufferRTV, LBufferSRV;
 
@@ -206,6 +209,13 @@ class RenderSystem
 		COMRCPtr<ID3D12Resource> SunTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE SunTextureSRV;
 
+		COMRCPtr<ID3D12Resource> GPUShadowResolveConstantBuffer, CPUShadowResolveConstantBuffers[2];
+		D3D12_CPU_DESCRIPTOR_HANDLE ShadowResolveConstantBufferCBV;
+
+		COMRCPtr<ID3D12Resource> GPUDeferredLightingConstantBuffer, CPUDeferredLightingConstantBuffers[2];
+		D3D12_CPU_DESCRIPTOR_HANDLE DeferredLightingConstantBufferCBV;
+
+		COMRCPtr<ID3D12PipelineState> ShadowsResolvePipelineState;
 		COMRCPtr<ID3D12PipelineState> DeferredLightingPipelineState;
 		COMRCPtr<ID3D12PipelineState> HDRToneMappingPipelineState;
 		COMRCPtr<ID3D12PipelineState> FogPipelineState;
