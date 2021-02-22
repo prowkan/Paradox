@@ -215,7 +215,7 @@ class RenderSystem
 		COMRCPtr<ID3D12Resource> GPUDeferredLightingConstantBuffer, CPUDeferredLightingConstantBuffers[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE DeferredLightingConstantBufferCBV;
 
-		COMRCPtr<ID3D12PipelineState> ShadowsResolvePipelineState;
+		COMRCPtr<ID3D12PipelineState> ShadowResolvePipelineState;
 		COMRCPtr<ID3D12PipelineState> DeferredLightingPipelineState;
 		COMRCPtr<ID3D12PipelineState> HDRToneMappingPipelineState;
 		COMRCPtr<ID3D12PipelineState> FogPipelineState;
@@ -226,7 +226,7 @@ class RenderSystem
 		COMRCPtr<ID3D12Resource> GPUConstantBuffers2[4], CPUConstantBuffers2[4][2];
 		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs2[4][20000];
 
-		D3D12_CPU_DESCRIPTOR_HANDLE Sampler;
+		D3D12_CPU_DESCRIPTOR_HANDLE TextureSampler, ShadowMapSampler;
 
 		static const UINT MAX_MEMORY_HEAPS_COUNT = 200;
 		static const SIZE_T BUFFER_MEMORY_HEAP_SIZE = 16 * 1024 * 1024, TEXTURE_MEMORY_HEAP_SIZE = 256 * 1024 * 1024;

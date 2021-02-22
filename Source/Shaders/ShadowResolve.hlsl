@@ -14,6 +14,8 @@ ConstantBuffer<PSConstants> PixelShaderConstants : register(b0);
 Texture2D<float> DepthBufferTexture : register(t0);
 Texture2D<float> CascadedShadowMaps[4] : register(t1);
 
+SamplerComparisonState ShadowMapSampler : register(s0);
+
 float4 PS(PSInput PixelShaderInput) : SV_Target
 {
 	int2 Coords = PixelShaderInput.Position.xy - 0.5f;
@@ -35,9 +37,19 @@ float4 PS(PSInput PixelShaderInput) : SV_Target
 
 		if (clamp(ProjectedPosition.x, 0.0f, 1.0f) == ProjectedPosition.x && clamp(ProjectedPosition.y, 0.0f, 1.0f) == ProjectedPosition.y)
 		{
-			float ShadowMapDepth = CascadedShadowMaps[i].Load(int3(ProjectedPosition.xy * 2048.0f, 0)).x;
+			ShadowFactor = 0.0f;
 
-			if (ProjectedPosition.z > ShadowMapDepth + 0.00025f) ShadowFactor = 0.0f;
+			[unroll]
+			for (int j = -2; j <= 2; j++)
+			{
+				[unroll]
+				for (int k = -2; k <= 2; k++)
+				{
+					ShadowFactor += CascadedShadowMaps[i].SampleCmpLevelZero(ShadowMapSampler, ProjectedPosition.xy, ProjectedPosition.z - 0.00025f, int2(j, k));
+				}
+			}
+
+			ShadowFactor /= 25.0f;
 
 			break;
 		}

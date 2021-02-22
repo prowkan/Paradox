@@ -131,7 +131,7 @@ void RenderSystem::InitSystem()
 
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	DescriptorHeapDesc.NodeMask = 0;
-	DescriptorHeapDesc.NumDescriptors = 1;
+	DescriptorHeapDesc.NumDescriptors = 2;
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 
 	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(SamplersDescriptorHeap)));
@@ -1244,12 +1244,12 @@ void RenderSystem::InitSystem()
 	Result = ReadFile(FullScreenQuadVertexShaderFile, FullScreenQuadVertexShaderByteCodeData, (DWORD)FullScreenQuadVertexShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(FullScreenQuadVertexShaderFile);
 
-	HANDLE ShadowsResolvePixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/ShadowsResolve.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-	LARGE_INTEGER ShadowsResolvePixelShaderByteCodeLength;
-	Result = GetFileSizeEx(ShadowsResolvePixelShaderFile, &ShadowsResolvePixelShaderByteCodeLength);
-	void *ShadowsResolvePixelShaderByteCodeData = malloc(ShadowsResolvePixelShaderByteCodeLength.QuadPart);
-	Result = ReadFile(ShadowsResolvePixelShaderFile, ShadowsResolvePixelShaderByteCodeData, (DWORD)ShadowsResolvePixelShaderByteCodeLength.QuadPart, NULL, NULL);
-	Result = CloseHandle(ShadowsResolvePixelShaderFile);
+	HANDLE ShadowResolvePixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/ShadowResolve.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+	LARGE_INTEGER ShadowResolvePixelShaderByteCodeLength;
+	Result = GetFileSizeEx(ShadowResolvePixelShaderFile, &ShadowResolvePixelShaderByteCodeLength);
+	void *ShadowResolvePixelShaderByteCodeData = malloc(ShadowResolvePixelShaderByteCodeLength.QuadPart);
+	Result = ReadFile(ShadowResolvePixelShaderFile, ShadowResolvePixelShaderByteCodeData, (DWORD)ShadowResolvePixelShaderByteCodeLength.QuadPart, NULL, NULL);
+	Result = CloseHandle(ShadowResolvePixelShaderFile);
 
 	HANDLE DeferredLightingPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/DeferredLighting.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER DeferredLightingPixelShaderByteCodeLength;
@@ -1310,8 +1310,8 @@ void RenderSystem::InitSystem()
 	GraphicsPipelineStateDesc.NumRenderTargets = 1;
 	GraphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE::D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	GraphicsPipelineStateDesc.pRootSignature = RootSignature;
-	GraphicsPipelineStateDesc.PS.BytecodeLength = ShadowsResolvePixelShaderByteCodeLength.QuadPart;
-	GraphicsPipelineStateDesc.PS.pShaderBytecode = ShadowsResolvePixelShaderByteCodeData;
+	GraphicsPipelineStateDesc.PS.BytecodeLength = ShadowResolvePixelShaderByteCodeLength.QuadPart;
+	GraphicsPipelineStateDesc.PS.pShaderBytecode = ShadowResolvePixelShaderByteCodeData;
 	GraphicsPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_BACK;
 	GraphicsPipelineStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID;
 	GraphicsPipelineStateDesc.RTVFormats[0] = DXGI_FORMAT::DXGI_FORMAT_R8_UNORM;
@@ -1321,7 +1321,7 @@ void RenderSystem::InitSystem()
 	GraphicsPipelineStateDesc.VS.BytecodeLength = FullScreenQuadVertexShaderByteCodeLength.QuadPart;
 	GraphicsPipelineStateDesc.VS.pShaderBytecode = FullScreenQuadVertexShaderByteCodeData;
 
-	SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(ShadowsResolvePipelineState)));
+	SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(ShadowResolvePipelineState)));
 
 	ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
 	GraphicsPipelineStateDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE::D3D12_COLOR_WRITE_ENABLE_ALL;
@@ -1595,10 +1595,24 @@ void RenderSystem::InitSystem()
 	SamplerDesc.MinLOD = 0;
 	SamplerDesc.MipLODBias = 0.0f;
 
-	Sampler.ptr = SamplersDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + SamplersDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+	TextureSampler.ptr = SamplersDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + SamplersDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 	SamplersDescriptorsCount++;
 
-	Device->CreateSampler(&SamplerDesc, Sampler);
+	Device->CreateSampler(&SamplerDesc, TextureSampler);
+
+	SamplerDesc.AddressU = SamplerDesc.AddressV = SamplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE::D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+	SamplerDesc.BorderColor[0] = SamplerDesc.BorderColor[1] = SamplerDesc.BorderColor[2] = SamplerDesc.BorderColor[3] = 1.0f;
+	SamplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC::D3D12_COMPARISON_FUNC_LESS;
+	SamplerDesc.Filter = D3D12_FILTER::D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
+	SamplerDesc.MaxAnisotropy = 16;
+	SamplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
+	SamplerDesc.MinLOD = 0;
+	SamplerDesc.MipLODBias = 0.0f;
+
+	ShadowMapSampler.ptr = SamplersDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + SamplersDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+	SamplersDescriptorsCount++;
+
+	Device->CreateSampler(&SamplerDesc, ShadowMapSampler);
 
 	D3D12_HEAP_DESC HeapDesc;
 	HeapDesc.Alignment = 0;
@@ -1827,7 +1841,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	CommandList->RSSetScissorRects(1, &ScissorRect);
 
-	Device->CopyDescriptorsSimple(1, SamplerCPUHandle, Sampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+	Device->CopyDescriptorsSimple(1, SamplerCPUHandle, TextureSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 	SamplerCPUHandle.ptr += SamplerHandleSize;
 
 	CommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
@@ -2149,6 +2163,12 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	CommandList->ResourceBarrier(1, &ResourceBarrier);
 
+	Device->CopyDescriptorsSimple(1, SamplerCPUHandle, ShadowMapSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+	SamplerCPUHandle.ptr += SamplerHandleSize;
+
+	CommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
+	SamplerGPUHandle.ptr += SamplerHandleSize;
+
 	UINT DestRangeSize = 6;
 	UINT SourceRangeSizes[4] = { 1, 1, 4 };
 	D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[4] = { ShadowResolveConstantBufferCBV, DepthBufferSRV, CascadedShadowMapSRVs[0] };
@@ -2157,7 +2177,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	ResourceCPUHandle.ptr += 6 * ResourceHandleSize;
 
-	CommandList->SetPipelineState(ShadowsResolvePipelineState);
+	CommandList->SetPipelineState(ShadowResolvePipelineState);
 
 	CommandList->SetGraphicsRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 	CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
@@ -2320,6 +2340,12 @@ void RenderSystem::TickSystem(float DeltaTime)
 	ResourceBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
 	CommandList->ResourceBarrier(1, &ResourceBarrier);
+
+	Device->CopyDescriptorsSimple(1, SamplerCPUHandle, TextureSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+	SamplerCPUHandle.ptr += SamplerHandleSize;
+
+	CommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
+	SamplerGPUHandle.ptr += SamplerHandleSize;
 
 	D3D12_VERTEX_BUFFER_VIEW VertexBufferView;
 	VertexBufferView.BufferLocation = SkyVertexBufferAddress;

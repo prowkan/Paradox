@@ -34,6 +34,6 @@
     <FxCompile Include="MaterialBase_VertexShader_ShadowMapPass.hlsl" />
     <FxCompile Include="MaterialBase_VertexShader_GBufferOpaquePass.hlsl" />
     <FxCompile Include="MaterialBase_PixelShader_GBufferOpaquePass.hlsl" />
-    <FxCompile Include="ShadowsResolve.hlsl" />
+    <FxCompile Include="ShadowResolve.hlsl" />
   </ItemGroup>
 </Project>
