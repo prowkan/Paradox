@@ -260,14 +260,14 @@ void World::LoadWorld()
 
 	delete[] TexelData;
 
-	HANDLE VertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/ShaderModel51/MaterialBase_VertexShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+	HANDLE VertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/MaterialBase_VertexShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER VertexShaderByteCodeLength;
 	BOOL Result = GetFileSizeEx(VertexShaderFile, &VertexShaderByteCodeLength);
 	void *VertexShaderByteCodeData = malloc(VertexShaderByteCodeLength.QuadPart);
 	Result = ReadFile(VertexShaderFile, VertexShaderByteCodeData, (DWORD)VertexShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(VertexShaderFile);
 
-	HANDLE PixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/ShaderModel51/MaterialBase_PixelShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+	HANDLE PixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/MaterialBase_PixelShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER PixelShaderByteCodeLength;
 	Result = GetFileSizeEx(PixelShaderFile, &PixelShaderByteCodeLength);
 	void *PixelShaderByteCodeData = malloc(PixelShaderByteCodeLength.QuadPart);
