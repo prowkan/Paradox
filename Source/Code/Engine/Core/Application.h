@@ -1,10 +1,12 @@
 #pragma once
 
+class String;
+
 class Application
 {
 	public:
 
-		static void StartApplication(const char16_t* WindowTitle, HINSTANCE hInstance);
+		static void StartApplication(const String& WindowTitle, HINSTANCE hInstance);
 		static void StopApplication();
 		static void RunMainLoop();
 
