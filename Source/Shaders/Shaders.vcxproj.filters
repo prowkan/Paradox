@@ -35,5 +35,8 @@
     <FxCompile Include="MaterialBase_VertexShader_GBufferOpaquePass.hlsl" />
     <FxCompile Include="MaterialBase_PixelShader_GBufferOpaquePass.hlsl" />
     <FxCompile Include="ShadowResolve.hlsl" />
+    <FxCompile Include="LuminanceSum.hlsl" />
+    <FxCompile Include="LuminanceCalc.hlsl" />
+    <FxCompile Include="LuminanceAvg.hlsl" />
   </ItemGroup>
 </Project>

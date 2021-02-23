@@ -15,3 +15,7 @@
 "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\fxc.exe" -T ps_5_1 -E PS -Zpr -Fo .\..\..\Build\GameContent\Shaders\DeferredLighting.dxbc DeferredLighting.hlsl
 "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\fxc.exe" -T ps_5_1 -E PS -Zpr -Fo .\..\..\Build\GameContent\Shaders\Fog.dxbc Fog.hlsl
 "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\fxc.exe" -T ps_5_1 -E PS -Zpr -Fo .\..\..\Build\GameContent\Shaders\HDRToneMapping.dxbc HDRToneMapping.hlsl
+
+"C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\fxc.exe" -T cs_5_1 -E CS -Zpr -Fo .\..\..\Build\GameContent\Shaders\LuminanceCalc.dxbc LuminanceCalc.hlsl
+"C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\fxc.exe" -T cs_5_1 -E CS -Zpr -Fo .\..\..\Build\GameContent\Shaders\LuminanceSum.dxbc LuminanceSum.hlsl
+"C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\fxc.exe" -T cs_5_1 -E CS -Zpr -Fo .\..\..\Build\GameContent\Shaders\LuminanceAvg.dxbc LuminanceAvg.hlsl

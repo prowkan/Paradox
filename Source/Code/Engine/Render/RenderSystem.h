@@ -173,7 +173,7 @@ class RenderSystem
 		UINT RTDescriptorsCount = 0, DSDescriptorsCount = 0, CBSRUADescriptorsCount = 0, SamplersDescriptorsCount = 0;
 		UINT ConstantBufferDescriptorsCount = 0, TexturesDescriptorsCount = 0;
 
-		COMRCPtr<ID3D12RootSignature> RootSignature;
+		COMRCPtr<ID3D12RootSignature> GraphisRootSignature, ComputeRootSignature;
 
 		COMRCPtr<ID3D12Resource> BackBufferTextures[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE BackBufferRTVs[2];
@@ -192,6 +192,12 @@ class RenderSystem
 
 		COMRCPtr<ID3D12Resource> LBufferTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE LBufferRTV, LBufferSRV;
+
+		COMRCPtr<ID3D12Resource> SceneLuminanceTextures[4];
+		D3D12_CPU_DESCRIPTOR_HANDLE SceneLuminanceUAVs[4], SceneLuminanceSRVs[4];
+
+		COMRCPtr<ID3D12Resource> AverageLuminanceTexture;
+		D3D12_CPU_DESCRIPTOR_HANDLE AverageLuminanceUAV, AverageLuminanceSRV;
 
 		COMRCPtr<ID3D12Resource> SkyVertexBuffer, SkyIndexBuffer;
 		D3D12_GPU_VIRTUAL_ADDRESS SkyVertexBufferAddress, SkyIndexBufferAddress;
@@ -217,8 +223,11 @@ class RenderSystem
 
 		COMRCPtr<ID3D12PipelineState> ShadowResolvePipelineState;
 		COMRCPtr<ID3D12PipelineState> DeferredLightingPipelineState;
-		COMRCPtr<ID3D12PipelineState> HDRToneMappingPipelineState;
 		COMRCPtr<ID3D12PipelineState> FogPipelineState;
+		COMRCPtr<ID3D12PipelineState> HDRToneMappingPipelineState;
+		COMRCPtr<ID3D12PipelineState> LuminanceCalcPipelineState;
+		COMRCPtr<ID3D12PipelineState> LuminanceSumPipelineState;
+		COMRCPtr<ID3D12PipelineState> LuminanceAvgPipelineState;
 
 		COMRCPtr<ID3D12Resource> GPUConstantBuffer, CPUConstantBuffers[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs[20000];
