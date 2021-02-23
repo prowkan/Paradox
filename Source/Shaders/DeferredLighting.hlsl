@@ -43,5 +43,5 @@ float4 PS(PSInput PixelShaderInput) : SV_Target
 
 	float3 Half = normalize(Light + View);
 
-	return float4(BaseColor * (0.1f + (max(0.0f, dot(Light, Normal)) + pow(max(0.0f, dot(Half, Normal)), 1024.0f)) * ShadowFactor), 1.0f);
+	return float4(BaseColor * (0.1f + (max(0.0f, dot(Light, Normal)) + ((128.0f + 1.0f) / (2.0f * 3.14f)) * pow(max(0.0f, dot(Half, Normal)), 128.0f)) * ShadowFactor), 1.0f);
 }
