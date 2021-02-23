@@ -38,5 +38,9 @@
     <FxCompile Include="LuminanceSum.hlsl" />
     <FxCompile Include="LuminanceCalc.hlsl" />
     <FxCompile Include="LuminanceAvg.hlsl" />
+    <FxCompile Include="ImageResample.hlsl" />
+    <FxCompile Include="HorizontalBlur.hlsl" />
+    <FxCompile Include="BrightPass.hlsl" />
+    <FxCompile Include="VerticalBlur.hlsl" />
   </ItemGroup>
 </Project>

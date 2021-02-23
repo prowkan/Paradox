@@ -163,10 +163,13 @@
     <None Include="CompileShaders.bat" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="BrightPass.hlsl" />
     <FxCompile Include="DeferredLighting.hlsl" />
     <FxCompile Include="Fog.hlsl" />
     <FxCompile Include="FullScreenQuad.hlsl" />
     <FxCompile Include="HDRToneMapping.hlsl" />
+    <FxCompile Include="HorizontalBlur.hlsl" />
+    <FxCompile Include="ImageResample.hlsl" />
     <FxCompile Include="LuminanceAvg.hlsl" />
     <FxCompile Include="LuminanceCalc.hlsl" />
     <FxCompile Include="LuminanceSum.hlsl" />
@@ -178,6 +181,7 @@
     <FxCompile Include="SkyVertexShader.hlsl" />
     <FxCompile Include="SunPixelShader.hlsl" />
     <FxCompile Include="SunVertexShader.hlsl" />
+    <FxCompile Include="VerticalBlur.hlsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -199,6 +199,9 @@ class RenderSystem
 		COMRCPtr<ID3D12Resource> AverageLuminanceTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE AverageLuminanceUAV, AverageLuminanceSRV;
 
+		COMRCPtr<ID3D12Resource> BloomTextures[3][7];
+		D3D12_CPU_DESCRIPTOR_HANDLE BloomRTVs[3][7], BloomSRVs[3][7];
+
 		COMRCPtr<ID3D12Resource> SkyVertexBuffer, SkyIndexBuffer;
 		D3D12_GPU_VIRTUAL_ADDRESS SkyVertexBufferAddress, SkyIndexBufferAddress;
 		COMRCPtr<ID3D12Resource> GPUSkyConstantBuffer, CPUSkyConstantBuffers[2];
@@ -228,6 +231,11 @@ class RenderSystem
 		COMRCPtr<ID3D12PipelineState> LuminanceCalcPipelineState;
 		COMRCPtr<ID3D12PipelineState> LuminanceSumPipelineState;
 		COMRCPtr<ID3D12PipelineState> LuminanceAvgPipelineState;
+		COMRCPtr<ID3D12PipelineState> BrightPassPipelineState;
+		COMRCPtr<ID3D12PipelineState> DownSamplePipelineState;
+		COMRCPtr<ID3D12PipelineState> HorizontalBlurPipelineState;
+		COMRCPtr<ID3D12PipelineState> VerticalBlurPipelineState;
+		COMRCPtr<ID3D12PipelineState> UpSampleWithAddBlendPipelineState;
 
 		COMRCPtr<ID3D12Resource> GPUConstantBuffer, CPUConstantBuffers[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs[20000];
@@ -235,7 +243,7 @@ class RenderSystem
 		COMRCPtr<ID3D12Resource> GPUConstantBuffers2[4], CPUConstantBuffers2[4][2];
 		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs2[4][20000];
 
-		D3D12_CPU_DESCRIPTOR_HANDLE TextureSampler, ShadowMapSampler;
+		D3D12_CPU_DESCRIPTOR_HANDLE TextureSampler, ShadowMapSampler, BiLinearSampler;
 
 		static const UINT MAX_MEMORY_HEAPS_COUNT = 200;
 		static const SIZE_T BUFFER_MEMORY_HEAP_SIZE = 16 * 1024 * 1024, TEXTURE_MEMORY_HEAP_SIZE = 256 * 1024 * 1024;
