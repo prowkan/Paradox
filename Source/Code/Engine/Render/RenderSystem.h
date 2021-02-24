@@ -184,6 +184,9 @@ class RenderSystem
 		COMRCPtr<ID3D12Resource> DepthBufferTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE DepthBufferDSV, DepthBufferSRV;
 
+		COMRCPtr<ID3D12Resource> ResolvedDepthBufferTexture;
+		D3D12_CPU_DESCRIPTOR_HANDLE ResolvedDepthBufferSRV;
+
 		COMRCPtr<ID3D12Resource> CascadedShadowMapTextures[4];
 		D3D12_CPU_DESCRIPTOR_HANDLE CascadedShadowMapDSVs[4], CascadedShadowMapSRVs[4];
 
@@ -193,6 +196,9 @@ class RenderSystem
 		COMRCPtr<ID3D12Resource> LBufferTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE LBufferRTV, LBufferSRV;
 
+		COMRCPtr<ID3D12Resource> ResolvedHDRSceneColorTexture;
+		D3D12_CPU_DESCRIPTOR_HANDLE ResolvedHDRSceneColorSRV;
+
 		COMRCPtr<ID3D12Resource> SceneLuminanceTextures[4];
 		D3D12_CPU_DESCRIPTOR_HANDLE SceneLuminanceUAVs[4], SceneLuminanceSRVs[4];
 
@@ -201,6 +207,9 @@ class RenderSystem
 
 		COMRCPtr<ID3D12Resource> BloomTextures[3][7];
 		D3D12_CPU_DESCRIPTOR_HANDLE BloomRTVs[3][7], BloomSRVs[3][7];
+
+		COMRCPtr<ID3D12Resource> ToneMappedImageTexture;
+		D3D12_CPU_DESCRIPTOR_HANDLE ToneMappedImageRTV;
 
 		COMRCPtr<ID3D12Resource> SkyVertexBuffer, SkyIndexBuffer;
 		D3D12_GPU_VIRTUAL_ADDRESS SkyVertexBufferAddress, SkyIndexBufferAddress;

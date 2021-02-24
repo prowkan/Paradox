@@ -12,22 +12,22 @@ struct PSConstants
 
 ConstantBuffer<PSConstants> PixelShaderConstants : register(b0);
 
-Texture2D GBufferTexture0 : register(t0);
-Texture2D GBufferTexture1 : register(t1);
-Texture2D<float> DepthBufferTexture : register(t2);
+Texture2DMS<float4> GBufferTexture0 : register(t0);
+Texture2DMS<float4> GBufferTexture1 : register(t1);
+Texture2DMS<float> DepthBufferTexture : register(t2);
 Texture2D<float> ShadowMaskTexture : register(t3);
 
-float4 PS(PSInput PixelShaderInput) : SV_Target
+float4 PS(PSInput PixelShaderInput, uint SampleIndex : SV_SampleIndex) : SV_Target
 {
 	int2 Coords = PixelShaderInput.Position.xy - 0.5f;
 
-	float4 GBufferData0 = GBufferTexture0.Load(int3(Coords, 0));
-	float4 GBufferData1 = GBufferTexture1.Load(int3(Coords, 0));
+	float4 GBufferData0 = GBufferTexture0.Load(Coords, SampleIndex);
+	float4 GBufferData1 = GBufferTexture1.Load(Coords, SampleIndex);
 
 	float4 PixelWorldPosition;
 
 	PixelWorldPosition.xy = PixelShaderInput.TexCoord.xy * float2(2.0f, -2.0f) + float2(-1.0f, 1.0f);
-	PixelWorldPosition.z = DepthBufferTexture.Load(int3(Coords, 0)).x;
+	PixelWorldPosition.z = DepthBufferTexture.Load(Coords, SampleIndex).x;
 	PixelWorldPosition.w = 1.0f;
 
 	PixelWorldPosition = mul(PixelWorldPosition, PixelShaderConstants.InvViewProjMatrix);
