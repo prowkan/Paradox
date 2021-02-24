@@ -1,3 +1,3 @@
 @echo off
 
-del /F /Q .\..\..\Build\GameContent\Shaders\ShaderModel51\*.*
+del /F /Q .\..\..\Build\GameContent\Shaders\*.*

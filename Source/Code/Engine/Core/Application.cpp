@@ -155,12 +155,31 @@ void Application::StartApplication(const char16_t* WindowTitle, HINSTANCE hInsta
 
 	ATOM Atom = RegisterClassEx(&WndClassEx);
 
-	DWORD WindowStyle = WS_POPUP;
+	//DWORD WindowStyle = WS_POPUP;
+
+	DWORD WindowStyle = WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
 
 	int ScreenWidth = GetSystemMetrics(SM_CXSCREEN);
 	int ScreenHeight = GetSystemMetrics(SM_CYSCREEN);
 
-	Application::MainWindowHandle = CreateWindowEx(0, (const wchar_t*)u"MainWindowClass", (const wchar_t*)WindowTitle, WindowStyle, 0, 0, ScreenWidth, ScreenHeight, NULL, NULL, hInstance, NULL);
+	int WindowWidth = 1280;
+	int WindowHeight = 720;
+
+	int WindowLeft = ScreenWidth / 2 - WindowWidth / 2;
+	int WindowTop = ScreenHeight / 2 - WindowHeight / 2;
+
+	RECT WindowRect;
+	WindowRect.bottom = WindowTop + WindowHeight;
+	WindowRect.left = WindowLeft;
+	WindowRect.right = WindowLeft + WindowWidth;
+	WindowRect.top = WindowTop;
+
+	Result = AdjustWindowRect(&WindowRect, WindowStyle, FALSE);
+
+	WindowWidth = WindowRect.right - WindowRect.left;
+	WindowHeight = WindowRect.bottom - WindowRect.top;
+
+	Application::MainWindowHandle = CreateWindowEx(0, (const wchar_t*)u"MainWindowClass", (const wchar_t*)WindowTitle, WindowStyle, WindowLeft, WindowTop, WindowWidth, WindowHeight, NULL, NULL, hInstance, NULL);
 
 	Result = UpdateWindow(Application::MainWindowHandle);
 	Result = ShowWindow(Application::MainWindowHandle, SW_SHOW);
