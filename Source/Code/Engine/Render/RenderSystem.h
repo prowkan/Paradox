@@ -171,7 +171,7 @@ class RenderSystem
 		COMRCPtr<ID3D12Resource> GPUConstantBuffer, CPUConstantBuffers[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs[20000];
 
-		D3D12_CPU_DESCRIPTOR_HANDLE Sampler, MinSampler;
+		D3D12_CPU_DESCRIPTOR_HANDLE Sampler, MaxSampler;
 
 		static const UINT MAX_MEMORY_HEAPS_COUNT = 200;
 		static const SIZE_T BUFFER_MEMORY_HEAP_SIZE = 16 * 1024 * 1024, TEXTURE_MEMORY_HEAP_SIZE = 256 * 1024 * 1024;

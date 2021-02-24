@@ -444,15 +444,15 @@ void RenderSystem::InitSystem()
 	SamplerDesc.AddressU = SamplerDesc.AddressV = SamplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE::D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 	SamplerDesc.BorderColor[0] = SamplerDesc.BorderColor[1] = SamplerDesc.BorderColor[2] = SamplerDesc.BorderColor[3] = 1.0f;
 	SamplerDesc.ComparisonFunc = (D3D12_COMPARISON_FUNC)0;
-	SamplerDesc.Filter = D3D12_FILTER::D3D12_FILTER_MINIMUM_MIN_MAG_MIP_POINT;
+	SamplerDesc.Filter = D3D12_FILTER::D3D12_FILTER_MAXIMUM_MIN_MAG_MIP_POINT;
 	SamplerDesc.MaxAnisotropy = 1;
 	SamplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
 	SamplerDesc.MinLOD = 0;
 	SamplerDesc.MipLODBias = 0.0f;
 
-	MinSampler.ptr = SamplersDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + 1 * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+	MaxSampler.ptr = SamplersDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + 1 * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 
-	Device->CreateSampler(&SamplerDesc, MinSampler);
+	Device->CreateSampler(&SamplerDesc, MaxSampler);
 
 	D3D12_HEAP_DESC HeapDesc;
 	HeapDesc.Alignment = 0;
@@ -745,7 +745,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	CommandList->RSSetScissorRects(1, &ScissorRect);
 
-	Device->CopyDescriptorsSimple(1, SamplerCPUHandle, MinSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+	Device->CopyDescriptorsSimple(1, SamplerCPUHandle, MaxSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 	SamplerCPUHandle.ptr += SamplerHandleSize;
 
 	CommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
