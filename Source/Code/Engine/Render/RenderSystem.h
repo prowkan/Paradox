@@ -130,6 +130,8 @@ class RenderSystem
 		void DestroyRenderTexture(RenderTexture* renderTexture);
 		void DestroyRenderMaterial(RenderMaterial* renderMaterial);
 
+		CullingSubSystem& GetCullingSubSystem() { return cullingSubSystem; }
+
 	private:
 
 		COMRCPtr<ID3D12Device> Device;
@@ -159,12 +161,17 @@ class RenderSystem
 		D3D12_CPU_DESCRIPTOR_HANDLE BackBufferRTVs[2];
 
 		COMRCPtr<ID3D12Resource> DepthBufferTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE DepthBufferDSV;
+		D3D12_CPU_DESCRIPTOR_HANDLE DepthBufferDSV, DepthBufferSRV;
+
+		COMRCPtr<ID3D12Resource> OcclusionBufferTexture, OcclusionBufferTextureReadback[2];
+		D3D12_CPU_DESCRIPTOR_HANDLE OcclusionBufferRTV;
+
+		COMRCPtr<ID3D12PipelineState> OcclusionBufferPipelineState;
 
 		COMRCPtr<ID3D12Resource> GPUConstantBuffer, CPUConstantBuffers[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs[20000];
 
-		D3D12_CPU_DESCRIPTOR_HANDLE Sampler;
+		D3D12_CPU_DESCRIPTOR_HANDLE Sampler, MinSampler;
 
 		static const UINT MAX_MEMORY_HEAPS_COUNT = 200;
 		static const SIZE_T BUFFER_MEMORY_HEAP_SIZE = 16 * 1024 * 1024, TEXTURE_MEMORY_HEAP_SIZE = 256 * 1024 * 1024;
