@@ -14,7 +14,7 @@ float4 PS(PSInput PixelShaderInput) : SV_Target
 	float3 HDRColor = HDRFrameBufferTexture.Load(int3(Coords, 0)).rgb;
 	float PixelLuminance = SceneLuminanceTexture.Load(int3(Coords, 0)).r;
 
-	if (PixelLuminance < 0.8f) return float4(0.0f, 0.0f, 0.0f, 1.0f);
+	if (PixelLuminance < 10.0f) return float4(0.0f, 0.0f, 0.0f, 1.0f);
 
 	return float4(0.25f * HDRColor, 1.0f);
 }
