@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Containers/COMRCPtr.h>
+#include <Containers/DynamicArray.h>
 
 #include "CullingSubSystem.h"
 
@@ -178,9 +179,9 @@ class RenderSystem
 		COMRCPtr<ID3D12Resource> UploadBuffer;
 		size_t UploadBufferOffset = 0;
 
-		vector<RenderMesh*> RenderMeshDestructionQueue;
-		vector<RenderMaterial*> RenderMaterialDestructionQueue;
-		vector<RenderTexture*> RenderTextureDestructionQueue;
+		DynamicArray<RenderMesh*> RenderMeshDestructionQueue;
+		DynamicArray<RenderMaterial*> RenderMaterialDestructionQueue;
+		DynamicArray<RenderTexture*> RenderTextureDestructionQueue;
 
 		CullingSubSystem cullingSubSystem;
 

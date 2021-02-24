@@ -11,11 +11,11 @@
 #include <Game/Components/Common/BoundingBoxComponent.h>
 #include <Game/Components/Render/Meshes/StaticMeshComponent.h>
 
-vector<StaticMeshComponent*> CullingSubSystem::GetVisibleStaticMeshesInFrustum(const vector<StaticMeshComponent*>& InputStaticMeshes, const XMMATRIX& ViewProjMatrix)
+DynamicArray<StaticMeshComponent*> CullingSubSystem::GetVisibleStaticMeshesInFrustum(const DynamicArray<StaticMeshComponent*>& InputStaticMeshes, const XMMATRIX& ViewProjMatrix)
 {
 	OPTICK_EVENT("Frustum Culling")
 
-	vector<StaticMeshComponent*> OutputStaticMeshes;
+	DynamicArray<StaticMeshComponent*> OutputStaticMeshes;
 
 	XMVECTOR FrustumPlanes[6];
 
@@ -56,8 +56,9 @@ vector<StaticMeshComponent*> CullingSubSystem::GetVisibleStaticMeshesInFrustum(c
 	for (UINT i = 0; i < 20; i++)
 	{
 		FrustumCullingTasks[i].WaitForFinish();
-		vector<StaticMeshComponent*>& LocalTaskResult = FrustumCullingTasks[i].GetOutputData();
-		OutputStaticMeshes.insert(OutputStaticMeshes.end(), LocalTaskResult.begin(), LocalTaskResult.end());
+		DynamicArray<StaticMeshComponent*>& LocalTaskResult = FrustumCullingTasks[i].GetOutputData();
+		//OutputStaticMeshes.insert(OutputStaticMeshes.end(), LocalTaskResult.begin(), LocalTaskResult.end());
+		OutputStaticMeshes.Append(LocalTaskResult);
 		FrustumCullingTasks[i].~FrustumCullingTask();
 	}
 

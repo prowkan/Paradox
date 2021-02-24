@@ -1,12 +1,14 @@
 #pragma once
 
+#include <Containers/DynamicArray.h>
+
 class StaticMeshComponent;
 
 class CullingSubSystem
 {
 	public:
 
-		vector<StaticMeshComponent*> GetVisibleStaticMeshesInFrustum(const vector<StaticMeshComponent*>& InputStaticMeshes, const XMMATRIX& ViewProjMatrix);
+		DynamicArray<StaticMeshComponent*> GetVisibleStaticMeshesInFrustum(const DynamicArray<StaticMeshComponent*>& InputStaticMeshes, const XMMATRIX& ViewProjMatrix);
 
 	private:
 

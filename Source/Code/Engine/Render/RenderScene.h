@@ -1,16 +1,18 @@
 #pragma once
 
+#include <Containers/DynamicArray.h>
+
 class StaticMeshComponent;
 
 class RenderScene
 {
 	public:
 
-		void RegisterStaticMeshComponent(StaticMeshComponent* staticMeshComponent) { StaticMeshComponents.push_back(staticMeshComponent); }
+		void RegisterStaticMeshComponent(StaticMeshComponent* staticMeshComponent) { StaticMeshComponents.Add(staticMeshComponent); }
 
-		vector<StaticMeshComponent*>& GetStaticMeshComponents() { return StaticMeshComponents; }
+		DynamicArray<StaticMeshComponent*>& GetStaticMeshComponents() { return StaticMeshComponents; }
 
 	private:
 
-		vector<StaticMeshComponent*> StaticMeshComponents;
+		DynamicArray<StaticMeshComponent*> StaticMeshComponents;
 };

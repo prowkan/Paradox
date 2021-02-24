@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Containers/DynamicArray.h>
+
 #include "MetaClass.h"
 
 class Component;
@@ -24,9 +26,16 @@ class Entity
 		template<typename T>
 		T* GetComponent()
 		{
-			for (Component* component : Components)
+			/*for (Component* component : Components)
 			{
 				T* ConcreteComponent = Component::DynamicCast<T>(component);
+
+				if (ConcreteComponent != nullptr) return ConcreteComponent;
+			}*/
+
+			for (int i = 0; i < Components.GetLength(); i++)
+			{
+				T* ConcreteComponent = Component::DynamicCast<T>(Components[i]);
 
 				if (ConcreteComponent != nullptr) return ConcreteComponent;
 			}
@@ -46,7 +55,7 @@ class Entity
 
 		MetaClass *metaClass;
 
-		vector<Component*> Components;
+		DynamicArray<Component*> Components;
 
 		World *OwningWorld;
 

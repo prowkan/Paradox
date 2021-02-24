@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Containers/DynamicArray.h>
+
 #include "../Task.h"
 
 class StaticMeshComponent;
@@ -8,7 +10,7 @@ class FrustumCullingTask : public Task
 {
 	public:
 
-		FrustumCullingTask(const vector<StaticMeshComponent*>& InputStaticMeshesArray, const XMVECTOR* FrustumPlanes, const size_t Begin, const size_t End) : InputStaticMeshesArray(InputStaticMeshesArray)
+		FrustumCullingTask(const DynamicArray<StaticMeshComponent*>& InputStaticMeshesArray, const XMVECTOR* FrustumPlanes, const size_t Begin, const size_t End) : InputStaticMeshesArray(InputStaticMeshesArray)
 		{
 			this->FrustumPlanes = FrustumPlanes;
 			this->Begin = Begin;
@@ -17,12 +19,12 @@ class FrustumCullingTask : public Task
 
 		virtual void Execute(const UINT ThreadID) override;
 
-		vector<StaticMeshComponent*>& GetOutputData() { return OutputStaticMeshesArray; }
+		DynamicArray<StaticMeshComponent*>& GetOutputData() { return OutputStaticMeshesArray; }
 
 	private:
 
-		const vector<StaticMeshComponent*>& InputStaticMeshesArray;
-		vector<StaticMeshComponent*> OutputStaticMeshesArray;
+		const DynamicArray<StaticMeshComponent*>& InputStaticMeshesArray;
+		DynamicArray<StaticMeshComponent*> OutputStaticMeshesArray;
 
 		const XMVECTOR *FrustumPlanes;
 		size_t Begin, End;

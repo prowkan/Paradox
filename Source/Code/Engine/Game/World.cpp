@@ -345,7 +345,7 @@ Entity* World::SpawnEntity(MetaClass* metaClass)
 	entity->SetMetaClass(metaClass);
 	entity->SetWorld(this);
 	entity->InitDefaultProperties();
-	Entities.push_back(entity);
+	Entities.Add(entity);
 	return entity;
 }
 

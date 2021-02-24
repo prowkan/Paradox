@@ -164,6 +164,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Containers\COMRCPtr.h" />
+    <ClInclude Include="Containers\DynamicArray.h" />
     <ClInclude Include="Containers\FixedSizeString.h" />
     <ClInclude Include="Containers\String.h" />
     <ClInclude Include="Core\Application.h" />
@@ -199,6 +200,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Containers\COMRCPtr.cpp" />
+    <ClCompile Include="Containers\DynamicArray.cpp" />
     <ClCompile Include="Containers\FixedSizeString.cpp" />
     <ClCompile Include="Containers\String.cpp" />
     <ClCompile Include="Core\Application.cpp" />

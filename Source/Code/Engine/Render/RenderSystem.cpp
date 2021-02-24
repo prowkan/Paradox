@@ -387,7 +387,7 @@ void RenderSystem::ShutdownSystem()
 		DWORD WaitResult = WaitForSingleObject(FrameSyncEvent, INFINITE);
 	}
 
-	for (RenderMesh* renderMesh : RenderMeshDestructionQueue)
+	/*for (RenderMesh* renderMesh : RenderMeshDestructionQueue)
 	{
 		delete renderMesh;
 	}
@@ -406,7 +406,7 @@ void RenderSystem::ShutdownSystem()
 		delete renderTexture;
 	}
 
-	RenderTextureDestructionQueue.clear();
+	RenderTextureDestructionQueue.clear();*/
 
 	BOOL Result;
 
@@ -447,9 +447,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 	void *ConstantBufferData;
 	SIZE_T ConstantBufferOffset = 0;
 
-	vector<StaticMeshComponent*> AllStaticMeshComponents = Engine::GetEngine().GetGameFramework().GetWorld().GetRenderScene().GetStaticMeshComponents();
-	vector<StaticMeshComponent*> VisbleStaticMeshComponents = cullingSubSystem.GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ViewProjMatrix);
-	size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.size();
+	DynamicArray<StaticMeshComponent*> AllStaticMeshComponents = Engine::GetEngine().GetGameFramework().GetWorld().GetRenderScene().GetStaticMeshComponents();
+	DynamicArray<StaticMeshComponent*> VisbleStaticMeshComponents = cullingSubSystem.GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ViewProjMatrix);
+	size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.GetLength();
 
 	OPTICK_EVENT("Draw Calls")
 
@@ -949,17 +949,17 @@ RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInf
 
 void RenderSystem::DestroyRenderMesh(RenderMesh* renderMesh)
 {
-	RenderMeshDestructionQueue.push_back(renderMesh);
+	RenderMeshDestructionQueue.Add(renderMesh);
 }
 
 void RenderSystem::DestroyRenderTexture(RenderTexture* renderTexture)
 {
-	RenderTextureDestructionQueue.push_back(renderTexture);
+	RenderTextureDestructionQueue.Add(renderTexture);
 }
 
 void RenderSystem::DestroyRenderMaterial(RenderMaterial* renderMaterial)
 {
-	RenderMaterialDestructionQueue.push_back(renderMaterial);
+	RenderMaterialDestructionQueue.Add(renderMaterial);
 }
 
 inline void RenderSystem::CheckDXCallResult(HRESULT hr, const char16_t* Function)
