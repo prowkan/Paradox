@@ -12,10 +12,10 @@ float4 PS(PSInput PixelShaderInput) : SV_Target
 
 	float Depth = DepthBufferTexture.Load(int3(Coords, 0)).x;
 
-	if (Depth == 1.0f) return float4(0.0f, 0.0f, 0.0f, 0.0f);
+	if (Depth == 0.0f) return float4(0.0f, 0.0f, 0.0f, 0.0f);
 
-	float Near = 0.01f;
-	float Far = 1000.0f;
+	float Near = 1000.0f;
+	float Far = 0.01f;
 
 	float a = Far / (Far - Near);
 	float b = (Far * Near) / (Far - Near);

@@ -25,6 +25,6 @@ void Camera::TickCamera(float DeltaTime)
 	UpVector = XMVector4Transform(UpVector, RotationMatrix);
 
 	ViewMatrix = XMMatrixLookToLH(XMVectorSet(CameraLocation.x, CameraLocation.y, CameraLocation.z, 1.0f), ForwardVector, UpVector);
-	ProjMatrix = XMMatrixPerspectiveFovLH(3.14f / 2.0f, 16.0f / 9.0f, 0.01f, 1000.0f);
+	ProjMatrix = XMMatrixPerspectiveFovLH(3.14f / 2.0f, 16.0f / 9.0f, 1000.0f, 0.01f);
 	ViewProjMatrix = ViewMatrix * ProjMatrix;
 }
