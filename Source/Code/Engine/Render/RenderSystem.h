@@ -3,6 +3,7 @@
 #include <Containers/COMRCPtr.h>
 
 #include "CullingSubSystem.h"
+#include "ClusterizationSubSystem.h"
 
 struct RenderMesh
 {
@@ -233,6 +234,15 @@ class RenderSystem
 		COMRCPtr<ID3D12Resource> GPUDeferredLightingConstantBuffer, CPUDeferredLightingConstantBuffers[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE DeferredLightingConstantBufferCBV;
 
+		COMRCPtr<ID3D12Resource> GPULightClustersBuffer, CPULightClustersBuffers[2];
+		D3D12_CPU_DESCRIPTOR_HANDLE LightClustersSRV;
+
+		COMRCPtr<ID3D12Resource> GPULightIndicesBuffer, CPULightIndicesBuffers[2];
+		D3D12_CPU_DESCRIPTOR_HANDLE LightIndicesSRV;
+
+		COMRCPtr<ID3D12Resource> GPUPointLightsBuffer, CPUPointLightsBuffers[2];
+		D3D12_CPU_DESCRIPTOR_HANDLE PointLightsSRV;
+
 		COMRCPtr<ID3D12PipelineState> ShadowResolvePipelineState;
 		COMRCPtr<ID3D12PipelineState> DeferredLightingPipelineState;
 		COMRCPtr<ID3D12PipelineState> FogPipelineState;
@@ -271,6 +281,7 @@ class RenderSystem
 		vector<RenderTexture*> RenderTextureDestructionQueue;
 
 		CullingSubSystem cullingSubSystem;
+		ClusterizationSubSystem clusterizationSubSystem;
 
 		inline void CheckDXCallResult(HRESULT hr, const char16_t* Function);
 		inline const char16_t* GetDXErrorMessageFromHRESULT(HRESULT hr);
