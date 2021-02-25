@@ -174,6 +174,7 @@ class RenderSystem
 		COMRCPtr<ID3D11ShaderResourceView> GBufferSRVs[2];
 
 		COMRCPtr<ID3D11Texture2D> ResolvedDepthBufferTexture;
+		COMRCPtr<ID3D11RenderTargetView> ResolvedDepthBufferRTV;
 		COMRCPtr<ID3D11ShaderResourceView> ResolvedDepthBufferSRV;
 
 		COMRCPtr<ID3D11Texture2D> CascadedShadowMapTextures[4];
@@ -226,6 +227,7 @@ class RenderSystem
 
 		COMRCPtr<ID3D11VertexShader> FullScreenQuadVertexShader;
 
+		COMRCPtr<ID3D11PixelShader> MSAADepthResolvePixelShader;
 		COMRCPtr<ID3D11PixelShader> ShadowResolvePixelShader;
 		COMRCPtr<ID3D11PixelShader> DeferredLightingPixelShader;
 		COMRCPtr<ID3D11PixelShader> FogPixelShader;

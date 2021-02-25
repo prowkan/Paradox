@@ -167,6 +167,12 @@ void RenderSystem::InitSystem()
 
 	SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &ResolvedDepthBufferTexture));
 
+	RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
+	RTVDesc.Texture2D.MipSlice = 0;
+	RTVDesc.ViewDimension = D3D11_RTV_DIMENSION::D3D11_RTV_DIMENSION_TEXTURE2D;
+
+	SAFE_DX(Device->CreateRenderTargetView(ResolvedDepthBufferTexture, &RTVDesc, &ResolvedDepthBufferRTV));
+
 	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
 	SRVDesc.Texture2D.MipLevels = 1;
 	SRVDesc.Texture2D.MostDetailedMip = 0;
@@ -673,6 +679,13 @@ void RenderSystem::InitSystem()
 	Result = ReadFile(FullScreenQuadVertexShaderFile, FullScreenQuadVertexShaderByteCodeData, (DWORD)FullScreenQuadVertexShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(FullScreenQuadVertexShaderFile);
 
+	HANDLE MSAADepthResolvePixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/MSAADepthResolve.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+	LARGE_INTEGER MSAADepthResolvePixelShaderByteCodeLength;
+	Result = GetFileSizeEx(MSAADepthResolvePixelShaderFile, &MSAADepthResolvePixelShaderByteCodeLength);
+	void *MSAADepthResolvePixelShaderByteCodeData = malloc(MSAADepthResolvePixelShaderByteCodeLength.QuadPart);
+	Result = ReadFile(MSAADepthResolvePixelShaderFile, MSAADepthResolvePixelShaderByteCodeData, (DWORD)MSAADepthResolvePixelShaderByteCodeLength.QuadPart, NULL, NULL);
+	Result = CloseHandle(MSAADepthResolvePixelShaderFile);
+
 	HANDLE ShadowResolvePixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/ShadowResolve.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER ShadowResolvePixelShaderByteCodeLength;
 	Result = GetFileSizeEx(ShadowResolvePixelShaderFile, &ShadowResolvePixelShaderByteCodeLength);
@@ -780,6 +793,7 @@ void RenderSystem::InitSystem()
 
 	SAFE_DX(Device->CreateVertexShader(FullScreenQuadVertexShaderByteCodeData, FullScreenQuadVertexShaderByteCodeLength.QuadPart, nullptr, &FullScreenQuadVertexShader));
 
+	SAFE_DX(Device->CreatePixelShader(MSAADepthResolvePixelShaderByteCodeData, MSAADepthResolvePixelShaderByteCodeLength.QuadPart, nullptr, &MSAADepthResolvePixelShader));
 	SAFE_DX(Device->CreatePixelShader(ShadowResolvePixelShaderByteCodeData, ShadowResolvePixelShaderByteCodeLength.QuadPart, nullptr, &ShadowResolvePixelShader));
 	SAFE_DX(Device->CreatePixelShader(DeferredLightingPixelShaderByteCodeData, DeferredLightingPixelShaderByteCodeLength.QuadPart, nullptr, &DeferredLightingPixelShader));
 	SAFE_DX(Device->CreatePixelShader(FogPixelShaderByteCodeData, FogPixelShaderByteCodeLength.QuadPart, nullptr, &FogPixelShader));
@@ -793,64 +807,6 @@ void RenderSystem::InitSystem()
 	SAFE_DX(Device->CreatePixelShader(SkyPixelShaderByteCodeData, SkyPixelShaderByteCodeLength.QuadPart, nullptr, &SkyPixelShader));
 	SAFE_DX(Device->CreateVertexShader(SunVertexShaderByteCodeData, SunVertexShaderByteCodeLength.QuadPart, nullptr, &SunVertexShader));
 	SAFE_DX(Device->CreatePixelShader(SunPixelShaderByteCodeData, SunPixelShaderByteCodeLength.QuadPart, nullptr, &SunPixelShader));
-
-	/*ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
-	GraphicsPipelineStateDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE::D3D12_COLOR_WRITE_ENABLE_ALL;
-	GraphicsPipelineStateDesc.BlendState.RenderTarget[0].BlendEnable = TRUE;
-	GraphicsPipelineStateDesc.BlendState.RenderTarget[0].BlendOp = D3D12_BLEND_OP::D3D12_BLEND_OP_ADD;
-	GraphicsPipelineStateDesc.BlendState.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP::D3D12_BLEND_OP_ADD;
-	GraphicsPipelineStateDesc.BlendState.RenderTarget[0].DestBlend = D3D12_BLEND::D3D12_BLEND_SRC_ALPHA;
-	GraphicsPipelineStateDesc.BlendState.RenderTarget[0].DestBlendAlpha = D3D12_BLEND::D3D12_BLEND_ONE;
-	GraphicsPipelineStateDesc.BlendState.RenderTarget[0].SrcBlend = D3D12_BLEND::D3D12_BLEND_INV_SRC_ALPHA;
-	GraphicsPipelineStateDesc.BlendState.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND::D3D12_BLEND_ZERO;
-	GraphicsPipelineStateDesc.Flags = D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_NONE;
-	GraphicsPipelineStateDesc.InputLayout.NumElements = 0;
-	GraphicsPipelineStateDesc.InputLayout.pInputElementDescs = nullptr;
-	GraphicsPipelineStateDesc.NodeMask = 0;
-	GraphicsPipelineStateDesc.NumRenderTargets = 1;
-	GraphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE::D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	GraphicsPipelineStateDesc.pRootSignature = GraphisRootSignature;
-	GraphicsPipelineStateDesc.PS.BytecodeLength = FogPixelShaderByteCodeLength.QuadPart;
-	GraphicsPipelineStateDesc.PS.pShaderBytecode = FogPixelShaderByteCodeData;
-	GraphicsPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_BACK;
-	GraphicsPipelineStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID;
-	GraphicsPipelineStateDesc.RTVFormats[0] = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
-	GraphicsPipelineStateDesc.SampleDesc.Count = 8;
-	GraphicsPipelineStateDesc.SampleDesc.Quality = 0;
-	GraphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
-	GraphicsPipelineStateDesc.VS.BytecodeLength = FullScreenQuadVertexShaderByteCodeLength.QuadPart;
-	GraphicsPipelineStateDesc.VS.pShaderBytecode = FullScreenQuadVertexShaderByteCodeData;
-
-	SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(FogPipelineState)));
-
-	ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
-	GraphicsPipelineStateDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE::D3D12_COLOR_WRITE_ENABLE_ALL;
-	GraphicsPipelineStateDesc.BlendState.RenderTarget[0].BlendEnable = TRUE;
-	GraphicsPipelineStateDesc.BlendState.RenderTarget[0].BlendOp = D3D12_BLEND_OP::D3D12_BLEND_OP_ADD;
-	GraphicsPipelineStateDesc.BlendState.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP::D3D12_BLEND_OP_ADD;
-	GraphicsPipelineStateDesc.BlendState.RenderTarget[0].DestBlend = D3D12_BLEND::D3D12_BLEND_ONE;
-	GraphicsPipelineStateDesc.BlendState.RenderTarget[0].DestBlendAlpha = D3D12_BLEND::D3D12_BLEND_ONE;
-	GraphicsPipelineStateDesc.BlendState.RenderTarget[0].SrcBlend = D3D12_BLEND::D3D12_BLEND_ONE;
-	GraphicsPipelineStateDesc.BlendState.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND::D3D12_BLEND_ZERO;
-	GraphicsPipelineStateDesc.Flags = D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_NONE;
-	GraphicsPipelineStateDesc.InputLayout.NumElements = 0;
-	GraphicsPipelineStateDesc.InputLayout.pInputElementDescs = nullptr;
-	GraphicsPipelineStateDesc.NodeMask = 0;
-	GraphicsPipelineStateDesc.NumRenderTargets = 1;
-	GraphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE::D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	GraphicsPipelineStateDesc.pRootSignature = GraphisRootSignature;
-	GraphicsPipelineStateDesc.PS.BytecodeLength = ImageResamplePixelShaderByteCodeLength.QuadPart;
-	GraphicsPipelineStateDesc.PS.pShaderBytecode = ImageResamplePixelShaderByteCodeData;
-	GraphicsPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_BACK;
-	GraphicsPipelineStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID;
-	GraphicsPipelineStateDesc.RTVFormats[0] = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
-	GraphicsPipelineStateDesc.SampleDesc.Count = 1;
-	GraphicsPipelineStateDesc.SampleDesc.Quality = 0;
-	GraphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
-	GraphicsPipelineStateDesc.VS.BytecodeLength = FullScreenQuadVertexShaderByteCodeLength.QuadPart;
-	GraphicsPipelineStateDesc.VS.pShaderBytecode = FullScreenQuadVertexShaderByteCodeData;
-
-	SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(UpSampleWithAddBlendPipelineState)));*/
 
 	SAFE_DX(Device->CreateComputeShader(LuminanceCalcComputeShaderByteCodeData, LuminanceCalcComputeShaderByteCodeLength.QuadPart, nullptr, &LuminanceCalcComputeShader));
 	SAFE_DX(Device->CreateComputeShader(LuminanceSumComputeShaderByteCodeData, LuminanceSumComputeShaderByteCodeLength.QuadPart, nullptr, &LuminanceSumComputeShader));
@@ -892,65 +848,6 @@ void RenderSystem::InitSystem()
 	InputElementDescs[4].InstanceDataStepRate = 0;
 	InputElementDescs[4].SemanticIndex = 0;
 	InputElementDescs[4].SemanticName = "BINORMAL";
-
-	/*ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
-	GraphicsPipelineStateDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE::D3D12_COLOR_WRITE_ENABLE_ALL;
-	GraphicsPipelineStateDesc.DepthStencilState.DepthEnable = TRUE;
-	GraphicsPipelineStateDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC::D3D12_COMPARISON_FUNC_GREATER;
-	GraphicsPipelineStateDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK::D3D12_DEPTH_WRITE_MASK_ZERO;
-	GraphicsPipelineStateDesc.DSVFormat = DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
-	GraphicsPipelineStateDesc.Flags = D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_NONE;
-	GraphicsPipelineStateDesc.InputLayout.NumElements = 5;
-	GraphicsPipelineStateDesc.InputLayout.pInputElementDescs = InputElementDescs;
-	GraphicsPipelineStateDesc.NodeMask = 0;
-	GraphicsPipelineStateDesc.NumRenderTargets = 1;
-	GraphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE::D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	GraphicsPipelineStateDesc.pRootSignature = GraphisRootSignature;
-	GraphicsPipelineStateDesc.PS.BytecodeLength = SkyPixelShaderByteCodeLength.QuadPart;
-	GraphicsPipelineStateDesc.PS.pShaderBytecode = SkyPixelShaderByteCodeData;
-	GraphicsPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_BACK;
-	GraphicsPipelineStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID;
-	GraphicsPipelineStateDesc.RTVFormats[0] = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
-	GraphicsPipelineStateDesc.SampleDesc.Count = 8;
-	GraphicsPipelineStateDesc.SampleDesc.Quality = 0;
-	GraphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
-	GraphicsPipelineStateDesc.VS.BytecodeLength = SkyVertexShaderByteCodeLength.QuadPart;
-	GraphicsPipelineStateDesc.VS.pShaderBytecode = SkyVertexShaderByteCodeData;
-
-	SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(SkyPipelineState)));
-
-	ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
-	GraphicsPipelineStateDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE::D3D12_COLOR_WRITE_ENABLE_ALL;
-	GraphicsPipelineStateDesc.BlendState.RenderTarget[0].BlendEnable = TRUE;
-	GraphicsPipelineStateDesc.BlendState.RenderTarget[0].BlendOp = D3D12_BLEND_OP::D3D12_BLEND_OP_ADD;
-	GraphicsPipelineStateDesc.BlendState.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP::D3D12_BLEND_OP_ADD;
-	GraphicsPipelineStateDesc.BlendState.RenderTarget[0].DestBlend = D3D12_BLEND::D3D12_BLEND_SRC_ALPHA;
-	GraphicsPipelineStateDesc.BlendState.RenderTarget[0].DestBlendAlpha = D3D12_BLEND::D3D12_BLEND_ONE;
-	GraphicsPipelineStateDesc.BlendState.RenderTarget[0].SrcBlend = D3D12_BLEND::D3D12_BLEND_INV_SRC_ALPHA;
-	GraphicsPipelineStateDesc.BlendState.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND::D3D12_BLEND_ZERO;
-	GraphicsPipelineStateDesc.DepthStencilState.DepthEnable = TRUE;
-	GraphicsPipelineStateDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC::D3D12_COMPARISON_FUNC_GREATER;
-	GraphicsPipelineStateDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK::D3D12_DEPTH_WRITE_MASK_ZERO;
-	GraphicsPipelineStateDesc.DSVFormat = DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
-	GraphicsPipelineStateDesc.Flags = D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_NONE;
-	GraphicsPipelineStateDesc.InputLayout.NumElements = 5;
-	GraphicsPipelineStateDesc.InputLayout.pInputElementDescs = InputElementDescs;
-	GraphicsPipelineStateDesc.NodeMask = 0;
-	GraphicsPipelineStateDesc.NumRenderTargets = 1;
-	GraphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE::D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	GraphicsPipelineStateDesc.pRootSignature = GraphisRootSignature;
-	GraphicsPipelineStateDesc.PS.BytecodeLength = SunPixelShaderByteCodeLength.QuadPart;
-	GraphicsPipelineStateDesc.PS.pShaderBytecode = SunPixelShaderByteCodeData;
-	GraphicsPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_BACK;
-	GraphicsPipelineStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID;
-	GraphicsPipelineStateDesc.RTVFormats[0] = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
-	GraphicsPipelineStateDesc.SampleDesc.Count = 8;
-	GraphicsPipelineStateDesc.SampleDesc.Quality = 0;
-	GraphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
-	GraphicsPipelineStateDesc.VS.BytecodeLength = SunVertexShaderByteCodeLength.QuadPart;
-	GraphicsPipelineStateDesc.VS.pShaderBytecode = SunVertexShaderByteCodeData;
-
-	SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(SunPipelineState)));*/
 
 	free(FullScreenQuadVertexShaderByteCodeData);
 	free(DeferredLightingPixelShaderByteCodeData);
@@ -1310,6 +1207,17 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	DeviceContext->RSSetViewports(1, &Viewport);
 
+	DeviceContext->OMSetRenderTargets(1, &ResolvedDepthBufferRTV, nullptr);
+
+	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+	DeviceContext->VSSetShader(FullScreenQuadVertexShader, nullptr, 0);
+	DeviceContext->PSSetShader(MSAADepthResolvePixelShader, nullptr, 0);
+
+	DeviceContext->PSSetShaderResources(0, 1, &DepthBufferSRV);
+
+	DeviceContext->Draw(4, 0);
+
 	DeviceContext->OMSetRenderTargets(1, &ShadowMaskRTV, nullptr);
 
 	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
@@ -1377,6 +1285,11 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	DeviceContext->OMSetDepthStencilState(SkyAndSunDepthStencilState, 0);
 	DeviceContext->OMSetBlendState(BlendDisabledBlendState, nullptr, D3D11_DEFAULT_SAMPLE_MASK);
+
+	ID3D11ShaderResourceView *NullSRV = nullptr;
+
+	DeviceContext->PSSetShaderResources(0, 1, &NullSRV);
+	DeviceContext->PSSetShaderResources(2, 1, &NullSRV);
 
 	DeviceContext->OMSetRenderTargets(1, &LBufferRTV, DepthBufferDSV);
 
