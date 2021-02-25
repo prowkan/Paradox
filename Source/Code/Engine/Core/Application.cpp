@@ -11,6 +11,9 @@ atomic<bool> Application::ExceptionFlag;
 
 LRESULT CALLBACK Application::MainWindowProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
+	if (Msg == WM_INPUT)
+		Engine::GetEngine().GetInputSystem().ProcessRawMouseInput(hWnd, Msg, wParam, lParam);
+
 	if (Msg == WM_CLOSE)
 		Application::AppExitFlag = true;
 
