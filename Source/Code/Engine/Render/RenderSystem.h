@@ -6,20 +6,21 @@
 
 struct RenderMesh
 {
-	COMRCPtr<ID3D12Resource> VertexBuffer, IndexBuffer;
-	D3D12_GPU_VIRTUAL_ADDRESS VertexBufferAddress, IndexBufferAddress;
+	COMRCPtr<ID3D11Buffer> VertexBuffer, IndexBuffer;
 };
 
 struct RenderTexture
 {
-	COMRCPtr<ID3D12Resource> Texture;
-	D3D12_CPU_DESCRIPTOR_HANDLE TextureSRV;
+	COMRCPtr<ID3D11Texture2D> Texture;
+	COMRCPtr<ID3D11ShaderResourceView> TextureSRV;
 };
 
 struct RenderMaterial
 {
-	COMRCPtr<ID3D12PipelineState> GBufferOpaquePassPipelineState;
-	COMRCPtr<ID3D12PipelineState> ShadowMapPassPipelineState;
+	COMRCPtr<ID3D11VertexShader> GBufferOpaquePassVertexShader;
+	COMRCPtr<ID3D11PixelShader> GBufferOpaquePassPixelShader;
+	COMRCPtr<ID3D11VertexShader> ShadowMapPassVertexShader;
+	COMRCPtr<ID3D11PixelShader> ShadowMapPassPixelShader;
 };
 
 enum class BlockCompression { BC1, BC2, BC3, BC4, BC5 };
@@ -151,120 +152,98 @@ class RenderSystem
 
 	private:
 
-		COMRCPtr<ID3D12Device> Device;
+		COMRCPtr<ID3D11Device> Device;
 		COMRCPtr<IDXGISwapChain4> SwapChain;
 
 		int ResolutionWidth;
 		int ResolutionHeight;
 
-		COMRCPtr<ID3D12CommandQueue> CommandQueue;
-		COMRCPtr<ID3D12CommandAllocator> CommandAllocators[2];
-		COMRCPtr<ID3D12GraphicsCommandList> CommandList;
+		COMRCPtr<ID3D11DeviceContext> DeviceContext;
 
-		UINT CurrentBackBufferIndex, CurrentFrameIndex;
+		COMRCPtr<ID3D11Texture2D> BackBufferTexture;
+		COMRCPtr<ID3D11RenderTargetView> BackBufferRTV;
 
-		COMRCPtr<ID3D12Fence> FrameSyncFences[2], CopySyncFence;
-		HANDLE FrameSyncEvent, CopySyncEvent;
+		COMRCPtr<ID3D11Texture2D> DepthBufferTexture;
+		COMRCPtr<ID3D11DepthStencilView> DepthBufferDSV;
+		COMRCPtr<ID3D11ShaderResourceView> DepthBufferSRV;
 
-		COMRCPtr<ID3D12DescriptorHeap> RTDescriptorHeap, DSDescriptorHeap, CBSRUADescriptorHeap, SamplersDescriptorHeap;
-		COMRCPtr<ID3D12DescriptorHeap> ConstantBufferDescriptorHeap, TexturesDescriptorHeap;
-		COMRCPtr<ID3D12DescriptorHeap> FrameResourcesDescriptorHeaps[2], FrameSamplersDescriptorHeaps[2];
+		COMRCPtr<ID3D11Buffer> ConstantBuffer, ConstantBuffers[4];
 
-		UINT RTDescriptorsCount = 0, DSDescriptorsCount = 0, CBSRUADescriptorsCount = 0, SamplersDescriptorsCount = 0;
-		UINT ConstantBufferDescriptorsCount = 0, TexturesDescriptorsCount = 0;
+		COMRCPtr<ID3D11Texture2D> GBufferTextures[2];
+		COMRCPtr<ID3D11RenderTargetView>  GBufferRTVs[2];
+		COMRCPtr<ID3D11ShaderResourceView> GBufferSRVs[2];
 
-		COMRCPtr<ID3D12RootSignature> GraphisRootSignature, ComputeRootSignature;
+		COMRCPtr<ID3D11Texture2D> ResolvedDepthBufferTexture;
+		COMRCPtr<ID3D11ShaderResourceView> ResolvedDepthBufferSRV;
 
-		COMRCPtr<ID3D12Resource> BackBufferTextures[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE BackBufferRTVs[2];
+		COMRCPtr<ID3D11Texture2D> CascadedShadowMapTextures[4];
+		COMRCPtr<ID3D11DepthStencilView> CascadedShadowMapDSVs[4];
+		COMRCPtr<ID3D11ShaderResourceView> CascadedShadowMapSRVs[4];
 
-		COMRCPtr<ID3D12Resource> GBufferTextures[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE GBufferRTVs[2], GBufferSRVs[2];
+		COMRCPtr<ID3D11Texture2D> ShadowMaskTexture;
+		COMRCPtr<ID3D11RenderTargetView> ShadowMaskRTV;
+		COMRCPtr<ID3D11ShaderResourceView> ShadowMaskSRV;
 
-		COMRCPtr<ID3D12Resource> DepthBufferTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE DepthBufferDSV, DepthBufferSRV;
+		COMRCPtr<ID3D11Texture2D> LBufferTexture;
+		COMRCPtr<ID3D11RenderTargetView> LBufferRTV;
+		COMRCPtr<ID3D11ShaderResourceView> LBufferSRV;
 
-		COMRCPtr<ID3D12Resource> ResolvedDepthBufferTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE ResolvedDepthBufferSRV;
+		COMRCPtr<ID3D11Texture2D> ResolvedHDRSceneColorTexture;
+		COMRCPtr<ID3D11ShaderResourceView> ResolvedHDRSceneColorSRV;
 
-		COMRCPtr<ID3D12Resource> CascadedShadowMapTextures[4];
-		D3D12_CPU_DESCRIPTOR_HANDLE CascadedShadowMapDSVs[4], CascadedShadowMapSRVs[4];
+		COMRCPtr<ID3D11Texture2D> SceneLuminanceTextures[4];
+		COMRCPtr<ID3D11UnorderedAccessView> SceneLuminanceUAVs[4];
+		COMRCPtr<ID3D11ShaderResourceView> SceneLuminanceSRVs[4];
 
-		COMRCPtr<ID3D12Resource> ShadowMaskTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE ShadowMaskRTV, ShadowMaskSRV;
+		COMRCPtr<ID3D11Texture2D> AverageLuminanceTexture;
+		COMRCPtr<ID3D11UnorderedAccessView> AverageLuminanceUAV;
+		COMRCPtr<ID3D11ShaderResourceView> AverageLuminanceSRV;
 
-		COMRCPtr<ID3D12Resource> LBufferTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE LBufferRTV, LBufferSRV;
+		COMRCPtr<ID3D11Texture2D> BloomTextures[3][7];
+		COMRCPtr<ID3D11RenderTargetView> BloomRTVs[3][7];
+		COMRCPtr<ID3D11ShaderResourceView> BloomSRVs[3][7];
 
-		COMRCPtr<ID3D12Resource> ResolvedHDRSceneColorTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE ResolvedHDRSceneColorSRV;
+		COMRCPtr<ID3D11Texture2D> ToneMappedImageTexture;
+		COMRCPtr<ID3D11RenderTargetView> ToneMappedImageRTV;
 
-		COMRCPtr<ID3D12Resource> SceneLuminanceTextures[4];
-		D3D12_CPU_DESCRIPTOR_HANDLE SceneLuminanceUAVs[4], SceneLuminanceSRVs[4];
+		COMRCPtr<ID3D11Buffer> SkyVertexBuffer, SkyIndexBuffer;
+		COMRCPtr<ID3D11Buffer> SkyConstantBuffer;
+		COMRCPtr<ID3D11VertexShader> SkyVertexShader;
+		COMRCPtr<ID3D11PixelShader> SkyPixelShader;
+		COMRCPtr<ID3D11Texture2D> SkyTexture;
+		COMRCPtr<ID3D11ShaderResourceView> SkyTextureSRV;
 
-		COMRCPtr<ID3D12Resource> AverageLuminanceTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE AverageLuminanceUAV, AverageLuminanceSRV;
+		COMRCPtr<ID3D11Buffer> SunVertexBuffer, SunIndexBuffer;
+		COMRCPtr<ID3D11Buffer> SunConstantBuffer;
+		COMRCPtr<ID3D11VertexShader> SunVertexShader;
+		COMRCPtr<ID3D11PixelShader> SunPixelShader;
+		COMRCPtr<ID3D11Texture2D> SunTexture;
+		COMRCPtr<ID3D11ShaderResourceView> SunTextureSRV;
 
-		COMRCPtr<ID3D12Resource> BloomTextures[3][7];
-		D3D12_CPU_DESCRIPTOR_HANDLE BloomRTVs[3][7], BloomSRVs[3][7];
+		COMRCPtr<ID3D11Buffer> ShadowResolveConstantBuffer;
 
-		COMRCPtr<ID3D12Resource> ToneMappedImageTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE ToneMappedImageRTV;
+		COMRCPtr<ID3D11Buffer> DeferredLightingConstantBuffer;
 
-		COMRCPtr<ID3D12Resource> SkyVertexBuffer, SkyIndexBuffer;
-		D3D12_GPU_VIRTUAL_ADDRESS SkyVertexBufferAddress, SkyIndexBufferAddress;
-		COMRCPtr<ID3D12Resource> GPUSkyConstantBuffer, CPUSkyConstantBuffers[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE SkyConstantBufferCBV;
-		COMRCPtr<ID3D12PipelineState> SkyPipelineState;
-		COMRCPtr<ID3D12Resource> SkyTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE SkyTextureSRV;
+		COMRCPtr<ID3D11VertexShader> FullScreenQuadVertexShader;
 
-		COMRCPtr<ID3D12Resource> SunVertexBuffer, SunIndexBuffer;
-		D3D12_GPU_VIRTUAL_ADDRESS SunVertexBufferAddress, SunIndexBufferAddress;
-		COMRCPtr<ID3D12Resource> GPUSunConstantBuffer, CPUSunConstantBuffers[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE SunConstantBufferCBV;
-		COMRCPtr<ID3D12PipelineState> SunPipelineState;
-		COMRCPtr<ID3D12Resource> SunTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE SunTextureSRV;
+		COMRCPtr<ID3D11PixelShader> ShadowResolvePixelShader;
+		COMRCPtr<ID3D11PixelShader> DeferredLightingPixelShader;
+		COMRCPtr<ID3D11PixelShader> FogPixelShader;
+		COMRCPtr<ID3D11PixelShader> HDRToneMappingPixelShader;
+		COMRCPtr<ID3D11ComputeShader> LuminanceCalcComputeShader;
+		COMRCPtr<ID3D11ComputeShader> LuminanceSumComputeShader;
+		COMRCPtr<ID3D11ComputeShader> LuminanceAvgComputeShader;
+		COMRCPtr<ID3D11PixelShader> BrightPassPixelShader;
+		COMRCPtr<ID3D11PixelShader> ImageResamplePixelShader;
+		COMRCPtr<ID3D11PixelShader> HorizontalBlurPixelShader;
+		COMRCPtr<ID3D11PixelShader> VerticalBlurPixelShader;
 
-		COMRCPtr<ID3D12Resource> GPUShadowResolveConstantBuffer, CPUShadowResolveConstantBuffers[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE ShadowResolveConstantBufferCBV;
+		COMRCPtr<ID3D11SamplerState> TextureSampler, ShadowMapSampler, BiLinearSampler;
 
-		COMRCPtr<ID3D12Resource> GPUDeferredLightingConstantBuffer, CPUDeferredLightingConstantBuffers[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE DeferredLightingConstantBufferCBV;
-
-		COMRCPtr<ID3D12PipelineState> ShadowResolvePipelineState;
-		COMRCPtr<ID3D12PipelineState> DeferredLightingPipelineState;
-		COMRCPtr<ID3D12PipelineState> FogPipelineState;
-		COMRCPtr<ID3D12PipelineState> HDRToneMappingPipelineState;
-		COMRCPtr<ID3D12PipelineState> LuminanceCalcPipelineState;
-		COMRCPtr<ID3D12PipelineState> LuminanceSumPipelineState;
-		COMRCPtr<ID3D12PipelineState> LuminanceAvgPipelineState;
-		COMRCPtr<ID3D12PipelineState> BrightPassPipelineState;
-		COMRCPtr<ID3D12PipelineState> DownSamplePipelineState;
-		COMRCPtr<ID3D12PipelineState> HorizontalBlurPipelineState;
-		COMRCPtr<ID3D12PipelineState> VerticalBlurPipelineState;
-		COMRCPtr<ID3D12PipelineState> UpSampleWithAddBlendPipelineState;
-
-		COMRCPtr<ID3D12Resource> GPUConstantBuffer, CPUConstantBuffers[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs[20000];
-
-		COMRCPtr<ID3D12Resource> GPUConstantBuffers2[4], CPUConstantBuffers2[4][2];
-		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs2[4][20000];
-
-		D3D12_CPU_DESCRIPTOR_HANDLE TextureSampler, ShadowMapSampler, BiLinearSampler;
-
-		static const UINT MAX_MEMORY_HEAPS_COUNT = 200;
-		static const SIZE_T BUFFER_MEMORY_HEAP_SIZE = 16 * 1024 * 1024, TEXTURE_MEMORY_HEAP_SIZE = 256 * 1024 * 1024;
-		static const SIZE_T UPLOAD_HEAP_SIZE = 64 * 1024 * 1024;
-
-		COMRCPtr<ID3D12Heap> BufferMemoryHeaps[MAX_MEMORY_HEAPS_COUNT] = { nullptr }, TextureMemoryHeaps[MAX_MEMORY_HEAPS_COUNT] = { nullptr };
-		size_t BufferMemoryHeapOffsets[MAX_MEMORY_HEAPS_COUNT] = { 0 }, TextureMemoryHeapOffsets[MAX_MEMORY_HEAPS_COUNT] = { 0 };
-		int CurrentBufferMemoryHeapIndex = 0, CurrentTextureMemoryHeapIndex = 0;
-
-		COMRCPtr<ID3D12Heap> UploadHeap;
-		COMRCPtr<ID3D12Resource> UploadBuffer;
-		size_t UploadBufferOffset = 0;
+		COMRCPtr<ID3D11InputLayout> InputLayout;
+		COMRCPtr<ID3D11RasterizerState> RasterizerState;
+		COMRCPtr<ID3D11BlendState> BlendDisabledBlendState, FogBlendState, SunBlendState, AdditiveBlendState;
+		COMRCPtr<ID3D11DepthStencilState> GBufferPassDepthStencilState, ShadowMapPassDepthStencilState, SkyAndSunDepthStencilState, DepthDisabledDepthStencilState;
 
 		vector<RenderMesh*> RenderMeshDestructionQueue;
 		vector<RenderMaterial*> RenderMaterialDestructionQueue;
