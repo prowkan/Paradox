@@ -12,7 +12,7 @@ void ClusterizationSubSystem::PreComputeClustersPlanes()
 
 	XMMATRIX ProjMatrix = XMMatrixPerspectiveFovLH(3.14f / 2.0f, 16.0f / 9.0f, 0.01f, 1000.0f);
 	
-	for (int z = 0; z < 24; z++)
+	/*for (int z = 0; z < 24; z++)
 	{
 		float zNear = 0.01f * pow(1000.0f / 0.01f, z / 24.0f);
 		float zFar = 0.01f * pow(1000.0f / 0.01f, (z + 1) / 24.0f);
@@ -48,6 +48,59 @@ void ClusterizationSubSystem::PreComputeClustersPlanes()
 				ClusterIndex++;
 			}
 		}
+	}*/
+
+	for (int z = 0; z < 25; z++)
+	{
+		float ViewZ = 0.01f * pow(1000.0f / 0.01f, z / 24.0f);
+
+		XMVECTOR PlaneVertices[4];
+
+		PlaneVertices[0] = XMVectorSet(-1.0f * ViewZ / ProjMatrix.m[0][0], 1.0f * ViewZ / ProjMatrix.m[1][1], ViewZ, 1.0f);
+		PlaneVertices[1] = XMVectorSet(1.0f * ViewZ / ProjMatrix.m[0][0], 1.0f * ViewZ / ProjMatrix.m[1][1], ViewZ, 1.0f);
+		PlaneVertices[2] = XMVectorSet(-1.0f * ViewZ / ProjMatrix.m[0][0], -1.0f * ViewZ / ProjMatrix.m[1][1], ViewZ, 1.0f);
+		PlaneVertices[3] = XMVectorSet(1.0f * ViewZ / ProjMatrix.m[0][0], -1.0f * ViewZ / ProjMatrix.m[1][1], ViewZ, 1.0f);
+
+		ZPlanes[z][0] = XMPlaneNormalize(XMPlaneFromPoints(PlaneVertices[0], PlaneVertices[2], PlaneVertices[1]));
+		ZPlanes[z][1] = XMVectorNegate(ZPlanes[z][0]);
+	}
+
+	for (int y = 0; y < 19; y++)
+	{
+		float ViewYNear = 2.0f * ((18 - y) / 18.0f) - 1.0f;
+		ViewYNear = ViewYNear * 0.01f / ProjMatrix.m[1][1];
+
+		float ViewYFar = 2.0f * ((18 - y) / 18.0f) - 1.0f;
+		ViewYFar = ViewYFar * 1000.0f / ProjMatrix.m[1][1];
+
+		XMVECTOR PlaneVertices[4];
+
+		PlaneVertices[0] = XMVectorSet(-1.0f * 0.01f / ProjMatrix.m[0][0], ViewYNear, 0.01f, 1.0f);
+		PlaneVertices[1] = XMVectorSet(1.0f * 0.01f / ProjMatrix.m[0][0], ViewYNear, 0.01f, 1.0f);
+		PlaneVertices[2] = XMVectorSet(-1.0f * 1000.0f / ProjMatrix.m[0][0], ViewYFar, 1000.0f, 1.0f);
+		PlaneVertices[3] = XMVectorSet(1.0f * 1000.0f / ProjMatrix.m[0][0], ViewYFar, 1000.0f, 1.0f);
+
+		YPlanes[y][0] = XMPlaneNormalize(XMPlaneFromPoints(PlaneVertices[0], PlaneVertices[1], PlaneVertices[2]));
+		YPlanes[y][1] = XMVectorNegate(YPlanes[y][0]);
+	}
+
+	for (int x = 0; x < 33; x++)
+	{
+		float ViewXNear = 2.0f * (x / 32.0f) - 1.0f;
+		ViewXNear = ViewXNear * 0.01f / ProjMatrix.m[0][0];
+
+		float ViewXFar = 2.0f * ((x + 1) / 32.0f) - 1.0f;
+		ViewXFar = ViewXFar * 1000.0f / ProjMatrix.m[0][0];
+
+		XMVECTOR PlaneVertices[4];
+
+		PlaneVertices[0] = XMVectorSet(ViewXNear, 1.0f * 0.01f / ProjMatrix.m[1][1], 0.01f, 1.0f);
+		PlaneVertices[1] = XMVectorSet(ViewXFar, 1.0f * 1000.0f / ProjMatrix.m[1][1], 1000.0f, 1.0f);
+		PlaneVertices[2] = XMVectorSet(ViewXNear, -1.0f * 0.01f / ProjMatrix.m[1][1], 0.01f, 1.0f);
+		PlaneVertices[3] = XMVectorSet(ViewXFar, -1.0f * 1000.0f / ProjMatrix.m[1][1], 1000.0f, 1.0f);
+
+		XPlanes[x][0] = XMPlaneNormalize(XMPlaneFromPoints(PlaneVertices[0], PlaneVertices[1], PlaneVertices[2]));
+		XPlanes[x][1] = XMVectorNegate(XPlanes[x][0]);
 	}
 }
 
@@ -72,18 +125,18 @@ void ClusterizationSubSystem::ClusterizeLights(const vector<PointLightComponent*
 
 		for (int z = 0; z < 24; z++)
 		{
-			if (XMVectorGetX(XMPlaneDotCoord(ClustersPlanes[z * 32 * 18][0], SphereCenter)) < -SphereRadius) continue;
-			if (XMVectorGetX(XMPlaneDotCoord(ClustersPlanes[z * 32 * 18][1], SphereCenter)) < -SphereRadius) continue;
+			if (XMVectorGetX(XMPlaneDotCoord(ZPlanes[z][0], SphereCenter)) < -SphereRadius) continue;
+			if (XMVectorGetX(XMPlaneDotCoord(ZPlanes[z + 1][1], SphereCenter)) < -SphereRadius) continue;
 
 			for (int y = 0; y < 18; y++)
 			{
-				if (XMVectorGetX(XMPlaneDotCoord(ClustersPlanes[z * 32 * 18 + y * 32][2], SphereCenter)) < -SphereRadius) continue;
-				if (XMVectorGetX(XMPlaneDotCoord(ClustersPlanes[z * 32 * 18 + y * 32][3], SphereCenter)) < -SphereRadius) continue;
+				if (XMVectorGetX(XMPlaneDotCoord(YPlanes[y][0], SphereCenter)) < -SphereRadius) continue;
+				if (XMVectorGetX(XMPlaneDotCoord(YPlanes[y + 1][1], SphereCenter)) < -SphereRadius) continue;
 
 				for (int x = 0; x < 32; x++)
 				{
-					if (XMVectorGetX(XMPlaneDotCoord(ClustersPlanes[z * 32 * 18 + y * 32 + x][4], SphereCenter)) < -SphereRadius) continue;
-					if (XMVectorGetX(XMPlaneDotCoord(ClustersPlanes[z * 32 * 18 + y * 32 + x][5], SphereCenter)) < -SphereRadius) continue;
+					if (XMVectorGetX(XMPlaneDotCoord(XPlanes[x][0], SphereCenter)) < -SphereRadius) continue;
+					if (XMVectorGetX(XMPlaneDotCoord(XPlanes[x + 1][1], SphereCenter)) < -SphereRadius) continue;
 
 
 					LocalLightIndices[z * 32 * 18 + y * 32 + x][LightClustersData[z * 32 * 18 + y * 32 + x].Count] = i;
