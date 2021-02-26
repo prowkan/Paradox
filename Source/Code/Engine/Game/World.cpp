@@ -656,12 +656,6 @@ void World::LoadWorld()
 			pointLightEntity->GetPointLightComponent()->SetColor(XMFLOAT3((i + 51) / 100.0f, 0.1f, (j + 51) / 100.0f));
 		}
 	}
-
-	/*PointLightEntity *pointLightEntity = SpawnEntity<PointLightEntity>();
-	pointLightEntity->GetTransformComponent()->SetLocation(XMFLOAT3(0.0f, 10.0f, 0.0f));
-	pointLightEntity->GetPointLightComponent()->SetBrightness(10.0f);
-	pointLightEntity->GetPointLightComponent()->SetRadius(20.0f);
-	pointLightEntity->GetPointLightComponent()->SetColor(XMFLOAT3(1.0f, 1.0f, 1.0f));*/
 }
 
 void World::UnLoadWorld()

@@ -12,7 +12,7 @@ void ClusterizationSubSystem::PreComputeClustersPlanes()
 
 	XMMATRIX ProjMatrix = XMMatrixPerspectiveFovLH(3.14f / 2.0f, 16.0f / 9.0f, 0.01f, 1000.0f);
 	
-	for (int z = 0; z < 24; z++)
+	/*for (int z = 0; z < 24; z++)
 	{
 		float zNear = 0.01f * pow(1000.0f / 0.01f, z / 24.0f);
 		float zFar = 0.01f * pow(1000.0f / 0.01f, (z + 1) / 24.0f);
@@ -38,26 +38,17 @@ void ClusterizationSubSystem::PreComputeClustersPlanes()
 				ClusterVertices[6] = XMVectorSet(xLeft * zFar / ProjMatrix.m[0][0], yTop * zFar / ProjMatrix.m[1][1], zFar, 1.0f);
 				ClusterVertices[7] = XMVectorSet(xRight * zFar / ProjMatrix.m[0][0], yTop * zFar / ProjMatrix.m[1][1], zFar, 1.0f);
 
-				/*ClustersPlanes[ClusterIndex][0] = XMPlaneFromPoints(ClusterVertices[0], ClusterVertices[2], ClusterVertices[1]);
+				ClustersPlanes[ClusterIndex][0] = XMPlaneFromPoints(ClusterVertices[0], ClusterVertices[2], ClusterVertices[1]);
 				ClustersPlanes[ClusterIndex][1] = XMPlaneFromPoints(ClusterVertices[6], ClusterVertices[4], ClusterVertices[5]);
 				ClustersPlanes[ClusterIndex][2] = XMPlaneFromPoints(ClusterVertices[0], ClusterVertices[1], ClusterVertices[5]);
 				ClustersPlanes[ClusterIndex][3] = XMPlaneFromPoints(ClusterVertices[6], ClusterVertices[7], ClusterVertices[2]);
 				ClustersPlanes[ClusterIndex][4] = XMPlaneFromPoints(ClusterVertices[0], ClusterVertices[4], ClusterVertices[6]);
-				ClustersPlanes[ClusterIndex][5] = XMPlaneFromPoints(ClusterVertices[7], ClusterVertices[5], ClusterVertices[3]);*/
+				ClustersPlanes[ClusterIndex][5] = XMPlaneFromPoints(ClusterVertices[7], ClusterVertices[5], ClusterVertices[3]);
 
-				ClusterPointsCoords[z][y][x][0] = XMFLOAT3(XMVectorGetX(ClusterVertices[0]), XMVectorGetY(ClusterVertices[0]), XMVectorGetZ(ClusterVertices[0]));
-				ClusterPointsCoords[z][y][x][1] = XMFLOAT3(XMVectorGetX(ClusterVertices[1]), XMVectorGetY(ClusterVertices[1]), XMVectorGetZ(ClusterVertices[1]));
-				ClusterPointsCoords[z][y][x][2] = XMFLOAT3(XMVectorGetX(ClusterVertices[2]), XMVectorGetY(ClusterVertices[2]), XMVectorGetZ(ClusterVertices[2]));
-				ClusterPointsCoords[z][y][x][3] = XMFLOAT3(XMVectorGetX(ClusterVertices[3]), XMVectorGetY(ClusterVertices[3]), XMVectorGetZ(ClusterVertices[3]));
-				ClusterPointsCoords[z][y][x][4] = XMFLOAT3(XMVectorGetX(ClusterVertices[4]), XMVectorGetY(ClusterVertices[4]), XMVectorGetZ(ClusterVertices[4]));
-				ClusterPointsCoords[z][y][x][5] = XMFLOAT3(XMVectorGetX(ClusterVertices[5]), XMVectorGetY(ClusterVertices[5]), XMVectorGetZ(ClusterVertices[5]));
-				ClusterPointsCoords[z][y][x][6] = XMFLOAT3(XMVectorGetX(ClusterVertices[6]), XMVectorGetY(ClusterVertices[6]), XMVectorGetZ(ClusterVertices[6]));
-				ClusterPointsCoords[z][y][x][7] = XMFLOAT3(XMVectorGetX(ClusterVertices[7]), XMVectorGetY(ClusterVertices[7]), XMVectorGetZ(ClusterVertices[7]));
-
-				//ClusterIndex++;
+				ClusterIndex++;
 			}
 		}
-	}
+	}*/
 
 	for (int z = 0; z < 25; z++)
 	{
@@ -98,7 +89,7 @@ void ClusterizationSubSystem::PreComputeClustersPlanes()
 		float ViewXNear = 2.0f * (x / 32.0f) - 1.0f;
 		ViewXNear = ViewXNear * 0.01f / ProjMatrix.m[0][0];
 
-		float ViewXFar = 2.0f * ((x + 1) / 32.0f) - 1.0f;
+		float ViewXFar = 2.0f * (x / 32.0f) - 1.0f;
 		ViewXFar = ViewXFar * 1000.0f / ProjMatrix.m[0][0];
 
 		XMVECTOR PlaneVertices[4];

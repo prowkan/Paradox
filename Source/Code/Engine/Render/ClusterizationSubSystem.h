@@ -30,6 +30,4 @@ class ClusterizationSubSystem
 		XMVECTOR XPlanes[33][2], YPlanes[19][2], ZPlanes[25][2];
 
 		uint16_t LocalLightIndices[32 * 18 * 24][256];
-
-		XMFLOAT3 ClusterPointsCoords[24][18][32][8];
 };
