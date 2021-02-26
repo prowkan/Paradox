@@ -20,6 +20,7 @@ class MemoryManager
 		Pool TransformComponentsPool;
 		Pool BoundingBoxComponentsPool;
 		Pool StaticMeshComponentsPool;
+		Pool PointLightComponentsPool;
 
 		Heap EntitiesHeap;
 };

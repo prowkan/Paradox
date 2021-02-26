@@ -6,18 +6,21 @@
 #include <Game/MetaClass.h>
 
 #include <Game/Entities/Render/Meshes/StaticMeshEntity.h>
+#include <Game/Entities/Render/Lights/PointLightEntity.h>
 
 #include <Game/Components/Common/TransformComponent.h>
 #include <Game/Components/Common/BoundingBoxComponent.h>
 #include <Game/Components/Render/Meshes/StaticMeshComponent.h>
+#include <Game/Components/Render/Lights/PointLightComponent.h>
 
 void MemoryManager::InitManager()
 {
-	EntitiesHeap.CreateHeap(20000 * sizeof(StaticMeshEntity));
+	EntitiesHeap.CreateHeap(20000 * sizeof(StaticMeshEntity) + 10000 * sizeof(PointLightEntity));
 
-	TransformComponentsPool.CreatePool(sizeof(TransformComponent), 20000);
+	TransformComponentsPool.CreatePool(sizeof(TransformComponent), 30000);
 	BoundingBoxComponentsPool.CreatePool(sizeof(BoundingBoxComponent), 20000);
 	StaticMeshComponentsPool.CreatePool(sizeof(StaticMeshComponent), 20000);
+	PointLightComponentsPool.CreatePool(sizeof(PointLightComponent), 10000);
 }
 
 void MemoryManager::ShutdownManager()
@@ -25,6 +28,7 @@ void MemoryManager::ShutdownManager()
 	TransformComponentsPool.DestroyPool();
 	BoundingBoxComponentsPool.DestroyPool();
 	StaticMeshComponentsPool.DestroyPool();
+	PointLightComponentsPool.DestroyPool();
 
 	EntitiesHeap.DestroyHeap();
 }
@@ -39,6 +43,7 @@ void* MemoryManager::AllocateComponent(MetaClass* metaClass)
 	if (metaClass == TransformComponent::GetMetaClassStatic()) return TransformComponentsPool.AllocateObject();
 	if (metaClass == BoundingBoxComponent::GetMetaClassStatic()) return BoundingBoxComponentsPool.AllocateObject();
 	if (metaClass == StaticMeshComponent::GetMetaClassStatic()) return StaticMeshComponentsPool.AllocateObject();
+	if (metaClass == PointLightComponent::GetMetaClassStatic()) return PointLightComponentsPool.AllocateObject();
 
 	return malloc(metaClass->GetClassSize());
 }
