@@ -10,6 +10,7 @@
 #include <Game/Components/Common/TransformComponent.h>
 #include <Game/Components/Common/BoundingBoxComponent.h>
 #include <Game/Components/Render/Meshes/StaticMeshComponent.h>
+#include <Game/Components/Render/Lights/PointLightComponent.h>
 
 #include <ResourceManager/Resources/Render/Meshes/StaticMeshResource.h>
 #include <ResourceManager/Resources/Render/Materials/MaterialResource.h>
@@ -17,6 +18,8 @@
 
 void RenderSystem::InitSystem()
 {
+	clusterizationSubSystem.PreComputeClustersPlanes();
+
 	UINT FactoryCreationFlags = 0;
 	UINT DeviceCreationFlags = 0;
 	
@@ -441,6 +444,54 @@ void RenderSystem::InitSystem()
 	BufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_DYNAMIC;
 
 	SAFE_DX(Device->CreateBuffer(&BufferDesc, nullptr, &DeferredLightingConstantBuffer));
+
+	BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
+	BufferDesc.ByteWidth = 2 * sizeof(uint32_t) * 32 * 18 * 24;
+	BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_WRITE;
+	BufferDesc.MiscFlags = 0;
+	BufferDesc.StructureByteStride = 0;
+	BufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_DYNAMIC;
+
+	SAFE_DX(Device->CreateBuffer(&BufferDesc, nullptr, &LightClustersBuffer));
+
+	SRVDesc.Buffer.FirstElement = 0;
+	SRVDesc.Buffer.NumElements = 32 * 18 * 24;
+	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32G32_UINT;
+	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_BUFFER;
+
+	SAFE_DX(Device->CreateShaderResourceView(LightClustersBuffer, &SRVDesc, &LightClustersSRV));
+
+	BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
+	BufferDesc.ByteWidth = 256 * sizeof(uint16_t) * 32 * 18 * 24;
+	BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_WRITE;
+	BufferDesc.MiscFlags = 0;
+	BufferDesc.StructureByteStride = 0;
+	BufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_DYNAMIC;
+
+	SAFE_DX(Device->CreateBuffer(&BufferDesc, nullptr, &LightIndicesBuffer));
+
+	SRVDesc.Buffer.FirstElement = 0;
+	SRVDesc.Buffer.NumElements = 256 * 32 * 18 * 24;
+	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
+	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_BUFFER;
+
+	SAFE_DX(Device->CreateShaderResourceView(LightIndicesBuffer, &SRVDesc, &LightIndicesSRV));
+
+	BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
+	BufferDesc.ByteWidth = 10000 * 2 * 4 * sizeof(float);
+	BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_WRITE;
+	BufferDesc.MiscFlags = D3D11_RESOURCE_MISC_FLAG::D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+	BufferDesc.StructureByteStride = 2 * 4 * sizeof(float);
+	BufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_DYNAMIC;
+
+	SAFE_DX(Device->CreateBuffer(&BufferDesc, nullptr, &PointLightsBuffer));
+
+	SRVDesc.Buffer.FirstElement = 0;
+	SRVDesc.Buffer.NumElements = 10000;
+	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
+	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_BUFFER;
+
+	SAFE_DX(Device->CreateShaderResourceView(PointLightsBuffer, &SRVDesc, &PointLightsSRV));
 
 	UINT SkyMeshVertexCount = 1 + 25 * 100 + 1;
 	UINT SkyMeshIndexCount = 300 + 24 * 600 + 300;
@@ -1029,6 +1080,35 @@ void RenderSystem::TickSystem(float DeltaTime)
 	vector<StaticMeshComponent*> VisbleStaticMeshComponents = cullingSubSystem.GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ViewProjMatrix);
 	size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.size();
 
+	vector<PointLightComponent*> AllPointLightComponents = Engine::GetEngine().GetGameFramework().GetWorld().GetRenderScene().GetPointLightComponents();
+	vector<PointLightComponent*> VisblePointLightComponents = cullingSubSystem.GetVisiblePointLightsInFrustum(AllPointLightComponents, ViewProjMatrix);
+
+	XMMATRIX ViewMatrix = Engine::GetEngine().GetGameFramework().GetCamera().GetViewMatrix();
+	XMMATRIX ProjMatrix = Engine::GetEngine().GetGameFramework().GetCamera().GetProjMatrix();
+
+	clusterizationSubSystem.ClusterizeLights(VisblePointLightComponents, ViewMatrix);
+
+	struct PointLight
+	{
+		XMFLOAT3 Position;
+		float Radius;
+		XMFLOAT3 Color;
+		float Brightness;
+	};
+
+	vector<PointLight> PointLights;
+
+	for (PointLightComponent *pointLightComponent : VisblePointLightComponents)
+	{
+		PointLight pointLight;
+		pointLight.Brightness = pointLightComponent->GetBrightness();
+		pointLight.Color = pointLightComponent->GetColor();
+		pointLight.Position = pointLightComponent->GetTransformComponent()->GetLocation();
+		pointLight.Radius = pointLightComponent->GetRadius();
+
+		PointLights.push_back(pointLight);
+	}
+
 	OPTICK_EVENT("Draw Calls")
 
 	ID3D11RenderTargetView *GBufferRTVs[2] = { this->GBufferRTVs[0], this->GBufferRTVs[1] };
@@ -1263,6 +1343,24 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	DeviceContext->Unmap(DeferredLightingConstantBuffer, 0);
 
+	DeviceContext->Map(LightClustersBuffer, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, 0, &MappedSubResource);
+
+	memcpy(MappedSubResource.pData, clusterizationSubSystem.GetLightClustersData(), 32 * 18 * 24 * 2 * sizeof(uint32_t));
+
+	DeviceContext->Unmap(LightClustersBuffer, 0);
+
+	DeviceContext->Map(LightIndicesBuffer, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, 0, &MappedSubResource);
+
+	memcpy(MappedSubResource.pData, clusterizationSubSystem.GetLightIndicesData(), clusterizationSubSystem.GetTotalIndexCount() * sizeof(uint16_t));
+
+	DeviceContext->Unmap(LightIndicesBuffer, 0);
+
+	DeviceContext->Map(PointLightsBuffer, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, 0, &MappedSubResource);
+
+	memcpy(MappedSubResource.pData, PointLights.data(), PointLights.size() * sizeof(PointLight));
+
+	DeviceContext->Unmap(PointLightsBuffer, 0);
+
 	DeviceContext->VSSetShader(FullScreenQuadVertexShader, nullptr, 0);
 	DeviceContext->PSSetShader(DeferredLightingPixelShader, nullptr, 0);
 
@@ -1271,6 +1369,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 	DeviceContext->PSSetShaderResources(1, 1, &GBufferSRVs[1]);
 	DeviceContext->PSSetShaderResources(2, 1, &DepthBufferSRV);
 	DeviceContext->PSSetShaderResources(3, 1, &ShadowMaskSRV);
+	DeviceContext->PSSetShaderResources(4, 1, &LightClustersSRV);
+	DeviceContext->PSSetShaderResources(5, 1, &LightIndicesSRV);
+	DeviceContext->PSSetShaderResources(6, 1, &PointLightsSRV);
 
 	DeviceContext->Draw(4, 0);
 
@@ -1318,9 +1419,6 @@ void RenderSystem::TickSystem(float DeltaTime)
 	DeviceContext->PSSetShaderResources(0, 1, &SkyTextureSRV);
 
 	DeviceContext->DrawIndexed(300 + 24 * 600 + 300, 0, 0);
-
-	XMMATRIX ViewMatrix = Engine::GetEngine().GetGameFramework().GetCamera().GetViewMatrix();
-	XMMATRIX ProjMatrix = Engine::GetEngine().GetGameFramework().GetCamera().GetProjMatrix();
 
 	XMFLOAT3 SunPosition(-500.0f + CameraLocation.x, 500.0f + CameraLocation.y, -500.f + CameraLocation.z);
 	

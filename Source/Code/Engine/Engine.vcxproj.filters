@@ -114,6 +114,9 @@
     <ClInclude Include="Game\Components\Render\Lights\PointLightComponent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Render\ClusterizationSubSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="StdAfx.cpp">
@@ -213,6 +216,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Game\Components\Render\Lights\PointLightComponent.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Render\ClusterizationSubSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
