@@ -1671,112 +1671,112 @@ void RenderSystem::InitSystem()
 	HANDLE FullScreenQuadVertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/FullScreenQuad.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER FullScreenQuadVertexShaderByteCodeLength;
 	BOOL Result = GetFileSizeEx(FullScreenQuadVertexShaderFile, &FullScreenQuadVertexShaderByteCodeLength);
-	void *FullScreenQuadVertexShaderByteCodeData = malloc(FullScreenQuadVertexShaderByteCodeLength.QuadPart);
+	ScopedMemoryBlockArray<BYTE> FullScreenQuadVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(FullScreenQuadVertexShaderByteCodeLength.QuadPart);
 	Result = ReadFile(FullScreenQuadVertexShaderFile, FullScreenQuadVertexShaderByteCodeData, (DWORD)FullScreenQuadVertexShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(FullScreenQuadVertexShaderFile);
 
 	HANDLE ShadowResolvePixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/ShadowResolve.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER ShadowResolvePixelShaderByteCodeLength;
 	Result = GetFileSizeEx(ShadowResolvePixelShaderFile, &ShadowResolvePixelShaderByteCodeLength);
-	void *ShadowResolvePixelShaderByteCodeData = malloc(ShadowResolvePixelShaderByteCodeLength.QuadPart);
+	ScopedMemoryBlockArray<BYTE> ShadowResolvePixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(ShadowResolvePixelShaderByteCodeLength.QuadPart);
 	Result = ReadFile(ShadowResolvePixelShaderFile, ShadowResolvePixelShaderByteCodeData, (DWORD)ShadowResolvePixelShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(ShadowResolvePixelShaderFile);
 
 	HANDLE DeferredLightingPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/DeferredLighting.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER DeferredLightingPixelShaderByteCodeLength;
 	Result = GetFileSizeEx(DeferredLightingPixelShaderFile, &DeferredLightingPixelShaderByteCodeLength);
-	void *DeferredLightingPixelShaderByteCodeData = malloc(DeferredLightingPixelShaderByteCodeLength.QuadPart);
+	ScopedMemoryBlockArray<BYTE> DeferredLightingPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(DeferredLightingPixelShaderByteCodeLength.QuadPart);
 	Result = ReadFile(DeferredLightingPixelShaderFile, DeferredLightingPixelShaderByteCodeData, (DWORD)DeferredLightingPixelShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(DeferredLightingPixelShaderFile);
 
 	HANDLE FogPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/Fog.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER FogPixelShaderByteCodeLength;
 	Result = GetFileSizeEx(FogPixelShaderFile, &FogPixelShaderByteCodeLength);
-	void *FogPixelShaderByteCodeData = malloc(FogPixelShaderByteCodeLength.QuadPart);
+	ScopedMemoryBlockArray<BYTE> FogPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(FogPixelShaderByteCodeLength.QuadPart);
 	Result = ReadFile(FogPixelShaderFile, FogPixelShaderByteCodeData, (DWORD)FogPixelShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(FogPixelShaderFile);
 
 	HANDLE HDRToneMappingPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/HDRToneMapping.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER HDRToneMappingPixelShaderByteCodeLength;
 	Result = GetFileSizeEx(HDRToneMappingPixelShaderFile, &HDRToneMappingPixelShaderByteCodeLength);
-	void *HDRToneMappingPixelShaderByteCodeData = malloc(HDRToneMappingPixelShaderByteCodeLength.QuadPart);
+	ScopedMemoryBlockArray<BYTE> HDRToneMappingPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(HDRToneMappingPixelShaderByteCodeLength.QuadPart);
 	Result = ReadFile(HDRToneMappingPixelShaderFile, HDRToneMappingPixelShaderByteCodeData, (DWORD)HDRToneMappingPixelShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(HDRToneMappingPixelShaderFile);
 
 	HANDLE LuminanceCalcComputeShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/LuminanceCalc.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER LuminanceCalcComputeShaderByteCodeLength;
 	Result = GetFileSizeEx(LuminanceCalcComputeShaderFile, &LuminanceCalcComputeShaderByteCodeLength);
-	void *LuminanceCalcComputeShaderByteCodeData = malloc(LuminanceCalcComputeShaderByteCodeLength.QuadPart);
+	ScopedMemoryBlockArray<BYTE> LuminanceCalcComputeShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(LuminanceCalcComputeShaderByteCodeLength.QuadPart);
 	Result = ReadFile(LuminanceCalcComputeShaderFile, LuminanceCalcComputeShaderByteCodeData, (DWORD)LuminanceCalcComputeShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(LuminanceCalcComputeShaderFile);
 
 	HANDLE LuminanceSumComputeShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/LuminanceSum.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER LuminanceSumComputeShaderByteCodeLength;
 	Result = GetFileSizeEx(LuminanceSumComputeShaderFile, &LuminanceSumComputeShaderByteCodeLength);
-	void *LuminanceSumComputeShaderByteCodeData = malloc(LuminanceSumComputeShaderByteCodeLength.QuadPart);
+	ScopedMemoryBlockArray<BYTE> LuminanceSumComputeShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(LuminanceSumComputeShaderByteCodeLength.QuadPart);
 	Result = ReadFile(LuminanceSumComputeShaderFile, LuminanceSumComputeShaderByteCodeData, (DWORD)LuminanceSumComputeShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(LuminanceSumComputeShaderFile);
 
 	HANDLE LuminanceAvgComputeShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/LuminanceAvg.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER LuminanceAvgComputeShaderByteCodeLength;
 	Result = GetFileSizeEx(LuminanceAvgComputeShaderFile, &LuminanceAvgComputeShaderByteCodeLength);
-	void *LuminanceAvgComputeShaderByteCodeData = malloc(LuminanceAvgComputeShaderByteCodeLength.QuadPart);
+	ScopedMemoryBlockArray<BYTE> LuminanceAvgComputeShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(LuminanceAvgComputeShaderByteCodeLength.QuadPart);
 	Result = ReadFile(LuminanceAvgComputeShaderFile, LuminanceAvgComputeShaderByteCodeData, (DWORD)LuminanceAvgComputeShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(LuminanceAvgComputeShaderFile);
 
 	HANDLE SkyVertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SkyVertexShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER SkyVertexShaderByteCodeLength;
 	Result = GetFileSizeEx(SkyVertexShaderFile, &SkyVertexShaderByteCodeLength);
-	void *SkyVertexShaderByteCodeData = malloc(SkyVertexShaderByteCodeLength.QuadPart);
+	ScopedMemoryBlockArray<BYTE> SkyVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(SkyVertexShaderByteCodeLength.QuadPart);
 	Result = ReadFile(SkyVertexShaderFile, SkyVertexShaderByteCodeData, (DWORD)SkyVertexShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(SkyVertexShaderFile);
 
 	HANDLE SkyPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SkyPixelShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER SkyPixelShaderByteCodeLength;
 	Result = GetFileSizeEx(SkyPixelShaderFile, &SkyPixelShaderByteCodeLength);
-	void *SkyPixelShaderByteCodeData = malloc(SkyPixelShaderByteCodeLength.QuadPart);
+	ScopedMemoryBlockArray<BYTE> SkyPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(SkyPixelShaderByteCodeLength.QuadPart);
 	Result = ReadFile(SkyPixelShaderFile, SkyPixelShaderByteCodeData, (DWORD)SkyPixelShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(SkyPixelShaderFile);
 
 	HANDLE SunVertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SunVertexShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER SunVertexShaderByteCodeLength;
 	Result = GetFileSizeEx(SunVertexShaderFile, &SunVertexShaderByteCodeLength);
-	void *SunVertexShaderByteCodeData = malloc(SunVertexShaderByteCodeLength.QuadPart);
+	ScopedMemoryBlockArray<BYTE> SunVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(SunVertexShaderByteCodeLength.QuadPart);
 	Result = ReadFile(SunVertexShaderFile, SunVertexShaderByteCodeData, (DWORD)SunVertexShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(SunVertexShaderFile);
 
 	HANDLE SunPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SunPixelShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER SunPixelShaderByteCodeLength;
 	Result = GetFileSizeEx(SunPixelShaderFile, &SunPixelShaderByteCodeLength);
-	void *SunPixelShaderByteCodeData = malloc(SunPixelShaderByteCodeLength.QuadPart);
+	ScopedMemoryBlockArray<BYTE> SunPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(SunPixelShaderByteCodeLength.QuadPart);
 	Result = ReadFile(SunPixelShaderFile, SunPixelShaderByteCodeData, (DWORD)SunPixelShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(SunPixelShaderFile);
 
 	HANDLE BrightPassPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/BrightPass.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER BrightPassPixelShaderByteCodeLength;
 	Result = GetFileSizeEx(BrightPassPixelShaderFile, &BrightPassPixelShaderByteCodeLength);
-	void *BrightPassPixelShaderByteCodeData = malloc(BrightPassPixelShaderByteCodeLength.QuadPart);
+	ScopedMemoryBlockArray<BYTE> BrightPassPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(BrightPassPixelShaderByteCodeLength.QuadPart);
 	Result = ReadFile(BrightPassPixelShaderFile, BrightPassPixelShaderByteCodeData, (DWORD)BrightPassPixelShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(BrightPassPixelShaderFile);
 
 	HANDLE ImageResamplePixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/ImageResample.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER ImageResamplePixelShaderByteCodeLength;
 	Result = GetFileSizeEx(ImageResamplePixelShaderFile, &ImageResamplePixelShaderByteCodeLength);
-	void *ImageResamplePixelShaderByteCodeData = malloc(ImageResamplePixelShaderByteCodeLength.QuadPart);
+	ScopedMemoryBlockArray<BYTE> ImageResamplePixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(ImageResamplePixelShaderByteCodeLength.QuadPart);
 	Result = ReadFile(ImageResamplePixelShaderFile, ImageResamplePixelShaderByteCodeData, (DWORD)ImageResamplePixelShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(ImageResamplePixelShaderFile);
 
 	HANDLE HorizontalBlurPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/HorizontalBlur.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER HorizontalBlurPixelShaderByteCodeLength;
 	Result = GetFileSizeEx(HorizontalBlurPixelShaderFile, &HorizontalBlurPixelShaderByteCodeLength);
-	void *HorizontalBlurPixelShaderByteCodeData = malloc(HorizontalBlurPixelShaderByteCodeLength.QuadPart);
+	ScopedMemoryBlockArray<BYTE> HorizontalBlurPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(HorizontalBlurPixelShaderByteCodeLength.QuadPart);
 	Result = ReadFile(HorizontalBlurPixelShaderFile, HorizontalBlurPixelShaderByteCodeData, (DWORD)HorizontalBlurPixelShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(HorizontalBlurPixelShaderFile);
 
 	HANDLE VerticalBlurPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/VerticalBlur.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER VerticalBlurPixelShaderByteCodeLength;
 	Result = GetFileSizeEx(VerticalBlurPixelShaderFile, &VerticalBlurPixelShaderByteCodeLength);
-	void *VerticalBlurPixelShaderByteCodeData = malloc(VerticalBlurPixelShaderByteCodeLength.QuadPart);
+	ScopedMemoryBlockArray<BYTE> VerticalBlurPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(VerticalBlurPixelShaderByteCodeLength.QuadPart);
 	Result = ReadFile(VerticalBlurPixelShaderFile, VerticalBlurPixelShaderByteCodeData, (DWORD)VerticalBlurPixelShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(VerticalBlurPixelShaderFile);
 
@@ -2110,14 +2110,6 @@ void RenderSystem::InitSystem()
 	GraphicsPipelineStateDesc.VS.pShaderBytecode = SunVertexShaderByteCodeData;
 
 	SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(SunPipelineState)));
-
-	free(FullScreenQuadVertexShaderByteCodeData);
-	free(DeferredLightingPixelShaderByteCodeData);
-	free(HDRToneMappingPixelShaderByteCodeData);
-	free(SkyVertexShaderByteCodeData);
-	free(SkyPixelShaderByteCodeData);
-	free(SunVertexShaderByteCodeData);
-	free(SunPixelShaderByteCodeData);
 
 	ResourceDesc.Alignment = 0;
 	ResourceDesc.DepthOrArraySize = 1;
