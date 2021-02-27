@@ -182,7 +182,6 @@
     <ClInclude Include="MemoryManager\Heap.h" />
     <ClInclude Include="MemoryManager\MemoryManager.h" />
     <ClInclude Include="MemoryManager\Pool.h" />
-    <ClInclude Include="MemoryManager\ScopedMemoryBlock.h" />
     <ClInclude Include="MemoryManager\Stack.h" />
     <ClInclude Include="MultiThreading\MultiThreadingSystem.h" />
     <ClInclude Include="MultiThreading\Task.h" />

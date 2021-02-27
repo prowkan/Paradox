@@ -20,13 +20,19 @@ class ClusterizationSubSystem
 
 		void ClusterizeLights(const vector<PointLightComponent*>& InputPointLights, const XMMATRIX& ViewMatrix);
 
+		static const UINT CLUSTERS_COUNT_X = 32;
+		static const UINT CLUSTERS_COUNT_Y = 18;
+		static const UINT CLUSTERS_COUNT_Z = 24;
+
+		static const UINT MAX_LIGHTS_PER_CLUSTER = 256;
+
 	private:
 
-		LightCluster LightClustersData[32 * 18 * 24];
-		uint16_t LightIndicesData[256 * 32 * 18 * 24];
+		LightCluster LightClustersData[CLUSTERS_COUNT_X * CLUSTERS_COUNT_Y * CLUSTERS_COUNT_Z];
+		uint16_t LightIndicesData[MAX_LIGHTS_PER_CLUSTER * CLUSTERS_COUNT_X * CLUSTERS_COUNT_Y * CLUSTERS_COUNT_Z];
 		uint32_t TotalIndexCount;
 
-		XMVECTOR XPlanes[33], YPlanes[19], ZPlanes[25];
+		XMVECTOR XPlanes[CLUSTERS_COUNT_X + 1], YPlanes[CLUSTERS_COUNT_Y + 1], ZPlanes[CLUSTERS_COUNT_Z + 1];
 
-		uint16_t LocalLightIndices[32 * 18 * 24][256];
+		uint16_t LocalLightIndices[CLUSTERS_COUNT_X * CLUSTERS_COUNT_Y * CLUSTERS_COUNT_Z][MAX_LIGHTS_PER_CLUSTER];
 };

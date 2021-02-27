@@ -120,9 +120,6 @@
     <ClInclude Include="MemoryManager\Stack.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MemoryManager\ScopedMemoryBlock.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="StdAfx.cpp">

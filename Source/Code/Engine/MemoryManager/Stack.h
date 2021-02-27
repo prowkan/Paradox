@@ -1,7 +1,5 @@
 #pragma once
 
-//#include "ScopedMemoryBlock.h"
-
 template<typename T>
 class ScopedMemoryBlock;
 
@@ -42,6 +40,8 @@ class ScopedMemoryBlock
 
 		}
 
+		//ScopedMemoryBlock(const ScopedMemoryBlock& OtherScopedMemoryBlock) = delete;
+
 		~ScopedMemoryBlock()
 		{
 			StackAllocator.DeAllocateToStack(BlockSize);
@@ -80,6 +80,8 @@ class ScopedMemoryBlockArray : public ScopedMemoryBlock<T>
 		{
 
 		}
+
+		//ScopedMemoryBlockArray(const ScopedMemoryBlockArray& OtherScopedMemoryBlockArray) = delete;
 
 		~ScopedMemoryBlockArray()
 		{
