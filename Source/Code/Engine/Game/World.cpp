@@ -135,7 +135,7 @@ void World::LoadWorld()
 		Engine::GetEngine().GetResourceManager().AddResource<StaticMeshResource>(StaticMeshResourceName, &staticMeshResourceCreateInfo);
 	}
 
-	Texel *TexelData = new Texel[512 * 512 + 256 * 256 + 128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4];
+	ScopedMemoryBlockArray<Texel> TexelData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<Texel>(512 * 512 + 256 * 256 + 128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4);
 
 	Texel *Texels[8];
 
@@ -175,7 +175,7 @@ void World::LoadWorld()
 		}
 	}
 
-	CompressedTexelBlockBC1 *CompressedTexelBlockDataBC1 = new CompressedTexelBlockBC1[128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4 + 2 * 2 + 1 * 1];
+	ScopedMemoryBlockArray<CompressedTexelBlock> CompressedTexelBlockData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<CompressedTexelBlock>(128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4 + 2 * 2 + 1 * 1);
 
 	CompressedTexelBlockBC1 *CompressedTexelBlocksBC1[8];
 
@@ -566,17 +566,17 @@ void World::LoadWorld()
 	delete[] TexelData;
 	delete[] CompressedTexelBlockDataBC1;
 	delete[] CompressedTexelBlockDataBC5;
-
 	HANDLE GBufferOpaquePassVertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/MaterialBase_VertexShader_GBufferOpaquePass.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER GBufferOpaquePassVertexShaderByteCodeLength;
 	BOOL Result = GetFileSizeEx(GBufferOpaquePassVertexShaderFile, &GBufferOpaquePassVertexShaderByteCodeLength);
-	void *GBufferOpaquePassVertexShaderByteCodeData = malloc(GBufferOpaquePassVertexShaderByteCodeLength.QuadPart);
 	Result = ReadFile(GBufferOpaquePassVertexShaderFile, GBufferOpaquePassVertexShaderByteCodeData, (DWORD)GBufferOpaquePassVertexShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(GBufferOpaquePassVertexShaderFile);
+	ScopedMemoryBlockArray<BYTE> VertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(VertexShaderByteCodeLength.QuadPart);
 
 	HANDLE GBufferOpaquePassPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/MaterialBase_PixelShader_GBufferOpaquePass.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER GBufferOpaquePassPixelShaderByteCodeLength;
 	Result = GetFileSizeEx(GBufferOpaquePassPixelShaderFile, &GBufferOpaquePassPixelShaderByteCodeLength);
+	ScopedMemoryBlockArray<BYTE> PixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(PixelShaderByteCodeLength.QuadPart);
 	void *GBufferOpaquePassPixelShaderByteCodeData = malloc(GBufferOpaquePassPixelShaderByteCodeLength.QuadPart);
 	Result = ReadFile(GBufferOpaquePassPixelShaderFile, GBufferOpaquePassPixelShaderByteCodeData, (DWORD)GBufferOpaquePassPixelShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(GBufferOpaquePassPixelShaderFile);
@@ -614,10 +614,6 @@ void World::LoadWorld()
 
 		Engine::GetEngine().GetResourceManager().AddResource<MaterialResource>(MaterialResourceName, &materialResourceCreateInfo);
 	}
-
-	free(GBufferOpaquePassVertexShaderByteCodeData);
-	free(GBufferOpaquePassPixelShaderByteCodeData);
-	free(ShadowMapPassVertexShaderByteCodeData);
 
 	UINT ResourceCounter = 0;
 
