@@ -26,8 +26,7 @@ class ClusterizationSubSystem
 		uint16_t LightIndicesData[256 * 32 * 18 * 24];
 		uint32_t TotalIndexCount;
 
-		//XMVECTOR ClustersPlanes[32 * 18 * 24][6];
-		XMVECTOR XPlanes[33][2], YPlanes[19][2], ZPlanes[25][2];
+		XMVECTOR XPlanes[33], YPlanes[19], ZPlanes[25];
 
 		uint16_t LocalLightIndices[32 * 18 * 24][256];
 };

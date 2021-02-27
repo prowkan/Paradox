@@ -12,44 +12,6 @@ void ClusterizationSubSystem::PreComputeClustersPlanes()
 
 	XMMATRIX ProjMatrix = XMMatrixPerspectiveFovLH(3.14f / 2.0f, 16.0f / 9.0f, 0.01f, 1000.0f);
 	
-	/*for (int z = 0; z < 24; z++)
-	{
-		float zNear = 0.01f * pow(1000.0f / 0.01f, z / 24.0f);
-		float zFar = 0.01f * pow(1000.0f / 0.01f, (z + 1) / 24.0f);
-
-		for (int y = 0; y < 18; y++)
-		{
-			float yTop = 2.0f * ((18 - y) / 18.0f) - 1.0f;
-			float yBottom = 2.0f * ((18 - y + 1) / 18.0f) - 1.0f;
-
-			for (int x = 0; x < 32; x++)
-			{
-				float xLeft = 2.0f * (x / 32.0f) - 1.0f;
-				float xRight = 2.0f * ((x + 1) / 32.0f) - 1.0f;
-
-				XMVECTOR ClusterVertices[8];
-
-				ClusterVertices[0] = XMVectorSet(xLeft * zNear / ProjMatrix.m[0][0], yBottom * zNear / ProjMatrix.m[1][1], zNear, 1.0f);
-				ClusterVertices[1] = XMVectorSet(xRight * zNear / ProjMatrix.m[0][0], yBottom * zNear / ProjMatrix.m[1][1], zNear, 1.0f);
-				ClusterVertices[2] = XMVectorSet(xLeft * zNear / ProjMatrix.m[0][0], yTop * zNear / ProjMatrix.m[1][1], zNear, 1.0f);
-				ClusterVertices[3] = XMVectorSet(xRight * zNear / ProjMatrix.m[0][0], yTop * zNear / ProjMatrix.m[1][1], zNear, 1.0f);
-				ClusterVertices[4] = XMVectorSet(xLeft * zFar / ProjMatrix.m[0][0], yBottom * zFar / ProjMatrix.m[1][1], zFar, 1.0f);
-				ClusterVertices[5] = XMVectorSet(xRight * zFar / ProjMatrix.m[0][0], yBottom * zFar / ProjMatrix.m[1][1], zFar, 1.0f);
-				ClusterVertices[6] = XMVectorSet(xLeft * zFar / ProjMatrix.m[0][0], yTop * zFar / ProjMatrix.m[1][1], zFar, 1.0f);
-				ClusterVertices[7] = XMVectorSet(xRight * zFar / ProjMatrix.m[0][0], yTop * zFar / ProjMatrix.m[1][1], zFar, 1.0f);
-
-				ClustersPlanes[ClusterIndex][0] = XMPlaneFromPoints(ClusterVertices[0], ClusterVertices[2], ClusterVertices[1]);
-				ClustersPlanes[ClusterIndex][1] = XMPlaneFromPoints(ClusterVertices[6], ClusterVertices[4], ClusterVertices[5]);
-				ClustersPlanes[ClusterIndex][2] = XMPlaneFromPoints(ClusterVertices[0], ClusterVertices[1], ClusterVertices[5]);
-				ClustersPlanes[ClusterIndex][3] = XMPlaneFromPoints(ClusterVertices[6], ClusterVertices[7], ClusterVertices[2]);
-				ClustersPlanes[ClusterIndex][4] = XMPlaneFromPoints(ClusterVertices[0], ClusterVertices[4], ClusterVertices[6]);
-				ClustersPlanes[ClusterIndex][5] = XMPlaneFromPoints(ClusterVertices[7], ClusterVertices[5], ClusterVertices[3]);
-
-				ClusterIndex++;
-			}
-		}
-	}*/
-
 	for (int z = 0; z < 25; z++)
 	{
 		float ViewZ = 0.01f * pow(1000.0f / 0.01f, z / 24.0f);
@@ -61,8 +23,7 @@ void ClusterizationSubSystem::PreComputeClustersPlanes()
 		PlaneVertices[2] = XMVectorSet(-1.0f * ViewZ / ProjMatrix.m[0][0], -1.0f * ViewZ / ProjMatrix.m[1][1], ViewZ, 1.0f);
 		PlaneVertices[3] = XMVectorSet(1.0f * ViewZ / ProjMatrix.m[0][0], -1.0f * ViewZ / ProjMatrix.m[1][1], ViewZ, 1.0f);
 
-		ZPlanes[z][0] = XMPlaneNormalize(XMPlaneFromPoints(PlaneVertices[0], PlaneVertices[2], PlaneVertices[1]));
-		ZPlanes[z][1] = XMVectorNegate(ZPlanes[z][0]);
+		ZPlanes[z] = XMPlaneNormalize(XMPlaneFromPoints(PlaneVertices[0], PlaneVertices[2], PlaneVertices[1]));
 	}
 
 	for (int y = 0; y < 19; y++)
@@ -80,8 +41,7 @@ void ClusterizationSubSystem::PreComputeClustersPlanes()
 		PlaneVertices[2] = XMVectorSet(-1.0f * 1000.0f / ProjMatrix.m[0][0], ViewYFar, 1000.0f, 1.0f);
 		PlaneVertices[3] = XMVectorSet(1.0f * 1000.0f / ProjMatrix.m[0][0], ViewYFar, 1000.0f, 1.0f);
 
-		YPlanes[y][0] = XMPlaneNormalize(XMPlaneFromPoints(PlaneVertices[0], PlaneVertices[1], PlaneVertices[2]));
-		YPlanes[y][1] = XMVectorNegate(YPlanes[y][0]);
+		YPlanes[y] = XMPlaneNormalize(XMPlaneFromPoints(PlaneVertices[0], PlaneVertices[1], PlaneVertices[2]));
 	}
 
 	for (int x = 0; x < 33; x++)
@@ -99,8 +59,7 @@ void ClusterizationSubSystem::PreComputeClustersPlanes()
 		PlaneVertices[2] = XMVectorSet(ViewXNear, -1.0f * 0.01f / ProjMatrix.m[1][1], 0.01f, 1.0f);
 		PlaneVertices[3] = XMVectorSet(ViewXFar, -1.0f * 1000.0f / ProjMatrix.m[1][1], 1000.0f, 1.0f);
 
-		XPlanes[x][0] = XMPlaneNormalize(XMPlaneFromPoints(PlaneVertices[0], PlaneVertices[1], PlaneVertices[2]));
-		XPlanes[x][1] = XMVectorNegate(XPlanes[x][0]);
+		XPlanes[x] = XMPlaneNormalize(XMPlaneFromPoints(PlaneVertices[0], PlaneVertices[1], PlaneVertices[2]));
 	}
 }
 
@@ -125,22 +84,23 @@ void ClusterizationSubSystem::ClusterizeLights(const vector<PointLightComponent*
 
 		for (int z = 0; z < 24; z++)
 		{
-			if (XMVectorGetX(XMPlaneDotCoord(ZPlanes[z][0], SphereCenter)) < -SphereRadius) continue;
-			if (XMVectorGetX(XMPlaneDotCoord(ZPlanes[z + 1][1], SphereCenter)) < -SphereRadius) continue;
+			if (XMVectorGetX(XMPlaneDotCoord(ZPlanes[z], SphereCenter)) < -SphereRadius) continue;
+			if (XMVectorGetX(XMPlaneDotCoord(ZPlanes[z + 1], SphereCenter)) > SphereRadius) continue;
 
 			for (int y = 0; y < 18; y++)
 			{
-				if (XMVectorGetX(XMPlaneDotCoord(YPlanes[y][0], SphereCenter)) < -SphereRadius) continue;
-				if (XMVectorGetX(XMPlaneDotCoord(YPlanes[y + 1][1], SphereCenter)) < -SphereRadius) continue;
+				if (XMVectorGetX(XMPlaneDotCoord(YPlanes[y], SphereCenter)) < -SphereRadius) continue;
+				if (XMVectorGetX(XMPlaneDotCoord(YPlanes[y + 1], SphereCenter)) > SphereRadius) continue;
 
 				for (int x = 0; x < 32; x++)
 				{
-					if (XMVectorGetX(XMPlaneDotCoord(XPlanes[x][0], SphereCenter)) < -SphereRadius) continue;
-					if (XMVectorGetX(XMPlaneDotCoord(XPlanes[x + 1][1], SphereCenter)) < -SphereRadius) continue;
+					if (XMVectorGetX(XMPlaneDotCoord(XPlanes[x], SphereCenter)) < -SphereRadius) continue;
+					if (XMVectorGetX(XMPlaneDotCoord(XPlanes[x + 1], SphereCenter)) > SphereRadius) continue;
 
+					int ClusterIndex = z * 32 * 18 + y * 32 + x;
 
-					LocalLightIndices[z * 32 * 18 + y * 32 + x][LightClustersData[z * 32 * 18 + y * 32 + x].Count] = i;
-					LightClustersData[z * 32 * 18 + y * 32 + x].Count++;
+					LocalLightIndices[ClusterIndex][LightClustersData[ClusterIndex].Count] = i;
+					LightClustersData[ClusterIndex].Count++;
 				}
 			}
 		}
@@ -159,9 +119,9 @@ void ClusterizationSubSystem::ClusterizeLights(const vector<PointLightComponent*
 					LightClustersData[ClusterIndex].Offset = LightClustersData[ClusterIndex - 1].Offset + LightClustersData[ClusterIndex - 1].Count;
 				}
 
-				for (int i = 0; i < LightClustersData[z * 32 * 18 + y * 32 + x].Count; i++)
+				for (int i = 0; i < LightClustersData[ClusterIndex].Count; i++)
 				{
-					LightIndicesData[TotalIndexCount] = LocalLightIndices[z * 32 * 18 + y * 32 + x][i];
+					LightIndicesData[TotalIndexCount] = LocalLightIndices[ClusterIndex][i];
 
 					TotalIndexCount++;
 				}				
