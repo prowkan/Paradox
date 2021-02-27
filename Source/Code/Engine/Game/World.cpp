@@ -117,7 +117,7 @@ void World::LoadWorld()
 		Engine::GetEngine().GetResourceManager().AddResource<StaticMeshResource>(StaticMeshResourceName, &staticMeshResourceCreateInfo);
 	}
 
-	Texel *TexelData = new Texel[512 * 512 + 256 * 256 + 128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4];
+	ScopedMemoryBlockArray<Texel> TexelData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<Texel>(512 * 512 + 256 * 256 + 128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4);
 
 	Texel *Texels[8];
 
@@ -157,7 +157,7 @@ void World::LoadWorld()
 		}
 	}
 
-	CompressedTexelBlock *CompressedTexelBlockData = new CompressedTexelBlock[128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4 + 2 * 2 + 1 * 1];
+	ScopedMemoryBlockArray<CompressedTexelBlock> CompressedTexelBlockData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<CompressedTexelBlock>(128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4 + 2 * 2 + 1 * 1);
 
 	CompressedTexelBlock *CompressedTexelBlocks[8];
 
@@ -260,19 +260,17 @@ void World::LoadWorld()
 		Engine::GetEngine().GetResourceManager().AddResource<Texture2DResource>(Texture2DResourceName, &texture2DResourceCreateInfo);
 	}
 
-	delete[] TexelData;
-
 	HANDLE VertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/MaterialBase_VertexShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER VertexShaderByteCodeLength;
 	BOOL Result = GetFileSizeEx(VertexShaderFile, &VertexShaderByteCodeLength);
-	void *VertexShaderByteCodeData = malloc(VertexShaderByteCodeLength.QuadPart);
+	ScopedMemoryBlockArray<BYTE> VertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(VertexShaderByteCodeLength.QuadPart);
 	Result = ReadFile(VertexShaderFile, VertexShaderByteCodeData, (DWORD)VertexShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(VertexShaderFile);
 
 	HANDLE PixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/MaterialBase_PixelShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER PixelShaderByteCodeLength;
 	Result = GetFileSizeEx(PixelShaderFile, &PixelShaderByteCodeLength);
-	void *PixelShaderByteCodeData = malloc(PixelShaderByteCodeLength.QuadPart);
+	ScopedMemoryBlockArray<BYTE> PixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(PixelShaderByteCodeLength.QuadPart);
 	Result = ReadFile(PixelShaderFile, PixelShaderByteCodeData, (DWORD)PixelShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(PixelShaderFile);
 
@@ -297,9 +295,6 @@ void World::LoadWorld()
 
 		Engine::GetEngine().GetResourceManager().AddResource<MaterialResource>(MaterialResourceName, &materialResourceCreateInfo);
 	}
-
-	free(VertexShaderByteCodeData);
-	free(PixelShaderByteCodeData);
 
 	UINT ResourceCounter = 0;
 
