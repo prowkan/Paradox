@@ -76,7 +76,7 @@ float4 PS(PSInput PixelShaderInput, uint SampleIndex : SV_SampleIndex) : SV_Targ
 	uint Offset = OffsetAndCount.x;
 	uint Count = OffsetAndCount.y;
 
-	float3 Color = float3(0.0f, 0.0f, 0.0f);
+	float3 Color = BaseColor * (0.1f + (max(0.0f, dot(Light, Normal)) + ((128.0f + 1.0f) / (2.0f * 3.14f)) * pow(max(0.0f, dot(Half, Normal)), 128.0f)) * ShadowFactor);
 
 	[loop]
 	for (uint i = 0; i < Count; i++)
@@ -86,9 +86,8 @@ float4 PS(PSInput PixelShaderInput, uint SampleIndex : SV_SampleIndex) : SV_Targ
 
 		Light = normalize(pointLight.Position - PixelWorldPosition.xyz);
 
-		Color += max(0.0f, dot(Light, Normal)) * pointLight.Color * pointLight.Brightness * (length(pointLight.Position - PixelWorldPosition.xyz) < pointLight.Radius);
+		Color += BaseColor * max(0.0f, dot(Light, Normal)) * pointLight.Color * pointLight.Brightness * (length(pointLight.Position - PixelWorldPosition.xyz) < pointLight.Radius);
 	}
 
-	//return float4(BaseColor * (0.1f + (max(0.0f, dot(Light, Normal)) + ((128.0f + 1.0f) / (2.0f * 3.14f)) * pow(max(0.0f, dot(Half, Normal)), 128.0f)) * ShadowFactor), 1.0f);
-	return float4(BaseColor * (0.1f + Color), 1.0f);
+	return float4(Color, 1.0f);
 }

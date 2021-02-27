@@ -177,40 +177,80 @@ class RenderSystem
 		COMRCPtr<ID3D12RootSignature> GraphisRootSignature, ComputeRootSignature;
 
 		COMRCPtr<ID3D12Resource> BackBufferTextures[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE BackBufferRTVs[2];
+		D3D12_CPU_DESCRIPTOR_HANDLE BackBufferTexturesRTVs[2];
+
+		// ===============================================================================================================
+
+		D3D12_CPU_DESCRIPTOR_HANDLE TextureSampler, ShadowMapSampler, BiLinearSampler;
+
+		// ===============================================================================================================
+
+		static const UINT MAX_MEMORY_HEAPS_COUNT = 200;
+		static const SIZE_T BUFFER_MEMORY_HEAP_SIZE = 16 * 1024 * 1024, TEXTURE_MEMORY_HEAP_SIZE = 256 * 1024 * 1024;
+		static const SIZE_T UPLOAD_HEAP_SIZE = 64 * 1024 * 1024;
+
+		COMRCPtr<ID3D12Heap> BufferMemoryHeaps[MAX_MEMORY_HEAPS_COUNT] = { nullptr }, TextureMemoryHeaps[MAX_MEMORY_HEAPS_COUNT] = { nullptr };
+		size_t BufferMemoryHeapOffsets[MAX_MEMORY_HEAPS_COUNT] = { 0 }, TextureMemoryHeapOffsets[MAX_MEMORY_HEAPS_COUNT] = { 0 };
+		int CurrentBufferMemoryHeapIndex = 0, CurrentTextureMemoryHeapIndex = 0;
+
+		COMRCPtr<ID3D12Heap> UploadHeap;
+		COMRCPtr<ID3D12Resource> UploadBuffer;
+		size_t UploadBufferOffset = 0;
+
+		// ===============================================================================================================
 
 		COMRCPtr<ID3D12Resource> GBufferTextures[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE GBufferRTVs[2], GBufferSRVs[2];
+		D3D12_CPU_DESCRIPTOR_HANDLE GBufferTexturesRTVs[2], GBufferTexturesSRVs[2];
 
 		COMRCPtr<ID3D12Resource> DepthBufferTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE DepthBufferDSV, DepthBufferSRV;
+		D3D12_CPU_DESCRIPTOR_HANDLE DepthBufferTextureDSV, DepthBufferTextureSRV;
+
+		COMRCPtr<ID3D12Resource> GPUConstantBuffer, CPUConstantBuffers[2];
+		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs[20000];
+
+		// ===============================================================================================================
 
 		COMRCPtr<ID3D12Resource> ResolvedDepthBufferTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE ResolvedDepthBufferSRV;
+		D3D12_CPU_DESCRIPTOR_HANDLE ResolvedDepthBufferTextureSRV;
+
+		// ===============================================================================================================
 
 		COMRCPtr<ID3D12Resource> CascadedShadowMapTextures[4];
-		D3D12_CPU_DESCRIPTOR_HANDLE CascadedShadowMapDSVs[4], CascadedShadowMapSRVs[4];
+		D3D12_CPU_DESCRIPTOR_HANDLE CascadedShadowMapTexturesDSVs[4], CascadedShadowMapTexturesSRVs[4];
+
+		COMRCPtr<ID3D12Resource> GPUConstantBuffers2[4], CPUConstantBuffers2[4][2];
+		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs2[4][20000];
+
+		// ===============================================================================================================
 
 		COMRCPtr<ID3D12Resource> ShadowMaskTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE ShadowMaskRTV, ShadowMaskSRV;
+		D3D12_CPU_DESCRIPTOR_HANDLE ShadowMaskTextureRTV, ShadowMaskTextureSRV;
 
-		COMRCPtr<ID3D12Resource> LBufferTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE LBufferRTV, LBufferSRV;
+		COMRCPtr<ID3D12Resource> GPUShadowResolveConstantBuffer, CPUShadowResolveConstantBuffers[2];
+		D3D12_CPU_DESCRIPTOR_HANDLE ShadowResolveConstantBufferCBV;
 
-		COMRCPtr<ID3D12Resource> ResolvedHDRSceneColorTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE ResolvedHDRSceneColorSRV;
+		COMRCPtr<ID3D12PipelineState> ShadowResolvePipelineState;
+		
+		// ===============================================================================================================
 
-		COMRCPtr<ID3D12Resource> SceneLuminanceTextures[4];
-		D3D12_CPU_DESCRIPTOR_HANDLE SceneLuminanceUAVs[4], SceneLuminanceSRVs[4];
+		COMRCPtr<ID3D12Resource> HDRSceneColorTexture;
+		D3D12_CPU_DESCRIPTOR_HANDLE HDRSceneColorTextureRTV, HDRSceneColorTextureSRV;
 
-		COMRCPtr<ID3D12Resource> AverageLuminanceTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE AverageLuminanceUAV, AverageLuminanceSRV;
+		COMRCPtr<ID3D12Resource> GPUDeferredLightingConstantBuffer, CPUDeferredLightingConstantBuffers[2];
+		D3D12_CPU_DESCRIPTOR_HANDLE DeferredLightingConstantBufferCBV;
 
-		COMRCPtr<ID3D12Resource> BloomTextures[3][7];
-		D3D12_CPU_DESCRIPTOR_HANDLE BloomRTVs[3][7], BloomSRVs[3][7];
+		COMRCPtr<ID3D12Resource> GPULightClustersBuffer, CPULightClustersBuffers[2];
+		D3D12_CPU_DESCRIPTOR_HANDLE LightClustersBufferSRV;
 
-		COMRCPtr<ID3D12Resource> ToneMappedImageTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE ToneMappedImageRTV;
+		COMRCPtr<ID3D12Resource> GPULightIndicesBuffer, CPULightIndicesBuffers[2];
+		D3D12_CPU_DESCRIPTOR_HANDLE LightIndicesBufferSRV;
+
+		COMRCPtr<ID3D12Resource> GPUPointLightsBuffer, CPUPointLightsBuffers[2];
+		D3D12_CPU_DESCRIPTOR_HANDLE PointLightsBufferSRV;
+
+		COMRCPtr<ID3D12PipelineState> DeferredLightingPipelineState;
+		
+		// ===============================================================================================================
 
 		COMRCPtr<ID3D12Resource> SkyVertexBuffer, SkyIndexBuffer;
 		D3D12_GPU_VIRTUAL_ADDRESS SkyVertexBufferAddress, SkyIndexBufferAddress;
@@ -228,54 +268,45 @@ class RenderSystem
 		COMRCPtr<ID3D12Resource> SunTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE SunTextureSRV;
 
-		COMRCPtr<ID3D12Resource> GPUShadowResolveConstantBuffer, CPUShadowResolveConstantBuffers[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE ShadowResolveConstantBufferCBV;
-
-		COMRCPtr<ID3D12Resource> GPUDeferredLightingConstantBuffer, CPUDeferredLightingConstantBuffers[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE DeferredLightingConstantBufferCBV;
-
-		COMRCPtr<ID3D12Resource> GPULightClustersBuffer, CPULightClustersBuffers[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE LightClustersSRV;
-
-		COMRCPtr<ID3D12Resource> GPULightIndicesBuffer, CPULightIndicesBuffers[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE LightIndicesSRV;
-
-		COMRCPtr<ID3D12Resource> GPUPointLightsBuffer, CPUPointLightsBuffers[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE PointLightsSRV;
-
-		COMRCPtr<ID3D12PipelineState> ShadowResolvePipelineState;
-		COMRCPtr<ID3D12PipelineState> DeferredLightingPipelineState;
 		COMRCPtr<ID3D12PipelineState> FogPipelineState;
-		COMRCPtr<ID3D12PipelineState> HDRToneMappingPipelineState;
+
+		// ===============================================================================================================
+
+		COMRCPtr<ID3D12Resource> ResolvedHDRSceneColorTexture;
+		D3D12_CPU_DESCRIPTOR_HANDLE ResolvedHDRSceneColorTextureSRV;
+
+		// ===============================================================================================================
+
+		COMRCPtr<ID3D12Resource> SceneLuminanceTextures[4];
+		D3D12_CPU_DESCRIPTOR_HANDLE SceneLuminanceTexturesUAVs[4], SceneLuminanceTexturesSRVs[4];
+
+		COMRCPtr<ID3D12Resource> AverageLuminanceTexture;
+		D3D12_CPU_DESCRIPTOR_HANDLE AverageLuminanceTextureUAV, AverageLuminanceTextureSRV;
+
 		COMRCPtr<ID3D12PipelineState> LuminanceCalcPipelineState;
 		COMRCPtr<ID3D12PipelineState> LuminanceSumPipelineState;
 		COMRCPtr<ID3D12PipelineState> LuminanceAvgPipelineState;
+
+		// ===============================================================================================================
+
+		COMRCPtr<ID3D12Resource> BloomTextures[3][7];
+		D3D12_CPU_DESCRIPTOR_HANDLE BloomTexturesRTVs[3][7], BloomTexturesSRVs[3][7];
+
 		COMRCPtr<ID3D12PipelineState> BrightPassPipelineState;
 		COMRCPtr<ID3D12PipelineState> DownSamplePipelineState;
 		COMRCPtr<ID3D12PipelineState> HorizontalBlurPipelineState;
 		COMRCPtr<ID3D12PipelineState> VerticalBlurPipelineState;
 		COMRCPtr<ID3D12PipelineState> UpSampleWithAddBlendPipelineState;
+		
+		// ===============================================================================================================
 
-		COMRCPtr<ID3D12Resource> GPUConstantBuffer, CPUConstantBuffers[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs[20000];
+		COMRCPtr<ID3D12Resource> ToneMappedImageTexture;
+		D3D12_CPU_DESCRIPTOR_HANDLE ToneMappedImageTextureRTV;
 
-		COMRCPtr<ID3D12Resource> GPUConstantBuffers2[4], CPUConstantBuffers2[4][2];
-		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs2[4][20000];
-
-		D3D12_CPU_DESCRIPTOR_HANDLE TextureSampler, ShadowMapSampler, BiLinearSampler;
-
-		static const UINT MAX_MEMORY_HEAPS_COUNT = 200;
-		static const SIZE_T BUFFER_MEMORY_HEAP_SIZE = 16 * 1024 * 1024, TEXTURE_MEMORY_HEAP_SIZE = 256 * 1024 * 1024;
-		static const SIZE_T UPLOAD_HEAP_SIZE = 64 * 1024 * 1024;
-
-		COMRCPtr<ID3D12Heap> BufferMemoryHeaps[MAX_MEMORY_HEAPS_COUNT] = { nullptr }, TextureMemoryHeaps[MAX_MEMORY_HEAPS_COUNT] = { nullptr };
-		size_t BufferMemoryHeapOffsets[MAX_MEMORY_HEAPS_COUNT] = { 0 }, TextureMemoryHeapOffsets[MAX_MEMORY_HEAPS_COUNT] = { 0 };
-		int CurrentBufferMemoryHeapIndex = 0, CurrentTextureMemoryHeapIndex = 0;
-
-		COMRCPtr<ID3D12Heap> UploadHeap;
-		COMRCPtr<ID3D12Resource> UploadBuffer;
-		size_t UploadBufferOffset = 0;
-
+		COMRCPtr<ID3D12PipelineState> HDRToneMappingPipelineState;
+		
+		// ===============================================================================================================
+				
 		vector<RenderMesh*> RenderMeshDestructionQueue;
 		vector<RenderMaterial*> RenderMaterialDestructionQueue;
 		vector<RenderTexture*> RenderTextureDestructionQueue;

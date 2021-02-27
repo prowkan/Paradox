@@ -68,8 +68,6 @@ class ScopedMemoryBlock
 		T *BlockData;
 		size_t BlockSize;
 
-	private:
-
 		Stack& StackAllocator;
 };
 
@@ -83,20 +81,25 @@ class ScopedMemoryBlockArray : public ScopedMemoryBlock<T>
 
 		}
 
+		~ScopedMemoryBlockArray()
+		{
+			
+		}
+
 		operator void*()
 		{
-			return ScopedMemoryBlock<T>::BlockData;
+			return this->BlockData;
 		}
 
 		operator T*()
 		{
-			return ScopedMemoryBlock<T>::BlockData;
+			return this->BlockData;
 		}
 
 		template<typename U>
 		operator U*()
 		{
-			return (U*)ScopedMemoryBlock<T>::BlockData;
+			return (U*)this->BlockData;
 		}
 
 	private:
