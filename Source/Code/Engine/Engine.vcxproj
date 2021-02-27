@@ -173,7 +173,9 @@
     <ClInclude Include="Game\Component.h" />
     <ClInclude Include="Game\Components\Common\BoundingBoxComponent.h" />
     <ClInclude Include="Game\Components\Common\TransformComponent.h" />
+    <ClInclude Include="Game\Components\Render\Lights\PointLightComponent.h" />
     <ClInclude Include="Game\Components\Render\Meshes\StaticMeshComponent.h" />
+    <ClInclude Include="Game\Entities\Render\Lights\PointLightEntity.h" />
     <ClInclude Include="Game\GameFramework.h" />
     <ClInclude Include="Game\Entity.h" />
     <ClInclude Include="Game\Entities\Render\Meshes\StaticMeshEntity.h" />
@@ -183,6 +185,8 @@
     <ClInclude Include="MemoryManager\Heap.h" />
     <ClInclude Include="MemoryManager\MemoryManager.h" />
     <ClInclude Include="MemoryManager\Pool.h" />
+    <ClInclude Include="MemoryManager\ScopedMemoryBlock.h" />
+    <ClInclude Include="MemoryManager\Stack.h" />
     <ClInclude Include="MultiThreading\MultiThreadingSystem.h" />
     <ClInclude Include="MultiThreading\Task.h" />
     <ClInclude Include="MultiThreading\Tasks\FrustumCullingTask.h" />
@@ -209,7 +213,9 @@
     <ClCompile Include="Game\Component.cpp" />
     <ClCompile Include="Game\Components\Common\BoundingBoxComponent.cpp" />
     <ClCompile Include="Game\Components\Common\TransformComponent.cpp" />
+    <ClCompile Include="Game\Components\Render\Lights\PointLightComponent.cpp" />
     <ClCompile Include="Game\Components\Render\Meshes\StaticMeshComponent.cpp" />
+    <ClCompile Include="Game\Entities\Render\Lights\PointLightEntity.cpp" />
     <ClCompile Include="Game\GameFramework.cpp" />
     <ClCompile Include="Game\Entity.cpp" />
     <ClCompile Include="Game\Entities\Render\Meshes\StaticMeshEntity.cpp" />
@@ -219,6 +225,7 @@
     <ClCompile Include="MemoryManager\Heap.cpp" />
     <ClCompile Include="MemoryManager\MemoryManager.cpp" />
     <ClCompile Include="MemoryManager\Pool.cpp" />
+    <ClCompile Include="MemoryManager\Stack.cpp" />
     <ClCompile Include="MultiThreading\MultiThreadingSystem.cpp" />
     <ClCompile Include="MultiThreading\Task.cpp" />
     <ClCompile Include="MultiThreading\Tasks\FrustumCullingTask.cpp" />
