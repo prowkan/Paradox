@@ -1,16 +1,14 @@
 #pragma once
 
-class MetaClass;
-class Component;
-class GameObject;
+#include "MetaClass.h"
+
+class Entity;
 
 class Component
 {
+	DECLARE_CLASS(Component)
+
 	public:
-
-		static void StaticConstructor(void* Pointer) { new (Pointer) Component(); }
-
-		static MetaClass* GetMetaClassStatic() { return ComponentMetaClass; }
 
 		MetaClass* GetMetaClass() { return metaClass; }
 		void SetMetaClass(MetaClass* NewMetaClass) { metaClass = NewMetaClass; }
@@ -20,8 +18,8 @@ class Component
 		virtual void RegisterComponent() {}
 		virtual void UnRegisterComponent() {}
 
-		GameObject* GetOwner() { return Owner; }
-		void SetOwner(GameObject* NewOwner) { Owner = NewOwner; }
+		Entity* GetOwner() { return Owner; }
+		void SetOwner(Entity* NewOwner) { Owner = NewOwner; }
 
 		template<typename T>
 		static T* DynamicCast(Component* component)
@@ -31,13 +29,13 @@ class Component
 			return nullptr;
 		}
 
-		static MetaClass *ComponentMetaClass;
-
 	protected:
 
 		MetaClass *metaClass;
 
-		GameObject *Owner;
+		Entity *Owner;
 
 	private:
+
+		
 };

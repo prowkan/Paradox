@@ -4,7 +4,7 @@ class Application
 {
 	public:
 
-		static void StartApplication(const wchar_t* WindowTitle, HINSTANCE hInstance);
+		static void StartApplication(const char16_t* WindowTitle, HINSTANCE hInstance);
 		static void StopApplication();
 		static void RunMainLoop();
 
@@ -17,4 +17,6 @@ class Application
 
 		static LRESULT CALLBACK MainWindowProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 		static LONG WINAPI UnhandledExceptionFilter(_EXCEPTION_POINTERS* ExceptionInfo);
+
+		static atomic<bool> ExceptionFlag;
 };

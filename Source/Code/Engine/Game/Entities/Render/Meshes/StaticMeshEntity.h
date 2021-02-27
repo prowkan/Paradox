@@ -1,20 +1,16 @@
 #pragma once
 
-#include "../../../GameObject.h"
+#include "../../../Entity.h"
 
 class TransformComponent;
 class BoundingBoxComponent;
 class StaticMeshComponent;
 
-class StaticMeshObject : public GameObject
+class StaticMeshEntity : public Entity
 {
+	DECLARE_CLASS_WITH_BASE_CLASS(StaticMeshEntity, Entity)
+
 	public:
-
-		static void StaticConstructor(void* Pointer) { new (Pointer) StaticMeshObject(); }
-
-		static MetaClass* GetMetaClassStatic() { return StaticMeshObjectMetaClass; }
-
-		static MetaClass *StaticMeshObjectMetaClass;
 
 		virtual void InitDefaultProperties() override;
 

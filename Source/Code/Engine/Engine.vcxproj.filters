@@ -30,9 +30,6 @@
     <ClInclude Include="Game\World.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Game\GameObject.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Game\Component.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -40,9 +37,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Game\MetaClass.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Game\GameObjects\Render\Meshes\StaticMeshObject.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Game\Components\Common\TransformComponent.h">
@@ -90,6 +84,36 @@
     <ClInclude Include="MemoryManager\Heap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Containers\COMRCPtr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Entity.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Entities\Render\Meshes\StaticMeshEntity.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MultiThreading\MultiThreadingSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MultiThreading\WorkerThread.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MultiThreading\ThreadSafeQueue.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MultiThreading\Task.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MultiThreading\Tasks\FrustumCullingTask.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Entities\Render\Lights\PointLightEntity.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Components\Render\Lights\PointLightComponent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="StdAfx.cpp">
@@ -107,9 +131,6 @@
     <ClCompile Include="Game\World.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Game\GameObject.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Game\Component.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -117,9 +138,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Game\MetaClass.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Game\GameObjects\Render\Meshes\StaticMeshObject.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Game\Components\Common\TransformComponent.cpp">
@@ -167,5 +185,38 @@
     <ClCompile Include="MemoryManager\Heap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Containers\COMRCPtr.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Entity.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Entities\Render\Meshes\StaticMeshEntity.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MultiThreading\MultiThreadingSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MultiThreading\WorkerThread.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MultiThreading\ThreadSafeQueue.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MultiThreading\Task.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MultiThreading\Tasks\FrustumCullingTask.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Entities\Render\Lights\PointLightEntity.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Components\Render\Lights\PointLightComponent.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cpp.hint" />
   </ItemGroup>
 </Project>

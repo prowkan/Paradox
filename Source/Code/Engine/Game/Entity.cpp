@@ -1,13 +1,16 @@
-#include "GameObject.h"
+// This is an independent project of an individual developer. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+
+#include "Entity.h"
 
 #include "MetaClass.h"
 #include "Component.h"
 
 #include <Engine/Engine.h>
 
-MetaClass *GameObject::GameObjectMetaClass;
+DEFINE_METACLASS_VARIABLE(Entity)
 
-Component* GameObject::CreateDefaultComponent(MetaClass* metaClass)
+Component* Entity::CreateDefaultComponent(MetaClass* metaClass)
 {
 	void *componentPtr = Engine::GetEngine().GetMemoryManager().AllocateComponent(metaClass);
 	metaClass->ObjectConstructorFunc(componentPtr);

@@ -1,12 +1,19 @@
+// This is an independent project of an individual developer. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+
 #include "World.h"
 
 #include "MetaClass.h"
-#include "GameObject.h"
+#include "Entity.h"
 
-#include "GameObjects/Render/Meshes/StaticMeshObject.h"
+#include "Entities/Render/Meshes/StaticMeshEntity.h"
+#include "Entities/Render/Lights/PointLightEntity.h"
 
 #include "Components/Common/TransformComponent.h"
 #include "Components/Render/Meshes/StaticMeshComponent.h"
+#include "Components/Render/Lights/PointLightComponent.h"
+
+#include <Containers/COMRCPtr.h>
 
 #include <Engine/Engine.h>
 
@@ -150,11 +157,98 @@ void World::LoadWorld()
 		}
 	}
 
+	CompressedTexelBlock *CompressedTexelBlockData = new CompressedTexelBlock[128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4 + 2 * 2 + 1 * 1];
+
+	CompressedTexelBlock *CompressedTexelBlocks[8];
+
+	CompressedTexelBlocks[0] = CompressedTexelBlockData;
+	CompressedTexelBlocks[1] = CompressedTexelBlocks[0] + 128 * 128;
+	CompressedTexelBlocks[2] = CompressedTexelBlocks[1] + 64 * 64;
+	CompressedTexelBlocks[3] = CompressedTexelBlocks[2] + 32 * 32;
+	CompressedTexelBlocks[4] = CompressedTexelBlocks[3] + 16 * 16;
+	CompressedTexelBlocks[5] = CompressedTexelBlocks[4] + 8 * 8;
+	CompressedTexelBlocks[6] = CompressedTexelBlocks[5] + 4 * 4;
+	CompressedTexelBlocks[7] = CompressedTexelBlocks[6] + 2 * 2;
+
+	for (int k = 0; k < 8; k++)
+	{
+		int MIPSize = 128 >> k;
+
+		for (int y = 0; y < MIPSize; y++)
+		{
+			for (int x = 0; x < MIPSize; x++)
+			{
+				Color MinColor{ 255, 255, 255 }, MaxColor{ 0, 0, 0 };
+
+				for (int j = 0; j < 4; j++)
+				{
+					for (int i = 0; i < 4; i++)
+					{
+						if (Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R < MinColor.R) MinColor.R = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R;
+						if (Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G < MinColor.G) MinColor.G = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G;
+						if (Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B < MinColor.B) MinColor.B = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B;
+
+						if (Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R > MaxColor.R) MaxColor.R = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R;
+						if (Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G > MaxColor.G) MaxColor.G = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G;
+						if (Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B > MaxColor.B) MaxColor.B = Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B;
+					}
+				}
+
+				Color Colors[4];
+				Colors[0] = MinColor;
+				Colors[1] = MaxColor;
+				Colors[2] = 2 * Colors[0] / 3 + Colors[1] / 3;
+				Colors[3] = Colors[0] / 3 + 2 * Colors[1] / 3;
+
+				CompressedTexelBlocks[k][y * MIPSize + x].Colors[0] = 0;
+				CompressedTexelBlocks[k][y * MIPSize + x].Colors[1] = 0;
+
+				CompressedTexelBlocks[k][y * MIPSize + x].Colors[0] |= ((((BYTE)(((float)MinColor.R / 255.0f) * 31.0f)) & 0b11111) << 11);
+				CompressedTexelBlocks[k][y * MIPSize + x].Colors[0] |= ((((BYTE)(((float)MinColor.G / 255.0f) * 63.0f)) & 0b111111) << 5);
+				CompressedTexelBlocks[k][y * MIPSize + x].Colors[0] |= ((((BYTE)(((float)MinColor.B / 255.0f) * 31.0f)) & 0b11111));
+
+				CompressedTexelBlocks[k][y * MIPSize + x].Colors[1] |= ((((BYTE)(((float)MaxColor.R / 255.0f) * 31.0f)) & 0b11111) << 11);
+				CompressedTexelBlocks[k][y * MIPSize + x].Colors[1] |= ((((BYTE)(((float)MaxColor.G / 255.0f) * 63.0f)) & 0b111111) << 5);
+				CompressedTexelBlocks[k][y * MIPSize + x].Colors[1] |= ((((BYTE)(((float)MaxColor.B / 255.0f) * 31.0f)) & 0b11111));
+
+				CompressedTexelBlocks[k][y * MIPSize + x].Texels[0] = 0;
+				CompressedTexelBlocks[k][y * MIPSize + x].Texels[1] = 0;
+				CompressedTexelBlocks[k][y * MIPSize + x].Texels[2] = 0;
+				CompressedTexelBlocks[k][y * MIPSize + x].Texels[3] = 0;
+
+				for (int j = 0; j < 4; j++)
+				{
+					for (int i = 0; i < 4; i++)
+					{
+						Color TexelColor{ (float)Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].R, (float)Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].G, (float)Texels[k][(4 * y + j) * (4 * MIPSize) + (4 * x + i)].B };
+
+						float Dist = DistanceBetweenColor(TexelColor, Colors[0]);
+						uint8_t ArgMin = 0;
+
+						for (uint8_t x = 1; x < 4; x++)
+						{
+							float NewDist = DistanceBetweenColor(TexelColor, Colors[x]);
+
+							if (NewDist < Dist)
+							{
+								Dist = NewDist;
+								ArgMin = x;
+							}
+						}
+
+						CompressedTexelBlocks[k][y * MIPSize + x].Texels[j] |= ((ArgMin & 0b11) << (2 * i));
+					}
+				}
+			}
+		}
+	}
+
 	Texture2DResourceCreateInfo texture2DResourceCreateInfo;
 	texture2DResourceCreateInfo.Height = 512;
 	texture2DResourceCreateInfo.MIPLevels = 8;
 	texture2DResourceCreateInfo.SRGB = TRUE;
-	texture2DResourceCreateInfo.TexelData = (BYTE*)TexelData;
+	texture2DResourceCreateInfo.Compressed = TRUE;
+	texture2DResourceCreateInfo.TexelData = (BYTE*)CompressedTexelBlockData;
 	texture2DResourceCreateInfo.Width = 512;
 
 	for (int k = 0; k < 4000; k++)
@@ -168,71 +262,25 @@ void World::LoadWorld()
 
 	delete[] TexelData;
 
-	const char *VertexShaderSourceCode = R"(
-	
-			struct VSInput
-			{
-				float3 Position : POSITION;
-				float2 TexCoord : TEXCOORD;
-			};
+	HANDLE VertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/MaterialBase_VertexShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+	LARGE_INTEGER VertexShaderByteCodeLength;
+	BOOL Result = GetFileSizeEx(VertexShaderFile, &VertexShaderByteCodeLength);
+	void *VertexShaderByteCodeData = malloc(VertexShaderByteCodeLength.QuadPart);
+	Result = ReadFile(VertexShaderFile, VertexShaderByteCodeData, (DWORD)VertexShaderByteCodeLength.QuadPart, NULL, NULL);
+	Result = CloseHandle(VertexShaderFile);
 
-			struct VSOutput
-			{
-				float4 Position : SV_Position;
-				float2 TexCoord : TEXCOORD;
-			};
-
-			struct VSConstants
-			{
-				float4x4 WVPMatrix;
-			};
-
-			ConstantBuffer<VSConstants> VertexShaderConstants : register(b0);
-
-			VSOutput VS(VSInput VertexShaderInput)
-			{
-				VSOutput VertexShaderOutput;
-
-				VertexShaderOutput.Position = mul(float4(VertexShaderInput.Position, 1.0f), VertexShaderConstants.WVPMatrix);
-				VertexShaderOutput.TexCoord = VertexShaderInput.TexCoord;
-
-				return VertexShaderOutput;
-			}
-
-		)";
-
-	const char *PixelShaderSourceCode = R"(
-
-			struct PSInput
-			{
-				float4 Position : SV_Position;
-				float2 TexCoord : TEXCOORD;
-			};
-
-			Texture2D Texture : register(t0);
-			SamplerState Sampler : register(s0);
-
-			float4 PS(PSInput PixelShaderInput) : SV_Target
-			{
-				return float4(Texture.Sample(Sampler, PixelShaderInput.TexCoord).rgb, 1.0f);
-			}
-
-		)";
-
-	ID3DBlob *ErrorBlob = nullptr;
-
-	ID3DBlob *VertexShaderBlob, *PixelShaderBlob;
-
-	HRESULT hr;
-
-	hr = D3DCompile(VertexShaderSourceCode, strlen(VertexShaderSourceCode), "VertexShader", nullptr, nullptr, "VS", "vs_5_1", D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &VertexShaderBlob, &ErrorBlob);
-	hr = D3DCompile(PixelShaderSourceCode, strlen(PixelShaderSourceCode), "PixelShader", nullptr, nullptr, "PS", "ps_5_1", D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &PixelShaderBlob, &ErrorBlob);
+	HANDLE PixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/MaterialBase_PixelShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+	LARGE_INTEGER PixelShaderByteCodeLength;
+	Result = GetFileSizeEx(PixelShaderFile, &PixelShaderByteCodeLength);
+	void *PixelShaderByteCodeData = malloc(PixelShaderByteCodeLength.QuadPart);
+	Result = ReadFile(PixelShaderFile, PixelShaderByteCodeData, (DWORD)PixelShaderByteCodeLength.QuadPart, NULL, NULL);
+	Result = CloseHandle(PixelShaderFile);
 
 	MaterialResourceCreateInfo materialResourceCreateInfo;
-	materialResourceCreateInfo.PixelShaderByteCodeData = PixelShaderBlob->GetBufferPointer();
-	materialResourceCreateInfo.PixelShaderByteCodeLength = (UINT)PixelShaderBlob->GetBufferSize();
-	materialResourceCreateInfo.VertexShaderByteCodeData = VertexShaderBlob->GetBufferPointer();
-	materialResourceCreateInfo.VertexShaderByteCodeLength = (UINT)VertexShaderBlob->GetBufferSize();
+	materialResourceCreateInfo.PixelShaderByteCodeData = PixelShaderByteCodeData;
+	materialResourceCreateInfo.PixelShaderByteCodeLength = PixelShaderByteCodeLength.QuadPart;
+	materialResourceCreateInfo.VertexShaderByteCodeData = VertexShaderByteCodeData;
+	materialResourceCreateInfo.VertexShaderByteCodeLength = VertexShaderByteCodeLength.QuadPart;
 	materialResourceCreateInfo.Textures.resize(1);
 
 	for (int k = 0; k < 4000; k++)
@@ -250,10 +298,8 @@ void World::LoadWorld()
 		Engine::GetEngine().GetResourceManager().AddResource<MaterialResource>(MaterialResourceName, &materialResourceCreateInfo);
 	}
 
-	ULONG RefCount;
-
-	RefCount = VertexShaderBlob->Release();
-	RefCount = PixelShaderBlob->Release();
+	free(VertexShaderByteCodeData);
+	free(PixelShaderByteCodeData);
 
 	UINT ResourceCounter = 0;
 
@@ -264,26 +310,32 @@ void World::LoadWorld()
 			char StaticMeshResourceName[255];
 			char MaterialResourceName[255];
 
+			sprintf(StaticMeshResourceName, "Cube_%u", ResourceCounter);
+			sprintf(MaterialResourceName, "Standart_%u", ResourceCounter);
+
+			StaticMeshEntity *staticMeshEntity = SpawnEntity<StaticMeshEntity>();
+			staticMeshEntity->GetTransformComponent()->SetLocation(XMFLOAT3(i * 5.0f + 2.5f, -0.0f, j * 5.0f + 2.5f));
+			staticMeshEntity->GetStaticMeshComponent()->SetStaticMesh(Engine::GetEngine().GetResourceManager().GetResource<StaticMeshResource>(StaticMeshResourceName));
+			staticMeshEntity->GetStaticMeshComponent()->SetMaterial(Engine::GetEngine().GetResourceManager().GetResource<MaterialResource>(MaterialResourceName));
+
+			ResourceCounter = (ResourceCounter + 1) % 4000;
+
 			sprintf(StaticMeshResourceName, "Cube_%d", ResourceCounter);
 			sprintf(MaterialResourceName, "Standart_%d", ResourceCounter);
 
-			StaticMeshObject *staticMeshObject = GameObject::DynamicCast<StaticMeshObject>(SpawnGameObject(StaticMeshObject::GetMetaClassStatic()));
-			staticMeshObject->GetTransformComponent()->SetLocation(XMFLOAT3(i * 5.0f + 2.5f, -0.0f, j * 5.0f + 2.5f));
-			staticMeshObject->GetStaticMeshComponent()->SetStaticMesh(Engine::GetEngine().GetResourceManager().GetResource<StaticMeshResource>(StaticMeshResourceName));
-			staticMeshObject->GetStaticMeshComponent()->SetMaterial(Engine::GetEngine().GetResourceManager().GetResource<MaterialResource>(MaterialResourceName));
+			staticMeshEntity = SpawnEntity<StaticMeshEntity>();
+			staticMeshEntity->GetTransformComponent()->SetLocation(XMFLOAT3(i * 10.0f + 5.0f, -2.0f, j * 10.0f + 5.0f));
+			staticMeshEntity->GetTransformComponent()->SetScale(XMFLOAT3(5.0f, 1.0f, 5.0f));
+			staticMeshEntity->GetStaticMeshComponent()->SetStaticMesh(Engine::GetEngine().GetResourceManager().GetResource<StaticMeshResource>(StaticMeshResourceName));
+			staticMeshEntity->GetStaticMeshComponent()->SetMaterial(Engine::GetEngine().GetResourceManager().GetResource<MaterialResource>(MaterialResourceName));
 
 			ResourceCounter = (ResourceCounter + 1) % 4000;
 
-			sprintf(StaticMeshResourceName, "Cube_%d", ResourceCounter);
-			sprintf(MaterialResourceName, "Standart_%d", ResourceCounter);
-
-			staticMeshObject = GameObject::DynamicCast<StaticMeshObject>(SpawnGameObject(StaticMeshObject::GetMetaClassStatic()));
-			staticMeshObject->GetTransformComponent()->SetLocation(XMFLOAT3(i * 10.0f + 5.0f, -2.0f, j * 10.0f + 5.0f));
-			staticMeshObject->GetTransformComponent()->SetScale(XMFLOAT3(5.0f, 1.0f, 5.0f));
-			staticMeshObject->GetStaticMeshComponent()->SetStaticMesh(Engine::GetEngine().GetResourceManager().GetResource<StaticMeshResource>(StaticMeshResourceName));
-			staticMeshObject->GetStaticMeshComponent()->SetMaterial(Engine::GetEngine().GetResourceManager().GetResource<MaterialResource>(MaterialResourceName));
-
-			ResourceCounter = (ResourceCounter + 1) % 4000;
+			PointLightEntity *pointLightEntity = SpawnEntity<PointLightEntity>();
+			pointLightEntity->GetTransformComponent()->SetLocation(XMFLOAT3(i * 10.0f + 5.0f, 1.5f, j * 10.0f + 5.0f));
+			pointLightEntity->GetPointLightComponent()->SetBrightness(10.0f);
+			pointLightEntity->GetPointLightComponent()->SetRadius(5.0f);
+			pointLightEntity->GetPointLightComponent()->SetColor(XMFLOAT3((i + 51) / 100.0f, 0.1f, (j + 51) / 100.0f));
 		}
 	}
 }
@@ -293,16 +345,16 @@ void World::UnLoadWorld()
 	Engine::GetEngine().GetResourceManager().DestroyAllResources();
 }
 
-GameObject* World::SpawnGameObject(MetaClass* metaClass)
+Entity* World::SpawnEntity(MetaClass* metaClass)
 {
-	void *gameObjectPtr = Engine::GetEngine().GetMemoryManager().AllocateGameObject(metaClass);
-	metaClass->ObjectConstructorFunc(gameObjectPtr);
-	GameObject *gameObject = (GameObject*)gameObjectPtr;
-	gameObject->SetMetaClass(metaClass);
-	gameObject->SetWorld(this);
-	gameObject->InitDefaultProperties();
-	GameObjects.push_back(gameObject);
-	return gameObject;
+	void *entityPtr = Engine::GetEngine().GetMemoryManager().AllocateEntity(metaClass);
+	metaClass->ObjectConstructorFunc(entityPtr);
+	Entity *entity = (Entity*)entityPtr;
+	entity->SetMetaClass(metaClass);
+	entity->SetWorld(this);
+	entity->InitDefaultProperties();
+	Entities.push_back(entity);
+	return entity;
 }
 
 

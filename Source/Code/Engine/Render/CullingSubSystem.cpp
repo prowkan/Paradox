@@ -1,4 +1,11 @@
+// This is an independent project of an individual developer. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+
 #include "CullingSubSystem.h"
+
+#include <Engine/Engine.h>
+
+#include <MultiThreading/Tasks/FrustumCullingTask.h>
 
 #include <Game/Components/Common/TransformComponent.h>
 #include <Game/Components/Common/BoundingBoxComponent.h>
@@ -14,7 +21,17 @@ vector<StaticMeshComponent*> CullingSubSystem::GetVisibleStaticMeshesInFrustum(c
 
 	ExtractFrustumPlanesFromViewProjMatrix(ViewProjMatrix, FrustumPlanes);
 
-	for (int i = 0; i < InputStaticMeshes.size(); i++)
+	BYTE FrustumCullingTasksStorage[20 * sizeof(FrustumCullingTask)];
+	FrustumCullingTask *FrustumCullingTasks = (FrustumCullingTask*)FrustumCullingTasksStorage;
+
+	for (UINT i = 0; i < 20; i++)
+	{
+		new (&FrustumCullingTasks[i]) FrustumCullingTask(InputStaticMeshes, FrustumPlanes, i * 1000, (i + 1) * 1000);
+
+		Engine::GetEngine().GetMultiThreadingSystem().AddTask(&FrustumCullingTasks[i]);
+	}
+
+	/*for (int i = 0; i < InputStaticMeshes.size(); i++)
 	{
 		XMMATRIX WorldMatrix = InputStaticMeshes[i]->GetTransformComponent()->GetTransformMatrix();
 
@@ -34,6 +51,14 @@ vector<StaticMeshComponent*> CullingSubSystem::GetVisibleStaticMeshesInFrustum(c
 		BoundingBoxVertices[7] = XMVectorSet(BBCenter.x - BBHalfSize.x, BBCenter.y - BBHalfSize.y, BBCenter.z - BBHalfSize.z, 1.0f);
 
 		if (CullBoxVsFrustum(BoundingBoxVertices, WorldMatrix, FrustumPlanes)) OutputStaticMeshes.push_back(InputStaticMeshes[i]);
+	}*/
+
+	for (UINT i = 0; i < 20; i++)
+	{
+		FrustumCullingTasks[i].WaitForFinish();
+		vector<StaticMeshComponent*>& LocalTaskResult = FrustumCullingTasks[i].GetOutputData();
+		OutputStaticMeshes.insert(OutputStaticMeshes.end(), LocalTaskResult.begin(), LocalTaskResult.end());
+		FrustumCullingTasks[i].~FrustumCullingTask();
 	}
 
 	return OutputStaticMeshes;

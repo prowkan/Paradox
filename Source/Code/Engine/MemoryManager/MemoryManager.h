@@ -12,7 +12,7 @@ class MemoryManager
 		void InitManager();
 		void ShutdownManager();
 
-		void* AllocateGameObject(MetaClass* metaClass);
+		void* AllocateEntity(MetaClass* metaClass);
 		void* AllocateComponent(MetaClass* metaClass);
 
 	private:
@@ -20,6 +20,7 @@ class MemoryManager
 		Pool TransformComponentsPool;
 		Pool BoundingBoxComponentsPool;
 		Pool StaticMeshComponentsPool;
+		Pool PointLightComponentsPool;
 
-		Heap GameObjectsHeap;
+		Heap EntitiesHeap;
 };

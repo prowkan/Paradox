@@ -1,10 +1,11 @@
+// This is an independent project of an individual developer. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+
 #include "RenderSystem.h"
 
 #include <Core/Application.h>
 
 #include <Engine/Engine.h>
-
-#include <Game/GameObjects/Render/Meshes/StaticMeshObject.h>
 
 #include <Game/Components/Common/TransformComponent.h>
 #include <Game/Components/Common/BoundingBoxComponent.h>
@@ -19,38 +20,37 @@ void RenderSystem::InitSystem()
 	UINT FactoryCreationFlags = 0;
 
 #ifdef _DEBUG
-	ID3D12Debug3 *Debug;
-	SAFE_DX(D3D12GetDebugInterface(__uuidof(ID3D12Debug3), (void**)&Debug));
+	COMRCPtr<ID3D12Debug3> Debug;
+	SAFE_DX(D3D12GetDebugInterface(UUIDOF(Debug)));
 	Debug->EnableDebugLayer();
 	Debug->SetEnableGPUBasedValidation(TRUE);
 	FactoryCreationFlags |= DXGI_CREATE_FACTORY_DEBUG;
 #endif
 
-	IDXGIFactory7 *Factory;
+	COMRCPtr<IDXGIFactory7> Factory;
 
-	SAFE_DX(CreateDXGIFactory2(FactoryCreationFlags, __uuidof(IDXGIFactory7), (void**)&Factory));
+	SAFE_DX(CreateDXGIFactory2(FactoryCreationFlags, UUIDOF(Factory)));
 
-	IDXGIAdapter *Adapter;
+	COMRCPtr<IDXGIAdapter> Adapter;
 
-	SAFE_DX(Factory->EnumAdapters(0, (IDXGIAdapter**)&Adapter));
+	SAFE_DX(Factory->EnumAdapters(0, &Adapter));
 
-	IDXGIOutput *Monitor;
+	COMRCPtr<IDXGIOutput> Monitor;
 
 	SAFE_DX(Adapter->EnumOutputs(0, &Monitor));
 
 	UINT DisplayModesCount;
 	SAFE_DX(Monitor->GetDisplayModeList(DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM, 0, &DisplayModesCount, nullptr));
-	DXGI_MODE_DESC *DisplayModes = new DXGI_MODE_DESC[DisplayModesCount];
+	DXGI_MODE_DESC *DisplayModes = new DXGI_MODE_DESC[(size_t)DisplayModesCount];
 	SAFE_DX(Monitor->GetDisplayModeList(DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM, 0, &DisplayModesCount, DisplayModes));
 
-	SAFE_RELEASE(Monitor);
+	/*ResolutionWidth = DisplayModes[(size_t)DisplayModesCount - 1].Width;
+	ResolutionHeight = DisplayModes[(size_t)DisplayModesCount - 1].Height;*/
 
-	ResolutionWidth = DisplayModes[DisplayModesCount - 1].Width;
-	ResolutionHeight = DisplayModes[DisplayModesCount - 1].Height;
+	ResolutionWidth = 1280;
+	ResolutionHeight = 720;
 
-	SAFE_DX(D3D12CreateDevice(Adapter, D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), (void**)&Device));
-
-	SAFE_RELEASE(Adapter);
+	SAFE_DX(D3D12CreateDevice(Adapter, D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_11_0, UUIDOF(Device)));
 
 	D3D12_COMMAND_QUEUE_DESC CommandQueueDesc;
 	CommandQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAGS::D3D12_COMMAND_QUEUE_FLAG_NONE;
@@ -58,12 +58,12 @@ void RenderSystem::InitSystem()
 	CommandQueueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY::D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
 	CommandQueueDesc.Type = D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT;
 
-	SAFE_DX(Device->CreateCommandQueue(&CommandQueueDesc, __uuidof(ID3D12CommandQueue), (void**)&CommandQueue));
+	SAFE_DX(Device->CreateCommandQueue(&CommandQueueDesc, UUIDOF(CommandQueue)));
 
-	SAFE_DX(Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator), (void**)&CommandAllocators[0]));
-	SAFE_DX(Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator), (void**)&CommandAllocators[1]));
+	SAFE_DX(Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT, UUIDOF(CommandAllocators[0])));
+	SAFE_DX(Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT, UUIDOF(CommandAllocators[1])));
 
-	SAFE_DX(Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT, CommandAllocators[0], nullptr, __uuidof(ID3D12GraphicsCommandList), (void**)&CommandList));
+	SAFE_DX(Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT, CommandAllocators[0], nullptr, UUIDOF(CommandList)));
 	SAFE_DX(CommandList->Close());
 
 	DXGI_SWAP_CHAIN_DESC1 SwapChainDesc;
@@ -81,31 +81,31 @@ void RenderSystem::InitSystem()
 	SwapChainDesc.Width = ResolutionWidth;
 
 	DXGI_SWAP_CHAIN_FULLSCREEN_DESC SwapChainFullScreenDesc;
-	SwapChainFullScreenDesc.RefreshRate.Numerator = DisplayModes[DisplayModesCount - 1].RefreshRate.Numerator;
-	SwapChainFullScreenDesc.RefreshRate.Denominator = DisplayModes[DisplayModesCount - 1].RefreshRate.Denominator;
+	SwapChainFullScreenDesc.RefreshRate.Numerator = DisplayModes[(size_t)DisplayModesCount - 1].RefreshRate.Numerator;
+	SwapChainFullScreenDesc.RefreshRate.Denominator = DisplayModes[(size_t)DisplayModesCount - 1].RefreshRate.Denominator;
 	SwapChainFullScreenDesc.Scaling = DXGI_MODE_SCALING::DXGI_MODE_SCALING_UNSPECIFIED;
 	SwapChainFullScreenDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER::DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 	SwapChainFullScreenDesc.Windowed = TRUE;
 
-	IDXGISwapChain1 *SwapChain1;
+	COMRCPtr<IDXGISwapChain1> SwapChain1;
 	SAFE_DX(Factory->CreateSwapChainForHwnd(CommandQueue, Application::GetMainWindowHandle(), &SwapChainDesc, &SwapChainFullScreenDesc, nullptr, &SwapChain1));
 	SAFE_DX(SwapChain1->QueryInterface<IDXGISwapChain4>(&SwapChain));
 
 	SAFE_DX(Factory->MakeWindowAssociation(Application::GetMainWindowHandle(), DXGI_MWA_NO_ALT_ENTER));
-
-	SAFE_RELEASE(SwapChain1);
-
-	SAFE_RELEASE(Factory);
 
 	delete[] DisplayModes;
 
 	CurrentBackBufferIndex = SwapChain->GetCurrentBackBufferIndex();
 	CurrentFrameIndex = 0;
 
-	SAFE_DX(Device->CreateFence(1, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), (void**)&Fences[0]));
-	SAFE_DX(Device->CreateFence(1, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), (void**)&Fences[1]));
+	SAFE_DX(Device->CreateFence(1, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE, UUIDOF(FrameSyncFences[0])));
+	SAFE_DX(Device->CreateFence(1, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE, UUIDOF(FrameSyncFences[1])));
 
-	Event = CreateEvent(NULL, FALSE, FALSE, (const wchar_t*)u"Event");
+	FrameSyncEvent = CreateEvent(NULL, FALSE, FALSE, (const wchar_t*)u"FrameSyncEvent");
+	
+	SAFE_DX(Device->CreateFence(0, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE, UUIDOF(CopySyncFence)));
+	
+	CopySyncEvent = CreateEvent(NULL, FALSE, FALSE, (const wchar_t*)u"CopySyncEvent");
 
 	D3D12_DESCRIPTOR_HEAP_DESC DescriptorHeapDesc;
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
@@ -113,58 +113,58 @@ void RenderSystem::InitSystem()
 	DescriptorHeapDesc.NumDescriptors = 2;
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&RTDescriptorHeap));
+	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(RTDescriptorHeap)));
 
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	DescriptorHeapDesc.NodeMask = 0;
 	DescriptorHeapDesc.NumDescriptors = 1;
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&DSDescriptorHeap));
+	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(DSDescriptorHeap)));
 
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	DescriptorHeapDesc.NodeMask = 0;
 	DescriptorHeapDesc.NumDescriptors = 1;
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&CBSRUADescriptorHeap));
+	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(CBSRUADescriptorHeap)));
 
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	DescriptorHeapDesc.NodeMask = 0;
 	DescriptorHeapDesc.NumDescriptors = 1;
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&SamplersDescriptorHeap));
+	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(SamplersDescriptorHeap)));
 
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	DescriptorHeapDesc.NodeMask = 0;
 	DescriptorHeapDesc.NumDescriptors = 100000;
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&ConstantBufferDescriptorHeap));
+	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(ConstantBufferDescriptorHeap)));
 
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	DescriptorHeapDesc.NodeMask = 0;
 	DescriptorHeapDesc.NumDescriptors = 4000;
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&TexturesDescriptorHeap));
+	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(TexturesDescriptorHeap)));
 
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	DescriptorHeapDesc.NodeMask = 0;
 	DescriptorHeapDesc.NumDescriptors = 100000;
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&FrameResourcesDescriptorHeaps[0]));
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&FrameResourcesDescriptorHeaps[1]));
+	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(FrameResourcesDescriptorHeaps[0])));
+	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(FrameResourcesDescriptorHeaps[1])));
 
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	DescriptorHeapDesc.NodeMask = 0;
 	DescriptorHeapDesc.NumDescriptors = 2000;
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&FrameSamplersDescriptorHeaps[0]));
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&FrameSamplersDescriptorHeaps[1]));
+	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(FrameSamplersDescriptorHeaps[0])));
+	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(FrameSamplersDescriptorHeaps[1])));
 
 	D3D12_DESCRIPTOR_RANGE DescriptorRanges[3];
 	DescriptorRanges[0].BaseShaderRegister = 0;
@@ -216,14 +216,14 @@ void RenderSystem::InitSystem()
 	RootSignatureDesc.pParameters = RootParameters;
 	RootSignatureDesc.pStaticSamplers = nullptr;
 
-	ID3DBlob *RootSignatureBlob;
+	COMRCPtr<ID3DBlob> RootSignatureBlob;
 
 	SAFE_DX(D3D12SerializeRootSignature(&RootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION::D3D_ROOT_SIGNATURE_VERSION_1_0, &RootSignatureBlob, nullptr));
 
-	SAFE_DX(Device->CreateRootSignature(0, RootSignatureBlob->GetBufferPointer(), RootSignatureBlob->GetBufferSize(), __uuidof(ID3D12RootSignature), (void**)&RootSignature));
+	SAFE_DX(Device->CreateRootSignature(0, RootSignatureBlob->GetBufferPointer(), RootSignatureBlob->GetBufferSize(), UUIDOF(RootSignature)));
 
-	SAFE_DX(SwapChain->GetBuffer(0, __uuidof(ID3D12Resource), (void**)&BackBufferTextures[0]));
-	SAFE_DX(SwapChain->GetBuffer(1, __uuidof(ID3D12Resource), (void**)&BackBufferTextures[1]));
+	SAFE_DX(SwapChain->GetBuffer(0, UUIDOF(BackBufferTextures[0])));
+	SAFE_DX(SwapChain->GetBuffer(1, UUIDOF(BackBufferTextures[1])));
 
 	D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
 	RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
@@ -262,7 +262,7 @@ void RenderSystem::InitSystem()
 	ClearValue.DepthStencil.Stencil = 0;
 	ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 
-	SAFE_DX(Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE, &ClearValue, __uuidof(ID3D12Resource), (void**)&DepthBufferTexture));
+	SAFE_DX(Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE, &ClearValue, UUIDOF(DepthBufferTexture)));
 
 	D3D12_DEPTH_STENCIL_VIEW_DESC DSVDesc;
 	DSVDesc.Flags = D3D12_DSV_FLAGS::D3D12_DSV_FLAG_NONE;
@@ -292,7 +292,7 @@ void RenderSystem::InitSystem()
 	HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT;
 	HeapProperties.VisibleNodeMask = 0;
 
-	SAFE_DX(Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, __uuidof(ID3D12Resource), (void**)&GPUConstantBuffer));
+	SAFE_DX(Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUConstantBuffer)));
 
 	HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
 	HeapProperties.CreationNodeMask = 0;
@@ -300,8 +300,8 @@ void RenderSystem::InitSystem()
 	HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD;
 	HeapProperties.VisibleNodeMask = 0;
 
-	SAFE_DX(Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), (void**)&CPUConstantBuffers[0]));
-	SAFE_DX(Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), (void**)&CPUConstantBuffers[1]));
+	SAFE_DX(Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUConstantBuffers[0])));
+	SAFE_DX(Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUConstantBuffers[1])));
 
 	for (int i = 0; i < 20000; i++)
 	{
@@ -338,7 +338,7 @@ void RenderSystem::InitSystem()
 	HeapDesc.Properties.VisibleNodeMask = 0;
 	HeapDesc.SizeInBytes = BUFFER_MEMORY_HEAP_SIZE;
 
-	SAFE_DX(Device->CreateHeap(&HeapDesc, __uuidof(ID3D12Heap), (void**)&BufferMemoryHeaps[CurrentBufferMemoryHeapIndex]));
+	SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(BufferMemoryHeaps[CurrentBufferMemoryHeapIndex])));
 
 	HeapDesc.Alignment = 0;
 	HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES;
@@ -349,7 +349,7 @@ void RenderSystem::InitSystem()
 	HeapDesc.Properties.VisibleNodeMask = 0;
 	HeapDesc.SizeInBytes = TEXTURE_MEMORY_HEAP_SIZE;
 
-	SAFE_DX(Device->CreateHeap(&HeapDesc, __uuidof(ID3D12Heap), (void**)&TextureMemoryHeaps[CurrentTextureMemoryHeapIndex]));
+	SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(TextureMemoryHeaps[CurrentTextureMemoryHeapIndex])));
 
 	HeapDesc.Alignment = 0;
 	HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
@@ -360,7 +360,7 @@ void RenderSystem::InitSystem()
 	HeapDesc.Properties.VisibleNodeMask = 0;
 	HeapDesc.SizeInBytes = UPLOAD_HEAP_SIZE;
 
-	SAFE_DX(Device->CreateHeap(&HeapDesc, __uuidof(ID3D12Heap), (void**)&UploadHeap));
+	SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(UploadHeap)));
 
 	ResourceDesc.Alignment = 0;
 	ResourceDesc.DepthOrArraySize = 1;
@@ -374,24 +374,21 @@ void RenderSystem::InitSystem()
 	ResourceDesc.SampleDesc.Quality = 0;
 	ResourceDesc.Width = UPLOAD_HEAP_SIZE;
 
-	SAFE_DX(Device->CreatePlacedResource(UploadHeap, 0, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), (void**)&UploadBuffer));
+	SAFE_DX(Device->CreatePlacedResource(UploadHeap, 0, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(UploadBuffer)));
 }
 
 void RenderSystem::ShutdownSystem()
 {
 	CurrentFrameIndex = (CurrentFrameIndex + 1) % 2;
 
-	if (Fences[CurrentFrameIndex]->GetCompletedValue() != 1)
+	if (FrameSyncFences[CurrentFrameIndex]->GetCompletedValue() != 1)
 	{
-		SAFE_DX(Fences[CurrentFrameIndex]->SetEventOnCompletion(1, Event));
-		DWORD WaitResult = WaitForSingleObject(Event, INFINITE);
+		SAFE_DX(FrameSyncFences[CurrentFrameIndex]->SetEventOnCompletion(1, FrameSyncEvent));
+		DWORD WaitResult = WaitForSingleObject(FrameSyncEvent, INFINITE);
 	}
 
 	for (RenderMesh* renderMesh : RenderMeshDestructionQueue)
 	{
-		SAFE_RELEASE(renderMesh->VertexBuffer);
-		SAFE_RELEASE(renderMesh->IndexBuffer);
-
 		delete renderMesh;
 	}
 
@@ -399,8 +396,6 @@ void RenderSystem::ShutdownSystem()
 
 	for (RenderMaterial* renderMaterial : RenderMaterialDestructionQueue)
 	{
-		SAFE_RELEASE(renderMaterial->PipelineState);
-
 		delete renderMaterial;
 	}
 
@@ -408,68 +403,26 @@ void RenderSystem::ShutdownSystem()
 
 	for (RenderTexture* renderTexture : RenderTextureDestructionQueue)
 	{
-		SAFE_RELEASE(renderTexture->Texture);
-
 		delete renderTexture;
 	}
 
 	RenderTextureDestructionQueue.clear();
 
-	for (int i = 0; i < MAX_MEMORY_HEAPS_COUNT; i++)
-	{
-		if (BufferMemoryHeaps[i]) SAFE_RELEASE(BufferMemoryHeaps[i]);
-		if (TextureMemoryHeaps[i]) SAFE_RELEASE(TextureMemoryHeaps[i]);
-	}
-
-	SAFE_RELEASE(UploadBuffer);
-	SAFE_RELEASE(UploadHeap);
-
-	SAFE_RELEASE(BackBufferTextures[0]);
-	SAFE_RELEASE(BackBufferTextures[1]);
-
-	SAFE_RELEASE(DepthBufferTexture);
-
-	SAFE_RELEASE(Fences[0]);
-	SAFE_RELEASE(Fences[1]);
-
 	BOOL Result;
 
-	Result = CloseHandle(Event);
-
-	SAFE_RELEASE(GPUConstantBuffer);
-	SAFE_RELEASE(CPUConstantBuffers[0]);
-	SAFE_RELEASE(CPUConstantBuffers[1]);
-
-	SAFE_RELEASE(RootSignature);
-
-	SAFE_RELEASE(RTDescriptorHeap);
-	SAFE_RELEASE(DSDescriptorHeap);
-	SAFE_RELEASE(CBSRUADescriptorHeap);
-	SAFE_RELEASE(SamplersDescriptorHeap);
-
-	SAFE_RELEASE(ConstantBufferDescriptorHeap);
-	SAFE_RELEASE(TexturesDescriptorHeap);
-
-	SAFE_RELEASE(FrameResourcesDescriptorHeaps[0]);
-	SAFE_RELEASE(FrameResourcesDescriptorHeaps[1]);
-
-	SAFE_RELEASE(FrameSamplersDescriptorHeaps[0]);
-	SAFE_RELEASE(FrameSamplersDescriptorHeaps[1]);
-
-	SAFE_RELEASE(CommandList);
-
-	SAFE_RELEASE(CommandAllocators[0]);
-	SAFE_RELEASE(CommandAllocators[1]);
-
-	SAFE_RELEASE(SwapChain);
-
-	SAFE_RELEASE(CommandQueue);
-
-	SAFE_RELEASE(Device);
+	Result = CloseHandle(FrameSyncEvent);
 }
 
 void RenderSystem::TickSystem(float DeltaTime)
 {
+	if (FrameSyncFences[CurrentFrameIndex]->GetCompletedValue() != 1)
+	{
+		SAFE_DX(FrameSyncFences[CurrentFrameIndex]->SetEventOnCompletion(1, FrameSyncEvent));
+		DWORD WaitResult = WaitForSingleObject(FrameSyncEvent, INFINITE);
+	}
+
+	SAFE_DX(FrameSyncFences[CurrentFrameIndex]->Signal(0)); 
+	
 	SAFE_DX(CommandAllocators[CurrentFrameIndex]->Reset());
 	SAFE_DX(CommandList->Reset(CommandAllocators[CurrentFrameIndex], nullptr));
 
@@ -502,7 +455,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	SAFE_DX(CPUConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
 
-	for (int k = 0; k < VisbleStaticMeshComponentsCount; k++)
+	for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
 	{
 		XMMATRIX WorldMatrix = VisbleStaticMeshComponents[k]->GetTransformComponent()->GetTransformMatrix();
 		XMMATRIX WVPMatrix = WorldMatrix * ViewProjMatrix;
@@ -517,35 +470,33 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	CPUConstantBuffers[CurrentFrameIndex]->Unmap(0, &WrittenRange);
 
-	D3D12_RESOURCE_BARRIER ResourceBarrier;
-	ResourceBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarrier.Transition.pResource = GPUConstantBuffer;
-	ResourceBarrier.Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-	ResourceBarrier.Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-	ResourceBarrier.Transition.Subresource = 0;
-	ResourceBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	D3D12_RESOURCE_BARRIER ResourceBarriers[2];
+	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	ResourceBarriers[0].Transition.pResource = GPUConstantBuffer;
+	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
+	ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+	ResourceBarriers[0].Transition.Subresource = 0;
+	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(1, &ResourceBarrier);
+	CommandList->ResourceBarrier(1, ResourceBarriers);
 
 	CommandList->CopyBufferRegion(GPUConstantBuffer, 0, CPUConstantBuffers[CurrentFrameIndex], 0, ConstantBufferOffset);
 
-	ResourceBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarrier.Transition.pResource = GPUConstantBuffer;
-	ResourceBarrier.Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-	ResourceBarrier.Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-	ResourceBarrier.Transition.Subresource = 0;
-	ResourceBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	ResourceBarriers[0].Transition.pResource = GPUConstantBuffer;
+	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+	ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
+	ResourceBarriers[0].Transition.Subresource = 0;
+	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(1, &ResourceBarrier);
+	ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	ResourceBarriers[1].Transition.pResource = BackBufferTextures[CurrentBackBufferIndex];
+	ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
+	ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PRESENT;
+	ResourceBarriers[1].Transition.Subresource = 0;
+	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	ResourceBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarrier.Transition.pResource = BackBufferTextures[CurrentBackBufferIndex];
-	ResourceBarrier.Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-	ResourceBarrier.Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PRESENT;
-	ResourceBarrier.Transition.Subresource = 0;
-	ResourceBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-	CommandList->ResourceBarrier(1, &ResourceBarrier);
+	CommandList->ResourceBarrier(2, ResourceBarriers);
 
 	CommandList->OMSetRenderTargets(1, &BackBufferRTVs[CurrentBackBufferIndex], TRUE, &DepthBufferDSV);
 
@@ -579,7 +530,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 	CommandList->ClearRenderTargetView(BackBufferRTVs[CurrentBackBufferIndex], ClearColor, 0, nullptr);
 	CommandList->ClearDepthStencilView(DepthBufferDSV, D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
-	for (int k = 0; k < VisbleStaticMeshComponentsCount; k++)
+	for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
 	{
 		StaticMeshComponent *staticMeshComponent = VisbleStaticMeshComponents[k];
 
@@ -618,14 +569,14 @@ void RenderSystem::TickSystem(float DeltaTime)
 		CommandList->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
 	}
 
-	ResourceBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarrier.Transition.pResource = BackBufferTextures[CurrentBackBufferIndex];
-	ResourceBarrier.Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PRESENT;
-	ResourceBarrier.Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-	ResourceBarrier.Transition.Subresource = 0;
-	ResourceBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	ResourceBarriers[0].Transition.pResource = BackBufferTextures[CurrentBackBufferIndex];
+	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PRESENT;
+	ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
+	ResourceBarriers[0].Transition.Subresource = 0;
+	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(1, &ResourceBarrier);
+	CommandList->ResourceBarrier(1, ResourceBarriers);
 
 	SAFE_DX(CommandList->Close());
 
@@ -633,18 +584,10 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	SAFE_DX(SwapChain->Present(0, DXGI_PRESENT_ALLOW_TEARING));
 
-	SAFE_DX(CommandQueue->Signal(Fences[CurrentFrameIndex], 1));
+	SAFE_DX(CommandQueue->Signal(FrameSyncFences[CurrentFrameIndex], 1));
 
 	CurrentFrameIndex = (CurrentFrameIndex + 1) % 2;
 	CurrentBackBufferIndex = SwapChain->GetCurrentBackBufferIndex();
-
-	if (Fences[CurrentFrameIndex]->GetCompletedValue() != 1)
-	{
-		SAFE_DX(Fences[CurrentFrameIndex]->SetEventOnCompletion(1, Event));
-		DWORD WaitResult = WaitForSingleObject(Event, INFINITE);
-	}
-
-	SAFE_DX(Fences[CurrentFrameIndex]->Signal(0));
 }
 
 RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMeshCreateInfo)
@@ -682,12 +625,12 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = BUFFER_MEMORY_HEAP_SIZE;
 
-		SAFE_DX(Device->CreateHeap(&HeapDesc, __uuidof(ID3D12Heap), (void**)&BufferMemoryHeaps[CurrentBufferMemoryHeapIndex]));
+		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(BufferMemoryHeaps[CurrentBufferMemoryHeapIndex])));
 
 		AlignedResourceOffset = 0;
 	}
 
-	SAFE_DX(Device->CreatePlacedResource(BufferMemoryHeaps[CurrentBufferMemoryHeapIndex], AlignedResourceOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), (void**)&renderMesh->VertexBuffer));
+	SAFE_DX(Device->CreatePlacedResource(BufferMemoryHeaps[CurrentBufferMemoryHeapIndex], AlignedResourceOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(renderMesh->VertexBuffer)));
 
 	BufferMemoryHeapOffsets[CurrentBufferMemoryHeapIndex] = AlignedResourceOffset + ResourceAllocationInfo.SizeInBytes;
 
@@ -721,12 +664,12 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = BUFFER_MEMORY_HEAP_SIZE;
 
-		SAFE_DX(Device->CreateHeap(&HeapDesc, __uuidof(ID3D12Heap), (void**)&BufferMemoryHeaps[CurrentBufferMemoryHeapIndex]));
+		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(BufferMemoryHeaps[CurrentBufferMemoryHeapIndex])));
 
 		AlignedResourceOffset = 0;
 	}
 
-	SAFE_DX(Device->CreatePlacedResource(BufferMemoryHeaps[CurrentBufferMemoryHeapIndex], AlignedResourceOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), (void**)&renderMesh->IndexBuffer));
+	SAFE_DX(Device->CreatePlacedResource(BufferMemoryHeaps[CurrentBufferMemoryHeapIndex], AlignedResourceOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(renderMesh->IndexBuffer)));
 
 	BufferMemoryHeapOffsets[CurrentBufferMemoryHeapIndex] = AlignedResourceOffset + ResourceAllocationInfo.SizeInBytes;
 
@@ -770,15 +713,15 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 
 	CommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CommandList);
 
-	SAFE_DX(CommandQueue->Signal(Fences[0], 2));
+	SAFE_DX(CommandQueue->Signal(CopySyncFence, 1));
 
-	if (Fences[0]->GetCompletedValue() != 2)
+	if (CopySyncFence->GetCompletedValue() != 1)
 	{
-		SAFE_DX(Fences[0]->SetEventOnCompletion(2, Event));
-		DWORD WaitResult = WaitForSingleObject(Event, INFINITE);
+		SAFE_DX(CopySyncFence->SetEventOnCompletion(1, CopySyncEvent));
+		DWORD WaitResult = WaitForSingleObject(CopySyncEvent, INFINITE);
 	}
 
-	SAFE_DX(Fences[0]->Signal(1));
+	SAFE_DX(CopySyncFence->Signal(0));
 
 	renderMesh->VertexBufferAddress = renderMesh->VertexBuffer->GetGPUVirtualAddress();
 	renderMesh->IndexBufferAddress = renderMesh->IndexBuffer->GetGPUVirtualAddress();
@@ -790,12 +733,37 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 {
 	RenderTexture *renderTexture = new RenderTexture();
 
+	DXGI_FORMAT TextureFormat;
+
+	if (renderTextureCreateInfo.Compressed)
+	{
+		if (renderTextureCreateInfo.SRGB)
+		{
+			TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC1_UNORM_SRGB;
+		}
+		else
+		{
+			TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC1_UNORM;
+		}
+	}
+	else
+	{
+		if (renderTextureCreateInfo.SRGB)
+		{
+			TextureFormat = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		}
+		else
+		{
+			TextureFormat = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM;
+		}
+	}
+
 	D3D12_RESOURCE_DESC ResourceDesc;
 	ResourceDesc.Alignment = 0;
 	ResourceDesc.DepthOrArraySize = 1;
 	ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	ResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE;
-	ResourceDesc.Format = renderTextureCreateInfo.SRGB ? DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM;
+	ResourceDesc.Format = TextureFormat;
 	ResourceDesc.Height = renderTextureCreateInfo.Height;
 	ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	ResourceDesc.MipLevels = renderTextureCreateInfo.MIPLevels;
@@ -821,19 +789,19 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = TEXTURE_MEMORY_HEAP_SIZE;
 
-		SAFE_DX(Device->CreateHeap(&HeapDesc, __uuidof(ID3D12Heap), (void**)&TextureMemoryHeaps[CurrentTextureMemoryHeapIndex]));
+		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(TextureMemoryHeaps[CurrentTextureMemoryHeapIndex])));
 
 		AlignedResourceOffset = 0;
 	}
 
-	SAFE_DX(Device->CreatePlacedResource(TextureMemoryHeaps[CurrentTextureMemoryHeapIndex], AlignedResourceOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), (void**)&renderTexture->Texture));
+	SAFE_DX(Device->CreatePlacedResource(TextureMemoryHeaps[CurrentTextureMemoryHeapIndex], AlignedResourceOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(renderTexture->Texture)));
 
 	TextureMemoryHeapOffsets[CurrentTextureMemoryHeapIndex] = AlignedResourceOffset + ResourceAllocationInfo.SizeInBytes;
 
-	D3D12_PLACED_SUBRESOURCE_FOOTPRINT PlacedSubResourceFootPrints[16];
+	D3D12_PLACED_SUBRESOURCE_FOOTPRINT PlacedSubResourceFootPrints[MAX_MIP_LEVELS_IN_TEXTURE];
 
-	UINT NumsRows[16];
-	UINT64 RowsSizesInBytes[16], TotalBytes;
+	UINT NumsRows[MAX_MIP_LEVELS_IN_TEXTURE];
+	UINT64 RowsSizesInBytes[MAX_MIP_LEVELS_IN_TEXTURE], TotalBytes;
 
 	Device->GetCopyableFootprints(&ResourceDesc, 0, renderTextureCreateInfo.MIPLevels, 0, PlacedSubResourceFootPrints, NumsRows, RowsSizesInBytes, &TotalBytes);
 
@@ -857,7 +825,14 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 			memcpy((BYTE*)MappedData + PlacedSubResourceFootPrints[i].Offset + j * PlacedSubResourceFootPrints[i].Footprint.RowPitch, (BYTE*)TexelData + j * RowsSizesInBytes[i], RowsSizesInBytes[i]);
 		}
 
-		TexelData += 4 * (renderTextureCreateInfo.Width >> i) * (renderTextureCreateInfo.Height >> i);
+		if (renderTextureCreateInfo.Compressed)
+		{
+			TexelData += 8 * ((renderTextureCreateInfo.Width / 4) >> i) * ((renderTextureCreateInfo.Height / 4) >> i);
+		}
+		else
+		{
+			TexelData += 4  * (renderTextureCreateInfo.Width >> i) * (renderTextureCreateInfo.Height >> i);
+		}
 	}
 
 	UploadBuffer->Unmap(0, &WrittenRange);
@@ -895,18 +870,18 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 
 	CommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CommandList);
 
-	SAFE_DX(CommandQueue->Signal(Fences[0], 2));
+	SAFE_DX(CommandQueue->Signal(CopySyncFence, 1));
 
-	if (Fences[0]->GetCompletedValue() != 2)
+	if (CopySyncFence->GetCompletedValue() != 1)
 	{
-		SAFE_DX(Fences[0]->SetEventOnCompletion(2, Event));
-		DWORD WaitResult = WaitForSingleObject(Event, INFINITE);
+		SAFE_DX(CopySyncFence->SetEventOnCompletion(1, CopySyncEvent));
+		DWORD WaitResult = WaitForSingleObject(CopySyncEvent, INFINITE);
 	}
 
-	SAFE_DX(Fences[0]->Signal(1));
+	SAFE_DX(CopySyncFence->Signal(0));
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
-	SRVDesc.Format = renderTextureCreateInfo.SRGB ? DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM;
+	SRVDesc.Format = TextureFormat;
 	SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	SRVDesc.Texture2D.MipLevels = renderTextureCreateInfo.MIPLevels;
 	SRVDesc.Texture2D.MostDetailedMip = 0;
@@ -967,7 +942,7 @@ RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInf
 	GraphicsPipelineStateDesc.VS.BytecodeLength = renderMaterialCreateInfo.VertexShaderByteCodeLength;
 	GraphicsPipelineStateDesc.VS.pShaderBytecode = renderMaterialCreateInfo.VertexShaderByteCodeData;
 
-	SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, __uuidof(ID3D12PipelineState), (void**)&renderMaterial->PipelineState));
+	SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(renderMaterial->PipelineState)));
 
 	return renderMaterial;
 }
@@ -987,21 +962,21 @@ void RenderSystem::DestroyRenderMaterial(RenderMaterial* renderMaterial)
 	RenderMaterialDestructionQueue.push_back(renderMaterial);
 }
 
-inline void RenderSystem::CheckDXCallResult(HRESULT hr, const wchar_t* Function)
+inline void RenderSystem::CheckDXCallResult(HRESULT hr, const char16_t* Function)
 {
 	if (FAILED(hr))
 	{
-		wchar_t DXErrorMessageBuffer[2048];
-		wchar_t DXErrorCodeBuffer[512];
+		char16_t DXErrorMessageBuffer[2048];
+		char16_t DXErrorCodeBuffer[512];
 
-		const wchar_t *DXErrorCodePtr = GetDXErrorMessageFromHRESULT(hr);
+		const char16_t *DXErrorCodePtr = GetDXErrorMessageFromHRESULT(hr);
 
-		if (DXErrorCodePtr) wcscpy(DXErrorCodeBuffer, DXErrorCodePtr);
-		else wsprintf(DXErrorCodeBuffer, (const wchar_t*)u"0x%08X (неизвестный код)", hr);
+		if (DXErrorCodePtr) wcscpy((wchar_t*)DXErrorCodeBuffer, (const wchar_t*)DXErrorCodePtr);
+		else wsprintf((wchar_t*)DXErrorCodeBuffer, (const wchar_t*)u"0x%08X (неизвестный код)", hr);
 
-		wsprintf(DXErrorMessageBuffer, (const wchar_t*)u"Произошла ошибка при попытке вызова следующей DirectX-функции:\r\n%s\r\nКод ошибки: %s", Function, DXErrorCodeBuffer);
+		wsprintf((wchar_t*)DXErrorMessageBuffer, (const wchar_t*)u"Произошла ошибка при попытке вызова следующей DirectX-функции:\r\n%s\r\nКод ошибки: %s", (const wchar_t*)Function, (const wchar_t*)DXErrorCodeBuffer);
 
-		int IntResult = MessageBox(NULL, DXErrorMessageBuffer, (const wchar_t*)u"Ошибка DirectX", MB_OK | MB_ICONERROR);
+		int IntResult = MessageBox(NULL, (const wchar_t*)DXErrorMessageBuffer, (const wchar_t*)u"Ошибка DirectX", MB_OK | MB_ICONERROR);
 
 		if (hr == DXGI_ERROR_DEVICE_REMOVED) SAFE_DX(Device->GetDeviceRemovedReason());
 
@@ -1009,189 +984,189 @@ inline void RenderSystem::CheckDXCallResult(HRESULT hr, const wchar_t* Function)
 	}
 }
 
-inline const wchar_t* RenderSystem::GetDXErrorMessageFromHRESULT(HRESULT hr)
+inline const char16_t* RenderSystem::GetDXErrorMessageFromHRESULT(HRESULT hr)
 {
 	switch (hr)
 	{
 		case E_UNEXPECTED:
-			return (const wchar_t*)u"E_UNEXPECTED"; 
+			return u"E_UNEXPECTED"; 
 			break; 
 		case E_NOTIMPL:
-			return (const wchar_t*)u"E_NOTIMPL";
+			return u"E_NOTIMPL";
 			break;
 		case E_OUTOFMEMORY:
-			return (const wchar_t*)u"E_OUTOFMEMORY";
+			return u"E_OUTOFMEMORY";
 			break; 
 		case E_INVALIDARG:
-			return (const wchar_t*)u"E_INVALIDARG";
+			return u"E_INVALIDARG";
 			break; 
 		case E_NOINTERFACE:
-			return (const wchar_t*)u"E_NOINTERFACE";
+			return u"E_NOINTERFACE";
 			break; 
 		case E_POINTER:
-			return (const wchar_t*)u"E_POINTER"; 
+			return u"E_POINTER"; 
 			break; 
 		case E_HANDLE:
-			return (const wchar_t*)u"E_HANDLE"; 
+			return u"E_HANDLE"; 
 			break;
 		case E_ABORT:
-			return (const wchar_t*)u"E_ABORT"; 
+			return u"E_ABORT"; 
 			break; 
 		case E_FAIL:
-			return (const wchar_t*)u"E_FAIL"; 
+			return u"E_FAIL"; 
 			break;
 		case E_ACCESSDENIED:
-			return (const wchar_t*)u"E_ACCESSDENIED";
+			return u"E_ACCESSDENIED";
 			break; 
 		case E_PENDING:
-			return (const wchar_t*)u"E_PENDING";
+			return u"E_PENDING";
 			break; 
 		case E_BOUNDS:
-			return (const wchar_t*)u"E_BOUNDS";
+			return u"E_BOUNDS";
 			break; 
 		case E_CHANGED_STATE:
-			return (const wchar_t*)u"E_CHANGED_STATE";
+			return u"E_CHANGED_STATE";
 			break; 
 		case E_ILLEGAL_STATE_CHANGE:
-			return (const wchar_t*)u"E_ILLEGAL_STATE_CHANGE";
+			return u"E_ILLEGAL_STATE_CHANGE";
 			break; 
 		case E_ILLEGAL_METHOD_CALL:
-			return (const wchar_t*)u"E_ILLEGAL_METHOD_CALL";
+			return u"E_ILLEGAL_METHOD_CALL";
 			break; 
 		case E_STRING_NOT_NULL_TERMINATED:
-			return (const wchar_t*)u"E_STRING_NOT_NULL_TERMINATED"; 
+			return u"E_STRING_NOT_NULL_TERMINATED"; 
 			break; 
 		case E_ILLEGAL_DELEGATE_ASSIGNMENT:
-			return (const wchar_t*)u"E_ILLEGAL_DELEGATE_ASSIGNMENT";
+			return u"E_ILLEGAL_DELEGATE_ASSIGNMENT";
 			break; 
 		case E_ASYNC_OPERATION_NOT_STARTED:
-			return (const wchar_t*)u"E_ASYNC_OPERATION_NOT_STARTED"; 
+			return u"E_ASYNC_OPERATION_NOT_STARTED"; 
 			break; 
 		case E_APPLICATION_EXITING:
-			return (const wchar_t*)u"E_APPLICATION_EXITING";
+			return u"E_APPLICATION_EXITING";
 			break; 
 		case E_APPLICATION_VIEW_EXITING:
-			return (const wchar_t*)u"E_APPLICATION_VIEW_EXITING";
+			return u"E_APPLICATION_VIEW_EXITING";
 			break; 
 		case DXGI_ERROR_INVALID_CALL:
-			return (const wchar_t*)u"DXGI_ERROR_INVALID_CALL";
+			return u"DXGI_ERROR_INVALID_CALL";
 			break; 
 		case DXGI_ERROR_NOT_FOUND:
-			return (const wchar_t*)u"DXGI_ERROR_NOT_FOUND";
+			return u"DXGI_ERROR_NOT_FOUND";
 			break; 
 		case DXGI_ERROR_MORE_DATA:
-			return (const wchar_t*)u"DXGI_ERROR_MORE_DATA";
+			return u"DXGI_ERROR_MORE_DATA";
 			break; 
 		case DXGI_ERROR_UNSUPPORTED:
-			return (const wchar_t*)u"DXGI_ERROR_UNSUPPORTED";
+			return u"DXGI_ERROR_UNSUPPORTED";
 			break; 
 		case DXGI_ERROR_DEVICE_REMOVED:
-			return (const wchar_t*)u"DXGI_ERROR_DEVICE_REMOVED";
+			return u"DXGI_ERROR_DEVICE_REMOVED";
 			break; 
 		case DXGI_ERROR_DEVICE_HUNG:
-			return (const wchar_t*)u"DXGI_ERROR_DEVICE_HUNG";
+			return u"DXGI_ERROR_DEVICE_HUNG";
 			break; 
 		case DXGI_ERROR_DEVICE_RESET:
-			return (const wchar_t*)u"DXGI_ERROR_DEVICE_RESET";
+			return u"DXGI_ERROR_DEVICE_RESET";
 			break; 
 		case DXGI_ERROR_WAS_STILL_DRAWING:
-			return (const wchar_t*)u"DXGI_ERROR_WAS_STILL_DRAWING";
+			return u"DXGI_ERROR_WAS_STILL_DRAWING";
 			break; 
 		case DXGI_ERROR_FRAME_STATISTICS_DISJOINT:
-			return (const wchar_t*)u"DXGI_ERROR_FRAME_STATISTICS_DISJOINT";
+			return u"DXGI_ERROR_FRAME_STATISTICS_DISJOINT";
 			break; 
 		case DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE:
-			return (const wchar_t*)u"DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE"; 
+			return u"DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE"; 
 			break; 
 		case DXGI_ERROR_DRIVER_INTERNAL_ERROR:
-			return (const wchar_t*)u"DXGI_ERROR_DRIVER_INTERNAL_ERROR";
+			return u"DXGI_ERROR_DRIVER_INTERNAL_ERROR";
 			break; 
 		case DXGI_ERROR_NONEXCLUSIVE:
-			return (const wchar_t*)u"DXGI_ERROR_NONEXCLUSIVE";
+			return u"DXGI_ERROR_NONEXCLUSIVE";
 			break; 
 		case DXGI_ERROR_NOT_CURRENTLY_AVAILABLE:
-			return (const wchar_t*)u"DXGI_ERROR_NOT_CURRENTLY_AVAILABLE"; 
+			return u"DXGI_ERROR_NOT_CURRENTLY_AVAILABLE"; 
 			break; 
 		case DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED:
-			return (const wchar_t*)u"DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED";
+			return u"DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED";
 			break; 
 		case DXGI_ERROR_REMOTE_OUTOFMEMORY:
-			return (const wchar_t*)u"DXGI_ERROR_REMOTE_OUTOFMEMORY"; 
+			return u"DXGI_ERROR_REMOTE_OUTOFMEMORY"; 
 			break; 
 		case DXGI_ERROR_ACCESS_LOST:
-			return (const wchar_t*)u"DXGI_ERROR_ACCESS_LOST";
+			return u"DXGI_ERROR_ACCESS_LOST";
 			break; 
 		case DXGI_ERROR_WAIT_TIMEOUT:
-			return (const wchar_t*)u"DXGI_ERROR_WAIT_TIMEOUT";
+			return u"DXGI_ERROR_WAIT_TIMEOUT";
 			break; 
 		case DXGI_ERROR_SESSION_DISCONNECTED:
-			return (const wchar_t*)u"DXGI_ERROR_SESSION_DISCONNECTED";
+			return u"DXGI_ERROR_SESSION_DISCONNECTED";
 			break; 
 		case DXGI_ERROR_RESTRICT_TO_OUTPUT_STALE:
-			return (const wchar_t*)u"DXGI_ERROR_RESTRICT_TO_OUTPUT_STALE";
+			return u"DXGI_ERROR_RESTRICT_TO_OUTPUT_STALE";
 			break; 
 		case DXGI_ERROR_CANNOT_PROTECT_CONTENT:
-			return (const wchar_t*)u"DXGI_ERROR_CANNOT_PROTECT_CONTENT";
+			return u"DXGI_ERROR_CANNOT_PROTECT_CONTENT";
 			break; 
 		case DXGI_ERROR_ACCESS_DENIED:
-			return (const wchar_t*)u"DXGI_ERROR_ACCESS_DENIED"; 
+			return u"DXGI_ERROR_ACCESS_DENIED"; 
 			break; 
 		case DXGI_ERROR_NAME_ALREADY_EXISTS:
-			return (const wchar_t*)u"DXGI_ERROR_NAME_ALREADY_EXISTS";
+			return u"DXGI_ERROR_NAME_ALREADY_EXISTS";
 			break; 
 		case DXGI_ERROR_SDK_COMPONENT_MISSING:
-			return (const wchar_t*)u"DXGI_ERROR_SDK_COMPONENT_MISSING"; 
+			return u"DXGI_ERROR_SDK_COMPONENT_MISSING"; 
 			break; 
 		case DXGI_ERROR_NOT_CURRENT:
-			return (const wchar_t*)u"DXGI_ERROR_NOT_CURRENT";
+			return u"DXGI_ERROR_NOT_CURRENT";
 			break; 
 		case DXGI_ERROR_HW_PROTECTION_OUTOFMEMORY:
-			return (const wchar_t*)u"DXGI_ERROR_HW_PROTECTION_OUTOFMEMORY"; 
+			return u"DXGI_ERROR_HW_PROTECTION_OUTOFMEMORY"; 
 			break; 
 		case DXGI_ERROR_DYNAMIC_CODE_POLICY_VIOLATION:
-			return (const wchar_t*)u"DXGI_ERROR_DYNAMIC_CODE_POLICY_VIOLATION"; 
+			return u"DXGI_ERROR_DYNAMIC_CODE_POLICY_VIOLATION"; 
 			break; 
 		case DXGI_ERROR_NON_COMPOSITED_UI:
-			return (const wchar_t*)u"DXGI_ERROR_NON_COMPOSITED_UI";
+			return u"DXGI_ERROR_NON_COMPOSITED_UI";
 			break; 
 		case DXGI_ERROR_MODE_CHANGE_IN_PROGRESS:
-			return (const wchar_t*)u"DXGI_ERROR_MODE_CHANGE_IN_PROGRESS";
+			return u"DXGI_ERROR_MODE_CHANGE_IN_PROGRESS";
 			break; 
 		case DXGI_ERROR_CACHE_CORRUPT:
-			return (const wchar_t*)u"DXGI_ERROR_CACHE_CORRUPT";
+			return u"DXGI_ERROR_CACHE_CORRUPT";
 			break;
 		case DXGI_ERROR_CACHE_FULL:
-			return (const wchar_t*)u"DXGI_ERROR_CACHE_FULL";
+			return u"DXGI_ERROR_CACHE_FULL";
 			break;
 		case DXGI_ERROR_CACHE_HASH_COLLISION:
-			return (const wchar_t*)u"DXGI_ERROR_CACHE_HASH_COLLISION";
+			return u"DXGI_ERROR_CACHE_HASH_COLLISION";
 			break;
 		case DXGI_ERROR_ALREADY_EXISTS:
-			return (const wchar_t*)u"DXGI_ERROR_ALREADY_EXISTS"; 
+			return u"DXGI_ERROR_ALREADY_EXISTS"; 
 			break;
 		case D3D10_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS:
-			return (const wchar_t*)u"D3D10_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS";
+			return u"D3D10_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS";
 			break; 
 		case D3D10_ERROR_FILE_NOT_FOUND:
-			return (const wchar_t*)u"D3D10_ERROR_FILE_NOT_FOUND";
+			return u"D3D10_ERROR_FILE_NOT_FOUND";
 			break;
 		case D3D11_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS:
-			return (const wchar_t*)u"D3D11_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS";
+			return u"D3D11_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS";
 			break;
 		case D3D11_ERROR_FILE_NOT_FOUND:
-			return (const wchar_t*)u"D3D11_ERROR_FILE_NOT_FOUND"; 
+			return u"D3D11_ERROR_FILE_NOT_FOUND"; 
 			break;
 		case D3D11_ERROR_TOO_MANY_UNIQUE_VIEW_OBJECTS:
-			return (const wchar_t*)u"D3D11_ERROR_TOO_MANY_UNIQUE_VIEW_OBJECTS"; 
+			return u"D3D11_ERROR_TOO_MANY_UNIQUE_VIEW_OBJECTS"; 
 			break; 
 		case D3D11_ERROR_DEFERRED_CONTEXT_MAP_WITHOUT_INITIAL_DISCARD:
-			return (const wchar_t*)u"D3D11_ERROR_DEFERRED_CONTEXT_MAP_WITHOUT_INITIAL_DISCARD";
+			return u"D3D11_ERROR_DEFERRED_CONTEXT_MAP_WITHOUT_INITIAL_DISCARD";
 			break;
 		case D3D12_ERROR_ADAPTER_NOT_FOUND:
-			return (const wchar_t*)u"D3D12_ERROR_ADAPTER_NOT_FOUND";
+			return u"D3D12_ERROR_ADAPTER_NOT_FOUND";
 			break;
 		case D3D12_ERROR_DRIVER_VERSION_MISMATCH:
-			return (const wchar_t*)u"D3D12_ERROR_DRIVER_VERSION_MISMATCH"; 
+			return u"D3D12_ERROR_DRIVER_VERSION_MISMATCH"; 
 			break;
 		default:
 			return nullptr;

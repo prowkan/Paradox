@@ -1,27 +1,31 @@
+// This is an independent project of an individual developer. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+
 #include "GameFramework.h"
 
 #include "MetaClass.h"
 
-#include "GameObject.h"
-#include "GameObjects/Render/Meshes/StaticMeshObject.h"
+#include "Entity.h"
+#include "Entities/Render/Meshes/StaticMeshEntity.h"
+#include "Entities/Render/Lights/PointLightEntity.h"
 
 #include "Component.h"
 #include "Components/Common/TransformComponent.h"
 #include "Components/Common/BoundingBoxComponent.h"
 #include "Components/Render/Meshes/StaticMeshComponent.h"
-
-#define DECLARE_CLASS(Class) Class::Class ## MetaClass = new MetaClass(&CallObjectConstructor<Class>, sizeof(Class), # Class);
-#define DECLARE_CLASS_WITH_BASE_CLASS(Class, BaseClass) Class::Class ## MetaClass = new MetaClass(&CallObjectConstructor<Class>, sizeof(Class), # Class, BaseClass::BaseClass ## MetaClass);
+#include "Components/Render/Lights/PointLightComponent.h"
 
 void GameFramework::InitFramework()
 {
-	DECLARE_CLASS(GameObject)
-	DECLARE_CLASS_WITH_BASE_CLASS(StaticMeshObject, GameObject)
+	Entity::InitMetaClass();
+	StaticMeshEntity::InitMetaClass();
+	PointLightEntity::InitMetaClass();
 
-	DECLARE_CLASS(Component)
-	DECLARE_CLASS_WITH_BASE_CLASS(TransformComponent, GameObject)
-	DECLARE_CLASS_WITH_BASE_CLASS(BoundingBoxComponent, GameObject)
-	DECLARE_CLASS_WITH_BASE_CLASS(StaticMeshComponent, GameObject)
+	Component::InitMetaClass();
+	TransformComponent::InitMetaClass();
+	BoundingBoxComponent::InitMetaClass();
+	StaticMeshComponent::InitMetaClass();
+	PointLightComponent::InitMetaClass();
 
 	camera.InitCamera();
 	world.LoadWorld();
