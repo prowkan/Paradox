@@ -2759,11 +2759,11 @@ void RenderSystem::TickSystem(float DeltaTime)
 	ResourceBarriers[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(2, ResourceBarriers);
-
 	// ===============================================================================================================
 
 	{
+		CommandList->ResourceBarrier(2, ResourceBarriers);
+
 		COMRCPtr<ID3D12GraphicsCommandList1> CommandList1;
 
 		CommandList->QueryInterface<ID3D12GraphicsCommandList1>(&CommandList1);
@@ -3058,6 +3058,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->RSSetScissorRects(1, &ScissorRect);
 
+		CommandList->DiscardResource(ShadowMaskTexture, nullptr);
+
 		Device->CopyDescriptorsSimple(1, SamplerCPUHandle, ShadowMapSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 		SamplerCPUHandle.ptr += SamplerHandleSize;
 
@@ -3249,7 +3251,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 		ScissorRect.right = ResolutionWidth;
 		ScissorRect.top = 0;
 
-		CommandList->RSSetScissorRects(1, &ScissorRect);			
+		CommandList->RSSetScissorRects(1, &ScissorRect);	
+
+		CommandList->DiscardResource(HDRSceneColorTexture, nullptr);
 
 		UINT DestRangeSize = 8;
 		UINT SourceRangeSizes[7] = { 1, 2, 1, 1, 1, 1, 1 };
@@ -3494,11 +3498,11 @@ void RenderSystem::TickSystem(float DeltaTime)
 	ResourceBarriers[1].Transition.Subresource = 0;
 	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(2, ResourceBarriers);
-
 	// ===============================================================================================================
 
 	{
+		CommandList->ResourceBarrier(2, ResourceBarriers);
+
 		CommandList->ResolveSubresource(ResolvedHDRSceneColorTexture, 0, HDRSceneColorTexture, 0, DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT);
 	}
 
@@ -3525,11 +3529,11 @@ void RenderSystem::TickSystem(float DeltaTime)
 	ResourceBarriers[2].Transition.Subresource = 0;
 	ResourceBarriers[2].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(3, ResourceBarriers);
-
 	// ===============================================================================================================
 
 	{
+		CommandList->ResourceBarrier(3, ResourceBarriers);
+
 		UINT DestRangeSize = 2;
 		UINT SourceRangeSizes[2] = { 1, 1 };
 		D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[2] = { ResolvedHDRSceneColorTextureSRV, SceneLuminanceTexturesUAVs[0] };
@@ -3542,6 +3546,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 		CommandList->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+
+		CommandList->DiscardResource(SceneLuminanceTextures[0], nullptr);
 
 		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
@@ -3578,6 +3584,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 		CommandList->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 		CommandList->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
 
+		CommandList->DiscardResource(SceneLuminanceTextures[1], nullptr);
+
 		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
 		CommandList->Dispatch(80, 45, 1);
@@ -3610,6 +3618,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 		CommandList->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+
+		CommandList->DiscardResource(SceneLuminanceTextures[2], nullptr);
 
 		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
@@ -3644,6 +3654,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 		CommandList->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 		CommandList->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
 
+		CommandList->DiscardResource(SceneLuminanceTextures[3], nullptr);
+
 		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
 		CommandList->Dispatch(1, 1, 1);
@@ -3671,6 +3683,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 		CommandList->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+
+		CommandList->DiscardResource(AverageLuminanceTexture, nullptr);
 
 		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
@@ -3710,6 +3724,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 		ScissorRect.top = 0;
 
 		CommandList->RSSetScissorRects(1, &ScissorRect);
+
+		CommandList->DiscardResource(BloomTextures[0][0], nullptr);
 
 		UINT DestRangeSize = 2;
 		UINT SourceRangeSizes[2] = { 1, 1 };
@@ -3763,6 +3779,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->RSSetScissorRects(1, &ScissorRect);
 
+		CommandList->DiscardResource(BloomTextures[1][0], nullptr);
+
 		DestRangeSize = 1;
 		SourceRangeSizes[0] = 1;
 		SourceCPUHandles[0] = BloomTexturesSRVs[0][0];
@@ -3815,6 +3833,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->RSSetScissorRects(1, &ScissorRect);
 
+		CommandList->DiscardResource(BloomTextures[2][0], nullptr);
+
 		DestRangeSize = 1;
 		SourceRangeSizes[0] = 1;
 		SourceCPUHandles[0] = BloomTexturesSRVs[1][0];
@@ -3861,6 +3881,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 			ScissorRect.top = 0;
 
 			CommandList->RSSetScissorRects(1, &ScissorRect);
+
+			CommandList->DiscardResource(BloomTextures[0][i], nullptr);
 
 			DestRangeSize = 1;
 			SourceRangeSizes[0] = 1;
@@ -3914,6 +3936,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			CommandList->RSSetScissorRects(1, &ScissorRect);
 
+			CommandList->DiscardResource(BloomTextures[1][i], nullptr);
+
 			DestRangeSize = 1;
 			SourceRangeSizes[0] = 1;
 			SourceCPUHandles[0] = BloomTexturesSRVs[0][i];
@@ -3965,6 +3989,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 			ScissorRect.top = 0;
 
 			CommandList->RSSetScissorRects(1, &ScissorRect);
+
+			CommandList->DiscardResource(BloomTextures[2][i], nullptr);
 
 			DestRangeSize = 1;
 			SourceRangeSizes[0] = 1;
@@ -4048,11 +4074,11 @@ void RenderSystem::TickSystem(float DeltaTime)
 	ResourceBarriers[1].Transition.Subresource = 0;
 	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(2, ResourceBarriers);
-
 	// ===============================================================================================================
 
 	{
+		CommandList->ResourceBarrier(2, ResourceBarriers);
+
 		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 		CommandList->OMSetRenderTargets(1, &ToneMappedImageTextureRTV, TRUE, nullptr);
@@ -4074,6 +4100,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 		ScissorRect.top = 0;
 
 		CommandList->RSSetScissorRects(1, &ScissorRect);
+
+		CommandList->DiscardResource(ToneMappedImageTexture, nullptr);
 
 		UINT DestRangeSize = 2;
 		UINT SourceRangeSizes[2] = { 1, 1 };
@@ -4108,12 +4136,12 @@ void RenderSystem::TickSystem(float DeltaTime)
 	ResourceBarriers[1].Transition.Subresource = 0;
 	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(2, ResourceBarriers);
-
 	// ===============================================================================================================
 
 	{
-		CommandList->ResolveSubresource(BackBufferTextures[CurrentBackBufferIndex], 0, ToneMappedImageTexture, 0, DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);		
+		CommandList->ResourceBarrier(2, ResourceBarriers);
+
+		CommandList->ResolveSubresource(BackBufferTextures[CurrentBackBufferIndex], 0, ToneMappedImageTexture, 0, DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
 	}
 
 	// ===============================================================================================================
