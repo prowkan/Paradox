@@ -119,7 +119,7 @@ void ClusterizationSubSystem::ClusterizeLights(const vector<PointLightComponent*
 					LightClustersData[ClusterIndex].Offset = LightClustersData[ClusterIndex - 1].Offset + LightClustersData[ClusterIndex - 1].Count;
 				}
 
-				for (int i = 0; i < LightClustersData[ClusterIndex].Count; i++)
+				for (uint32_t i = 0; i < LightClustersData[ClusterIndex].Count; i++)
 				{
 					LightIndicesData[TotalIndexCount] = LocalLightIndices[ClusterIndex][i];
 
