@@ -36,6 +36,11 @@ class ScopedMemoryBlockArray : public ScopedMemoryBlock<T>
 			return (U*)this->BlockData;
 		}
 
+		T& operator[](const size_t Index)
+		{
+			return this->BlockData[Index];
+		}
+
 	private:
 
 		size_t ElementsCount;
