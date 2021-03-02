@@ -22,6 +22,7 @@
   <PropertyGroup>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
  </PropertyGroup>
 
 </Project>
