@@ -1,0 +1,50 @@
+﻿<Window x:Class="Editor.MainLevelEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Editor"
+        mc:Ignorable="d"
+        Title="Paradox Engine 1.0 - Level Editor" Height="450" Width="800" WindowState="Maximized" WindowStartupLocation="CenterScreen">
+    <DockPanel LastChildFill="True">
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="File">
+                <MenuItem Header="New Level..."></MenuItem>
+                <MenuItem Header="Open Level..."></MenuItem>
+                <MenuItem Header="Save Level"></MenuItem>
+                <MenuItem Header="Save Level As..."></MenuItem>
+                <MenuItem Header="Exit Editor"></MenuItem>
+            </MenuItem>
+            <MenuItem Header="Edit">
+                <MenuItem Header="Undo"></MenuItem>
+                <MenuItem Header="Redo"></MenuItem>
+                <Separator/>
+                <MenuItem Header="Cut"></MenuItem>
+                <MenuItem Header="Copy"></MenuItem>
+                <MenuItem Header="Paste"></MenuItem>
+            </MenuItem>
+        </Menu>
+        <ToolBar DockPanel.Dock="Top">
+            <Button Width="32" Height="32"></Button>
+            <Button Width="32" Height="32"></Button>
+            <Button Width="32" Height="32"></Button>
+            <Button Width="32" Height="32"></Button>
+            <Separator/>
+            <Button Width="32" Height="32"></Button>
+            <Button Width="32" Height="32"></Button>
+            <Separator/>
+            <Button Width="32" Height="32"></Button>
+            <Button Width="32" Height="32"></Button>
+            <Button Width="32" Height="32"></Button>
+            <Separator/>
+            <ComboBox SelectedIndex="0" Width="150">
+                <ComboBoxItem Content="Base Color"/>
+                <ComboBoxItem Content="Normals"/>
+            </ComboBox>
+        </ToolBar>
+        <StatusBar DockPanel.Dock="Bottom" Height="32">
+
+        </StatusBar>        
+        <Canvas x:Name="LevelRenderCanvas"/>
+    </DockPanel>
+</Window>

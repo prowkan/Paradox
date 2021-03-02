@@ -10,7 +10,7 @@
     </ApplicationDefinition>
   </ItemGroup>
   <ItemGroup>
-    <Page Update="MainWindow.xaml">
+    <Page Update="MainLevelEditorWindow.xaml">
       <SubType>Designer</SubType>
     </Page>
   </ItemGroup>

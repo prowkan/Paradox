@@ -12,17 +12,18 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Windows.Interop;
 
 namespace Editor
 {
     /// <summary>
-    /// Interaction logic for MainWindow.xaml
+    /// Interaction logic for MainLevelEditorWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainLevelEditorWindow : Window
     {
-        public MainWindow()
+        public MainLevelEditorWindow()
         {
-            InitializeComponent();
+            InitializeComponent();            
         }
     }
 }
