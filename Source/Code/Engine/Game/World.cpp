@@ -135,7 +135,7 @@ void World::LoadWorld()
 		Engine::GetEngine().GetResourceManager().AddResource<StaticMeshResource>(StaticMeshResourceName, &staticMeshResourceCreateInfo);
 	}
 
-	Texel *TexelData = new Texel[512 * 512 + 256 * 256 + 128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4];
+	ScopedMemoryBlockArray<Texel> TexelData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<Texel>(512 * 512 + 256 * 256 + 128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4);
 
 	Texel *Texels[8];
 
@@ -175,7 +175,7 @@ void World::LoadWorld()
 		}
 	}
 
-	CompressedTexelBlockBC1 *CompressedTexelBlockDataBC1 = new CompressedTexelBlockBC1[128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4 + 2 * 2 + 1 * 1];
+	ScopedMemoryBlockArray<CompressedTexelBlock> CompressedTexelBlockData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<CompressedTexelBlock>(128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4 + 2 * 2 + 1 * 1);
 
 	CompressedTexelBlockBC1 *CompressedTexelBlocksBC1[8];
 
@@ -614,10 +614,6 @@ void World::LoadWorld()
 
 		Engine::GetEngine().GetResourceManager().AddResource<MaterialResource>(MaterialResourceName, &materialResourceCreateInfo);
 	}
-
-	free(GBufferOpaquePassVertexShaderByteCodeData);
-	free(GBufferOpaquePassPixelShaderByteCodeData);
-	free(ShadowMapPassVertexShaderByteCodeData);
 
 	UINT ResourceCounter = 0;
 
