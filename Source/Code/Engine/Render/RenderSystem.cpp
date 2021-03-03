@@ -65,7 +65,7 @@ void RenderSystem::InitSystem()
 
 	UINT FactoryCreationFlags = 0;
 	UINT DeviceCreationFlags = 0;
-	
+
 #ifdef _DEBUG
 	FactoryCreationFlags |= DXGI_CREATE_FACTORY_DEBUG;
 	DeviceCreationFlags |= D3D11_CREATE_DEVICE_FLAG::D3D11_CREATE_DEVICE_DEBUG;
@@ -275,6 +275,57 @@ void RenderSystem::InitSystem()
 	{
 		D3D11_TEXTURE2D_DESC TextureDesc;
 		TextureDesc.ArraySize = 1;
+		TextureDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_RENDER_TARGET;
+		TextureDesc.CPUAccessFlags = 0;
+		TextureDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
+		TextureDesc.Height = 144;
+		TextureDesc.MipLevels = 1;
+		TextureDesc.MiscFlags = 0;
+		TextureDesc.SampleDesc.Count = 1;
+		TextureDesc.SampleDesc.Quality = 0;
+		TextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
+		TextureDesc.Width = 256;
+
+		SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &OcclusionBufferTexture));
+
+		D3D11_RENDER_TARGET_VIEW_DESC RTVDesc;
+		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
+		RTVDesc.Texture2D.MipSlice = 0;
+		RTVDesc.ViewDimension = D3D11_RTV_DIMENSION::D3D11_RTV_DIMENSION_TEXTURE2D;
+
+		SAFE_DX(Device->CreateRenderTargetView(OcclusionBufferTexture, &RTVDesc, &OcclusionBufferTextureRTV));
+
+		TextureDesc.ArraySize = 1;
+		TextureDesc.BindFlags = 0;
+		TextureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_READ;
+		TextureDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
+		TextureDesc.Height = 144;
+		TextureDesc.MipLevels = 1;
+		TextureDesc.MiscFlags = 0;
+		TextureDesc.SampleDesc.Count = 1;
+		TextureDesc.SampleDesc.Quality = 0;
+		TextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_STAGING;
+		TextureDesc.Width = 256;
+
+		SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &OcclusionBufferStagingTextures[0]));
+		SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &OcclusionBufferStagingTextures[1]));
+		SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &OcclusionBufferStagingTextures[2]));
+
+		HANDLE OcclusionBufferPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/OcclusionBuffer.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+		LARGE_INTEGER OcclusionBufferPixelShaderByteCodeLength;
+		BOOL Result = GetFileSizeEx(OcclusionBufferPixelShaderFile, &OcclusionBufferPixelShaderByteCodeLength);
+		ScopedMemoryBlockArray<BYTE> OcclusionBufferPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(OcclusionBufferPixelShaderByteCodeLength.QuadPart);
+		Result = ReadFile(OcclusionBufferPixelShaderFile, OcclusionBufferPixelShaderByteCodeData, (DWORD)OcclusionBufferPixelShaderByteCodeLength.QuadPart, NULL, NULL);
+		Result = CloseHandle(OcclusionBufferPixelShaderFile);
+
+		SAFE_DX(Device->CreatePixelShader(OcclusionBufferPixelShaderByteCodeData, OcclusionBufferPixelShaderByteCodeLength.QuadPart, nullptr, &OcclusionBufferPixelShader));
+	}
+
+	// ===============================================================================================================
+
+	{
+		D3D11_TEXTURE2D_DESC TextureDesc;
+		TextureDesc.ArraySize = 1;
 		TextureDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
 		TextureDesc.CPUAccessFlags = 0;
 		TextureDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_TYPELESS;
@@ -474,7 +525,7 @@ void RenderSystem::InitSystem()
 		ScopedMemoryBlockArray<BYTE> DeferredLightingPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(DeferredLightingPixelShaderByteCodeLength.QuadPart);
 		Result = ReadFile(DeferredLightingPixelShaderFile, DeferredLightingPixelShaderByteCodeData, (DWORD)DeferredLightingPixelShaderByteCodeLength.QuadPart, NULL, NULL);
 		Result = CloseHandle(DeferredLightingPixelShaderFile);
-	
+
 		SAFE_DX(Device->CreatePixelShader(DeferredLightingPixelShaderByteCodeData, DeferredLightingPixelShaderByteCodeLength.QuadPart, nullptr, &DeferredLightingPixelShader));
 	}
 
@@ -751,7 +802,7 @@ void RenderSystem::InitSystem()
 		SRVDesc.Texture2D.MostDetailedMip = 0;
 		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_TEXTURE2D;
 
-		SAFE_DX(Device->CreateShaderResourceView(SunTexture, &SRVDesc, &SunTextureSRV));		
+		SAFE_DX(Device->CreateShaderResourceView(SunTexture, &SRVDesc, &SunTextureSRV));
 	}
 
 	// ===============================================================================================================
@@ -855,7 +906,7 @@ void RenderSystem::InitSystem()
 		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_TEXTURE2D;
 
 		SAFE_DX(Device->CreateShaderResourceView(AverageLuminanceTexture, &SRVDesc, &AverageLuminanceTextureSRV));
-	
+
 		HANDLE LuminanceCalcComputeShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/LuminanceCalc.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 		LARGE_INTEGER LuminanceCalcComputeShaderByteCodeLength;
 		BOOL Result = GetFileSizeEx(LuminanceCalcComputeShaderFile, &LuminanceCalcComputeShaderByteCodeLength);
@@ -1002,7 +1053,7 @@ void RenderSystem::InitSystem()
 	}
 
 	// ===============================================================================================================
-	
+
 	HANDLE VertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/MaterialBase_VertexShader_GBufferOpaquePass.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER VertexShaderByteCodeLength;
 	BOOL Result = GetFileSizeEx(VertexShaderFile, &VertexShaderByteCodeLength);
@@ -1046,7 +1097,7 @@ void RenderSystem::InitSystem()
 	InputElementDescs[4].InstanceDataStepRate = 0;
 	InputElementDescs[4].SemanticIndex = 0;
 	InputElementDescs[4].SemanticName = "BINORMAL";
-	
+
 	SAFE_DX(Device->CreateInputLayout(InputElementDescs, 5, VertexShaderByteCodeData, VertexShaderByteCodeLength.QuadPart, &InputLayout));
 
 	D3D11_SAMPLER_DESC SamplerDesc;
@@ -1076,6 +1127,17 @@ void RenderSystem::InitSystem()
 	SamplerDesc.BorderColor[0] = SamplerDesc.BorderColor[1] = SamplerDesc.BorderColor[2] = SamplerDesc.BorderColor[3] = 1.0f;
 	SamplerDesc.ComparisonFunc = (D3D11_COMPARISON_FUNC)0;
 	SamplerDesc.Filter = D3D11_FILTER::D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+	SamplerDesc.MaxAnisotropy = 1;
+	SamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	SamplerDesc.MinLOD = 0;
+	SamplerDesc.MipLODBias = 0.0f;
+
+	SAFE_DX(Device->CreateSamplerState(&SamplerDesc, &BiLinearSampler));
+
+	SamplerDesc.AddressU = SamplerDesc.AddressV = SamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_MODE::D3D11_TEXTURE_ADDRESS_CLAMP;
+	SamplerDesc.BorderColor[0] = SamplerDesc.BorderColor[1] = SamplerDesc.BorderColor[2] = SamplerDesc.BorderColor[3] = 1.0f;
+	SamplerDesc.ComparisonFunc = (D3D11_COMPARISON_FUNC)0;
+	SamplerDesc.Filter = D3D11_FILTER::D3D11_FILTER_MINIMUM_MIN_MAG_MIP_POINT;
 	SamplerDesc.MaxAnisotropy = 1;
 	SamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 	SamplerDesc.MinLOD = 0;
@@ -1188,7 +1250,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 	XMMATRIX ViewProjMatrix = Engine::GetEngine().GetGameFramework().GetCamera().GetViewProjMatrix();
 
 	vector<StaticMeshComponent*> AllStaticMeshComponents = Engine::GetEngine().GetGameFramework().GetWorld().GetRenderScene().GetStaticMeshComponents();
-	vector<StaticMeshComponent*> VisbleStaticMeshComponents = cullingSubSystem.GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ViewProjMatrix);
+	vector<StaticMeshComponent*> VisbleStaticMeshComponents = cullingSubSystem.GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ViewProjMatrix, true);
 	size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.size();
 
 	vector<PointLightComponent*> AllPointLightComponents = Engine::GetEngine().GetGameFramework().GetWorld().GetRenderScene().GetPointLightComponents();
@@ -1233,7 +1295,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	OPTICK_EVENT("Draw Calls")
 
-	DeviceContext->ClearState();
+		DeviceContext->ClearState();
 
 	// ===============================================================================================================
 
@@ -1241,7 +1303,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 		ID3D11RenderTargetView *GBufferTexturesRTVs[2] = { this->GBufferTexturesRTVs[0], this->GBufferTexturesRTVs[1] };
-		
+
 		DeviceContext->OMSetRenderTargets(2, GBufferTexturesRTVs, DepthBufferTextureDSV);
 
 		D3D11_VIEWPORT Viewport;
@@ -1333,7 +1395,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	{
 		DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-		
+
 		DeviceContext->OMSetRenderTargets(1, &ResolvedDepthBufferTextureRTV, nullptr);
 
 		D3D11_VIEWPORT Viewport;
@@ -1362,16 +1424,60 @@ void RenderSystem::TickSystem(float DeltaTime)
 	// ===============================================================================================================
 
 	{
+		DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+		DeviceContext->OMSetRenderTargets(1, &OcclusionBufferTextureRTV, nullptr);
+
+		D3D11_VIEWPORT Viewport;
+		Viewport.Height = 144.0f;
+		Viewport.MaxDepth = 1.0f;
+		Viewport.MinDepth = 0.0f;
+		Viewport.TopLeftX = 0.0f;
+		Viewport.TopLeftY = 0.0f;
+		Viewport.Width = 256.0f;
+
+		DeviceContext->RSSetViewports(1, &Viewport);
+
+		DeviceContext->PSSetSamplers(0, 1, &MinSampler);
+
+		DeviceContext->VSSetShader(FullScreenQuadVertexShader, nullptr, 0);
+		DeviceContext->PSSetShader(OcclusionBufferPixelShader, nullptr, 0);
+
+		DeviceContext->PSSetShaderResources(0, 1, &ResolvedDepthBufferTextureSRV);
+
+		DeviceContext->Draw(4, 0);
+
+		DeviceContext->CopyResource(OcclusionBufferStagingTextures[OcclusionBufferIndex], OcclusionBufferTexture);
+
+		OcclusionBufferIndex = (OcclusionBufferIndex + 1) % 3;
+
+		float *OcclusionBufferData = cullingSubSystem.GetOcclusionBufferData();
+
+		D3D11_MAPPED_SUBRESOURCE MappedSubResource;
+
+		SAFE_DX(DeviceContext->Map(OcclusionBufferStagingTextures[OcclusionBufferIndex], 0, D3D11_MAP::D3D11_MAP_READ, 0, &MappedSubResource));
+
+		for (UINT i = 0; i < 144; i++)
+		{
+			memcpy((BYTE*)OcclusionBufferData + i * 256 * sizeof(float), (BYTE*)MappedSubResource.pData + i * MappedSubResource.RowPitch, 256 * sizeof(float));
+		}
+
+		DeviceContext->Unmap(OcclusionBufferStagingTextures[OcclusionBufferIndex], 0);
+	}
+
+	// ===============================================================================================================
+
+	{
 		for (int i = 0; i < 4; i++)
 		{
 			SIZE_T ConstantBufferOffset = 0;
 
 			vector<StaticMeshComponent*> AllStaticMeshComponents = Engine::GetEngine().GetGameFramework().GetWorld().GetRenderScene().GetStaticMeshComponents();
-			vector<StaticMeshComponent*> VisbleStaticMeshComponents = cullingSubSystem.GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ShadowViewProjMatrices[i]);
+			vector<StaticMeshComponent*> VisbleStaticMeshComponents = cullingSubSystem.GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ShadowViewProjMatrices[i], false);
 			size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.size();
 
 			DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-						
+
 			DeviceContext->OMSetRenderTargets(0, nullptr, CascadedShadowMapTexturesDSVs[i]);
 
 			D3D11_VIEWPORT Viewport;
@@ -1432,7 +1538,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	{
 		DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-		
+
 		DeviceContext->OMSetRenderTargets(1, &ShadowMaskTextureRTV, nullptr);
 
 		D3D11_VIEWPORT Viewport;
@@ -1444,7 +1550,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		Viewport.Width = FLOAT(ResolutionWidth);
 
 		DeviceContext->RSSetViewports(1, &Viewport);
-		
+
 		DeviceContext->IASetInputLayout(nullptr);
 		DeviceContext->RSSetState(RasterizerState);
 		DeviceContext->OMSetBlendState(BlendDisabledBlendState, nullptr, D3D11_DEFAULT_SAMPLE_MASK);
@@ -1491,7 +1597,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 		DeviceContext->OMSetRenderTargets(1, &HDRSceneColorTextureRTV, nullptr);
-		
+
 		D3D11_VIEWPORT Viewport;
 		Viewport.Height = float(ResolutionHeight);
 		Viewport.MaxDepth = 1.0f;
@@ -1500,8 +1606,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 		Viewport.TopLeftY = 0.0f;
 		Viewport.Width = FLOAT(ResolutionWidth);
 
-		DeviceContext->RSSetViewports(1, &Viewport); 
-		
+		DeviceContext->RSSetViewports(1, &Viewport);
+
 		DeviceContext->IASetInputLayout(nullptr);
 		DeviceContext->RSSetState(RasterizerState);
 		DeviceContext->OMSetBlendState(BlendDisabledBlendState, nullptr, D3D11_DEFAULT_SAMPLE_MASK);
@@ -1549,7 +1655,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		DeviceContext->PSSetShaderResources(5, 1, &LightIndicesBufferSRV);
 		DeviceContext->PSSetShaderResources(6, 1, &PointLightsBufferSRV);
 
-		DeviceContext->Draw(4, 0);		
+		DeviceContext->Draw(4, 0);
 	}
 
 	// ===============================================================================================================
@@ -1573,7 +1679,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		DeviceContext->RSSetState(RasterizerState);
 		DeviceContext->OMSetBlendState(FogBlendState, nullptr, D3D11_DEFAULT_SAMPLE_MASK);
 		DeviceContext->OMSetDepthStencilState(DepthDisabledDepthStencilState, 0);
-		
+
 		DeviceContext->VSSetShader(FullScreenQuadVertexShader, nullptr, 0);
 		DeviceContext->PSSetShader(FogPixelShader, nullptr, 0);
 
@@ -1589,7 +1695,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 		DeviceContext->OMSetRenderTargets(1, &HDRSceneColorTextureRTV, DepthBufferTextureDSV);
-		
+
 		Viewport.Height = float(ResolutionHeight);
 		Viewport.MaxDepth = 1.0f;
 		Viewport.MinDepth = 0.0f;
@@ -1711,9 +1817,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	{
 		DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-		
+
 		DeviceContext->OMSetRenderTargets(1, &BloomTexturesRTVs[0][0], nullptr);
-		
+
 		D3D11_VIEWPORT Viewport;
 		Viewport.Height = FLOAT(ResolutionHeight);
 		Viewport.MaxDepth = 1.0f;
@@ -1758,9 +1864,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 		for (int i = 1; i < 7; i++)
 		{
 			DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-			
+
 			DeviceContext->OMSetRenderTargets(1, &BloomTexturesRTVs[0][i], nullptr);
-			
+
 			Viewport.Height = FLOAT(ResolutionHeight >> i);
 			Viewport.MaxDepth = 1.0f;
 			Viewport.MinDepth = 0.0f;
@@ -1783,7 +1889,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 			DeviceContext->Draw(4, 0);
 
 			DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-			
+
 			DeviceContext->OMSetRenderTargets(1, &BloomTexturesRTVs[1][i], nullptr);
 
 			Viewport.Height = FLOAT(ResolutionHeight >> i);
@@ -1808,7 +1914,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 			DeviceContext->Draw(4, 0);
 
 			DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-			
+
 			DeviceContext->OMSetRenderTargets(1, &BloomTexturesRTVs[2][i], nullptr);
 
 			Viewport.Height = FLOAT(ResolutionHeight >> i);
@@ -1836,7 +1942,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		for (int i = 5; i >= 0; i--)
 		{
 			DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-			
+
 			DeviceContext->OMSetRenderTargets(1, &BloomTexturesRTVs[2][i], nullptr);
 
 			Viewport.Height = FLOAT(ResolutionHeight >> i);
@@ -1863,10 +1969,10 @@ void RenderSystem::TickSystem(float DeltaTime)
 	}
 
 	// ===============================================================================================================
-	
+
 	{
 		DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-		
+
 		DeviceContext->OMSetRenderTargets(1, &ToneMappedImageRTV, nullptr);
 
 		D3D11_VIEWPORT Viewport;
@@ -1950,42 +2056,42 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 		{
 			switch (renderTextureCreateInfo.CompressionType)
 			{
-				case BlockCompression::BC1:
-					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC1_UNORM_SRGB;
-					break;
-				case BlockCompression::BC2:
-					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC2_UNORM_SRGB;
-					break;
-				case BlockCompression::BC3:
-					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC3_UNORM_SRGB;
-					break;
-				default:
-					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
-					break;
+			case BlockCompression::BC1:
+				TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC1_UNORM_SRGB;
+				break;
+			case BlockCompression::BC2:
+				TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC2_UNORM_SRGB;
+				break;
+			case BlockCompression::BC3:
+				TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC3_UNORM_SRGB;
+				break;
+			default:
+				TextureFormat = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
+				break;
 			}
 		}
 		else
 		{
 			switch (renderTextureCreateInfo.CompressionType)
 			{
-				case BlockCompression::BC1:
-					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC1_UNORM;
-					break;
-				case BlockCompression::BC2:
-					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC2_UNORM;
-					break;
-				case BlockCompression::BC3:
-					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC3_UNORM;
-					break;
-				case BlockCompression::BC4:
-					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC4_UNORM;
-					break;
-				case BlockCompression::BC5:
-					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC5_UNORM;
-					break;
-				default:
-					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
-					break;
+			case BlockCompression::BC1:
+				TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC1_UNORM;
+				break;
+			case BlockCompression::BC2:
+				TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC2_UNORM;
+				break;
+			case BlockCompression::BC3:
+				TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC3_UNORM;
+				break;
+			case BlockCompression::BC4:
+				TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC4_UNORM;
+				break;
+			case BlockCompression::BC5:
+				TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC5_UNORM;
+				break;
+			default:
+				TextureFormat = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
+				break;
 			}
 		}
 	}
@@ -2110,189 +2216,189 @@ inline const char16_t* RenderSystem::GetDXErrorMessageFromHRESULT(HRESULT hr)
 {
 	switch (hr)
 	{
-		case E_UNEXPECTED:
-			return u"E_UNEXPECTED"; 
-			break; 
-		case E_NOTIMPL:
-			return u"E_NOTIMPL";
-			break;
-		case E_OUTOFMEMORY:
-			return u"E_OUTOFMEMORY";
-			break; 
-		case E_INVALIDARG:
-			return u"E_INVALIDARG";
-			break; 
-		case E_NOINTERFACE:
-			return u"E_NOINTERFACE";
-			break; 
-		case E_POINTER:
-			return u"E_POINTER"; 
-			break; 
-		case E_HANDLE:
-			return u"E_HANDLE"; 
-			break;
-		case E_ABORT:
-			return u"E_ABORT"; 
-			break; 
-		case E_FAIL:
-			return u"E_FAIL"; 
-			break;
-		case E_ACCESSDENIED:
-			return u"E_ACCESSDENIED";
-			break; 
-		case E_PENDING:
-			return u"E_PENDING";
-			break; 
-		case E_BOUNDS:
-			return u"E_BOUNDS";
-			break; 
-		case E_CHANGED_STATE:
-			return u"E_CHANGED_STATE";
-			break; 
-		case E_ILLEGAL_STATE_CHANGE:
-			return u"E_ILLEGAL_STATE_CHANGE";
-			break; 
-		case E_ILLEGAL_METHOD_CALL:
-			return u"E_ILLEGAL_METHOD_CALL";
-			break; 
-		case E_STRING_NOT_NULL_TERMINATED:
-			return u"E_STRING_NOT_NULL_TERMINATED"; 
-			break; 
-		case E_ILLEGAL_DELEGATE_ASSIGNMENT:
-			return u"E_ILLEGAL_DELEGATE_ASSIGNMENT";
-			break; 
-		case E_ASYNC_OPERATION_NOT_STARTED:
-			return u"E_ASYNC_OPERATION_NOT_STARTED"; 
-			break; 
-		case E_APPLICATION_EXITING:
-			return u"E_APPLICATION_EXITING";
-			break; 
-		case E_APPLICATION_VIEW_EXITING:
-			return u"E_APPLICATION_VIEW_EXITING";
-			break; 
-		case DXGI_ERROR_INVALID_CALL:
-			return u"DXGI_ERROR_INVALID_CALL";
-			break; 
-		case DXGI_ERROR_NOT_FOUND:
-			return u"DXGI_ERROR_NOT_FOUND";
-			break; 
-		case DXGI_ERROR_MORE_DATA:
-			return u"DXGI_ERROR_MORE_DATA";
-			break; 
-		case DXGI_ERROR_UNSUPPORTED:
-			return u"DXGI_ERROR_UNSUPPORTED";
-			break; 
-		case DXGI_ERROR_DEVICE_REMOVED:
-			return u"DXGI_ERROR_DEVICE_REMOVED";
-			break; 
-		case DXGI_ERROR_DEVICE_HUNG:
-			return u"DXGI_ERROR_DEVICE_HUNG";
-			break; 
-		case DXGI_ERROR_DEVICE_RESET:
-			return u"DXGI_ERROR_DEVICE_RESET";
-			break; 
-		case DXGI_ERROR_WAS_STILL_DRAWING:
-			return u"DXGI_ERROR_WAS_STILL_DRAWING";
-			break; 
-		case DXGI_ERROR_FRAME_STATISTICS_DISJOINT:
-			return u"DXGI_ERROR_FRAME_STATISTICS_DISJOINT";
-			break; 
-		case DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE:
-			return u"DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE"; 
-			break; 
-		case DXGI_ERROR_DRIVER_INTERNAL_ERROR:
-			return u"DXGI_ERROR_DRIVER_INTERNAL_ERROR";
-			break; 
-		case DXGI_ERROR_NONEXCLUSIVE:
-			return u"DXGI_ERROR_NONEXCLUSIVE";
-			break; 
-		case DXGI_ERROR_NOT_CURRENTLY_AVAILABLE:
-			return u"DXGI_ERROR_NOT_CURRENTLY_AVAILABLE"; 
-			break; 
-		case DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED:
-			return u"DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED";
-			break; 
-		case DXGI_ERROR_REMOTE_OUTOFMEMORY:
-			return u"DXGI_ERROR_REMOTE_OUTOFMEMORY"; 
-			break; 
-		case DXGI_ERROR_ACCESS_LOST:
-			return u"DXGI_ERROR_ACCESS_LOST";
-			break; 
-		case DXGI_ERROR_WAIT_TIMEOUT:
-			return u"DXGI_ERROR_WAIT_TIMEOUT";
-			break; 
-		case DXGI_ERROR_SESSION_DISCONNECTED:
-			return u"DXGI_ERROR_SESSION_DISCONNECTED";
-			break; 
-		case DXGI_ERROR_RESTRICT_TO_OUTPUT_STALE:
-			return u"DXGI_ERROR_RESTRICT_TO_OUTPUT_STALE";
-			break; 
-		case DXGI_ERROR_CANNOT_PROTECT_CONTENT:
-			return u"DXGI_ERROR_CANNOT_PROTECT_CONTENT";
-			break; 
-		case DXGI_ERROR_ACCESS_DENIED:
-			return u"DXGI_ERROR_ACCESS_DENIED"; 
-			break; 
-		case DXGI_ERROR_NAME_ALREADY_EXISTS:
-			return u"DXGI_ERROR_NAME_ALREADY_EXISTS";
-			break; 
-		case DXGI_ERROR_SDK_COMPONENT_MISSING:
-			return u"DXGI_ERROR_SDK_COMPONENT_MISSING"; 
-			break; 
-		case DXGI_ERROR_NOT_CURRENT:
-			return u"DXGI_ERROR_NOT_CURRENT";
-			break; 
-		case DXGI_ERROR_HW_PROTECTION_OUTOFMEMORY:
-			return u"DXGI_ERROR_HW_PROTECTION_OUTOFMEMORY"; 
-			break; 
-		case DXGI_ERROR_DYNAMIC_CODE_POLICY_VIOLATION:
-			return u"DXGI_ERROR_DYNAMIC_CODE_POLICY_VIOLATION"; 
-			break; 
-		case DXGI_ERROR_NON_COMPOSITED_UI:
-			return u"DXGI_ERROR_NON_COMPOSITED_UI";
-			break; 
-		case DXGI_ERROR_MODE_CHANGE_IN_PROGRESS:
-			return u"DXGI_ERROR_MODE_CHANGE_IN_PROGRESS";
-			break; 
-		case DXGI_ERROR_CACHE_CORRUPT:
-			return u"DXGI_ERROR_CACHE_CORRUPT";
-			break;
-		case DXGI_ERROR_CACHE_FULL:
-			return u"DXGI_ERROR_CACHE_FULL";
-			break;
-		case DXGI_ERROR_CACHE_HASH_COLLISION:
-			return u"DXGI_ERROR_CACHE_HASH_COLLISION";
-			break;
-		case DXGI_ERROR_ALREADY_EXISTS:
-			return u"DXGI_ERROR_ALREADY_EXISTS"; 
-			break;
-		case D3D10_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS:
-			return u"D3D10_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS";
-			break; 
-		case D3D10_ERROR_FILE_NOT_FOUND:
-			return u"D3D10_ERROR_FILE_NOT_FOUND";
-			break;
-		case D3D11_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS:
-			return u"D3D11_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS";
-			break;
-		case D3D11_ERROR_FILE_NOT_FOUND:
-			return u"D3D11_ERROR_FILE_NOT_FOUND"; 
-			break;
-		case D3D11_ERROR_TOO_MANY_UNIQUE_VIEW_OBJECTS:
-			return u"D3D11_ERROR_TOO_MANY_UNIQUE_VIEW_OBJECTS"; 
-			break; 
-		case D3D11_ERROR_DEFERRED_CONTEXT_MAP_WITHOUT_INITIAL_DISCARD:
-			return u"D3D11_ERROR_DEFERRED_CONTEXT_MAP_WITHOUT_INITIAL_DISCARD";
-			break;
-		case D3D12_ERROR_ADAPTER_NOT_FOUND:
-			return u"D3D12_ERROR_ADAPTER_NOT_FOUND";
-			break;
-		case D3D12_ERROR_DRIVER_VERSION_MISMATCH:
-			return u"D3D12_ERROR_DRIVER_VERSION_MISMATCH"; 
-			break;
-		default:
-			return nullptr;
-			break;
+	case E_UNEXPECTED:
+		return u"E_UNEXPECTED";
+		break;
+	case E_NOTIMPL:
+		return u"E_NOTIMPL";
+		break;
+	case E_OUTOFMEMORY:
+		return u"E_OUTOFMEMORY";
+		break;
+	case E_INVALIDARG:
+		return u"E_INVALIDARG";
+		break;
+	case E_NOINTERFACE:
+		return u"E_NOINTERFACE";
+		break;
+	case E_POINTER:
+		return u"E_POINTER";
+		break;
+	case E_HANDLE:
+		return u"E_HANDLE";
+		break;
+	case E_ABORT:
+		return u"E_ABORT";
+		break;
+	case E_FAIL:
+		return u"E_FAIL";
+		break;
+	case E_ACCESSDENIED:
+		return u"E_ACCESSDENIED";
+		break;
+	case E_PENDING:
+		return u"E_PENDING";
+		break;
+	case E_BOUNDS:
+		return u"E_BOUNDS";
+		break;
+	case E_CHANGED_STATE:
+		return u"E_CHANGED_STATE";
+		break;
+	case E_ILLEGAL_STATE_CHANGE:
+		return u"E_ILLEGAL_STATE_CHANGE";
+		break;
+	case E_ILLEGAL_METHOD_CALL:
+		return u"E_ILLEGAL_METHOD_CALL";
+		break;
+	case E_STRING_NOT_NULL_TERMINATED:
+		return u"E_STRING_NOT_NULL_TERMINATED";
+		break;
+	case E_ILLEGAL_DELEGATE_ASSIGNMENT:
+		return u"E_ILLEGAL_DELEGATE_ASSIGNMENT";
+		break;
+	case E_ASYNC_OPERATION_NOT_STARTED:
+		return u"E_ASYNC_OPERATION_NOT_STARTED";
+		break;
+	case E_APPLICATION_EXITING:
+		return u"E_APPLICATION_EXITING";
+		break;
+	case E_APPLICATION_VIEW_EXITING:
+		return u"E_APPLICATION_VIEW_EXITING";
+		break;
+	case DXGI_ERROR_INVALID_CALL:
+		return u"DXGI_ERROR_INVALID_CALL";
+		break;
+	case DXGI_ERROR_NOT_FOUND:
+		return u"DXGI_ERROR_NOT_FOUND";
+		break;
+	case DXGI_ERROR_MORE_DATA:
+		return u"DXGI_ERROR_MORE_DATA";
+		break;
+	case DXGI_ERROR_UNSUPPORTED:
+		return u"DXGI_ERROR_UNSUPPORTED";
+		break;
+	case DXGI_ERROR_DEVICE_REMOVED:
+		return u"DXGI_ERROR_DEVICE_REMOVED";
+		break;
+	case DXGI_ERROR_DEVICE_HUNG:
+		return u"DXGI_ERROR_DEVICE_HUNG";
+		break;
+	case DXGI_ERROR_DEVICE_RESET:
+		return u"DXGI_ERROR_DEVICE_RESET";
+		break;
+	case DXGI_ERROR_WAS_STILL_DRAWING:
+		return u"DXGI_ERROR_WAS_STILL_DRAWING";
+		break;
+	case DXGI_ERROR_FRAME_STATISTICS_DISJOINT:
+		return u"DXGI_ERROR_FRAME_STATISTICS_DISJOINT";
+		break;
+	case DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE:
+		return u"DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE";
+		break;
+	case DXGI_ERROR_DRIVER_INTERNAL_ERROR:
+		return u"DXGI_ERROR_DRIVER_INTERNAL_ERROR";
+		break;
+	case DXGI_ERROR_NONEXCLUSIVE:
+		return u"DXGI_ERROR_NONEXCLUSIVE";
+		break;
+	case DXGI_ERROR_NOT_CURRENTLY_AVAILABLE:
+		return u"DXGI_ERROR_NOT_CURRENTLY_AVAILABLE";
+		break;
+	case DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED:
+		return u"DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED";
+		break;
+	case DXGI_ERROR_REMOTE_OUTOFMEMORY:
+		return u"DXGI_ERROR_REMOTE_OUTOFMEMORY";
+		break;
+	case DXGI_ERROR_ACCESS_LOST:
+		return u"DXGI_ERROR_ACCESS_LOST";
+		break;
+	case DXGI_ERROR_WAIT_TIMEOUT:
+		return u"DXGI_ERROR_WAIT_TIMEOUT";
+		break;
+	case DXGI_ERROR_SESSION_DISCONNECTED:
+		return u"DXGI_ERROR_SESSION_DISCONNECTED";
+		break;
+	case DXGI_ERROR_RESTRICT_TO_OUTPUT_STALE:
+		return u"DXGI_ERROR_RESTRICT_TO_OUTPUT_STALE";
+		break;
+	case DXGI_ERROR_CANNOT_PROTECT_CONTENT:
+		return u"DXGI_ERROR_CANNOT_PROTECT_CONTENT";
+		break;
+	case DXGI_ERROR_ACCESS_DENIED:
+		return u"DXGI_ERROR_ACCESS_DENIED";
+		break;
+	case DXGI_ERROR_NAME_ALREADY_EXISTS:
+		return u"DXGI_ERROR_NAME_ALREADY_EXISTS";
+		break;
+	case DXGI_ERROR_SDK_COMPONENT_MISSING:
+		return u"DXGI_ERROR_SDK_COMPONENT_MISSING";
+		break;
+	case DXGI_ERROR_NOT_CURRENT:
+		return u"DXGI_ERROR_NOT_CURRENT";
+		break;
+	case DXGI_ERROR_HW_PROTECTION_OUTOFMEMORY:
+		return u"DXGI_ERROR_HW_PROTECTION_OUTOFMEMORY";
+		break;
+	case DXGI_ERROR_DYNAMIC_CODE_POLICY_VIOLATION:
+		return u"DXGI_ERROR_DYNAMIC_CODE_POLICY_VIOLATION";
+		break;
+	case DXGI_ERROR_NON_COMPOSITED_UI:
+		return u"DXGI_ERROR_NON_COMPOSITED_UI";
+		break;
+	case DXGI_ERROR_MODE_CHANGE_IN_PROGRESS:
+		return u"DXGI_ERROR_MODE_CHANGE_IN_PROGRESS";
+		break;
+	case DXGI_ERROR_CACHE_CORRUPT:
+		return u"DXGI_ERROR_CACHE_CORRUPT";
+		break;
+	case DXGI_ERROR_CACHE_FULL:
+		return u"DXGI_ERROR_CACHE_FULL";
+		break;
+	case DXGI_ERROR_CACHE_HASH_COLLISION:
+		return u"DXGI_ERROR_CACHE_HASH_COLLISION";
+		break;
+	case DXGI_ERROR_ALREADY_EXISTS:
+		return u"DXGI_ERROR_ALREADY_EXISTS";
+		break;
+	case D3D10_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS:
+		return u"D3D10_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS";
+		break;
+	case D3D10_ERROR_FILE_NOT_FOUND:
+		return u"D3D10_ERROR_FILE_NOT_FOUND";
+		break;
+	case D3D11_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS:
+		return u"D3D11_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS";
+		break;
+	case D3D11_ERROR_FILE_NOT_FOUND:
+		return u"D3D11_ERROR_FILE_NOT_FOUND";
+		break;
+	case D3D11_ERROR_TOO_MANY_UNIQUE_VIEW_OBJECTS:
+		return u"D3D11_ERROR_TOO_MANY_UNIQUE_VIEW_OBJECTS";
+		break;
+	case D3D11_ERROR_DEFERRED_CONTEXT_MAP_WITHOUT_INITIAL_DISCARD:
+		return u"D3D11_ERROR_DEFERRED_CONTEXT_MAP_WITHOUT_INITIAL_DISCARD";
+		break;
+	case D3D12_ERROR_ADAPTER_NOT_FOUND:
+		return u"D3D12_ERROR_ADAPTER_NOT_FOUND";
+		break;
+	case D3D12_ERROR_DRIVER_VERSION_MISMATCH:
+		return u"D3D12_ERROR_DRIVER_VERSION_MISMATCH";
+		break;
+	default:
+		return nullptr;
+		break;
 	}
 
 	return nullptr;

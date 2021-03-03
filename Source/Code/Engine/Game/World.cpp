@@ -196,8 +196,6 @@ void World::LoadWorld()
 		{
 			for (int x = 0; x < MIPSize; x++)
 			{
-				Color MinColor{ 255, 255, 255 }, MaxColor{ 0, 0, 0 };
-
 				float Distance = -1.0f;
 				int j1max, i1max, j2max, i2max;
 
@@ -228,8 +226,8 @@ void World::LoadWorld()
 					}
 				}
 
-				MinColor = Color{ (float)Texels[k][(4 * y + j1max) * (4 * MIPSize) + (4 * x + i1max)].R, (float)Texels[k][(4 * y + j1max) * (4 * MIPSize) + (4 * x + i1max)].G, (float)Texels[k][(4 * y + j1max) * (4 * MIPSize) + (4 * x + i1max)].B };
-				MaxColor = Color{ (float)Texels[k][(4 * y + j2max) * (4 * MIPSize) + (4 * x + i2max)].R, (float)Texels[k][(4 * y + j2max) * (4 * MIPSize) + (4 * x + i2max)].G, (float)Texels[k][(4 * y + j2max) * (4 * MIPSize) + (4 * x + i2max)].B };
+				Color MinColor{ (float)Texels[k][(4 * y + j1max) * (4 * MIPSize) + (4 * x + i1max)].R, (float)Texels[k][(4 * y + j1max) * (4 * MIPSize) + (4 * x + i1max)].G, (float)Texels[k][(4 * y + j1max) * (4 * MIPSize) + (4 * x + i1max)].B };
+				Color MaxColor{ (float)Texels[k][(4 * y + j2max) * (4 * MIPSize) + (4 * x + i2max)].R, (float)Texels[k][(4 * y + j2max) * (4 * MIPSize) + (4 * x + i2max)].G, (float)Texels[k][(4 * y + j2max) * (4 * MIPSize) + (4 * x + i2max)].B };
 
 				if ((MinColor.R < MaxColor.R) || ((MinColor.R == MinColor.R) && (MinColor.G < MaxColor.G)) || ((MinColor.R == MinColor.R) && (MinColor.G == MaxColor.G) && (MinColor.B < MaxColor.B)))
 				{
@@ -526,8 +524,8 @@ void World::LoadWorld()
 					}
 				}
 
-				uint8_t *RedIndicesBytes[2] = { (uint8_t*)&RedIndices[0], (uint8_t*)&RedIndices[1] };
-				uint8_t *GreenIndicesBytes[2] = { (uint8_t*)&GreenIndices[0], (uint8_t*)&GreenIndices[1] };
+				uint8_t *RedIndicesBytes[2] = { (uint8_t*)&RedIndices[0], (uint8_t*)&RedIndices[1] }; //-V206
+				uint8_t *GreenIndicesBytes[2] = { (uint8_t*)&GreenIndices[0], (uint8_t*)&GreenIndices[1] }; //-V206
 				
 				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[0] = RedIndicesBytes[0][0];
 				CompressedTexelBlocksBC5[k][y * MIPSize + x].RedIndices[1] = RedIndicesBytes[0][1];
@@ -595,6 +593,8 @@ void World::LoadWorld()
 	materialResourceCreateInfo.ShadowMapPassVertexShaderByteCodeLength = ShadowMapPassVertexShaderByteCodeLength.QuadPart;
 	materialResourceCreateInfo.Textures.resize(2);
 
+	ResourceManager& resourceManager = Engine::GetEngine().GetResourceManager();
+
 	for (int k = 0; k < 4000; k++)
 	{
 		char MaterialResourceName[255];
@@ -604,11 +604,11 @@ void World::LoadWorld()
 		char Texture2DResourceName[255];
 
 		sprintf(Texture2DResourceName, "Checker_%d", k);
-		materialResourceCreateInfo.Textures[0] = Engine::GetEngine().GetResourceManager().GetResource<Texture2DResource>(Texture2DResourceName);
+		materialResourceCreateInfo.Textures[0] = resourceManager.GetResource<Texture2DResource>(Texture2DResourceName);
 		sprintf(Texture2DResourceName, "Normal_%d", k);
-		materialResourceCreateInfo.Textures[1] = Engine::GetEngine().GetResourceManager().GetResource<Texture2DResource>(Texture2DResourceName);
+		materialResourceCreateInfo.Textures[1] = resourceManager.GetResource<Texture2DResource>(Texture2DResourceName);
 
-		Engine::GetEngine().GetResourceManager().AddResource<MaterialResource>(MaterialResourceName, &materialResourceCreateInfo);
+		resourceManager.AddResource<MaterialResource>(MaterialResourceName, &materialResourceCreateInfo);
 	}
 
 	UINT ResourceCounter = 0;
@@ -625,8 +625,8 @@ void World::LoadWorld()
 
 			StaticMeshEntity *staticMeshEntity = SpawnEntity<StaticMeshEntity>();
 			staticMeshEntity->GetTransformComponent()->SetLocation(XMFLOAT3(i * 5.0f + 2.5f, -0.0f, j * 5.0f + 2.5f));
-			staticMeshEntity->GetStaticMeshComponent()->SetStaticMesh(Engine::GetEngine().GetResourceManager().GetResource<StaticMeshResource>(StaticMeshResourceName));
-			staticMeshEntity->GetStaticMeshComponent()->SetMaterial(Engine::GetEngine().GetResourceManager().GetResource<MaterialResource>(MaterialResourceName));
+			staticMeshEntity->GetStaticMeshComponent()->SetStaticMesh(resourceManager.GetResource<StaticMeshResource>(StaticMeshResourceName));
+			staticMeshEntity->GetStaticMeshComponent()->SetMaterial(resourceManager.GetResource<MaterialResource>(MaterialResourceName));
 
 			ResourceCounter = (ResourceCounter + 1) % 4000;
 
@@ -636,8 +636,8 @@ void World::LoadWorld()
 			staticMeshEntity = SpawnEntity<StaticMeshEntity>();
 			staticMeshEntity->GetTransformComponent()->SetLocation(XMFLOAT3(i * 10.0f + 5.0f, -2.0f, j * 10.0f + 5.0f));
 			staticMeshEntity->GetTransformComponent()->SetScale(XMFLOAT3(5.0f, 1.0f, 5.0f));
-			staticMeshEntity->GetStaticMeshComponent()->SetStaticMesh(Engine::GetEngine().GetResourceManager().GetResource<StaticMeshResource>(StaticMeshResourceName));
-			staticMeshEntity->GetStaticMeshComponent()->SetMaterial(Engine::GetEngine().GetResourceManager().GetResource<MaterialResource>(MaterialResourceName));
+			staticMeshEntity->GetStaticMeshComponent()->SetStaticMesh(resourceManager.GetResource<StaticMeshResource>(StaticMeshResourceName));
+			staticMeshEntity->GetStaticMeshComponent()->SetMaterial(resourceManager.GetResource<MaterialResource>(MaterialResourceName));
 
 			ResourceCounter = (ResourceCounter + 1) % 4000;
 

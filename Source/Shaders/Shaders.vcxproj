@@ -183,6 +183,7 @@
     <FxCompile Include="SunPixelShader.hlsl" />
     <FxCompile Include="SunVertexShader.hlsl" />
     <FxCompile Include="VerticalBlur.hlsl" />
+    <FxCompile Include="OcclusionBuffer.hlsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

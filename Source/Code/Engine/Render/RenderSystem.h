@@ -151,6 +151,8 @@ class RenderSystem
 		void DestroyRenderTexture(RenderTexture* renderTexture);
 		void DestroyRenderMaterial(RenderMaterial* renderMaterial);
 
+		CullingSubSystem& GetCullingSubSystem() { return cullingSubSystem; }
+
 	private:
 
 		COMRCPtr<ID3D11Device> Device;
@@ -171,7 +173,7 @@ class RenderSystem
 		COMRCPtr<ID3D11Texture2D> GBufferTextures[2];
 		COMRCPtr<ID3D11RenderTargetView>  GBufferTexturesRTVs[2];
 		COMRCPtr<ID3D11ShaderResourceView> GBufferTexturesSRVs[2];
-		
+
 		COMRCPtr<ID3D11Texture2D> DepthBufferTexture;
 		COMRCPtr<ID3D11DepthStencilView> DepthBufferTextureDSV;
 		COMRCPtr<ID3D11ShaderResourceView> DepthBufferTextureSRV;
@@ -185,13 +187,20 @@ class RenderSystem
 		COMRCPtr<ID3D11ShaderResourceView> ResolvedDepthBufferTextureSRV;
 
 		COMRCPtr<ID3D11PixelShader> MSAADepthResolvePixelShader;
-		
+
 		// ===============================================================================================================
-		
+
+		COMRCPtr<ID3D11Texture2D> OcclusionBufferTexture, OcclusionBufferStagingTextures[3];
+		COMRCPtr<ID3D11RenderTargetView> OcclusionBufferTextureRTV;
+
+		COMRCPtr<ID3D11PixelShader> OcclusionBufferPixelShader;
+
+		// ===============================================================================================================
+
 		COMRCPtr<ID3D11Texture2D> CascadedShadowMapTextures[4];
 		COMRCPtr<ID3D11DepthStencilView> CascadedShadowMapTexturesDSVs[4];
 		COMRCPtr<ID3D11ShaderResourceView> CascadedShadowMapTexturesSRVs[4];
-		
+
 		COMRCPtr<ID3D11Buffer> ConstantBuffers[4];
 
 		// ===============================================================================================================
@@ -202,7 +211,7 @@ class RenderSystem
 
 		COMRCPtr<ID3D11Buffer> ShadowResolveConstantBuffer;
 
-		COMRCPtr<ID3D11PixelShader> ShadowResolvePixelShader;		
+		COMRCPtr<ID3D11PixelShader> ShadowResolvePixelShader;
 
 		// ===============================================================================================================
 
@@ -259,7 +268,7 @@ class RenderSystem
 		COMRCPtr<ID3D11ComputeShader> LuminanceCalcComputeShader;
 		COMRCPtr<ID3D11ComputeShader> LuminanceSumComputeShader;
 		COMRCPtr<ID3D11ComputeShader> LuminanceAvgComputeShader;
-		
+
 		// ===============================================================================================================
 
 		COMRCPtr<ID3D11Texture2D> BloomTextures[3][7];
@@ -274,13 +283,13 @@ class RenderSystem
 		// ===============================================================================================================
 
 		COMRCPtr<ID3D11Texture2D> ToneMappedImageTexture;
-		COMRCPtr<ID3D11RenderTargetView> ToneMappedImageRTV;		
+		COMRCPtr<ID3D11RenderTargetView> ToneMappedImageRTV;
 
 		COMRCPtr<ID3D11PixelShader> HDRToneMappingPixelShader;
-		
+
 		// ===============================================================================================================
-				
-		COMRCPtr<ID3D11SamplerState> TextureSampler, ShadowMapSampler, BiLinearSampler;
+
+		COMRCPtr<ID3D11SamplerState> TextureSampler, ShadowMapSampler, BiLinearSampler, MinSampler;
 
 		COMRCPtr<ID3D11InputLayout> InputLayout;
 		COMRCPtr<ID3D11RasterizerState> RasterizerState;
@@ -298,4 +307,6 @@ class RenderSystem
 		inline const char16_t* GetDXErrorMessageFromHRESULT(HRESULT hr);
 
 		static const UINT MAX_MIP_LEVELS_IN_TEXTURE = 16;
+
+		UINT OcclusionBufferIndex = 0;
 };
