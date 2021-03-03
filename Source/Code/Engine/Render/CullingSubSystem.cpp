@@ -12,7 +12,7 @@
 #include <Game/Components/Render/Meshes/StaticMeshComponent.h>
 #include <Game/Components/Render/Lights/PointLightComponent.h>
 
-vector<StaticMeshComponent*> CullingSubSystem::GetVisibleStaticMeshesInFrustum(const vector<StaticMeshComponent*>& InputStaticMeshes, const XMMATRIX& ViewProjMatrix)
+vector<StaticMeshComponent*> CullingSubSystem::GetVisibleStaticMeshesInFrustum(const vector<StaticMeshComponent*>& InputStaticMeshes, const XMMATRIX& ViewProjMatrix, const bool DoOcclusionTest)
 {
 	OPTICK_EVENT("Frustum Culling")
 
@@ -27,7 +27,7 @@ vector<StaticMeshComponent*> CullingSubSystem::GetVisibleStaticMeshesInFrustum(c
 
 	for (UINT i = 0; i < 20; i++)
 	{
-		new (&FrustumCullingTasks[i]) FrustumCullingTask(InputStaticMeshes, FrustumPlanes, i * 1000, (i + 1) * 1000);
+		new (&FrustumCullingTasks[i]) FrustumCullingTask(InputStaticMeshes, FrustumPlanes, i * 1000, (i + 1) * 1000, DoOcclusionTest);
 
 		Engine::GetEngine().GetMultiThreadingSystem().AddTask(&FrustumCullingTasks[i]);
 	}

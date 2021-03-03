@@ -7,7 +7,7 @@ class CullingSubSystem
 {
 	public:
 
-		vector<StaticMeshComponent*> GetVisibleStaticMeshesInFrustum(const vector<StaticMeshComponent*>& InputStaticMeshes, const XMMATRIX& ViewProjMatrix);
+		vector<StaticMeshComponent*> GetVisibleStaticMeshesInFrustum(const vector<StaticMeshComponent*>& InputStaticMeshes, const XMMATRIX& ViewProjMatrix, const bool DoOcclusionTest);
 		vector<PointLightComponent*> GetVisiblePointLightsInFrustum(const vector<PointLightComponent*>& InputPointLights, const XMMATRIX& ViewProjMatrix);
 
 		float* GetOcclusionBufferData() { return OcclusionBufferData; }

@@ -176,7 +176,7 @@ class RenderSystem
 		UINT RTDescriptorsCount = 0, DSDescriptorsCount = 0, CBSRUADescriptorsCount = 0, SamplersDescriptorsCount = 0;
 		UINT ConstantBufferDescriptorsCount = 0, TexturesDescriptorsCount = 0;
 
-		COMRCPtr<ID3D12RootSignature> GraphisRootSignature, ComputeRootSignature;
+		COMRCPtr<ID3D12RootSignature> GraphicsRootSignature, ComputeRootSignature;
 
 		COMRCPtr<ID3D12Resource> BackBufferTextures[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE BackBufferTexturesRTVs[2];
@@ -218,7 +218,7 @@ class RenderSystem
 		// ===============================================================================================================
 
 		COMRCPtr<ID3D12Resource> OcclusionBufferTexture, OcclusionBufferTextureReadback[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE OcclusionBufferRTV;
+		D3D12_CPU_DESCRIPTOR_HANDLE OcclusionBufferTextureRTV;
 
 		COMRCPtr<ID3D12PipelineState> OcclusionBufferPipelineState;
 

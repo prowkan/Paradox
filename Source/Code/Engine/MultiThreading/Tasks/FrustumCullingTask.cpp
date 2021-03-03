@@ -59,6 +59,8 @@ bool FrustumCullingTask::CullBoxVsFrustum(const XMVECTOR* BoundingBoxVertices, c
 		return false;
 	}
 
+	if (!DoOcclusionTest) return true;
+
 	XMMATRIX ViewProjMatrix = Engine::GetEngine().GetGameFramework().GetCamera().GetViewProjMatrix();
 
 	XMMATRIX WVPMatrix = XMMatrixScaling(1.1f, 1.1f, 1.1f) * WorldMatrix * ViewProjMatrix;
@@ -79,7 +81,7 @@ bool FrustumCullingTask::CullBoxVsFrustum(const XMVECTOR* BoundingBoxVertices, c
 
 	float *OcclusionBufferData = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetOcclusionBufferData();
 
-	WORD BBIndices[36] =
+	static WORD BBIndices[36] =
 	{
 		5, 4, 7, 7, 4, 6,
 		0, 1, 2, 2, 1, 3,
@@ -152,7 +154,7 @@ bool FrustumCullingTask::CullBoxVsFrustum(const XMVECTOR* BoundingBoxVertices, c
 				float TriangleDepth = U * TrianglePoints[0].z + V * TrianglePoints[1].z + W * TrianglePoints[2].z;
 				float TexelDepth = OcclusionBufferData[y * 256 + x];
 
-				if (TriangleDepth <= TexelDepth) return true;
+				if (TriangleDepth >= TexelDepth) return true;
 
 				U += dUdx;
 				V += dVdx;
