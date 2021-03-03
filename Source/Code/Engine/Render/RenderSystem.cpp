@@ -1338,6 +1338,12 @@ void RenderSystem::TickSystem(float DeltaTime)
 			RenderTexture *renderTexture0 = staticMeshComponent->GetMaterial()->GetTexture(0)->GetRenderTexture();
 			RenderTexture *renderTexture1 = staticMeshComponent->GetMaterial()->GetTexture(1)->GetRenderTexture();
 
+			ID3D11ShaderResourceView *TexturesSRVs[2] =
+			{
+				renderTexture0->TextureSRV,
+				renderTexture1->TextureSRV
+			};
+
 			XMMATRIX WorldMatrix = VisbleStaticMeshComponents[k]->GetTransformComponent()->GetTransformMatrix();
 			XMMATRIX WVPMatrix = WorldMatrix * ViewProjMatrix;
 			XMFLOAT3X4 VectorTransformMatrix;
@@ -1384,8 +1390,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 			DeviceContext->PSSetShader(renderMaterial->GBufferOpaquePassPixelShader, nullptr, 0);
 
 			DeviceContext->VSSetConstantBuffers(0, 1, &ConstantBuffer);
-			DeviceContext->PSSetShaderResources(0, 1, &renderTexture0->TextureSRV);
-			DeviceContext->PSSetShaderResources(1, 1, &renderTexture1->TextureSRV);
+			DeviceContext->PSSetShaderResources(0, 2, TexturesSRVs);
 
 			DeviceContext->DrawIndexed(8 * 8 * 6 * 6, 0, 0);
 		}
@@ -1580,12 +1585,17 @@ void RenderSystem::TickSystem(float DeltaTime)
 		DeviceContext->VSSetShader(FullScreenQuadVertexShader, nullptr, 0);
 		DeviceContext->PSSetShader(ShadowResolvePixelShader, nullptr, 0);
 
+		ID3D11ShaderResourceView *SRVs[5] =
+		{
+			ResolvedDepthBufferTextureSRV,
+			CascadedShadowMapTexturesSRVs[0],
+			CascadedShadowMapTexturesSRVs[1],
+			CascadedShadowMapTexturesSRVs[2],
+			CascadedShadowMapTexturesSRVs[3]
+		};
+
 		DeviceContext->PSSetConstantBuffers(0, 1, &ShadowResolveConstantBuffer);
-		DeviceContext->PSSetShaderResources(0, 1, &ResolvedDepthBufferTextureSRV);
-		DeviceContext->PSSetShaderResources(1, 1, &CascadedShadowMapTexturesSRVs[0]);
-		DeviceContext->PSSetShaderResources(2, 1, &CascadedShadowMapTexturesSRVs[1]);
-		DeviceContext->PSSetShaderResources(3, 1, &CascadedShadowMapTexturesSRVs[2]);
-		DeviceContext->PSSetShaderResources(4, 1, &CascadedShadowMapTexturesSRVs[3]);
+		DeviceContext->PSSetShaderResources(0, 5, SRVs);
 
 		DeviceContext->Draw(4, 0);
 	}
@@ -1646,14 +1656,19 @@ void RenderSystem::TickSystem(float DeltaTime)
 		DeviceContext->VSSetShader(FullScreenQuadVertexShader, nullptr, 0);
 		DeviceContext->PSSetShader(DeferredLightingPixelShader, nullptr, 0);
 
+		ID3D11ShaderResourceView *SRVs[7] =
+		{
+			GBufferTexturesSRVs[0],
+			GBufferTexturesSRVs[1],
+			DepthBufferTextureSRV,
+			ShadowMaskTextureSRV,
+			LightClustersBufferSRV,
+			LightIndicesBufferSRV,
+			PointLightsBufferSRV
+		};
+
 		DeviceContext->PSSetConstantBuffers(0, 1, &DeferredLightingConstantBuffer);
-		DeviceContext->PSSetShaderResources(0, 1, &GBufferTexturesSRVs[0]);
-		DeviceContext->PSSetShaderResources(1, 1, &GBufferTexturesSRVs[1]);
-		DeviceContext->PSSetShaderResources(2, 1, &DepthBufferTextureSRV);
-		DeviceContext->PSSetShaderResources(3, 1, &ShadowMaskTextureSRV);
-		DeviceContext->PSSetShaderResources(4, 1, &LightClustersBufferSRV);
-		DeviceContext->PSSetShaderResources(5, 1, &LightIndicesBufferSRV);
-		DeviceContext->PSSetShaderResources(6, 1, &PointLightsBufferSRV);
+		DeviceContext->PSSetShaderResources(0, 7, SRVs);
 
 		DeviceContext->Draw(4, 0);
 	}
@@ -1687,10 +1702,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		DeviceContext->Draw(4, 0);
 
-		ID3D11ShaderResourceView *NullSRV = nullptr;
+		ID3D11ShaderResourceView *NullSRVs[3] = { nullptr, nullptr, nullptr };
 
-		DeviceContext->PSSetShaderResources(0, 1, &NullSRV);
-		DeviceContext->PSSetShaderResources(2, 1, &NullSRV);
+		DeviceContext->PSSetShaderResources(0, 3, NullSRVs);
 
 		DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
@@ -1838,8 +1852,13 @@ void RenderSystem::TickSystem(float DeltaTime)
 		DeviceContext->VSSetShader(FullScreenQuadVertexShader, nullptr, 0);
 		DeviceContext->PSSetShader(BrightPassPixelShader, nullptr, 0);
 
-		DeviceContext->PSSetShaderResources(0, 1, &ResolvedHDRSceneColorTextureSRV);
-		DeviceContext->PSSetShaderResources(1, 1, &SceneLuminanceTexturesSRVs[0]);
+		ID3D11ShaderResourceView *SRVs[2] =
+		{
+			ResolvedHDRSceneColorTextureSRV,
+			SceneLuminanceTexturesSRVs[0]
+		};
+
+		DeviceContext->PSSetShaderResources(0, 2, SRVs);
 
 		DeviceContext->Draw(4, 0);
 
@@ -1994,8 +2013,13 @@ void RenderSystem::TickSystem(float DeltaTime)
 		DeviceContext->OMSetBlendState(BlendDisabledBlendState, nullptr, D3D11_DEFAULT_SAMPLE_MASK);
 		DeviceContext->OMSetDepthStencilState(DepthDisabledDepthStencilState, 0);
 
-		DeviceContext->PSSetShaderResources(0, 1, &HDRSceneColorTextureSRV);
-		DeviceContext->PSSetShaderResources(1, 1, &BloomTexturesSRVs[2][0]);
+		ID3D11ShaderResourceView *SRVs[2] =
+		{
+			HDRSceneColorTextureSRV,
+			BloomTexturesSRVs[2][0]
+		};
+
+		DeviceContext->PSSetShaderResources(0, 2, SRVs);
 
 		DeviceContext->Draw(4, 0);
 	}
