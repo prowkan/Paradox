@@ -16,6 +16,49 @@
 #include <ResourceManager/Resources/Render/Materials/MaterialResource.h>
 #include <ResourceManager/Resources/Render/Textures/Texture2DResource.h>
 
+struct PointLight
+{
+	XMFLOAT3 Position;
+	float Radius;
+	XMFLOAT3 Color;
+	float Brightness;
+};
+
+struct GBufferOpaquePassConstantBufferStruct
+{
+	XMMATRIX WVPMatrix;
+	XMMATRIX WorldMatrix;
+	XMFLOAT3X4 VectorTransformMatrix;
+};
+
+struct ShadowMapPassConstantBufferStruct
+{
+	XMMATRIX WVPMatrix;
+};
+
+struct ShadowResolveConstantBufferStruct
+{
+	XMMATRIX ReProjMatrices[4];
+};
+
+struct DeferredLightingConstantBufferStruct
+{
+	XMMATRIX InvViewProjMatrix;
+	XMFLOAT3 CameraWorldPosition;
+};
+
+struct SkyConstantBufferStruct
+{
+	XMMATRIX WVPMatrix;
+};
+
+struct SunConstantBufferStruct
+{
+	XMMATRIX ViewMatrix;
+	XMMATRIX ProjMatrix;
+	XMFLOAT3 SunPosition;
+};
+
 void RenderSystem::InitSystem()
 {
 	clusterizationSubSystem.PreComputeClustersPlanes();
@@ -84,784 +127,888 @@ void RenderSystem::InitSystem()
 
 	delete[] DisplayModes;
 
-	SAFE_DX(SwapChain->GetBuffer(0, UUIDOF(BackBufferTexture)));
+	{
+		SAFE_DX(SwapChain->GetBuffer(0, UUIDOF(BackBufferTexture)));
 
-	D3D11_RENDER_TARGET_VIEW_DESC RTVDesc;
-	RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-	RTVDesc.Texture2D.MipSlice = 0;
-	RTVDesc.ViewDimension = D3D11_RTV_DIMENSION::D3D11_RTV_DIMENSION_TEXTURE2D;
+		D3D11_RENDER_TARGET_VIEW_DESC RTVDesc;
+		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		RTVDesc.Texture2D.MipSlice = 0;
+		RTVDesc.ViewDimension = D3D11_RTV_DIMENSION::D3D11_RTV_DIMENSION_TEXTURE2D;
 
-	SAFE_DX(Device->CreateRenderTargetView(BackBufferTexture, &RTVDesc, &BackBufferRTV));
+		SAFE_DX(Device->CreateRenderTargetView(BackBufferTexture, &RTVDesc, &BackBufferTextureRTV));
+	}
 
-	D3D11_TEXTURE2D_DESC TextureDesc;
-	TextureDesc.ArraySize = 1;
-	TextureDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_RENDER_TARGET | D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
-	TextureDesc.CPUAccessFlags = 0;
-	TextureDesc.Height = ResolutionHeight;
-	TextureDesc.MipLevels = 1;
-	TextureDesc.MiscFlags = 0;
-	TextureDesc.SampleDesc.Count = 8;
-	TextureDesc.SampleDesc.Quality = 0;
-	TextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
-	TextureDesc.Width = ResolutionWidth;
+	{
+		HANDLE FullScreenQuadVertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/FullScreenQuad.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+		LARGE_INTEGER FullScreenQuadVertexShaderByteCodeLength;
+		BOOL Result = GetFileSizeEx(FullScreenQuadVertexShaderFile, &FullScreenQuadVertexShaderByteCodeLength);
+		ScopedMemoryBlockArray<BYTE> FullScreenQuadVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(FullScreenQuadVertexShaderByteCodeLength.QuadPart);
+		Result = ReadFile(FullScreenQuadVertexShaderFile, FullScreenQuadVertexShaderByteCodeData, (DWORD)FullScreenQuadVertexShaderByteCodeLength.QuadPart, NULL, NULL);
+		Result = CloseHandle(FullScreenQuadVertexShaderFile);
 
-	TextureDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		SAFE_DX(Device->CreateVertexShader(FullScreenQuadVertexShaderByteCodeData, FullScreenQuadVertexShaderByteCodeLength.QuadPart, nullptr, &FullScreenQuadVertexShader));
+	}
+
+	// ===============================================================================================================
+
+	{
+		D3D11_TEXTURE2D_DESC TextureDesc;
+		TextureDesc.ArraySize = 1;
+		TextureDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_RENDER_TARGET | D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
+		TextureDesc.CPUAccessFlags = 0;
+		TextureDesc.Height = ResolutionHeight;
+		TextureDesc.MipLevels = 1;
+		TextureDesc.MiscFlags = 0;
+		TextureDesc.SampleDesc.Count = 8;
+		TextureDesc.SampleDesc.Quality = 0;
+		TextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
+		TextureDesc.Width = ResolutionWidth;
+
+		TextureDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+
+		SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &GBufferTextures[0]));
+
+		TextureDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R10G10B10A2_UNORM;
+
+		SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &GBufferTextures[1]));
+
+		D3D11_RENDER_TARGET_VIEW_DESC RTVDesc;
+		RTVDesc.ViewDimension = D3D11_RTV_DIMENSION::D3D11_RTV_DIMENSION_TEXTURE2DMS;
+
+		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		SAFE_DX(Device->CreateRenderTargetView(GBufferTextures[0], &RTVDesc, &GBufferTexturesRTVs[0]));
+
+		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R10G10B10A2_UNORM;
+		SAFE_DX(Device->CreateRenderTargetView(GBufferTextures[1], &RTVDesc, &GBufferTexturesRTVs[1]));
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_TEXTURE2DMS;
+
+		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		SAFE_DX(Device->CreateShaderResourceView(GBufferTextures[0], &SRVDesc, &GBufferTexturesSRVs[0]));
+
+		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R10G10B10A2_UNORM;
+		SAFE_DX(Device->CreateShaderResourceView(GBufferTextures[1], &SRVDesc, &GBufferTexturesSRVs[1]));
+
+		TextureDesc.ArraySize = 1;
+		TextureDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
+		TextureDesc.CPUAccessFlags = 0;
+		TextureDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32G8X24_TYPELESS;
+		TextureDesc.Height = ResolutionHeight;
+		TextureDesc.MipLevels = 1;
+		TextureDesc.MiscFlags = 0;
+		TextureDesc.SampleDesc.Count = 8;
+		TextureDesc.SampleDesc.Quality = 0;
+		TextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
+		TextureDesc.Width = ResolutionWidth;
+
+		SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &DepthBufferTexture));
+
+		D3D11_DEPTH_STENCIL_VIEW_DESC DSVDesc;
+		DSVDesc.Flags = 0;
+		DSVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+		DSVDesc.ViewDimension = D3D11_DSV_DIMENSION::D3D11_DSV_DIMENSION_TEXTURE2DMS;
+
+		SAFE_DX(Device->CreateDepthStencilView(DepthBufferTexture, &DSVDesc, &DepthBufferTextureDSV));
+
+		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
+		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_TEXTURE2DMS;
+
+		SAFE_DX(Device->CreateShaderResourceView(DepthBufferTexture, &SRVDesc, &DepthBufferTextureSRV));
+
+		D3D11_BUFFER_DESC BufferDesc;
+		BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_CONSTANT_BUFFER;
+		BufferDesc.ByteWidth = 256;
+		BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_WRITE;
+		BufferDesc.MiscFlags = 0;
+		BufferDesc.StructureByteStride = 0;
+		BufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_DYNAMIC;
+
+		SAFE_DX(Device->CreateBuffer(&BufferDesc, nullptr, &ConstantBuffer));
+	}
+
+	// ===============================================================================================================
+
+	{
+		D3D11_TEXTURE2D_DESC TextureDesc;
+		TextureDesc.ArraySize = 1;
+		TextureDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_RENDER_TARGET | D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
+		TextureDesc.CPUAccessFlags = 0;
+		TextureDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
+		TextureDesc.Height = ResolutionHeight;
+		TextureDesc.MipLevels = 1;
+		TextureDesc.MiscFlags = 0;
+		TextureDesc.SampleDesc.Count = 1;
+		TextureDesc.SampleDesc.Quality = 0;
+		TextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
+		TextureDesc.Width = ResolutionWidth;
+
+		SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &ResolvedDepthBufferTexture));
+
+		D3D11_RENDER_TARGET_VIEW_DESC RTVDesc;
+		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
+		RTVDesc.Texture2D.MipSlice = 0;
+		RTVDesc.ViewDimension = D3D11_RTV_DIMENSION::D3D11_RTV_DIMENSION_TEXTURE2D;
+
+		SAFE_DX(Device->CreateRenderTargetView(ResolvedDepthBufferTexture, &RTVDesc, &ResolvedDepthBufferTextureRTV));
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
+		SRVDesc.Texture2D.MipLevels = 1;
+		SRVDesc.Texture2D.MostDetailedMip = 0;
+		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_TEXTURE2D;
+
+		SAFE_DX(Device->CreateShaderResourceView(ResolvedDepthBufferTexture, &SRVDesc, &ResolvedDepthBufferTextureSRV));
+
+		HANDLE MSAADepthResolvePixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/MSAADepthResolve.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+		LARGE_INTEGER MSAADepthResolvePixelShaderByteCodeLength;
+		BOOL Result = GetFileSizeEx(MSAADepthResolvePixelShaderFile, &MSAADepthResolvePixelShaderByteCodeLength);
+		ScopedMemoryBlockArray<BYTE> MSAADepthResolvePixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(MSAADepthResolvePixelShaderByteCodeLength.QuadPart);
+		Result = ReadFile(MSAADepthResolvePixelShaderFile, MSAADepthResolvePixelShaderByteCodeData, (DWORD)MSAADepthResolvePixelShaderByteCodeLength.QuadPart, NULL, NULL);
+		Result = CloseHandle(MSAADepthResolvePixelShaderFile);
+
+		SAFE_DX(Device->CreatePixelShader(MSAADepthResolvePixelShaderByteCodeData, MSAADepthResolvePixelShaderByteCodeLength.QuadPart, nullptr, &MSAADepthResolvePixelShader));
+	}
+
+	// ===============================================================================================================
+
+	{
+		D3D11_TEXTURE2D_DESC TextureDesc;
+		TextureDesc.ArraySize = 1;
+		TextureDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
+		TextureDesc.CPUAccessFlags = 0;
+		TextureDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_TYPELESS;
+		TextureDesc.Height = 2048;
+		TextureDesc.MipLevels = 1;
+		TextureDesc.MiscFlags = 0;
+		TextureDesc.SampleDesc.Count = 1;
+		TextureDesc.SampleDesc.Quality = 0;
+		TextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
+		TextureDesc.Width = 2048;
+
+		SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &CascadedShadowMapTextures[0]));
+		SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &CascadedShadowMapTextures[1]));
+		SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &CascadedShadowMapTextures[2]));
+		SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &CascadedShadowMapTextures[3]));
+
+		D3D11_DEPTH_STENCIL_VIEW_DESC DSVDesc;
+		DSVDesc.Flags = 0;
+		DSVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT;
+		DSVDesc.Texture2D.MipSlice = 0;
+		DSVDesc.ViewDimension = D3D11_DSV_DIMENSION::D3D11_DSV_DIMENSION_TEXTURE2D;
+
+		SAFE_DX(Device->CreateDepthStencilView(CascadedShadowMapTextures[0], &DSVDesc, &CascadedShadowMapTexturesDSVs[0]));
+		SAFE_DX(Device->CreateDepthStencilView(CascadedShadowMapTextures[1], &DSVDesc, &CascadedShadowMapTexturesDSVs[1]));
+		SAFE_DX(Device->CreateDepthStencilView(CascadedShadowMapTextures[2], &DSVDesc, &CascadedShadowMapTexturesDSVs[2]));
+		SAFE_DX(Device->CreateDepthStencilView(CascadedShadowMapTextures[3], &DSVDesc, &CascadedShadowMapTexturesDSVs[3]));
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
+		SRVDesc.Texture2D.MipLevels = 1;
+		SRVDesc.Texture2D.MostDetailedMip = 0;
+		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_TEXTURE2D;
+
+		SAFE_DX(Device->CreateShaderResourceView(CascadedShadowMapTextures[0], &SRVDesc, &CascadedShadowMapTexturesSRVs[0]));
+		SAFE_DX(Device->CreateShaderResourceView(CascadedShadowMapTextures[1], &SRVDesc, &CascadedShadowMapTexturesSRVs[1]));
+		SAFE_DX(Device->CreateShaderResourceView(CascadedShadowMapTextures[2], &SRVDesc, &CascadedShadowMapTexturesSRVs[2]));
+		SAFE_DX(Device->CreateShaderResourceView(CascadedShadowMapTextures[3], &SRVDesc, &CascadedShadowMapTexturesSRVs[3]));
+
+		D3D11_BUFFER_DESC BufferDesc;
+		BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_CONSTANT_BUFFER;
+		BufferDesc.ByteWidth = 256;
+		BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_WRITE;
+		BufferDesc.MiscFlags = 0;
+		BufferDesc.StructureByteStride = 0;
+		BufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_DYNAMIC;
+
+		SAFE_DX(Device->CreateBuffer(&BufferDesc, nullptr, &ConstantBuffers[0]));
+		SAFE_DX(Device->CreateBuffer(&BufferDesc, nullptr, &ConstantBuffers[1]));
+		SAFE_DX(Device->CreateBuffer(&BufferDesc, nullptr, &ConstantBuffers[2]));
+		SAFE_DX(Device->CreateBuffer(&BufferDesc, nullptr, &ConstantBuffers[3]));
+	}
+
+	// ===============================================================================================================
+
+	{
+		D3D11_TEXTURE2D_DESC TextureDesc;
+		TextureDesc.ArraySize = 1;
+		TextureDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_RENDER_TARGET | D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
+		TextureDesc.CPUAccessFlags = 0;
+		TextureDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8_UNORM;
+		TextureDesc.Height = ResolutionHeight;
+		TextureDesc.MipLevels = 1;
+		TextureDesc.MiscFlags = 0;
+		TextureDesc.SampleDesc.Count = 1;
+		TextureDesc.SampleDesc.Quality = 0;
+		TextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
+		TextureDesc.Width = ResolutionWidth;
+
+		SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &ShadowMaskTexture));
+
+		D3D11_RENDER_TARGET_VIEW_DESC RTVDesc;
+		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8_UNORM;
+		RTVDesc.Texture2D.MipSlice = 0;
+		RTVDesc.ViewDimension = D3D11_RTV_DIMENSION::D3D11_RTV_DIMENSION_TEXTURE2D;
+
+		SAFE_DX(Device->CreateRenderTargetView(ShadowMaskTexture, &RTVDesc, &ShadowMaskTextureRTV));
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8_UNORM;
+		SRVDesc.Texture2D.MipLevels = 1;
+		SRVDesc.Texture2D.MostDetailedMip = 0;
+		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_TEXTURE2D;
+
+		SAFE_DX(Device->CreateShaderResourceView(ShadowMaskTexture, &SRVDesc, &ShadowMaskTextureSRV));
+
+		D3D11_BUFFER_DESC BufferDesc;
+		BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_CONSTANT_BUFFER;
+		BufferDesc.ByteWidth = 256;
+		BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_WRITE;
+		BufferDesc.MiscFlags = 0;
+		BufferDesc.StructureByteStride = 0;
+		BufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_DYNAMIC;
+
+		SAFE_DX(Device->CreateBuffer(&BufferDesc, nullptr, &ShadowResolveConstantBuffer));
+
+		HANDLE ShadowResolvePixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/ShadowResolve.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+		LARGE_INTEGER ShadowResolvePixelShaderByteCodeLength;
+		BOOL Result = GetFileSizeEx(ShadowResolvePixelShaderFile, &ShadowResolvePixelShaderByteCodeLength);
+		ScopedMemoryBlockArray<BYTE> ShadowResolvePixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(ShadowResolvePixelShaderByteCodeLength.QuadPart);
+		Result = ReadFile(ShadowResolvePixelShaderFile, ShadowResolvePixelShaderByteCodeData, (DWORD)ShadowResolvePixelShaderByteCodeLength.QuadPart, NULL, NULL);
+		Result = CloseHandle(ShadowResolvePixelShaderFile);
+
+		SAFE_DX(Device->CreatePixelShader(ShadowResolvePixelShaderByteCodeData, ShadowResolvePixelShaderByteCodeLength.QuadPart, nullptr, &ShadowResolvePixelShader));
+	}
+
+	// ===============================================================================================================
+
+	{
+		D3D11_TEXTURE2D_DESC TextureDesc;
+		TextureDesc.ArraySize = 1;
+		TextureDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_RENDER_TARGET | D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
+		TextureDesc.CPUAccessFlags = 0;
+		TextureDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
+		TextureDesc.Height = ResolutionHeight;
+		TextureDesc.MipLevels = 1;
+		TextureDesc.MiscFlags = 0;
+		TextureDesc.SampleDesc.Count = 8;
+		TextureDesc.SampleDesc.Quality = 0;
+		TextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
+		TextureDesc.Width = ResolutionWidth;
+
+		SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &HDRSceneColorTexture));
+
+		D3D11_RENDER_TARGET_VIEW_DESC RTVDesc;
+		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
+		RTVDesc.ViewDimension = D3D11_RTV_DIMENSION::D3D11_RTV_DIMENSION_TEXTURE2DMS;
+
+		SAFE_DX(Device->CreateRenderTargetView(HDRSceneColorTexture, &RTVDesc, &HDRSceneColorTextureRTV));
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
+		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_TEXTURE2DMS;
+
+		SAFE_DX(Device->CreateShaderResourceView(HDRSceneColorTexture, &SRVDesc, &HDRSceneColorTextureSRV));
+
+		D3D11_BUFFER_DESC BufferDesc;
+		BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_CONSTANT_BUFFER;
+		BufferDesc.ByteWidth = 256;
+		BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_WRITE;
+		BufferDesc.MiscFlags = 0;
+		BufferDesc.StructureByteStride = 0;
+		BufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_DYNAMIC;
+
+		SAFE_DX(Device->CreateBuffer(&BufferDesc, nullptr, &DeferredLightingConstantBuffer));
+
+		BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
+		BufferDesc.ByteWidth = 2 * sizeof(uint32_t) * 32 * 18 * 24;
+		BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_WRITE;
+		BufferDesc.MiscFlags = 0;
+		BufferDesc.StructureByteStride = 0;
+		BufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_DYNAMIC;
+
+		SAFE_DX(Device->CreateBuffer(&BufferDesc, nullptr, &LightClustersBuffer));
+
+		SRVDesc.Buffer.FirstElement = 0;
+		SRVDesc.Buffer.NumElements = 32 * 18 * 24;
+		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32G32_UINT;
+		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_BUFFER;
+
+		SAFE_DX(Device->CreateShaderResourceView(LightClustersBuffer, &SRVDesc, &LightClustersBufferSRV));
+
+		BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
+		BufferDesc.ByteWidth = 256 * sizeof(uint16_t) * 32 * 18 * 24;
+		BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_WRITE;
+		BufferDesc.MiscFlags = 0;
+		BufferDesc.StructureByteStride = 0;
+		BufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_DYNAMIC;
+
+		SAFE_DX(Device->CreateBuffer(&BufferDesc, nullptr, &LightIndicesBuffer));
+
+		SRVDesc.Buffer.FirstElement = 0;
+		SRVDesc.Buffer.NumElements = 256 * 32 * 18 * 24;
+		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
+		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_BUFFER;
+
+		SAFE_DX(Device->CreateShaderResourceView(LightIndicesBuffer, &SRVDesc, &LightIndicesBufferSRV));
+
+		BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
+		BufferDesc.ByteWidth = 10000 * 2 * 4 * sizeof(float);
+		BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_WRITE;
+		BufferDesc.MiscFlags = D3D11_RESOURCE_MISC_FLAG::D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+		BufferDesc.StructureByteStride = 2 * 4 * sizeof(float);
+		BufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_DYNAMIC;
+
+		SAFE_DX(Device->CreateBuffer(&BufferDesc, nullptr, &PointLightsBuffer));
+
+		SRVDesc.Buffer.FirstElement = 0;
+		SRVDesc.Buffer.NumElements = 10000;
+		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
+		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_BUFFER;
+
+		SAFE_DX(Device->CreateShaderResourceView(PointLightsBuffer, &SRVDesc, &PointLightsBufferSRV));
+
+		HANDLE DeferredLightingPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/DeferredLighting.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+		LARGE_INTEGER DeferredLightingPixelShaderByteCodeLength;
+		BOOL Result = GetFileSizeEx(DeferredLightingPixelShaderFile, &DeferredLightingPixelShaderByteCodeLength);
+		ScopedMemoryBlockArray<BYTE> DeferredLightingPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(DeferredLightingPixelShaderByteCodeLength.QuadPart);
+		Result = ReadFile(DeferredLightingPixelShaderFile, DeferredLightingPixelShaderByteCodeData, (DWORD)DeferredLightingPixelShaderByteCodeLength.QuadPart, NULL, NULL);
+		Result = CloseHandle(DeferredLightingPixelShaderFile);
 	
-	SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &GBufferTextures[0]));
-
-	TextureDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R10G10B10A2_UNORM;
-
-	SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &GBufferTextures[1]));
-
-	RTVDesc.ViewDimension = D3D11_RTV_DIMENSION::D3D11_RTV_DIMENSION_TEXTURE2DMS;
-
-	RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-	SAFE_DX(Device->CreateRenderTargetView(GBufferTextures[0], &RTVDesc, &GBufferRTVs[0]));
-	
-	RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R10G10B10A2_UNORM;
-	SAFE_DX(Device->CreateRenderTargetView(GBufferTextures[1], &RTVDesc, &GBufferRTVs[1]));
-
-	D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
-	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_TEXTURE2DMS;
-
-	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-	SAFE_DX(Device->CreateShaderResourceView(GBufferTextures[0], &SRVDesc, &GBufferSRVs[0]));
-
-	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R10G10B10A2_UNORM;
-	SAFE_DX(Device->CreateShaderResourceView(GBufferTextures[1], &SRVDesc, &GBufferSRVs[1]));
-
-	TextureDesc.ArraySize = 1;
-	TextureDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
-	TextureDesc.CPUAccessFlags = 0;
-	TextureDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32G8X24_TYPELESS;
-	TextureDesc.Height = ResolutionHeight;
-	TextureDesc.MipLevels = 1;
-	TextureDesc.MiscFlags = 0;
-	TextureDesc.SampleDesc.Count = 8;
-	TextureDesc.SampleDesc.Quality = 0;
-	TextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
-	TextureDesc.Width = ResolutionWidth;
-
-	SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &DepthBufferTexture));
-
-	D3D11_DEPTH_STENCIL_VIEW_DESC DSVDesc;
-	DSVDesc.Flags = 0;
-	DSVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
-	DSVDesc.ViewDimension = D3D11_DSV_DIMENSION::D3D11_DSV_DIMENSION_TEXTURE2DMS;
-
-	SAFE_DX(Device->CreateDepthStencilView(DepthBufferTexture, &DSVDesc, &DepthBufferDSV));
-
-	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
-	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_TEXTURE2DMS;
-
-	SAFE_DX(Device->CreateShaderResourceView(DepthBufferTexture, &SRVDesc, &DepthBufferSRV));
-
-	TextureDesc.ArraySize = 1;
-	TextureDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_RENDER_TARGET | D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
-	TextureDesc.CPUAccessFlags = 0;
-	TextureDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
-	TextureDesc.Height = ResolutionHeight;
-	TextureDesc.MipLevels = 1;
-	TextureDesc.MiscFlags = 0;
-	TextureDesc.SampleDesc.Count = 1;
-	TextureDesc.SampleDesc.Quality = 0;
-	TextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
-	TextureDesc.Width = ResolutionWidth;
-
-	SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &ResolvedDepthBufferTexture));
-
-	RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
-	RTVDesc.Texture2D.MipSlice = 0;
-	RTVDesc.ViewDimension = D3D11_RTV_DIMENSION::D3D11_RTV_DIMENSION_TEXTURE2D;
-
-	SAFE_DX(Device->CreateRenderTargetView(ResolvedDepthBufferTexture, &RTVDesc, &ResolvedDepthBufferRTV));
-
-	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
-	SRVDesc.Texture2D.MipLevels = 1;
-	SRVDesc.Texture2D.MostDetailedMip = 0;
-	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_TEXTURE2D;
-
-	SAFE_DX(Device->CreateShaderResourceView(ResolvedDepthBufferTexture, &SRVDesc, &ResolvedDepthBufferSRV));
-
-	TextureDesc.ArraySize = 1;
-	TextureDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
-	TextureDesc.CPUAccessFlags = 0;
-	TextureDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_TYPELESS;
-	TextureDesc.Height = 2048;
-	TextureDesc.MipLevels = 1;
-	TextureDesc.MiscFlags = 0;
-	TextureDesc.SampleDesc.Count = 1;
-	TextureDesc.SampleDesc.Quality = 0;
-	TextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
-	TextureDesc.Width = 2048;
-
-	SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &CascadedShadowMapTextures[0]));
-	SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &CascadedShadowMapTextures[1]));
-	SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &CascadedShadowMapTextures[2]));
-	SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &CascadedShadowMapTextures[3]));
-
-	DSVDesc.Flags = 0;
-	DSVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT;
-	DSVDesc.Texture2D.MipSlice = 0;
-	DSVDesc.ViewDimension = D3D11_DSV_DIMENSION::D3D11_DSV_DIMENSION_TEXTURE2D;
-
-	SAFE_DX(Device->CreateDepthStencilView(CascadedShadowMapTextures[0], &DSVDesc, &CascadedShadowMapDSVs[0]));
-	SAFE_DX(Device->CreateDepthStencilView(CascadedShadowMapTextures[1], &DSVDesc, &CascadedShadowMapDSVs[1]));
-	SAFE_DX(Device->CreateDepthStencilView(CascadedShadowMapTextures[2], &DSVDesc, &CascadedShadowMapDSVs[2]));
-	SAFE_DX(Device->CreateDepthStencilView(CascadedShadowMapTextures[3], &DSVDesc, &CascadedShadowMapDSVs[3]));
-
-	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
-	SRVDesc.Texture2D.MipLevels = 1;
-	SRVDesc.Texture2D.MostDetailedMip = 0;
-	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_TEXTURE2D;
-
-	SAFE_DX(Device->CreateShaderResourceView(CascadedShadowMapTextures[0], &SRVDesc, &CascadedShadowMapSRVs[0]));
-	SAFE_DX(Device->CreateShaderResourceView(CascadedShadowMapTextures[1], &SRVDesc, &CascadedShadowMapSRVs[1]));
-	SAFE_DX(Device->CreateShaderResourceView(CascadedShadowMapTextures[2], &SRVDesc, &CascadedShadowMapSRVs[2]));
-	SAFE_DX(Device->CreateShaderResourceView(CascadedShadowMapTextures[3], &SRVDesc, &CascadedShadowMapSRVs[3]));
-
-	TextureDesc.ArraySize = 1;
-	TextureDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_RENDER_TARGET | D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
-	TextureDesc.CPUAccessFlags = 0;
-	TextureDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8_UNORM;
-	TextureDesc.Height = ResolutionHeight;
-	TextureDesc.MipLevels = 1;
-	TextureDesc.MiscFlags = 0;
-	TextureDesc.SampleDesc.Count = 1;
-	TextureDesc.SampleDesc.Quality = 0;
-	TextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
-	TextureDesc.Width = ResolutionWidth;
-
-	SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &ShadowMaskTexture));
-
-	RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8_UNORM;
-	RTVDesc.Texture2D.MipSlice = 0;
-	RTVDesc.ViewDimension = D3D11_RTV_DIMENSION::D3D11_RTV_DIMENSION_TEXTURE2D;
-
-	SAFE_DX(Device->CreateRenderTargetView(ShadowMaskTexture, &RTVDesc, &ShadowMaskRTV));
-
-	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8_UNORM;
-	SRVDesc.Texture2D.MipLevels = 1;
-	SRVDesc.Texture2D.MostDetailedMip = 0;
-	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_TEXTURE2D;
-
-	SAFE_DX(Device->CreateShaderResourceView(ShadowMaskTexture, &SRVDesc, &ShadowMaskSRV));
-
-	TextureDesc.ArraySize = 1;
-	TextureDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_RENDER_TARGET | D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
-	TextureDesc.CPUAccessFlags = 0;
-	TextureDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
-	TextureDesc.Height = ResolutionHeight;
-	TextureDesc.MipLevels = 1;
-	TextureDesc.MiscFlags = 0;
-	TextureDesc.SampleDesc.Count = 8;
-	TextureDesc.SampleDesc.Quality = 0;
-	TextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
-	TextureDesc.Width = ResolutionWidth;
-
-	SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &LBufferTexture));
-
-	RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
-	RTVDesc.ViewDimension = D3D11_RTV_DIMENSION::D3D11_RTV_DIMENSION_TEXTURE2DMS;
-
-	SAFE_DX(Device->CreateRenderTargetView(LBufferTexture, &RTVDesc, &LBufferRTV));
-
-	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
-	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_TEXTURE2DMS;
-
-	SAFE_DX(Device->CreateShaderResourceView(LBufferTexture, &SRVDesc, &LBufferSRV));
-
-	TextureDesc.ArraySize = 1;
-	TextureDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
-	TextureDesc.CPUAccessFlags = 0;
-	TextureDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
-	TextureDesc.Height = ResolutionHeight;
-	TextureDesc.MipLevels = 1;
-	TextureDesc.MiscFlags = 0;
-	TextureDesc.SampleDesc.Count = 1;
-	TextureDesc.SampleDesc.Quality = 0;
-	TextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
-	TextureDesc.Width = ResolutionWidth;
-
-	SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &ResolvedHDRSceneColorTexture));
-
-	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
-	SRVDesc.Texture2D.MipLevels = 1;
-	SRVDesc.Texture2D.MostDetailedMip = 0;
-	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_TEXTURE2D;
-
-	SAFE_DX(Device->CreateShaderResourceView(ResolvedHDRSceneColorTexture, &SRVDesc, &ResolvedHDRSceneColorSRV));
-
-	TextureDesc.ArraySize = 1;
-	TextureDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
-	TextureDesc.CPUAccessFlags = 0;
-	TextureDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
-	//TextureDesc.Height = ResolutionHeight;
-	TextureDesc.MipLevels = 1;
-	TextureDesc.MiscFlags = 0;
-	TextureDesc.SampleDesc.Count = 1;
-	TextureDesc.SampleDesc.Quality = 0;
-	TextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
-	//TextureDesc.Width = ResolutionWidth;
-
-	int Widths[4] = { 1280, 80, 5, 1 };
-	int Heights[4] = { 720, 45, 3, 1 };
-
-	for (int i = 0; i < 4; i++)
-	{
-		TextureDesc.Width = Widths[i];
-		TextureDesc.Height = Heights[i];
-
-		SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &SceneLuminanceTextures[i]));
+		SAFE_DX(Device->CreatePixelShader(DeferredLightingPixelShaderByteCodeData, DeferredLightingPixelShaderByteCodeLength.QuadPart, nullptr, &DeferredLightingPixelShader));
 	}
 
-	D3D11_UNORDERED_ACCESS_VIEW_DESC UAVDesc;
-	UAVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
-	UAVDesc.Texture2D.MipSlice = 0;
-	UAVDesc.ViewDimension = D3D11_UAV_DIMENSION::D3D11_UAV_DIMENSION_TEXTURE2D;
+	// ===============================================================================================================
 
-	for (int i = 0; i < 4; i++)
 	{
-		SAFE_DX(Device->CreateUnorderedAccessView(SceneLuminanceTextures[i], &UAVDesc, &SceneLuminanceUAVs[i]));
-	}
+		HANDLE FogPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/Fog.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+		LARGE_INTEGER FogPixelShaderByteCodeLength;
+		BOOL Result = GetFileSizeEx(FogPixelShaderFile, &FogPixelShaderByteCodeLength);
+		ScopedMemoryBlockArray<BYTE> FogPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(FogPixelShaderByteCodeLength.QuadPart);
+		Result = ReadFile(FogPixelShaderFile, FogPixelShaderByteCodeData, (DWORD)FogPixelShaderByteCodeLength.QuadPart, NULL, NULL);
+		Result = CloseHandle(FogPixelShaderFile);
 
-	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
-	SRVDesc.Texture2D.MipLevels = 1;
-	SRVDesc.Texture2D.MostDetailedMip = 0;
-	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_TEXTURE2D;
+		SAFE_DX(Device->CreatePixelShader(FogPixelShaderByteCodeData, FogPixelShaderByteCodeLength.QuadPart, nullptr, &FogPixelShader));
 
-	for (int i = 0; i < 4; i++)
-	{
-		SAFE_DX(Device->CreateShaderResourceView(SceneLuminanceTextures[i], &SRVDesc, &SceneLuminanceSRVs[i]));
-	}
+		UINT SkyMeshVertexCount = 1 + 25 * 100 + 1;
+		UINT SkyMeshIndexCount = 300 + 24 * 600 + 300;
 
-	TextureDesc.ArraySize = 1;
-	TextureDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
-	TextureDesc.CPUAccessFlags = 0;
-	TextureDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
-	TextureDesc.Height = 1;
-	TextureDesc.MipLevels = 1;
-	TextureDesc.MiscFlags = 0;
-	TextureDesc.SampleDesc.Count = 1;
-	TextureDesc.SampleDesc.Quality = 0;
-	TextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
-	TextureDesc.Width = 1;
+		Vertex SkyMeshVertices[1 + 25 * 100 + 1];
+		WORD SkyMeshIndices[300 + 24 * 600 + 300];
 
-	SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &AverageLuminanceTexture));
+		SkyMeshVertices[0].Position = XMFLOAT3(0.0f, 1.0f, 0.0f);
+		SkyMeshVertices[0].TexCoord = XMFLOAT2(0.5f, 0.5f);
 
-	UAVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
-	UAVDesc.Texture2D.MipSlice = 0;
-	UAVDesc.ViewDimension = D3D11_UAV_DIMENSION::D3D11_UAV_DIMENSION_TEXTURE2D;
+		SkyMeshVertices[1 + 25 * 100].Position = XMFLOAT3(0.0f, -1.0f, 0.0f);
+		SkyMeshVertices[1 + 25 * 100].TexCoord = XMFLOAT2(0.5f, 0.5f);
 
-	SAFE_DX(Device->CreateUnorderedAccessView(AverageLuminanceTexture, &UAVDesc, &AverageLuminanceUAV));
-
-	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
-	SRVDesc.Texture2D.MipLevels = 1;
-	SRVDesc.Texture2D.MostDetailedMip = 0;
-	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_TEXTURE2D;
-
-	SAFE_DX(Device->CreateShaderResourceView(AverageLuminanceTexture, &SRVDesc, &AverageLuminanceSRV));
-
-	TextureDesc.ArraySize = 1;
-	TextureDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_RENDER_TARGET | D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
-	TextureDesc.CPUAccessFlags = 0;
-	TextureDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
-	//TextureDesc.Height = ResolutionHeight;
-	TextureDesc.MipLevels = 1;
-	TextureDesc.MiscFlags = 0;
-	TextureDesc.SampleDesc.Count = 1;
-	TextureDesc.SampleDesc.Quality = 0;
-	TextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
-	//TextureDesc.Width = ResolutionWidth;
-
-	for (int i = 0; i < 7; i++)
-	{
-		TextureDesc.Width = ResolutionWidth >> i;
-		TextureDesc.Height = ResolutionHeight >> i;
-
-		SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &BloomTextures[0][i]));
-		SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &BloomTextures[1][i]));
-		SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &BloomTextures[2][i]));
-	}
-
-	RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
-	RTVDesc.Texture2D.MipSlice = 0;
-	RTVDesc.ViewDimension = D3D11_RTV_DIMENSION::D3D11_RTV_DIMENSION_TEXTURE2D;
-
-	for (int i = 0; i < 7; i++)
-	{
-		SAFE_DX(Device->CreateRenderTargetView(BloomTextures[0][i], &RTVDesc, &BloomRTVs[0][i]));
-		SAFE_DX(Device->CreateRenderTargetView(BloomTextures[1][i], &RTVDesc, &BloomRTVs[1][i]));
-		SAFE_DX(Device->CreateRenderTargetView(BloomTextures[2][i], &RTVDesc, &BloomRTVs[2][i]));
-	}
-
-	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
-	SRVDesc.Texture2D.MipLevels = 1;
-	SRVDesc.Texture2D.MostDetailedMip = 0;
-	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_TEXTURE2D;
-
-	for (int i = 0; i < 7; i++)
-	{
-		SAFE_DX(Device->CreateShaderResourceView(BloomTextures[0][i], &SRVDesc, &BloomSRVs[0][i]));
-		SAFE_DX(Device->CreateShaderResourceView(BloomTextures[1][i], &SRVDesc, &BloomSRVs[1][i]));
-		SAFE_DX(Device->CreateShaderResourceView(BloomTextures[2][i], &SRVDesc, &BloomSRVs[2][i]));
-	}
-
-	TextureDesc.ArraySize = 1;
-	TextureDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_RENDER_TARGET;
-	TextureDesc.CPUAccessFlags = 0;
-	TextureDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-	TextureDesc.Height = ResolutionHeight;
-	TextureDesc.MipLevels = 1;
-	TextureDesc.MiscFlags = 0;
-	TextureDesc.SampleDesc.Count = 8;
-	TextureDesc.SampleDesc.Quality = 0;
-	TextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
-	TextureDesc.Width = ResolutionWidth;
-
-	SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &ToneMappedImageTexture));
-
-	RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-	RTVDesc.ViewDimension = D3D11_RTV_DIMENSION::D3D11_RTV_DIMENSION_TEXTURE2DMS;
-
-	SAFE_DX(Device->CreateRenderTargetView(ToneMappedImageTexture, &RTVDesc, &ToneMappedImageRTV));
-
-	D3D11_BUFFER_DESC BufferDesc;
-	BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_CONSTANT_BUFFER;
-	BufferDesc.ByteWidth = 256;
-	BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_WRITE;
-	BufferDesc.MiscFlags = 0;
-	BufferDesc.StructureByteStride = 0;
-	BufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_DYNAMIC;
-
-	SAFE_DX(Device->CreateBuffer(&BufferDesc, nullptr, &ShadowResolveConstantBuffer));
-
-	BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_CONSTANT_BUFFER;
-	BufferDesc.ByteWidth = 256;
-	BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_WRITE;
-	BufferDesc.MiscFlags = 0;
-	BufferDesc.StructureByteStride = 0;
-	BufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_DYNAMIC;
-
-	SAFE_DX(Device->CreateBuffer(&BufferDesc, nullptr, &DeferredLightingConstantBuffer));
-
-	BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
-	BufferDesc.ByteWidth = 2 * sizeof(uint32_t) * 32 * 18 * 24;
-	BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_WRITE;
-	BufferDesc.MiscFlags = 0;
-	BufferDesc.StructureByteStride = 0;
-	BufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_DYNAMIC;
-
-	SAFE_DX(Device->CreateBuffer(&BufferDesc, nullptr, &LightClustersBuffer));
-
-	SRVDesc.Buffer.FirstElement = 0;
-	SRVDesc.Buffer.NumElements = 32 * 18 * 24;
-	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32G32_UINT;
-	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_BUFFER;
-
-	SAFE_DX(Device->CreateShaderResourceView(LightClustersBuffer, &SRVDesc, &LightClustersSRV));
-
-	BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
-	BufferDesc.ByteWidth = 256 * sizeof(uint16_t) * 32 * 18 * 24;
-	BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_WRITE;
-	BufferDesc.MiscFlags = 0;
-	BufferDesc.StructureByteStride = 0;
-	BufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_DYNAMIC;
-
-	SAFE_DX(Device->CreateBuffer(&BufferDesc, nullptr, &LightIndicesBuffer));
-
-	SRVDesc.Buffer.FirstElement = 0;
-	SRVDesc.Buffer.NumElements = 256 * 32 * 18 * 24;
-	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
-	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_BUFFER;
-
-	SAFE_DX(Device->CreateShaderResourceView(LightIndicesBuffer, &SRVDesc, &LightIndicesSRV));
-
-	BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
-	BufferDesc.ByteWidth = 10000 * 2 * 4 * sizeof(float);
-	BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_WRITE;
-	BufferDesc.MiscFlags = D3D11_RESOURCE_MISC_FLAG::D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-	BufferDesc.StructureByteStride = 2 * 4 * sizeof(float);
-	BufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_DYNAMIC;
-
-	SAFE_DX(Device->CreateBuffer(&BufferDesc, nullptr, &PointLightsBuffer));
-
-	SRVDesc.Buffer.FirstElement = 0;
-	SRVDesc.Buffer.NumElements = 10000;
-	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
-	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_BUFFER;
-
-	SAFE_DX(Device->CreateShaderResourceView(PointLightsBuffer, &SRVDesc, &PointLightsSRV));
-
-	UINT SkyMeshVertexCount = 1 + 25 * 100 + 1;
-	UINT SkyMeshIndexCount = 300 + 24 * 600 + 300;
-
-	Vertex SkyMeshVertices[1 + 25 * 100 + 1];
-	WORD SkyMeshIndices[300 + 24 * 600 + 300];
-
-	SkyMeshVertices[0].Position = XMFLOAT3(0.0f, 1.0f, 0.0f);
-	SkyMeshVertices[0].TexCoord = XMFLOAT2(0.5f, 0.5f);
-	
-	SkyMeshVertices[1 + 25 * 100].Position = XMFLOAT3(0.0f, -1.0f, 0.0f);
-	SkyMeshVertices[1 + 25 * 100].TexCoord = XMFLOAT2(0.5f, 0.5f);
-
-	for (int i = 0; i < 100; i++)
-	{
-		for (int j = 0; j < 25; j++)
-		{
-			float Theta = ((j + 1) / 25.0f) * 0.5f * 3.1416f;
-			float Phi = (i / 100.0f) * 2.0f * 3.1416f;
-
-			float X = sinf(Theta) * cosf(Phi);
-			float Y = sinf(Theta) * sinf(Phi);
-			float Z = cosf(Theta);
-
-			SkyMeshVertices[1 + j * 100 + i].Position = XMFLOAT3(X, Z, Y);
-			SkyMeshVertices[1 + j * 100 + i].TexCoord = XMFLOAT2(X * 0.5f + 0.5f, Y * 0.5f + 0.5f);
-		}
-	}
-
-	for (int i = 0; i < 100; i++)
-	{
-		SkyMeshIndices[3 * i] = 0;
-		SkyMeshIndices[3 * i + 1] = i + 1;
-		SkyMeshIndices[3 * i + 2] = i != 99 ? i + 2 : 1;
-	}
-
-	for (int j = 0; j < 24; j++)
-	{
 		for (int i = 0; i < 100; i++)
 		{
-			SkyMeshIndices[300 + j * 600 + 6 * i] = 1 + i + j * 100;
-			SkyMeshIndices[300 + j * 600 + 6 * i + 1] = 1 + i + (j + 1) * 100;
-			SkyMeshIndices[300 + j * 600 + 6 * i + 2] = i != 99 ? 1 + i + 1 + (j + 1) * 100 : 1 + (j + 1) * 100;
-			SkyMeshIndices[300 + j * 600 + 6 * i + 3] = 1 + i + j * 100;
-			SkyMeshIndices[300 + j * 600 + 6 * i + 4] = i != 99 ? 1 + i + 1 + (j + 1) * 100 : 1 + (j + 1) * 100;
-			SkyMeshIndices[300 + j * 600 + 6 * i + 5] = i != 99 ? 1 + i + 1 + j * 100 : 1 + j * 100;
+			for (int j = 0; j < 25; j++)
+			{
+				float Theta = ((j + 1) / 25.0f) * 0.5f * 3.1416f;
+				float Phi = (i / 100.0f) * 2.0f * 3.1416f;
+
+				float X = sinf(Theta) * cosf(Phi);
+				float Y = sinf(Theta) * sinf(Phi);
+				float Z = cosf(Theta);
+
+				SkyMeshVertices[1 + j * 100 + i].Position = XMFLOAT3(X, Z, Y);
+				SkyMeshVertices[1 + j * 100 + i].TexCoord = XMFLOAT2(X * 0.5f + 0.5f, Y * 0.5f + 0.5f);
+			}
 		}
-	}
 
-	for (int i = 0; i < 100; i++)
-	{
-		SkyMeshIndices[300 + 24 * 600 + 3 * i] = 1 + 25 * 100;
-		SkyMeshIndices[300 + 24 * 600 + 3 * i + 1] = i != 99 ? 1 + 24 * 100 + i + 1 : 1 + 24 * 100;
-		SkyMeshIndices[300 + 24 * 600 + 3 * i + 2] = 1 + 24 * 100 + i;
-	}
-
-	BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER;
-	BufferDesc.ByteWidth = sizeof(Vertex) * SkyMeshVertexCount;
-	BufferDesc.CPUAccessFlags = 0;
-	BufferDesc.MiscFlags = 0;
-	BufferDesc.StructureByteStride = 0;
-	BufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_IMMUTABLE;
-	
-	D3D11_SUBRESOURCE_DATA SubResourceData;
-	SubResourceData.pSysMem = SkyMeshVertices;
-	SubResourceData.SysMemPitch = 0;
-	SubResourceData.SysMemSlicePitch = 0;
-	
-	SAFE_DX(Device->CreateBuffer(&BufferDesc, &SubResourceData, &SkyVertexBuffer));
-
-	BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_INDEX_BUFFER;
-	BufferDesc.ByteWidth = sizeof(WORD) * SkyMeshIndexCount;
-	BufferDesc.CPUAccessFlags = 0;
-	BufferDesc.MiscFlags = 0;
-	BufferDesc.StructureByteStride = 0;
-	BufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_IMMUTABLE;
-
-	SubResourceData.pSysMem = SkyMeshIndices;
-	SubResourceData.SysMemPitch = 0;
-	SubResourceData.SysMemSlicePitch = 0;	
-
-	SAFE_DX(Device->CreateBuffer(&BufferDesc, &SubResourceData, &SkyIndexBuffer));
-
-	Texel *SkyTextureTexels = new Texel[2048 * 2048];
-
-	for (int y = 0; y < 2048; y++)
-	{
-		for (int x = 0; x < 2048; x++)
+		for (int i = 0; i < 100; i++)
 		{
-			float X = (x / 2048.0f) * 2.0f - 1.0f;
-			float Y = (y / 2048.0f) * 2.0f - 1.0f;
-
-			float D = sqrtf(X * X + Y * Y);
-
-			SkyTextureTexels[y * 2048 + x].R = 0;
-			SkyTextureTexels[y * 2048 + x].G = 128 * D < 255 ? 128 * D : 255;
-			SkyTextureTexels[y * 2048 + x].B = 255;
-			SkyTextureTexels[y * 2048 + x].A = 255;
+			SkyMeshIndices[3 * i] = 0;
+			SkyMeshIndices[3 * i + 1] = i + 1;
+			SkyMeshIndices[3 * i + 2] = i != 99 ? i + 2 : 1;
 		}
-	}
 
-	TextureDesc.ArraySize = 1;
-	TextureDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
-	TextureDesc.CPUAccessFlags = 0;
-	TextureDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-	TextureDesc.Height = 2048;
-	TextureDesc.MipLevels = 1;
-	TextureDesc.MiscFlags = 0;
-	TextureDesc.SampleDesc.Count = 1;
-	TextureDesc.SampleDesc.Quality = 0;
-	TextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_IMMUTABLE;
-	TextureDesc.Width = 2048;
-
-	SubResourceData.pSysMem = SkyTextureTexels;
-	SubResourceData.SysMemPitch = 4 * 2048;
-	SubResourceData.SysMemSlicePitch = 0;
-
-	SAFE_DX(Device->CreateTexture2D(&TextureDesc, &SubResourceData, &SkyTexture));
-
-	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-	SRVDesc.Texture2D.MipLevels = 1;
-	SRVDesc.Texture2D.MostDetailedMip = 0;
-	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_TEXTURE2D;
-
-	SAFE_DX(Device->CreateShaderResourceView(SkyTexture, &SRVDesc, &SkyTextureSRV));
-
-	delete[] SkyTextureTexels;
-
-	BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_CONSTANT_BUFFER;
-	BufferDesc.ByteWidth = 256;
-	BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_WRITE;
-	BufferDesc.MiscFlags = 0;
-	BufferDesc.StructureByteStride = 0;
-	BufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_DYNAMIC;
-
-	SAFE_DX(Device->CreateBuffer(&BufferDesc, nullptr, &SkyConstantBuffer));
-
-	UINT SunMeshVertexCount = 4;
-	UINT SunMeshIndexCount = 6;
-
-	Vertex SunMeshVertices[4] = {
-
-		{ XMFLOAT3(-1.0f, 1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) },
-		{ XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f) },
-		{ XMFLOAT3(-1.0f, -1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f) },
-		{ XMFLOAT3(1.0f, -1.0f, 0.0f), XMFLOAT2(1.0f, 1.0f) }
-
-	};
-
-	WORD SunMeshIndices[6] = { 0, 1, 2, 2, 1, 3};
-
-	BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER;
-	BufferDesc.ByteWidth = sizeof(Vertex) * SunMeshVertexCount;
-	BufferDesc.CPUAccessFlags = 0;
-	BufferDesc.MiscFlags = 0;
-	BufferDesc.StructureByteStride = 0;
-	BufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_IMMUTABLE;
-
-	SubResourceData.pSysMem = SunMeshVertices;
-	SubResourceData.SysMemPitch = 0;
-	SubResourceData.SysMemSlicePitch = 0;
-
-	SAFE_DX(Device->CreateBuffer(&BufferDesc, &SubResourceData, &SunVertexBuffer));
-
-	BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_INDEX_BUFFER;
-	BufferDesc.ByteWidth = sizeof(WORD) * SunMeshIndexCount;
-	BufferDesc.CPUAccessFlags = 0;
-	BufferDesc.MiscFlags = 0;
-	BufferDesc.StructureByteStride = 0;
-	BufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_IMMUTABLE;
-
-	SubResourceData.pSysMem = SunMeshIndices;
-	SubResourceData.SysMemPitch = 0;
-	SubResourceData.SysMemSlicePitch = 0;
-
-	SAFE_DX(Device->CreateBuffer(&BufferDesc, &SubResourceData, &SunIndexBuffer));
-
-	Texel *SunTextureTexels = new Texel[512 * 512];
-
-	for (int y = 0; y < 512; y++)
-	{
-		for (int x = 0; x < 512; x++)
+		for (int j = 0; j < 24; j++)
 		{
-			float X = (x / 512.0f) * 2.0f - 1.0f;
-			float Y = (y / 512.0f) * 2.0f - 1.0f;
-
-			float D = sqrtf(X * X + Y * Y);
-
-			SunTextureTexels[y * 512 + x].R = 255;
-			SunTextureTexels[y * 512 + x].G = 255;
-			SunTextureTexels[y * 512 + x].B = 127 + 128 * D < 255 ? 127 + 128 * D : 255;
-			SunTextureTexels[y * 512 + x].A = 255 * D < 255 ? 255 * D : 255;
+			for (int i = 0; i < 100; i++)
+			{
+				SkyMeshIndices[300 + j * 600 + 6 * i] = 1 + i + j * 100;
+				SkyMeshIndices[300 + j * 600 + 6 * i + 1] = 1 + i + (j + 1) * 100;
+				SkyMeshIndices[300 + j * 600 + 6 * i + 2] = i != 99 ? 1 + i + 1 + (j + 1) * 100 : 1 + (j + 1) * 100;
+				SkyMeshIndices[300 + j * 600 + 6 * i + 3] = 1 + i + j * 100;
+				SkyMeshIndices[300 + j * 600 + 6 * i + 4] = i != 99 ? 1 + i + 1 + (j + 1) * 100 : 1 + (j + 1) * 100;
+				SkyMeshIndices[300 + j * 600 + 6 * i + 5] = i != 99 ? 1 + i + 1 + j * 100 : 1 + j * 100;
+			}
 		}
+
+		for (int i = 0; i < 100; i++)
+		{
+			SkyMeshIndices[300 + 24 * 600 + 3 * i] = 1 + 25 * 100;
+			SkyMeshIndices[300 + 24 * 600 + 3 * i + 1] = i != 99 ? 1 + 24 * 100 + i + 1 : 1 + 24 * 100;
+			SkyMeshIndices[300 + 24 * 600 + 3 * i + 2] = 1 + 24 * 100 + i;
+		}
+
+		D3D11_BUFFER_DESC BufferDesc;
+		BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER;
+		BufferDesc.ByteWidth = sizeof(Vertex) * SkyMeshVertexCount;
+		BufferDesc.CPUAccessFlags = 0;
+		BufferDesc.MiscFlags = 0;
+		BufferDesc.StructureByteStride = 0;
+		BufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_IMMUTABLE;
+
+		D3D11_SUBRESOURCE_DATA SubResourceData;
+		SubResourceData.pSysMem = SkyMeshVertices;
+		SubResourceData.SysMemPitch = 0;
+		SubResourceData.SysMemSlicePitch = 0;
+
+		SAFE_DX(Device->CreateBuffer(&BufferDesc, &SubResourceData, &SkyVertexBuffer));
+
+		BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_INDEX_BUFFER;
+		BufferDesc.ByteWidth = sizeof(WORD) * SkyMeshIndexCount;
+		BufferDesc.CPUAccessFlags = 0;
+		BufferDesc.MiscFlags = 0;
+		BufferDesc.StructureByteStride = 0;
+		BufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_IMMUTABLE;
+
+		SubResourceData.pSysMem = SkyMeshIndices;
+		SubResourceData.SysMemPitch = 0;
+		SubResourceData.SysMemSlicePitch = 0;
+
+		SAFE_DX(Device->CreateBuffer(&BufferDesc, &SubResourceData, &SkyIndexBuffer));
+
+		BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_CONSTANT_BUFFER;
+		BufferDesc.ByteWidth = 256;
+		BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_WRITE;
+		BufferDesc.MiscFlags = 0;
+		BufferDesc.StructureByteStride = 0;
+		BufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_DYNAMIC;
+
+		SAFE_DX(Device->CreateBuffer(&BufferDesc, nullptr, &SkyConstantBuffer));
+
+		HANDLE SkyVertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SkyVertexShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+		LARGE_INTEGER SkyVertexShaderByteCodeLength;
+		Result = GetFileSizeEx(SkyVertexShaderFile, &SkyVertexShaderByteCodeLength);
+		ScopedMemoryBlockArray<BYTE> SkyVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(SkyVertexShaderByteCodeLength.QuadPart);
+		Result = ReadFile(SkyVertexShaderFile, SkyVertexShaderByteCodeData, (DWORD)SkyVertexShaderByteCodeLength.QuadPart, NULL, NULL);
+		Result = CloseHandle(SkyVertexShaderFile);
+
+		HANDLE SkyPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SkyPixelShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+		LARGE_INTEGER SkyPixelShaderByteCodeLength;
+		Result = GetFileSizeEx(SkyPixelShaderFile, &SkyPixelShaderByteCodeLength);
+		ScopedMemoryBlockArray<BYTE> SkyPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(SkyPixelShaderByteCodeLength.QuadPart);
+		Result = ReadFile(SkyPixelShaderFile, SkyPixelShaderByteCodeData, (DWORD)SkyPixelShaderByteCodeLength.QuadPart, NULL, NULL);
+		Result = CloseHandle(SkyPixelShaderFile);
+
+		SAFE_DX(Device->CreateVertexShader(SkyVertexShaderByteCodeData, SkyVertexShaderByteCodeLength.QuadPart, nullptr, &SkyVertexShader));
+		SAFE_DX(Device->CreatePixelShader(SkyPixelShaderByteCodeData, SkyPixelShaderByteCodeLength.QuadPart, nullptr, &SkyPixelShader));
+
+		ScopedMemoryBlockArray<Texel> SkyTextureTexels = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<Texel>(2048 * 2048);
+
+		for (int y = 0; y < 2048; y++)
+		{
+			for (int x = 0; x < 2048; x++)
+			{
+				float X = (x / 2048.0f) * 2.0f - 1.0f;
+				float Y = (y / 2048.0f) * 2.0f - 1.0f;
+
+				float D = sqrtf(X * X + Y * Y);
+
+				SkyTextureTexels[y * 2048 + x].R = 0;
+				SkyTextureTexels[y * 2048 + x].G = 128 * D < 255 ? 128 * D : 255;
+				SkyTextureTexels[y * 2048 + x].B = 255;
+				SkyTextureTexels[y * 2048 + x].A = 255;
+			}
+		}
+
+		D3D11_TEXTURE2D_DESC TextureDesc;
+		TextureDesc.ArraySize = 1;
+		TextureDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
+		TextureDesc.CPUAccessFlags = 0;
+		TextureDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		TextureDesc.Height = 2048;
+		TextureDesc.MipLevels = 1;
+		TextureDesc.MiscFlags = 0;
+		TextureDesc.SampleDesc.Count = 1;
+		TextureDesc.SampleDesc.Quality = 0;
+		TextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_IMMUTABLE;
+		TextureDesc.Width = 2048;
+
+		SubResourceData.pSysMem = SkyTextureTexels;
+		SubResourceData.SysMemPitch = 4 * 2048;
+		SubResourceData.SysMemSlicePitch = 0;
+
+		SAFE_DX(Device->CreateTexture2D(&TextureDesc, &SubResourceData, &SkyTexture));
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		SRVDesc.Texture2D.MipLevels = 1;
+		SRVDesc.Texture2D.MostDetailedMip = 0;
+		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_TEXTURE2D;
+
+		SAFE_DX(Device->CreateShaderResourceView(SkyTexture, &SRVDesc, &SkyTextureSRV));
+
+		UINT SunMeshVertexCount = 4;
+		UINT SunMeshIndexCount = 6;
+
+		Vertex SunMeshVertices[4] = {
+
+			{ XMFLOAT3(-1.0f, 1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) },
+			{ XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f) },
+			{ XMFLOAT3(-1.0f, -1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f) },
+			{ XMFLOAT3(1.0f, -1.0f, 0.0f), XMFLOAT2(1.0f, 1.0f) }
+
+		};
+
+		WORD SunMeshIndices[6] = { 0, 1, 2, 2, 1, 3 };
+
+		BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER;
+		BufferDesc.ByteWidth = sizeof(Vertex) * SunMeshVertexCount;
+		BufferDesc.CPUAccessFlags = 0;
+		BufferDesc.MiscFlags = 0;
+		BufferDesc.StructureByteStride = 0;
+		BufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_IMMUTABLE;
+
+		SubResourceData.pSysMem = SunMeshVertices;
+		SubResourceData.SysMemPitch = 0;
+		SubResourceData.SysMemSlicePitch = 0;
+
+		SAFE_DX(Device->CreateBuffer(&BufferDesc, &SubResourceData, &SunVertexBuffer));
+
+		BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_INDEX_BUFFER;
+		BufferDesc.ByteWidth = sizeof(WORD) * SunMeshIndexCount;
+		BufferDesc.CPUAccessFlags = 0;
+		BufferDesc.MiscFlags = 0;
+		BufferDesc.StructureByteStride = 0;
+		BufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_IMMUTABLE;
+
+		SubResourceData.pSysMem = SunMeshIndices;
+		SubResourceData.SysMemPitch = 0;
+		SubResourceData.SysMemSlicePitch = 0;
+
+		SAFE_DX(Device->CreateBuffer(&BufferDesc, &SubResourceData, &SunIndexBuffer));
+
+		BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_CONSTANT_BUFFER;
+		BufferDesc.ByteWidth = 256;
+		BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_WRITE;
+		BufferDesc.MiscFlags = 0;
+		BufferDesc.StructureByteStride = 0;
+		BufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_DYNAMIC;
+
+		SAFE_DX(Device->CreateBuffer(&BufferDesc, nullptr, &SunConstantBuffer));
+
+		HANDLE SunVertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SunVertexShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+		LARGE_INTEGER SunVertexShaderByteCodeLength;
+		Result = GetFileSizeEx(SunVertexShaderFile, &SunVertexShaderByteCodeLength);
+		ScopedMemoryBlockArray<BYTE> SunVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(SunVertexShaderByteCodeLength.QuadPart);
+		Result = ReadFile(SunVertexShaderFile, SunVertexShaderByteCodeData, (DWORD)SunVertexShaderByteCodeLength.QuadPart, NULL, NULL);
+		Result = CloseHandle(SunVertexShaderFile);
+
+		HANDLE SunPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SunPixelShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+		LARGE_INTEGER SunPixelShaderByteCodeLength;
+		Result = GetFileSizeEx(SunPixelShaderFile, &SunPixelShaderByteCodeLength);
+		ScopedMemoryBlockArray<BYTE> SunPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(SunPixelShaderByteCodeLength.QuadPart);
+		Result = ReadFile(SunPixelShaderFile, SunPixelShaderByteCodeData, (DWORD)SunPixelShaderByteCodeLength.QuadPart, NULL, NULL);
+		Result = CloseHandle(SunPixelShaderFile);
+
+		SAFE_DX(Device->CreateVertexShader(SunVertexShaderByteCodeData, SunVertexShaderByteCodeLength.QuadPart, nullptr, &SunVertexShader));
+		SAFE_DX(Device->CreatePixelShader(SunPixelShaderByteCodeData, SunPixelShaderByteCodeLength.QuadPart, nullptr, &SunPixelShader));
+
+		ScopedMemoryBlockArray<Texel> SunTextureTexels = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<Texel>(512 * 512);
+
+		for (int y = 0; y < 512; y++)
+		{
+			for (int x = 0; x < 512; x++)
+			{
+				float X = (x / 512.0f) * 2.0f - 1.0f;
+				float Y = (y / 512.0f) * 2.0f - 1.0f;
+
+				float D = sqrtf(X * X + Y * Y);
+
+				SunTextureTexels[y * 512 + x].R = 255;
+				SunTextureTexels[y * 512 + x].G = 255;
+				SunTextureTexels[y * 512 + x].B = 127 + 128 * D < 255 ? 127 + 128 * D : 255;
+				SunTextureTexels[y * 512 + x].A = 255 * D < 255 ? 255 * D : 255;
+			}
+		}
+
+		TextureDesc.ArraySize = 1;
+		TextureDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
+		TextureDesc.CPUAccessFlags = 0;
+		TextureDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		TextureDesc.Height = 512;
+		TextureDesc.MipLevels = 1;
+		TextureDesc.MiscFlags = 0;
+		TextureDesc.SampleDesc.Count = 1;
+		TextureDesc.SampleDesc.Quality = 0;
+		TextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_IMMUTABLE;
+		TextureDesc.Width = 512;
+
+		SubResourceData.pSysMem = SunTextureTexels;
+		SubResourceData.SysMemPitch = 4 * 512;
+		SubResourceData.SysMemSlicePitch = 0;
+
+		SAFE_DX(Device->CreateTexture2D(&TextureDesc, &SubResourceData, &SunTexture));
+
+		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		SRVDesc.Texture2D.MipLevels = 1;
+		SRVDesc.Texture2D.MostDetailedMip = 0;
+		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_TEXTURE2D;
+
+		SAFE_DX(Device->CreateShaderResourceView(SunTexture, &SRVDesc, &SunTextureSRV));		
 	}
 
-	TextureDesc.ArraySize = 1;
-	TextureDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
-	TextureDesc.CPUAccessFlags = 0;
-	TextureDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-	TextureDesc.Height = 512;
-	TextureDesc.MipLevels = 1;
-	TextureDesc.MiscFlags = 0;
-	TextureDesc.SampleDesc.Count = 1;
-	TextureDesc.SampleDesc.Quality = 0;
-	TextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_IMMUTABLE;
-	TextureDesc.Width = 512;
+	// ===============================================================================================================
 
-	SubResourceData.pSysMem = SunTextureTexels;
-	SubResourceData.SysMemPitch = 4 * 512;
-	SubResourceData.SysMemSlicePitch = 0;
+	{
+		D3D11_TEXTURE2D_DESC TextureDesc;
+		TextureDesc.ArraySize = 1;
+		TextureDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
+		TextureDesc.CPUAccessFlags = 0;
+		TextureDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
+		TextureDesc.Height = ResolutionHeight;
+		TextureDesc.MipLevels = 1;
+		TextureDesc.MiscFlags = 0;
+		TextureDesc.SampleDesc.Count = 1;
+		TextureDesc.SampleDesc.Quality = 0;
+		TextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
+		TextureDesc.Width = ResolutionWidth;
 
-	SAFE_DX(Device->CreateTexture2D(&TextureDesc, &SubResourceData, &SunTexture));
+		SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &ResolvedHDRSceneColorTexture));
 
-	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-	SRVDesc.Texture2D.MipLevels = 1;
-	SRVDesc.Texture2D.MostDetailedMip = 0;
-	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_TEXTURE2D;
+		D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
+		SRVDesc.Texture2D.MipLevels = 1;
+		SRVDesc.Texture2D.MostDetailedMip = 0;
+		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_TEXTURE2D;
 
-	SAFE_DX(Device->CreateShaderResourceView(SunTexture, &SRVDesc, &SunTextureSRV));
+		SAFE_DX(Device->CreateShaderResourceView(ResolvedHDRSceneColorTexture, &SRVDesc, &ResolvedHDRSceneColorTextureSRV));
+	}
 
-	delete[] SunTextureTexels;
+	// ===============================================================================================================
 
-	BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_CONSTANT_BUFFER;
-	BufferDesc.ByteWidth = 256;
-	BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_WRITE;
-	BufferDesc.MiscFlags = 0;
-	BufferDesc.StructureByteStride = 0;
-	BufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_DYNAMIC;
+	{
+		D3D11_TEXTURE2D_DESC TextureDesc;
+		TextureDesc.ArraySize = 1;
+		TextureDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
+		TextureDesc.CPUAccessFlags = 0;
+		TextureDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
+		//TextureDesc.Height = ResolutionHeight;
+		TextureDesc.MipLevels = 1;
+		TextureDesc.MiscFlags = 0;
+		TextureDesc.SampleDesc.Count = 1;
+		TextureDesc.SampleDesc.Quality = 0;
+		TextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
+		//TextureDesc.Width = ResolutionWidth;
 
-	SAFE_DX(Device->CreateBuffer(&BufferDesc, nullptr, &SunConstantBuffer));
+		int Widths[4] = { 1280, 80, 5, 1 };
+		int Heights[4] = { 720, 45, 3, 1 };
 
-	HANDLE FullScreenQuadVertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/FullScreenQuad.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-	LARGE_INTEGER FullScreenQuadVertexShaderByteCodeLength;
-	BOOL Result = GetFileSizeEx(FullScreenQuadVertexShaderFile, &FullScreenQuadVertexShaderByteCodeLength);
-	void *FullScreenQuadVertexShaderByteCodeData = malloc(FullScreenQuadVertexShaderByteCodeLength.QuadPart);
-	Result = ReadFile(FullScreenQuadVertexShaderFile, FullScreenQuadVertexShaderByteCodeData, (DWORD)FullScreenQuadVertexShaderByteCodeLength.QuadPart, NULL, NULL);
-	Result = CloseHandle(FullScreenQuadVertexShaderFile);
+		for (int i = 0; i < 4; i++)
+		{
+			TextureDesc.Width = Widths[i];
+			TextureDesc.Height = Heights[i];
 
-	HANDLE MSAADepthResolvePixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/MSAADepthResolve.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-	LARGE_INTEGER MSAADepthResolvePixelShaderByteCodeLength;
-	Result = GetFileSizeEx(MSAADepthResolvePixelShaderFile, &MSAADepthResolvePixelShaderByteCodeLength);
-	void *MSAADepthResolvePixelShaderByteCodeData = malloc(MSAADepthResolvePixelShaderByteCodeLength.QuadPart);
-	Result = ReadFile(MSAADepthResolvePixelShaderFile, MSAADepthResolvePixelShaderByteCodeData, (DWORD)MSAADepthResolvePixelShaderByteCodeLength.QuadPart, NULL, NULL);
-	Result = CloseHandle(MSAADepthResolvePixelShaderFile);
+			SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &SceneLuminanceTextures[i]));
+		}
 
-	HANDLE ShadowResolvePixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/ShadowResolve.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-	LARGE_INTEGER ShadowResolvePixelShaderByteCodeLength;
-	Result = GetFileSizeEx(ShadowResolvePixelShaderFile, &ShadowResolvePixelShaderByteCodeLength);
-	void *ShadowResolvePixelShaderByteCodeData = malloc(ShadowResolvePixelShaderByteCodeLength.QuadPart);
-	Result = ReadFile(ShadowResolvePixelShaderFile, ShadowResolvePixelShaderByteCodeData, (DWORD)ShadowResolvePixelShaderByteCodeLength.QuadPart, NULL, NULL);
-	Result = CloseHandle(ShadowResolvePixelShaderFile);
+		D3D11_UNORDERED_ACCESS_VIEW_DESC UAVDesc;
+		UAVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
+		UAVDesc.Texture2D.MipSlice = 0;
+		UAVDesc.ViewDimension = D3D11_UAV_DIMENSION::D3D11_UAV_DIMENSION_TEXTURE2D;
 
-	HANDLE DeferredLightingPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/DeferredLighting.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-	LARGE_INTEGER DeferredLightingPixelShaderByteCodeLength;
-	Result = GetFileSizeEx(DeferredLightingPixelShaderFile, &DeferredLightingPixelShaderByteCodeLength);
-	void *DeferredLightingPixelShaderByteCodeData = malloc(DeferredLightingPixelShaderByteCodeLength.QuadPart);
-	Result = ReadFile(DeferredLightingPixelShaderFile, DeferredLightingPixelShaderByteCodeData, (DWORD)DeferredLightingPixelShaderByteCodeLength.QuadPart, NULL, NULL);
-	Result = CloseHandle(DeferredLightingPixelShaderFile);
+		for (int i = 0; i < 4; i++)
+		{
+			SAFE_DX(Device->CreateUnorderedAccessView(SceneLuminanceTextures[i], &UAVDesc, &SceneLuminanceTexturesUAVs[i]));
+		}
 
-	HANDLE FogPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/Fog.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-	LARGE_INTEGER FogPixelShaderByteCodeLength;
-	Result = GetFileSizeEx(FogPixelShaderFile, &FogPixelShaderByteCodeLength);
-	void *FogPixelShaderByteCodeData = malloc(FogPixelShaderByteCodeLength.QuadPart);
-	Result = ReadFile(FogPixelShaderFile, FogPixelShaderByteCodeData, (DWORD)FogPixelShaderByteCodeLength.QuadPart, NULL, NULL);
-	Result = CloseHandle(FogPixelShaderFile);
+		D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
+		SRVDesc.Texture2D.MipLevels = 1;
+		SRVDesc.Texture2D.MostDetailedMip = 0;
+		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_TEXTURE2D;
 
-	HANDLE HDRToneMappingPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/HDRToneMapping.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-	LARGE_INTEGER HDRToneMappingPixelShaderByteCodeLength;
-	Result = GetFileSizeEx(HDRToneMappingPixelShaderFile, &HDRToneMappingPixelShaderByteCodeLength);
-	void *HDRToneMappingPixelShaderByteCodeData = malloc(HDRToneMappingPixelShaderByteCodeLength.QuadPart);
-	Result = ReadFile(HDRToneMappingPixelShaderFile, HDRToneMappingPixelShaderByteCodeData, (DWORD)HDRToneMappingPixelShaderByteCodeLength.QuadPart, NULL, NULL);
-	Result = CloseHandle(HDRToneMappingPixelShaderFile);
+		for (int i = 0; i < 4; i++)
+		{
+			SAFE_DX(Device->CreateShaderResourceView(SceneLuminanceTextures[i], &SRVDesc, &SceneLuminanceTexturesSRVs[i]));
+		}
 
-	HANDLE LuminanceCalcComputeShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/LuminanceCalc.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-	LARGE_INTEGER LuminanceCalcComputeShaderByteCodeLength;
-	Result = GetFileSizeEx(LuminanceCalcComputeShaderFile, &LuminanceCalcComputeShaderByteCodeLength);
-	void *LuminanceCalcComputeShaderByteCodeData = malloc(LuminanceCalcComputeShaderByteCodeLength.QuadPart);
-	Result = ReadFile(LuminanceCalcComputeShaderFile, LuminanceCalcComputeShaderByteCodeData, (DWORD)LuminanceCalcComputeShaderByteCodeLength.QuadPart, NULL, NULL);
-	Result = CloseHandle(LuminanceCalcComputeShaderFile);
+		TextureDesc.ArraySize = 1;
+		TextureDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
+		TextureDesc.CPUAccessFlags = 0;
+		TextureDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
+		TextureDesc.Height = 1;
+		TextureDesc.MipLevels = 1;
+		TextureDesc.MiscFlags = 0;
+		TextureDesc.SampleDesc.Count = 1;
+		TextureDesc.SampleDesc.Quality = 0;
+		TextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
+		TextureDesc.Width = 1;
 
-	HANDLE LuminanceSumComputeShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/LuminanceSum.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-	LARGE_INTEGER LuminanceSumComputeShaderByteCodeLength;
-	Result = GetFileSizeEx(LuminanceSumComputeShaderFile, &LuminanceSumComputeShaderByteCodeLength);
-	void *LuminanceSumComputeShaderByteCodeData = malloc(LuminanceSumComputeShaderByteCodeLength.QuadPart);
-	Result = ReadFile(LuminanceSumComputeShaderFile, LuminanceSumComputeShaderByteCodeData, (DWORD)LuminanceSumComputeShaderByteCodeLength.QuadPart, NULL, NULL);
-	Result = CloseHandle(LuminanceSumComputeShaderFile);
+		SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &AverageLuminanceTexture));
 
-	HANDLE LuminanceAvgComputeShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/LuminanceAvg.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-	LARGE_INTEGER LuminanceAvgComputeShaderByteCodeLength;
-	Result = GetFileSizeEx(LuminanceAvgComputeShaderFile, &LuminanceAvgComputeShaderByteCodeLength);
-	void *LuminanceAvgComputeShaderByteCodeData = malloc(LuminanceAvgComputeShaderByteCodeLength.QuadPart);
-	Result = ReadFile(LuminanceAvgComputeShaderFile, LuminanceAvgComputeShaderByteCodeData, (DWORD)LuminanceAvgComputeShaderByteCodeLength.QuadPart, NULL, NULL);
-	Result = CloseHandle(LuminanceAvgComputeShaderFile);
+		UAVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
+		UAVDesc.Texture2D.MipSlice = 0;
+		UAVDesc.ViewDimension = D3D11_UAV_DIMENSION::D3D11_UAV_DIMENSION_TEXTURE2D;
 
-	HANDLE SkyVertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SkyVertexShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-	LARGE_INTEGER SkyVertexShaderByteCodeLength;
-	Result = GetFileSizeEx(SkyVertexShaderFile, &SkyVertexShaderByteCodeLength);
-	void *SkyVertexShaderByteCodeData = malloc(SkyVertexShaderByteCodeLength.QuadPart);
-	Result = ReadFile(SkyVertexShaderFile, SkyVertexShaderByteCodeData, (DWORD)SkyVertexShaderByteCodeLength.QuadPart, NULL, NULL);
-	Result = CloseHandle(SkyVertexShaderFile);
+		SAFE_DX(Device->CreateUnorderedAccessView(AverageLuminanceTexture, &UAVDesc, &AverageLuminanceTextureUAV));
 
-	HANDLE SkyPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SkyPixelShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-	LARGE_INTEGER SkyPixelShaderByteCodeLength;
-	Result = GetFileSizeEx(SkyPixelShaderFile, &SkyPixelShaderByteCodeLength);
-	void *SkyPixelShaderByteCodeData = malloc(SkyPixelShaderByteCodeLength.QuadPart);
-	Result = ReadFile(SkyPixelShaderFile, SkyPixelShaderByteCodeData, (DWORD)SkyPixelShaderByteCodeLength.QuadPart, NULL, NULL);
-	Result = CloseHandle(SkyPixelShaderFile);
+		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
+		SRVDesc.Texture2D.MipLevels = 1;
+		SRVDesc.Texture2D.MostDetailedMip = 0;
+		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_TEXTURE2D;
 
-	HANDLE SunVertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SunVertexShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-	LARGE_INTEGER SunVertexShaderByteCodeLength;
-	Result = GetFileSizeEx(SunVertexShaderFile, &SunVertexShaderByteCodeLength);
-	void *SunVertexShaderByteCodeData = malloc(SunVertexShaderByteCodeLength.QuadPart);
-	Result = ReadFile(SunVertexShaderFile, SunVertexShaderByteCodeData, (DWORD)SunVertexShaderByteCodeLength.QuadPart, NULL, NULL);
-	Result = CloseHandle(SunVertexShaderFile);
+		SAFE_DX(Device->CreateShaderResourceView(AverageLuminanceTexture, &SRVDesc, &AverageLuminanceTextureSRV));
+	
+		HANDLE LuminanceCalcComputeShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/LuminanceCalc.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+		LARGE_INTEGER LuminanceCalcComputeShaderByteCodeLength;
+		BOOL Result = GetFileSizeEx(LuminanceCalcComputeShaderFile, &LuminanceCalcComputeShaderByteCodeLength);
+		ScopedMemoryBlockArray<BYTE> LuminanceCalcComputeShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(LuminanceCalcComputeShaderByteCodeLength.QuadPart);
+		Result = ReadFile(LuminanceCalcComputeShaderFile, LuminanceCalcComputeShaderByteCodeData, (DWORD)LuminanceCalcComputeShaderByteCodeLength.QuadPart, NULL, NULL);
+		Result = CloseHandle(LuminanceCalcComputeShaderFile);
 
-	HANDLE SunPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SunPixelShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-	LARGE_INTEGER SunPixelShaderByteCodeLength;
-	Result = GetFileSizeEx(SunPixelShaderFile, &SunPixelShaderByteCodeLength);
-	void *SunPixelShaderByteCodeData = malloc(SunPixelShaderByteCodeLength.QuadPart);
-	Result = ReadFile(SunPixelShaderFile, SunPixelShaderByteCodeData, (DWORD)SunPixelShaderByteCodeLength.QuadPart, NULL, NULL);
-	Result = CloseHandle(SunPixelShaderFile);
+		HANDLE LuminanceSumComputeShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/LuminanceSum.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+		LARGE_INTEGER LuminanceSumComputeShaderByteCodeLength;
+		Result = GetFileSizeEx(LuminanceSumComputeShaderFile, &LuminanceSumComputeShaderByteCodeLength);
+		ScopedMemoryBlockArray<BYTE> LuminanceSumComputeShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(LuminanceSumComputeShaderByteCodeLength.QuadPart);
+		Result = ReadFile(LuminanceSumComputeShaderFile, LuminanceSumComputeShaderByteCodeData, (DWORD)LuminanceSumComputeShaderByteCodeLength.QuadPart, NULL, NULL);
+		Result = CloseHandle(LuminanceSumComputeShaderFile);
 
-	HANDLE BrightPassPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/BrightPass.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-	LARGE_INTEGER BrightPassPixelShaderByteCodeLength;
-	Result = GetFileSizeEx(BrightPassPixelShaderFile, &BrightPassPixelShaderByteCodeLength);
-	void *BrightPassPixelShaderByteCodeData = malloc(BrightPassPixelShaderByteCodeLength.QuadPart);
-	Result = ReadFile(BrightPassPixelShaderFile, BrightPassPixelShaderByteCodeData, (DWORD)BrightPassPixelShaderByteCodeLength.QuadPart, NULL, NULL);
-	Result = CloseHandle(BrightPassPixelShaderFile);
+		HANDLE LuminanceAvgComputeShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/LuminanceAvg.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+		LARGE_INTEGER LuminanceAvgComputeShaderByteCodeLength;
+		Result = GetFileSizeEx(LuminanceAvgComputeShaderFile, &LuminanceAvgComputeShaderByteCodeLength);
+		ScopedMemoryBlockArray<BYTE> LuminanceAvgComputeShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(LuminanceAvgComputeShaderByteCodeLength.QuadPart);
+		Result = ReadFile(LuminanceAvgComputeShaderFile, LuminanceAvgComputeShaderByteCodeData, (DWORD)LuminanceAvgComputeShaderByteCodeLength.QuadPart, NULL, NULL);
+		Result = CloseHandle(LuminanceAvgComputeShaderFile);
 
-	HANDLE ImageResamplePixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/ImageResample.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-	LARGE_INTEGER ImageResamplePixelShaderByteCodeLength;
-	Result = GetFileSizeEx(ImageResamplePixelShaderFile, &ImageResamplePixelShaderByteCodeLength);
-	void *ImageResamplePixelShaderByteCodeData = malloc(ImageResamplePixelShaderByteCodeLength.QuadPart);
-	Result = ReadFile(ImageResamplePixelShaderFile, ImageResamplePixelShaderByteCodeData, (DWORD)ImageResamplePixelShaderByteCodeLength.QuadPart, NULL, NULL);
-	Result = CloseHandle(ImageResamplePixelShaderFile);
+		SAFE_DX(Device->CreateComputeShader(LuminanceCalcComputeShaderByteCodeData, LuminanceCalcComputeShaderByteCodeLength.QuadPart, nullptr, &LuminanceCalcComputeShader));
+		SAFE_DX(Device->CreateComputeShader(LuminanceSumComputeShaderByteCodeData, LuminanceSumComputeShaderByteCodeLength.QuadPart, nullptr, &LuminanceSumComputeShader));
+		SAFE_DX(Device->CreateComputeShader(LuminanceAvgComputeShaderByteCodeData, LuminanceAvgComputeShaderByteCodeLength.QuadPart, nullptr, &LuminanceAvgComputeShader));
+	}
 
-	HANDLE HorizontalBlurPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/HorizontalBlur.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-	LARGE_INTEGER HorizontalBlurPixelShaderByteCodeLength;
-	Result = GetFileSizeEx(HorizontalBlurPixelShaderFile, &HorizontalBlurPixelShaderByteCodeLength);
-	void *HorizontalBlurPixelShaderByteCodeData = malloc(HorizontalBlurPixelShaderByteCodeLength.QuadPart);
-	Result = ReadFile(HorizontalBlurPixelShaderFile, HorizontalBlurPixelShaderByteCodeData, (DWORD)HorizontalBlurPixelShaderByteCodeLength.QuadPart, NULL, NULL);
-	Result = CloseHandle(HorizontalBlurPixelShaderFile);
+	// ===============================================================================================================
 
-	HANDLE VerticalBlurPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/VerticalBlur.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-	LARGE_INTEGER VerticalBlurPixelShaderByteCodeLength;
-	Result = GetFileSizeEx(VerticalBlurPixelShaderFile, &VerticalBlurPixelShaderByteCodeLength);
-	void *VerticalBlurPixelShaderByteCodeData = malloc(VerticalBlurPixelShaderByteCodeLength.QuadPart);
-	Result = ReadFile(VerticalBlurPixelShaderFile, VerticalBlurPixelShaderByteCodeData, (DWORD)VerticalBlurPixelShaderByteCodeLength.QuadPart, NULL, NULL);
-	Result = CloseHandle(VerticalBlurPixelShaderFile);
+	{
+		D3D11_TEXTURE2D_DESC TextureDesc;
+		TextureDesc.ArraySize = 1;
+		TextureDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_RENDER_TARGET | D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE;
+		TextureDesc.CPUAccessFlags = 0;
+		TextureDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
+		//TextureDesc.Height = ResolutionHeight;
+		TextureDesc.MipLevels = 1;
+		TextureDesc.MiscFlags = 0;
+		TextureDesc.SampleDesc.Count = 1;
+		TextureDesc.SampleDesc.Quality = 0;
+		TextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
+		//TextureDesc.Width = ResolutionWidth;
 
-	SAFE_DX(Device->CreateVertexShader(FullScreenQuadVertexShaderByteCodeData, FullScreenQuadVertexShaderByteCodeLength.QuadPart, nullptr, &FullScreenQuadVertexShader));
+		for (int i = 0; i < 7; i++)
+		{
+			TextureDesc.Width = ResolutionWidth >> i;
+			TextureDesc.Height = ResolutionHeight >> i;
 
-	SAFE_DX(Device->CreatePixelShader(MSAADepthResolvePixelShaderByteCodeData, MSAADepthResolvePixelShaderByteCodeLength.QuadPart, nullptr, &MSAADepthResolvePixelShader));
-	SAFE_DX(Device->CreatePixelShader(ShadowResolvePixelShaderByteCodeData, ShadowResolvePixelShaderByteCodeLength.QuadPart, nullptr, &ShadowResolvePixelShader));
-	SAFE_DX(Device->CreatePixelShader(DeferredLightingPixelShaderByteCodeData, DeferredLightingPixelShaderByteCodeLength.QuadPart, nullptr, &DeferredLightingPixelShader));
-	SAFE_DX(Device->CreatePixelShader(FogPixelShaderByteCodeData, FogPixelShaderByteCodeLength.QuadPart, nullptr, &FogPixelShader));
-	SAFE_DX(Device->CreatePixelShader(HDRToneMappingPixelShaderByteCodeData, HDRToneMappingPixelShaderByteCodeLength.QuadPart, nullptr, &HDRToneMappingPixelShader));
-	SAFE_DX(Device->CreatePixelShader(BrightPassPixelShaderByteCodeData, BrightPassPixelShaderByteCodeLength.QuadPart, nullptr, &BrightPassPixelShader));
-	SAFE_DX(Device->CreatePixelShader(ImageResamplePixelShaderByteCodeData, ImageResamplePixelShaderByteCodeLength.QuadPart, nullptr, &ImageResamplePixelShader));
-	SAFE_DX(Device->CreatePixelShader(HorizontalBlurPixelShaderByteCodeData, HorizontalBlurPixelShaderByteCodeLength.QuadPart, nullptr, &HorizontalBlurPixelShader));
-	SAFE_DX(Device->CreatePixelShader(VerticalBlurPixelShaderByteCodeData, VerticalBlurPixelShaderByteCodeLength.QuadPart, nullptr, &VerticalBlurPixelShader));
+			SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &BloomTextures[0][i]));
+			SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &BloomTextures[1][i]));
+			SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &BloomTextures[2][i]));
+		}
 
-	SAFE_DX(Device->CreateVertexShader(SkyVertexShaderByteCodeData, SkyVertexShaderByteCodeLength.QuadPart, nullptr, &SkyVertexShader));
-	SAFE_DX(Device->CreatePixelShader(SkyPixelShaderByteCodeData, SkyPixelShaderByteCodeLength.QuadPart, nullptr, &SkyPixelShader));
-	SAFE_DX(Device->CreateVertexShader(SunVertexShaderByteCodeData, SunVertexShaderByteCodeLength.QuadPart, nullptr, &SunVertexShader));
-	SAFE_DX(Device->CreatePixelShader(SunPixelShaderByteCodeData, SunPixelShaderByteCodeLength.QuadPart, nullptr, &SunPixelShader));
+		D3D11_RENDER_TARGET_VIEW_DESC RTVDesc;
+		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
+		RTVDesc.Texture2D.MipSlice = 0;
+		RTVDesc.ViewDimension = D3D11_RTV_DIMENSION::D3D11_RTV_DIMENSION_TEXTURE2D;
 
-	SAFE_DX(Device->CreateComputeShader(LuminanceCalcComputeShaderByteCodeData, LuminanceCalcComputeShaderByteCodeLength.QuadPart, nullptr, &LuminanceCalcComputeShader));
-	SAFE_DX(Device->CreateComputeShader(LuminanceSumComputeShaderByteCodeData, LuminanceSumComputeShaderByteCodeLength.QuadPart, nullptr, &LuminanceSumComputeShader));
-	SAFE_DX(Device->CreateComputeShader(LuminanceAvgComputeShaderByteCodeData, LuminanceAvgComputeShaderByteCodeLength.QuadPart, nullptr, &LuminanceAvgComputeShader));
+		for (int i = 0; i < 7; i++)
+		{
+			SAFE_DX(Device->CreateRenderTargetView(BloomTextures[0][i], &RTVDesc, &BloomTexturesRTVs[0][i]));
+			SAFE_DX(Device->CreateRenderTargetView(BloomTextures[1][i], &RTVDesc, &BloomTexturesRTVs[1][i]));
+			SAFE_DX(Device->CreateRenderTargetView(BloomTextures[2][i], &RTVDesc, &BloomTexturesRTVs[2][i]));
+		}
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
+		SRVDesc.Texture2D.MipLevels = 1;
+		SRVDesc.Texture2D.MostDetailedMip = 0;
+		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION::D3D11_SRV_DIMENSION_TEXTURE2D;
+
+		for (int i = 0; i < 7; i++)
+		{
+			SAFE_DX(Device->CreateShaderResourceView(BloomTextures[0][i], &SRVDesc, &BloomTexturesSRVs[0][i]));
+			SAFE_DX(Device->CreateShaderResourceView(BloomTextures[1][i], &SRVDesc, &BloomTexturesSRVs[1][i]));
+			SAFE_DX(Device->CreateShaderResourceView(BloomTextures[2][i], &SRVDesc, &BloomTexturesSRVs[2][i]));
+		}
+
+		HANDLE BrightPassPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/BrightPass.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+		LARGE_INTEGER BrightPassPixelShaderByteCodeLength;
+		BOOL Result = GetFileSizeEx(BrightPassPixelShaderFile, &BrightPassPixelShaderByteCodeLength);
+		ScopedMemoryBlockArray<BYTE> BrightPassPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(BrightPassPixelShaderByteCodeLength.QuadPart);
+		Result = ReadFile(BrightPassPixelShaderFile, BrightPassPixelShaderByteCodeData, (DWORD)BrightPassPixelShaderByteCodeLength.QuadPart, NULL, NULL);
+		Result = CloseHandle(BrightPassPixelShaderFile);
+
+		HANDLE ImageResamplePixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/ImageResample.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+		LARGE_INTEGER ImageResamplePixelShaderByteCodeLength;
+		Result = GetFileSizeEx(ImageResamplePixelShaderFile, &ImageResamplePixelShaderByteCodeLength);
+		ScopedMemoryBlockArray<BYTE> ImageResamplePixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(ImageResamplePixelShaderByteCodeLength.QuadPart);
+		Result = ReadFile(ImageResamplePixelShaderFile, ImageResamplePixelShaderByteCodeData, (DWORD)ImageResamplePixelShaderByteCodeLength.QuadPart, NULL, NULL);
+		Result = CloseHandle(ImageResamplePixelShaderFile);
+
+		HANDLE HorizontalBlurPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/HorizontalBlur.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+		LARGE_INTEGER HorizontalBlurPixelShaderByteCodeLength;
+		Result = GetFileSizeEx(HorizontalBlurPixelShaderFile, &HorizontalBlurPixelShaderByteCodeLength);
+		ScopedMemoryBlockArray<BYTE> HorizontalBlurPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(HorizontalBlurPixelShaderByteCodeLength.QuadPart);
+		Result = ReadFile(HorizontalBlurPixelShaderFile, HorizontalBlurPixelShaderByteCodeData, (DWORD)HorizontalBlurPixelShaderByteCodeLength.QuadPart, NULL, NULL);
+		Result = CloseHandle(HorizontalBlurPixelShaderFile);
+
+		HANDLE VerticalBlurPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/VerticalBlur.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+		LARGE_INTEGER VerticalBlurPixelShaderByteCodeLength;
+		Result = GetFileSizeEx(VerticalBlurPixelShaderFile, &VerticalBlurPixelShaderByteCodeLength);
+		ScopedMemoryBlockArray<BYTE> VerticalBlurPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(VerticalBlurPixelShaderByteCodeLength.QuadPart);
+		Result = ReadFile(VerticalBlurPixelShaderFile, VerticalBlurPixelShaderByteCodeData, (DWORD)VerticalBlurPixelShaderByteCodeLength.QuadPart, NULL, NULL);
+		Result = CloseHandle(VerticalBlurPixelShaderFile);
+
+		SAFE_DX(Device->CreatePixelShader(BrightPassPixelShaderByteCodeData, BrightPassPixelShaderByteCodeLength.QuadPart, nullptr, &BrightPassPixelShader));
+		SAFE_DX(Device->CreatePixelShader(ImageResamplePixelShaderByteCodeData, ImageResamplePixelShaderByteCodeLength.QuadPart, nullptr, &ImageResamplePixelShader));
+		SAFE_DX(Device->CreatePixelShader(HorizontalBlurPixelShaderByteCodeData, HorizontalBlurPixelShaderByteCodeLength.QuadPart, nullptr, &HorizontalBlurPixelShader));
+		SAFE_DX(Device->CreatePixelShader(VerticalBlurPixelShaderByteCodeData, VerticalBlurPixelShaderByteCodeLength.QuadPart, nullptr, &VerticalBlurPixelShader));
+	}
+
+	// ===============================================================================================================
+
+	{
+		D3D11_TEXTURE2D_DESC TextureDesc;
+		TextureDesc.ArraySize = 1;
+		TextureDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_RENDER_TARGET;
+		TextureDesc.CPUAccessFlags = 0;
+		TextureDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		TextureDesc.Height = ResolutionHeight;
+		TextureDesc.MipLevels = 1;
+		TextureDesc.MiscFlags = 0;
+		TextureDesc.SampleDesc.Count = 8;
+		TextureDesc.SampleDesc.Quality = 0;
+		TextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
+		TextureDesc.Width = ResolutionWidth;
+
+		SAFE_DX(Device->CreateTexture2D(&TextureDesc, nullptr, &ToneMappedImageTexture));
+
+		D3D11_RENDER_TARGET_VIEW_DESC RTVDesc;
+		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		RTVDesc.ViewDimension = D3D11_RTV_DIMENSION::D3D11_RTV_DIMENSION_TEXTURE2DMS;
+
+		SAFE_DX(Device->CreateRenderTargetView(ToneMappedImageTexture, &RTVDesc, &ToneMappedImageRTV));
+
+		HANDLE HDRToneMappingPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/HDRToneMapping.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+		LARGE_INTEGER HDRToneMappingPixelShaderByteCodeLength;
+		BOOL Result = GetFileSizeEx(HDRToneMappingPixelShaderFile, &HDRToneMappingPixelShaderByteCodeLength);
+		ScopedMemoryBlockArray<BYTE> HDRToneMappingPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(HDRToneMappingPixelShaderByteCodeLength.QuadPart);
+		Result = ReadFile(HDRToneMappingPixelShaderFile, HDRToneMappingPixelShaderByteCodeData, (DWORD)HDRToneMappingPixelShaderByteCodeLength.QuadPart, NULL, NULL);
+		Result = CloseHandle(HDRToneMappingPixelShaderFile);
+
+		SAFE_DX(Device->CreatePixelShader(HDRToneMappingPixelShaderByteCodeData, HDRToneMappingPixelShaderByteCodeLength.QuadPart, nullptr, &HDRToneMappingPixelShader));
+	}
+
+	// ===============================================================================================================
+	
+	HANDLE VertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/MaterialBase_VertexShader_GBufferOpaquePass.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+	LARGE_INTEGER VertexShaderByteCodeLength;
+	BOOL Result = GetFileSizeEx(VertexShaderFile, &VertexShaderByteCodeLength);
+	ScopedMemoryBlockArray<BYTE> VertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(VertexShaderByteCodeLength.QuadPart);
+	Result = ReadFile(VertexShaderFile, VertexShaderByteCodeData, (DWORD)VertexShaderByteCodeLength.QuadPart, NULL, NULL);
+	Result = CloseHandle(VertexShaderFile);
 
 	D3D11_INPUT_ELEMENT_DESC InputElementDescs[5];
 	InputElementDescs[0].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
@@ -899,35 +1046,8 @@ void RenderSystem::InitSystem()
 	InputElementDescs[4].InstanceDataStepRate = 0;
 	InputElementDescs[4].SemanticIndex = 0;
 	InputElementDescs[4].SemanticName = "BINORMAL";
-
-	free(FullScreenQuadVertexShaderByteCodeData);
-	free(DeferredLightingPixelShaderByteCodeData);
-	free(HDRToneMappingPixelShaderByteCodeData);
-	//free(SkyVertexShaderByteCodeData);
-	free(SkyPixelShaderByteCodeData);
-	free(SunVertexShaderByteCodeData);
-	free(SunPixelShaderByteCodeData);
-
-	BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_CONSTANT_BUFFER;
-	BufferDesc.ByteWidth = 256;
-	BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_WRITE;
-	BufferDesc.MiscFlags = 0;
-	BufferDesc.StructureByteStride = 0;
-	BufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_DYNAMIC;
-
-	SAFE_DX(Device->CreateBuffer(&BufferDesc, nullptr, &ConstantBuffer));
-
-	for (int j = 0; j < 4; j++)
-	{
-		BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_CONSTANT_BUFFER;
-		BufferDesc.ByteWidth = 256;
-		BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_WRITE;
-		BufferDesc.MiscFlags = 0;
-		BufferDesc.StructureByteStride = 0;
-		BufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_DYNAMIC;
-
-		SAFE_DX(Device->CreateBuffer(&BufferDesc, nullptr, &ConstantBuffers[j]));
-	}
+	
+	SAFE_DX(Device->CreateInputLayout(InputElementDescs, 5, VertexShaderByteCodeData, VertexShaderByteCodeLength.QuadPart, &InputLayout));
 
 	D3D11_SAMPLER_DESC SamplerDesc;
 	SamplerDesc.AddressU = SamplerDesc.AddressV = SamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_MODE::D3D11_TEXTURE_ADDRESS_CLAMP;
@@ -962,8 +1082,6 @@ void RenderSystem::InitSystem()
 	SamplerDesc.MipLODBias = 0.0f;
 
 	SAFE_DX(Device->CreateSamplerState(&SamplerDesc, &BiLinearSampler));
-
-	SAFE_DX(Device->CreateInputLayout(InputElementDescs, 5, SkyVertexShaderByteCodeData, SkyVertexShaderByteCodeLength.QuadPart, &InputLayout));
 
 	D3D11_RASTERIZER_DESC RasterizerDesc;
 	ZeroMemory(&RasterizerDesc, sizeof(D3D11_RASTERIZER_DESC));
@@ -1067,13 +1185,6 @@ void RenderSystem::ShutdownSystem()
 
 void RenderSystem::TickSystem(float DeltaTime)
 {
-	DeviceContext->ClearState();
-
-	DeviceContext->IASetInputLayout(InputLayout);
-	DeviceContext->RSSetState(RasterizerState);
-	DeviceContext->OMSetBlendState(BlendDisabledBlendState, nullptr, D3D11_DEFAULT_SAMPLE_MASK);
-	DeviceContext->OMSetDepthStencilState(GBufferPassDepthStencilState, 0);
-
 	XMMATRIX ViewProjMatrix = Engine::GetEngine().GetGameFramework().GetCamera().GetViewProjMatrix();
 
 	vector<StaticMeshComponent*> AllStaticMeshComponents = Engine::GetEngine().GetGameFramework().GetWorld().GetRenderScene().GetStaticMeshComponents();
@@ -1086,15 +1197,26 @@ void RenderSystem::TickSystem(float DeltaTime)
 	XMMATRIX ViewMatrix = Engine::GetEngine().GetGameFramework().GetCamera().GetViewMatrix();
 	XMMATRIX ProjMatrix = Engine::GetEngine().GetGameFramework().GetCamera().GetProjMatrix();
 
-	clusterizationSubSystem.ClusterizeLights(VisblePointLightComponents, ViewMatrix);
+	XMFLOAT3 CameraLocation = Engine::GetEngine().GetGameFramework().GetCamera().GetCameraLocation();
 
-	struct PointLight
-	{
-		XMFLOAT3 Position;
-		float Radius;
-		XMFLOAT3 Color;
-		float Brightness;
-	};
+	XMMATRIX ShadowViewMatrices[4], ShadowProjMatrices[4], ShadowViewProjMatrices[4];
+
+	ShadowViewMatrices[0] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 10.0f, CameraLocation.y + 10.0f, CameraLocation.z - 10.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
+	ShadowViewMatrices[1] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 20.0f, CameraLocation.y + 20.0f, CameraLocation.z - 20.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
+	ShadowViewMatrices[2] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 50.0f, CameraLocation.y + 50.0f, CameraLocation.z - 50.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
+	ShadowViewMatrices[3] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 100.0f, CameraLocation.y + 100.0f, CameraLocation.z - 100.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
+
+	ShadowProjMatrices[0] = XMMatrixOrthographicLH(10.0f, 10.0f, 0.01f, 500.0f);
+	ShadowProjMatrices[1] = XMMatrixOrthographicLH(20.0f, 20.0f, 0.01f, 500.0f);
+	ShadowProjMatrices[2] = XMMatrixOrthographicLH(50.0f, 50.0f, 0.01f, 500.0f);
+	ShadowProjMatrices[3] = XMMatrixOrthographicLH(100.0f, 100.0f, 0.01f, 500.0f);
+
+	ShadowViewProjMatrices[0] = ShadowViewMatrices[0] * ShadowProjMatrices[0];
+	ShadowViewProjMatrices[1] = ShadowViewMatrices[1] * ShadowProjMatrices[1];
+	ShadowViewProjMatrices[2] = ShadowViewMatrices[2] * ShadowProjMatrices[2];
+	ShadowViewProjMatrices[3] = ShadowViewMatrices[3] * ShadowProjMatrices[3];
+
+	clusterizationSubSystem.ClusterizeLights(VisblePointLightComponents, ViewMatrix);
 
 	vector<PointLight> PointLights;
 
@@ -1111,130 +1233,39 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	OPTICK_EVENT("Draw Calls")
 
-	ID3D11RenderTargetView *GBufferRTVs[2] = { this->GBufferRTVs[0], this->GBufferRTVs[1] };
+	DeviceContext->ClearState();
 
-	DeviceContext->OMSetRenderTargets(2, GBufferRTVs, DepthBufferDSV);
+	// ===============================================================================================================
 
-	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	D3D11_VIEWPORT Viewport;
-	Viewport.Height = float(ResolutionHeight);
-	Viewport.MaxDepth = 1.0f;
-	Viewport.MinDepth = 0.0f;
-	Viewport.TopLeftX = 0.0f;
-	Viewport.TopLeftY = 0.0f;
-	Viewport.Width = float(ResolutionWidth);
-
-	DeviceContext->RSSetViewports(1, &Viewport);
-
-	DeviceContext->PSSetSamplers(0, 1, &TextureSampler);
-
-	float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-	
-	DeviceContext->ClearRenderTargetView(GBufferRTVs[0], ClearColor);
-	DeviceContext->ClearRenderTargetView(GBufferRTVs[1], ClearColor);
-	DeviceContext->ClearDepthStencilView(DepthBufferDSV, D3D11_CLEAR_FLAG::D3D11_CLEAR_DEPTH | D3D11_CLEAR_FLAG::D3D11_CLEAR_STENCIL, 0.0f, 0);
-
-	for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
 	{
-		StaticMeshComponent *staticMeshComponent = VisbleStaticMeshComponents[k];
+		DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-		RenderMesh *renderMesh = staticMeshComponent->GetStaticMesh()->GetRenderMesh();
-		RenderMaterial *renderMaterial = staticMeshComponent->GetMaterial()->GetRenderMaterial();
-		RenderTexture *renderTexture0 = staticMeshComponent->GetMaterial()->GetTexture(0)->GetRenderTexture();
-		RenderTexture *renderTexture1 = staticMeshComponent->GetMaterial()->GetTexture(1)->GetRenderTexture();
+		ID3D11RenderTargetView *GBufferTexturesRTVs[2] = { this->GBufferTexturesRTVs[0], this->GBufferTexturesRTVs[1] };
+		
+		DeviceContext->OMSetRenderTargets(2, GBufferTexturesRTVs, DepthBufferTextureDSV);
 
-		XMMATRIX WorldMatrix = VisbleStaticMeshComponents[k]->GetTransformComponent()->GetTransformMatrix();
-		XMMATRIX WVPMatrix = WorldMatrix * ViewProjMatrix;
-		XMFLOAT3X4 VectorTransformMatrix;
+		D3D11_VIEWPORT Viewport;
+		Viewport.Height = float(ResolutionHeight);
+		Viewport.MaxDepth = 1.0f;
+		Viewport.MinDepth = 0.0f;
+		Viewport.TopLeftX = 0.0f;
+		Viewport.TopLeftY = 0.0f;
+		Viewport.Width = float(ResolutionWidth);
 
-		float Determinant =
-			WorldMatrix.m[0][0] * (WorldMatrix.m[1][1] * WorldMatrix.m[2][2] - WorldMatrix.m[2][1] * WorldMatrix.m[1][2]) -
-			WorldMatrix.m[1][0] * (WorldMatrix.m[0][1] * WorldMatrix.m[2][2] - WorldMatrix.m[2][1] * WorldMatrix.m[0][2]) +
-			WorldMatrix.m[2][0] * (WorldMatrix.m[0][1] * WorldMatrix.m[1][2] - WorldMatrix.m[1][1] * WorldMatrix.m[0][2]);
+		DeviceContext->RSSetViewports(1, &Viewport);
 
-		VectorTransformMatrix.m[0][0] = (WorldMatrix.m[1][1] * WorldMatrix.m[2][2] - WorldMatrix.m[2][1] * WorldMatrix.m[1][2]) / Determinant;
-		VectorTransformMatrix.m[1][0] = -(WorldMatrix.m[0][1] * WorldMatrix.m[2][2] - WorldMatrix.m[2][1] * WorldMatrix.m[0][2]) / Determinant;
-		VectorTransformMatrix.m[2][0] = (WorldMatrix.m[0][1] * WorldMatrix.m[1][2] - WorldMatrix.m[1][1] * WorldMatrix.m[0][2]) / Determinant;
+		DeviceContext->IASetInputLayout(InputLayout);
+		DeviceContext->RSSetState(RasterizerState);
+		DeviceContext->OMSetBlendState(BlendDisabledBlendState, nullptr, D3D11_DEFAULT_SAMPLE_MASK);
+		DeviceContext->OMSetDepthStencilState(GBufferPassDepthStencilState, 0);
 
-		VectorTransformMatrix.m[0][1] = -(WorldMatrix.m[1][0] * WorldMatrix.m[2][2] - WorldMatrix.m[2][0] * WorldMatrix.m[1][2]) / Determinant;
-		VectorTransformMatrix.m[1][1] = (WorldMatrix.m[0][0] * WorldMatrix.m[2][2] - WorldMatrix.m[2][0] * WorldMatrix.m[0][2]) / Determinant;
-		VectorTransformMatrix.m[2][1] = -(WorldMatrix.m[0][0] * WorldMatrix.m[1][0] - WorldMatrix.m[0][2] * WorldMatrix.m[1][2]) / Determinant;
+		DeviceContext->PSSetSamplers(0, 1, &TextureSampler);
 
-		VectorTransformMatrix.m[0][2] = (WorldMatrix.m[1][0] * WorldMatrix.m[2][1] - WorldMatrix.m[2][0] * WorldMatrix.m[1][1]) / Determinant;
-		VectorTransformMatrix.m[1][2] = -(WorldMatrix.m[0][0] * WorldMatrix.m[2][1] - WorldMatrix.m[2][0] * WorldMatrix.m[0][1]) / Determinant;
-		VectorTransformMatrix.m[2][2] = (WorldMatrix.m[0][0] * WorldMatrix.m[1][1] - WorldMatrix.m[1][0] * WorldMatrix.m[0][1]) / Determinant;
+		float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
-		VectorTransformMatrix.m[0][3] = 0.0f;
-		VectorTransformMatrix.m[1][3] = 0.0f;
-		VectorTransformMatrix.m[2][3] = 0.0f;
-
-		D3D11_MAPPED_SUBRESOURCE MappedSubResource;
-
-		SAFE_DX(DeviceContext->Map(ConstantBuffer, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, 0, &MappedSubResource));
-
-		memcpy((BYTE*)MappedSubResource.pData, &WVPMatrix, sizeof(XMMATRIX));
-		memcpy((BYTE*)MappedSubResource.pData + sizeof(XMMATRIX), &WorldMatrix, sizeof(XMMATRIX));
-		memcpy((BYTE*)MappedSubResource.pData + 2 * sizeof(XMMATRIX), &VectorTransformMatrix, sizeof(XMFLOAT3X4));
-
-		DeviceContext->Unmap(ConstantBuffer, 0);
-
-		UINT Stride = sizeof(Vertex), Offset = 0;
-
-		DeviceContext->IASetVertexBuffers(0, 1, &renderMesh->VertexBuffer, &Stride, &Offset);
-		DeviceContext->IASetIndexBuffer(renderMesh->IndexBuffer, DXGI_FORMAT::DXGI_FORMAT_R16_UINT, 0);
-
-		DeviceContext->VSSetShader(renderMaterial->GBufferOpaquePassVertexShader, nullptr, 0);
-		DeviceContext->PSSetShader(renderMaterial->GBufferOpaquePassPixelShader, nullptr, 0);
-
-		DeviceContext->VSSetConstantBuffers(0, 1, &ConstantBuffer);
-		DeviceContext->PSSetShaderResources(0, 1, &renderTexture0->TextureSRV);
-		DeviceContext->PSSetShaderResources(1, 1, &renderTexture1->TextureSRV);
-
-		DeviceContext->DrawIndexed(8 * 8 * 6 * 6, 0, 0);
-	}
-
-	Viewport.Height = 2048.0f;
-	Viewport.MaxDepth = 1.0f;
-	Viewport.MinDepth = 0.0f;
-	Viewport.TopLeftX = 0.0f;
-	Viewport.TopLeftY = 0.0f;
-	Viewport.Width = 2048.0f;
-
-	DeviceContext->RSSetViewports(1, &Viewport);
-
-	XMFLOAT3 CameraLocation = Engine::GetEngine().GetGameFramework().GetCamera().GetCameraLocation();
-
-	XMMATRIX ShadowViewMatrices[4], ShadowProjMatrices[4], ShadowViewProjMatrices[4];
-
-	ShadowViewMatrices[0] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 10.0f, CameraLocation.y + 10.0f, CameraLocation.z - 10.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
-	ShadowViewMatrices[1] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 20.0f, CameraLocation.y + 20.0f, CameraLocation.z - 10.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
-	ShadowViewMatrices[2] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 50.0f, CameraLocation.y + 50.0f, CameraLocation.z - 10.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
-	ShadowViewMatrices[3] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 100.0f, CameraLocation.y + 100.0f, CameraLocation.z - 10.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
-
-	ShadowProjMatrices[0] = XMMatrixOrthographicLH(10.0f, 10.0f, 0.01f, 500.0f);
-	ShadowProjMatrices[1] = XMMatrixOrthographicLH(20.0f, 20.0f, 0.01f, 500.0f);
-	ShadowProjMatrices[2] = XMMatrixOrthographicLH(50.0f, 50.0f, 0.01f, 500.0f);
-	ShadowProjMatrices[3] = XMMatrixOrthographicLH(100.0f, 100.0f, 0.01f, 500.0f);
-
-	ShadowViewProjMatrices[0] = ShadowViewMatrices[0] * ShadowProjMatrices[0];
-	ShadowViewProjMatrices[1] = ShadowViewMatrices[1] * ShadowProjMatrices[1];
-	ShadowViewProjMatrices[2] = ShadowViewMatrices[2] * ShadowProjMatrices[2];
-	ShadowViewProjMatrices[3] = ShadowViewMatrices[3] * ShadowProjMatrices[3];
-
-	DeviceContext->OMSetDepthStencilState(ShadowMapPassDepthStencilState, 0);
-
-	for (int i = 0; i < 4; i++)
-	{
-		SIZE_T ConstantBufferOffset = 0;
-
-		vector<StaticMeshComponent*> AllStaticMeshComponents = Engine::GetEngine().GetGameFramework().GetWorld().GetRenderScene().GetStaticMeshComponents();
-		vector<StaticMeshComponent*> VisbleStaticMeshComponents = cullingSubSystem.GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ShadowViewProjMatrices[i]);
-		size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.size();
-
-		DeviceContext->OMSetRenderTargets(0, nullptr, CascadedShadowMapDSVs[i]);
-
-		DeviceContext->ClearDepthStencilView(CascadedShadowMapDSVs[i], D3D11_CLEAR_FLAG::D3D11_CLEAR_DEPTH, 1.0f, 0);
+		DeviceContext->ClearRenderTargetView(GBufferTexturesRTVs[0], ClearColor);
+		DeviceContext->ClearRenderTargetView(GBufferTexturesRTVs[1], ClearColor);
+		DeviceContext->ClearDepthStencilView(DepthBufferTextureDSV, D3D11_CLEAR_FLAG::D3D11_CLEAR_DEPTH | D3D11_CLEAR_FLAG::D3D11_CLEAR_STENCIL, 0.0f, 0);
 
 		for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
 		{
@@ -1246,363 +1277,628 @@ void RenderSystem::TickSystem(float DeltaTime)
 			RenderTexture *renderTexture1 = staticMeshComponent->GetMaterial()->GetTexture(1)->GetRenderTexture();
 
 			XMMATRIX WorldMatrix = VisbleStaticMeshComponents[k]->GetTransformComponent()->GetTransformMatrix();
-			XMMATRIX WVPMatrix = WorldMatrix * ShadowViewProjMatrices[i];
+			XMMATRIX WVPMatrix = WorldMatrix * ViewProjMatrix;
+			XMFLOAT3X4 VectorTransformMatrix;
+
+			float Determinant =
+				WorldMatrix.m[0][0] * (WorldMatrix.m[1][1] * WorldMatrix.m[2][2] - WorldMatrix.m[2][1] * WorldMatrix.m[1][2]) -
+				WorldMatrix.m[1][0] * (WorldMatrix.m[0][1] * WorldMatrix.m[2][2] - WorldMatrix.m[2][1] * WorldMatrix.m[0][2]) +
+				WorldMatrix.m[2][0] * (WorldMatrix.m[0][1] * WorldMatrix.m[1][2] - WorldMatrix.m[1][1] * WorldMatrix.m[0][2]);
+
+			VectorTransformMatrix.m[0][0] = (WorldMatrix.m[1][1] * WorldMatrix.m[2][2] - WorldMatrix.m[2][1] * WorldMatrix.m[1][2]) / Determinant;
+			VectorTransformMatrix.m[1][0] = -(WorldMatrix.m[0][1] * WorldMatrix.m[2][2] - WorldMatrix.m[2][1] * WorldMatrix.m[0][2]) / Determinant;
+			VectorTransformMatrix.m[2][0] = (WorldMatrix.m[0][1] * WorldMatrix.m[1][2] - WorldMatrix.m[1][1] * WorldMatrix.m[0][2]) / Determinant;
+
+			VectorTransformMatrix.m[0][1] = -(WorldMatrix.m[1][0] * WorldMatrix.m[2][2] - WorldMatrix.m[2][0] * WorldMatrix.m[1][2]) / Determinant;
+			VectorTransformMatrix.m[1][1] = (WorldMatrix.m[0][0] * WorldMatrix.m[2][2] - WorldMatrix.m[2][0] * WorldMatrix.m[0][2]) / Determinant;
+			VectorTransformMatrix.m[2][1] = -(WorldMatrix.m[0][0] * WorldMatrix.m[1][0] - WorldMatrix.m[0][2] * WorldMatrix.m[1][2]) / Determinant;
+
+			VectorTransformMatrix.m[0][2] = (WorldMatrix.m[1][0] * WorldMatrix.m[2][1] - WorldMatrix.m[2][0] * WorldMatrix.m[1][1]) / Determinant;
+			VectorTransformMatrix.m[1][2] = -(WorldMatrix.m[0][0] * WorldMatrix.m[2][1] - WorldMatrix.m[2][0] * WorldMatrix.m[0][1]) / Determinant;
+			VectorTransformMatrix.m[2][2] = (WorldMatrix.m[0][0] * WorldMatrix.m[1][1] - WorldMatrix.m[1][0] * WorldMatrix.m[0][1]) / Determinant;
+
+			VectorTransformMatrix.m[0][3] = 0.0f;
+			VectorTransformMatrix.m[1][3] = 0.0f;
+			VectorTransformMatrix.m[2][3] = 0.0f;
 
 			D3D11_MAPPED_SUBRESOURCE MappedSubResource;
 
-			SAFE_DX(DeviceContext->Map(ConstantBuffers[i], 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, 0, &MappedSubResource));
+			SAFE_DX(DeviceContext->Map(ConstantBuffer, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, 0, &MappedSubResource));
 
-			memcpy((BYTE*)MappedSubResource.pData, &WVPMatrix, sizeof(XMMATRIX));
+			GBufferOpaquePassConstantBufferStruct& ConstantBufferRef = *(GBufferOpaquePassConstantBufferStruct*)MappedSubResource.pData;
 
-			DeviceContext->Unmap(ConstantBuffers[i], 0);
+			ConstantBufferRef.WVPMatrix = WVPMatrix;
+			ConstantBufferRef.WorldMatrix = WorldMatrix;
+			ConstantBufferRef.VectorTransformMatrix = VectorTransformMatrix;
+
+			DeviceContext->Unmap(ConstantBuffer, 0);
 
 			UINT Stride = sizeof(Vertex), Offset = 0;
 
 			DeviceContext->IASetVertexBuffers(0, 1, &renderMesh->VertexBuffer, &Stride, &Offset);
 			DeviceContext->IASetIndexBuffer(renderMesh->IndexBuffer, DXGI_FORMAT::DXGI_FORMAT_R16_UINT, 0);
 
-			DeviceContext->VSSetShader(renderMaterial->ShadowMapPassVertexShader, nullptr, 0);
-			DeviceContext->PSSetShader(nullptr, nullptr, 0);
+			DeviceContext->VSSetShader(renderMaterial->GBufferOpaquePassVertexShader, nullptr, 0);
+			DeviceContext->PSSetShader(renderMaterial->GBufferOpaquePassPixelShader, nullptr, 0);
 
-			DeviceContext->VSSetConstantBuffers(0, 1, &ConstantBuffers[i]);
+			DeviceContext->VSSetConstantBuffers(0, 1, &ConstantBuffer);
+			DeviceContext->PSSetShaderResources(0, 1, &renderTexture0->TextureSRV);
+			DeviceContext->PSSetShaderResources(1, 1, &renderTexture1->TextureSRV);
 
 			DeviceContext->DrawIndexed(8 * 8 * 6 * 6, 0, 0);
 		}
 	}
 
-	DeviceContext->OMSetDepthStencilState(DepthDisabledDepthStencilState, 0);
+	// ===============================================================================================================
 
-	/*COMRCPtr<ID3D12GraphicsCommandList1> CommandList1;
-
-	CommandList->QueryInterface<ID3D12GraphicsCommandList1>(&CommandList1);
-
-	CommandList1->ResolveSubresourceRegion(ResolvedDepthBufferTexture, 0, 0, 0, DepthBufferTexture, 0, nullptr, DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT_S8X24_UINT, D3D12_RESOLVE_MODE::D3D12_RESOLVE_MODE_MAX);*/
-
-	Viewport.Height = float(ResolutionHeight);
-	Viewport.MaxDepth = 1.0f;
-	Viewport.MinDepth = 0.0f;
-	Viewport.TopLeftX = 0.0f;
-	Viewport.TopLeftY = 0.0f;
-	Viewport.Width = float(ResolutionWidth);
-
-	DeviceContext->RSSetViewports(1, &Viewport);
-
-	DeviceContext->OMSetRenderTargets(1, &ResolvedDepthBufferRTV, nullptr);
-
-	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-	DeviceContext->VSSetShader(FullScreenQuadVertexShader, nullptr, 0);
-	DeviceContext->PSSetShader(MSAADepthResolvePixelShader, nullptr, 0);
-
-	DeviceContext->PSSetShaderResources(0, 1, &DepthBufferSRV);
-
-	DeviceContext->Draw(4, 0);
-
-	DeviceContext->OMSetRenderTargets(1, &ShadowMaskRTV, nullptr);
-
-	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-	XMMATRIX InvViewProjMatrices[4];
-	InvViewProjMatrices[0] = XMMatrixInverse(nullptr, ViewProjMatrix) * ShadowViewProjMatrices[0];
-	InvViewProjMatrices[1] = XMMatrixInverse(nullptr, ViewProjMatrix) * ShadowViewProjMatrices[1];
-	InvViewProjMatrices[2] = XMMatrixInverse(nullptr, ViewProjMatrix) * ShadowViewProjMatrices[2];
-	InvViewProjMatrices[3] = XMMatrixInverse(nullptr, ViewProjMatrix) * ShadowViewProjMatrices[3];
-
-	D3D11_MAPPED_SUBRESOURCE MappedSubResource;
-
-	SAFE_DX(DeviceContext->Map(ShadowResolveConstantBuffer, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, 0, &MappedSubResource));
-
-	memcpy(MappedSubResource.pData, InvViewProjMatrices, 4 * sizeof(XMMATRIX));
-
-	DeviceContext->Unmap(ShadowResolveConstantBuffer, 0);
-
-	DeviceContext->PSSetSamplers(0, 1, &ShadowMapSampler);
-
-	DeviceContext->VSSetShader(FullScreenQuadVertexShader, nullptr, 0);
-	DeviceContext->PSSetShader(ShadowResolvePixelShader, nullptr, 0);
-
-	DeviceContext->PSSetConstantBuffers(0, 1, &ShadowResolveConstantBuffer);
-	DeviceContext->PSSetShaderResources(0, 1, &ResolvedDepthBufferSRV);
-	DeviceContext->PSSetShaderResources(1, 1, &CascadedShadowMapSRVs[0]);
-	DeviceContext->PSSetShaderResources(2, 1, &CascadedShadowMapSRVs[1]);
-	DeviceContext->PSSetShaderResources(3, 1, &CascadedShadowMapSRVs[2]);
-	DeviceContext->PSSetShaderResources(4, 1, &CascadedShadowMapSRVs[3]);
-
-	DeviceContext->Draw(4, 0);
-
-	DeviceContext->OMSetRenderTargets(1, &LBufferRTV, nullptr);
-
-	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-	XMMATRIX InvViewProjMatrix = XMMatrixInverse(nullptr, ViewProjMatrix);
-
-	SAFE_DX(DeviceContext->Map(DeferredLightingConstantBuffer, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, 0, &MappedSubResource));
-
-	memcpy(MappedSubResource.pData, &InvViewProjMatrix, sizeof(XMMATRIX));
-	memcpy((BYTE*)MappedSubResource.pData + sizeof(XMMATRIX), &CameraLocation, sizeof(XMFLOAT3));
-
-	DeviceContext->Unmap(DeferredLightingConstantBuffer, 0);
-
-	DeviceContext->Map(LightClustersBuffer, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, 0, &MappedSubResource);
-
-	memcpy(MappedSubResource.pData, clusterizationSubSystem.GetLightClustersData(), 32 * 18 * 24 * 2 * sizeof(uint32_t));
-
-	DeviceContext->Unmap(LightClustersBuffer, 0);
-
-	DeviceContext->Map(LightIndicesBuffer, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, 0, &MappedSubResource);
-
-	memcpy(MappedSubResource.pData, clusterizationSubSystem.GetLightIndicesData(), clusterizationSubSystem.GetTotalIndexCount() * sizeof(uint16_t));
-
-	DeviceContext->Unmap(LightIndicesBuffer, 0);
-
-	DeviceContext->Map(PointLightsBuffer, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, 0, &MappedSubResource);
-
-	memcpy(MappedSubResource.pData, PointLights.data(), PointLights.size() * sizeof(PointLight));
-
-	DeviceContext->Unmap(PointLightsBuffer, 0);
-
-	DeviceContext->VSSetShader(FullScreenQuadVertexShader, nullptr, 0);
-	DeviceContext->PSSetShader(DeferredLightingPixelShader, nullptr, 0);
-
-	DeviceContext->PSSetConstantBuffers(0, 1, &DeferredLightingConstantBuffer);
-	DeviceContext->PSSetShaderResources(0, 1, &GBufferSRVs[0]);
-	DeviceContext->PSSetShaderResources(1, 1, &GBufferSRVs[1]);
-	DeviceContext->PSSetShaderResources(2, 1, &DepthBufferSRV);
-	DeviceContext->PSSetShaderResources(3, 1, &ShadowMaskSRV);
-	DeviceContext->PSSetShaderResources(4, 1, &LightClustersSRV);
-	DeviceContext->PSSetShaderResources(5, 1, &LightIndicesSRV);
-	DeviceContext->PSSetShaderResources(6, 1, &PointLightsSRV);
-
-	DeviceContext->Draw(4, 0);
-
-	DeviceContext->VSSetShader(FullScreenQuadVertexShader, nullptr, 0);
-	DeviceContext->PSSetShader(FogPixelShader, nullptr, 0);
-
-	DeviceContext->OMSetBlendState(FogBlendState, nullptr, D3D11_DEFAULT_SAMPLE_MASK);
-
-	DeviceContext->PSSetShaderResources(0, 1, &DepthBufferSRV);
-
-	DeviceContext->Draw(4, 0);
-
-	DeviceContext->OMSetDepthStencilState(SkyAndSunDepthStencilState, 0);
-	DeviceContext->OMSetBlendState(BlendDisabledBlendState, nullptr, D3D11_DEFAULT_SAMPLE_MASK);
-
-	ID3D11ShaderResourceView *NullSRV = nullptr;
-
-	DeviceContext->PSSetShaderResources(0, 1, &NullSRV);
-	DeviceContext->PSSetShaderResources(2, 1, &NullSRV);
-
-	DeviceContext->OMSetRenderTargets(1, &LBufferRTV, DepthBufferDSV);
-
-	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	XMMATRIX SkyWorldMatrix = XMMatrixScaling(900.0f, 900.0f, 900.0f) * XMMatrixTranslation(CameraLocation.x, CameraLocation.y, CameraLocation.z);
-	XMMATRIX SkyWVPMatrix = SkyWorldMatrix * ViewProjMatrix;
-
-	SAFE_DX(DeviceContext->Map(SkyConstantBuffer, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, 0, &MappedSubResource));
-
-	memcpy(MappedSubResource.pData, &SkyWVPMatrix, sizeof(XMMATRIX));
-
-	DeviceContext->Unmap(SkyConstantBuffer, 0);
-
-	DeviceContext->PSSetSamplers(0, 1, &TextureSampler);
-
-	UINT Stride = sizeof(Vertex), Offset = 0;
-
-	DeviceContext->IASetVertexBuffers(0, 1, &SkyVertexBuffer, &Stride, &Offset);
-	DeviceContext->IASetIndexBuffer(SkyIndexBuffer, DXGI_FORMAT::DXGI_FORMAT_R16_UINT, 0);
-
-	DeviceContext->VSSetShader(SkyVertexShader, nullptr, 0);
-	DeviceContext->PSSetShader(SkyPixelShader, nullptr, 0);
-
-	DeviceContext->VSSetConstantBuffers(0, 1, &SkyConstantBuffer);
-	DeviceContext->PSSetShaderResources(0, 1, &SkyTextureSRV);
-
-	DeviceContext->DrawIndexed(300 + 24 * 600 + 300, 0, 0);
-
-	XMFLOAT3 SunPosition(-500.0f + CameraLocation.x, 500.0f + CameraLocation.y, -500.f + CameraLocation.z);
-	
-	SAFE_DX(DeviceContext->Map(SunConstantBuffer, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, 0, &MappedSubResource));
-
-	memcpy(MappedSubResource.pData, &ViewMatrix, sizeof(XMMATRIX));
-	memcpy((BYTE*)MappedSubResource.pData + sizeof(XMMATRIX), &ProjMatrix, sizeof(XMMATRIX));
-	memcpy((BYTE*)MappedSubResource.pData + 2 * sizeof(XMMATRIX), &SunPosition, sizeof(XMFLOAT3));
-
-	DeviceContext->Unmap(SunConstantBuffer, 0);
-
-	DeviceContext->IASetVertexBuffers(0, 1, &SunVertexBuffer, &Stride, &Offset);
-	DeviceContext->IASetIndexBuffer(SunIndexBuffer, DXGI_FORMAT::DXGI_FORMAT_R16_UINT, 0);
-
-	DeviceContext->VSSetShader(SunVertexShader, nullptr, 0);
-	DeviceContext->PSSetShader(SunPixelShader, nullptr, 0);
-	DeviceContext->OMSetBlendState(SunBlendState, nullptr, D3D11_DEFAULT_SAMPLE_MASK);
-
-	DeviceContext->VSSetConstantBuffers(0, 1, &SunConstantBuffer);
-	DeviceContext->PSSetShaderResources(0, 1, &SunTextureSRV);
-
-	DeviceContext->DrawIndexed(6, 0, 0);
-
-	DeviceContext->OMSetDepthStencilState(DepthDisabledDepthStencilState, 0);
-	DeviceContext->OMSetBlendState(BlendDisabledBlendState, nullptr, D3D11_DEFAULT_SAMPLE_MASK);
-
-	DeviceContext->ResolveSubresource(ResolvedHDRSceneColorTexture, 0, LBufferTexture, 0, DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT);
-
-	DeviceContext->CSSetShader(LuminanceCalcComputeShader, nullptr, 0);
-	DeviceContext->CSSetUnorderedAccessViews(0, 1, &SceneLuminanceUAVs[0], nullptr);
-	DeviceContext->CSSetShaderResources(0, 1, &ResolvedHDRSceneColorSRV);
-
-	DeviceContext->Dispatch(80, 45, 1);
-
-	DeviceContext->CSSetShader(LuminanceSumComputeShader, nullptr, 0);
-	
-	DeviceContext->CSSetUnorderedAccessViews(0, 1, &SceneLuminanceUAVs[1], nullptr);
-	DeviceContext->CSSetShaderResources(0, 1, &SceneLuminanceSRVs[0]);
-
-	DeviceContext->Dispatch(80, 45, 1);
-
-	DeviceContext->CSSetUnorderedAccessViews(0, 1, &SceneLuminanceUAVs[2], nullptr);
-	DeviceContext->CSSetShaderResources(0, 1, &SceneLuminanceSRVs[1]);
-
-	DeviceContext->Dispatch(5, 3, 1);
-
-	DeviceContext->CSSetUnorderedAccessViews(0, 1, &SceneLuminanceUAVs[3], nullptr);
-	DeviceContext->CSSetShaderResources(0, 1, &SceneLuminanceSRVs[2]);
-
-	DeviceContext->Dispatch(1, 1, 1);
-
-	DeviceContext->CSSetShader(LuminanceAvgComputeShader, nullptr, 0);
-
-	DeviceContext->CSSetUnorderedAccessViews(0, 1, &AverageLuminanceUAV, nullptr);
-	DeviceContext->CSSetShaderResources(0, 1, &SceneLuminanceSRVs[3]);
-
-	DeviceContext->Dispatch(1, 1, 1);
-
-	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-	Viewport.Height = FLOAT(ResolutionHeight);
-	Viewport.MaxDepth = 1.0f;
-	Viewport.MinDepth = 0.0f;
-	Viewport.TopLeftX = 0.0f;
-	Viewport.TopLeftY = 0.0f;
-	Viewport.Width = FLOAT(ResolutionWidth);
-
-	DeviceContext->RSSetViewports(1, &Viewport);	
-
-	DeviceContext->OMSetRenderTargets(1, &BloomRTVs[0][0], nullptr);
-
-	DeviceContext->VSSetShader(FullScreenQuadVertexShader, nullptr, 0);
-	DeviceContext->PSSetShader(BrightPassPixelShader, nullptr, 0);
-
-	DeviceContext->PSSetShaderResources(0, 1, &ResolvedHDRSceneColorSRV);
-	DeviceContext->PSSetShaderResources(1, 1, &SceneLuminanceSRVs[0]);
-
-	DeviceContext->Draw(4, 0);
-
-	DeviceContext->OMSetRenderTargets(1, &BloomRTVs[1][0], nullptr);
-	
-	DeviceContext->VSSetShader(FullScreenQuadVertexShader, nullptr, 0);
-	DeviceContext->PSSetShader(HorizontalBlurPixelShader, nullptr, 0);
-
-	DeviceContext->PSSetShaderResources(0, 1, &BloomSRVs[0][0]);
-
-	DeviceContext->Draw(4, 0);
-
-	DeviceContext->OMSetRenderTargets(1, &BloomRTVs[2][0], nullptr);
-
-	DeviceContext->VSSetShader(FullScreenQuadVertexShader, nullptr, 0);
-	DeviceContext->PSSetShader(VerticalBlurPixelShader, nullptr, 0);
-
-	DeviceContext->PSSetShaderResources(0, 1, &BloomSRVs[1][0]);
-
-	DeviceContext->Draw(4, 0);
-
-	for (int i = 1; i < 7; i++)
 	{
-		Viewport.Height = FLOAT(ResolutionHeight >> i);
+		DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		
+		DeviceContext->OMSetRenderTargets(1, &ResolvedDepthBufferTextureRTV, nullptr);
+
+		D3D11_VIEWPORT Viewport;
+		Viewport.Height = float(ResolutionHeight);
 		Viewport.MaxDepth = 1.0f;
 		Viewport.MinDepth = 0.0f;
 		Viewport.TopLeftX = 0.0f;
 		Viewport.TopLeftY = 0.0f;
-		Viewport.Width = FLOAT(ResolutionWidth >> i);
+		Viewport.Width = float(ResolutionWidth);
 
 		DeviceContext->RSSetViewports(1, &Viewport);
 
-		DeviceContext->OMSetRenderTargets(1, &BloomRTVs[0][i], nullptr);
+		DeviceContext->IASetInputLayout(nullptr);
+		DeviceContext->RSSetState(RasterizerState);
+		DeviceContext->OMSetBlendState(BlendDisabledBlendState, nullptr, D3D11_DEFAULT_SAMPLE_MASK);
+		DeviceContext->OMSetDepthStencilState(DepthDisabledDepthStencilState, 0);
 
 		DeviceContext->VSSetShader(FullScreenQuadVertexShader, nullptr, 0);
-		DeviceContext->PSSetShader(ImageResamplePixelShader, nullptr, 0);
+		DeviceContext->PSSetShader(MSAADepthResolvePixelShader, nullptr, 0);
 
-		DeviceContext->PSSetShaderResources(0, 1, &BloomSRVs[0][i - 1]);
+		DeviceContext->PSSetShaderResources(0, 1, &DepthBufferTextureSRV);
+
+		DeviceContext->Draw(4, 0);
+	}
+
+	// ===============================================================================================================
+
+	{
+		for (int i = 0; i < 4; i++)
+		{
+			SIZE_T ConstantBufferOffset = 0;
+
+			vector<StaticMeshComponent*> AllStaticMeshComponents = Engine::GetEngine().GetGameFramework().GetWorld().GetRenderScene().GetStaticMeshComponents();
+			vector<StaticMeshComponent*> VisbleStaticMeshComponents = cullingSubSystem.GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ShadowViewProjMatrices[i]);
+			size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.size();
+
+			DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+						
+			DeviceContext->OMSetRenderTargets(0, nullptr, CascadedShadowMapTexturesDSVs[i]);
+
+			D3D11_VIEWPORT Viewport;
+			Viewport.Height = 2048.0f;
+			Viewport.MaxDepth = 1.0f;
+			Viewport.MinDepth = 0.0f;
+			Viewport.TopLeftX = 0.0f;
+			Viewport.TopLeftY = 0.0f;
+			Viewport.Width = 2048.0f;
+
+			DeviceContext->RSSetViewports(1, &Viewport);
+
+			DeviceContext->IASetInputLayout(InputLayout);
+			DeviceContext->RSSetState(RasterizerState);
+			DeviceContext->OMSetBlendState(BlendDisabledBlendState, nullptr, D3D11_DEFAULT_SAMPLE_MASK);
+			DeviceContext->OMSetDepthStencilState(ShadowMapPassDepthStencilState, 0);
+
+			DeviceContext->ClearDepthStencilView(CascadedShadowMapTexturesDSVs[i], D3D11_CLEAR_FLAG::D3D11_CLEAR_DEPTH, 1.0f, 0);
+
+			for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
+			{
+				StaticMeshComponent *staticMeshComponent = VisbleStaticMeshComponents[k];
+
+				RenderMesh *renderMesh = staticMeshComponent->GetStaticMesh()->GetRenderMesh();
+				RenderMaterial *renderMaterial = staticMeshComponent->GetMaterial()->GetRenderMaterial();
+				RenderTexture *renderTexture0 = staticMeshComponent->GetMaterial()->GetTexture(0)->GetRenderTexture();
+				RenderTexture *renderTexture1 = staticMeshComponent->GetMaterial()->GetTexture(1)->GetRenderTexture();
+
+				XMMATRIX WorldMatrix = VisbleStaticMeshComponents[k]->GetTransformComponent()->GetTransformMatrix();
+				XMMATRIX WVPMatrix = WorldMatrix * ShadowViewProjMatrices[i];
+
+				D3D11_MAPPED_SUBRESOURCE MappedSubResource;
+
+				SAFE_DX(DeviceContext->Map(ConstantBuffers[i], 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, 0, &MappedSubResource));
+
+				ShadowMapPassConstantBufferStruct& ConstantBufferRef = *(ShadowMapPassConstantBufferStruct*)MappedSubResource.pData;
+
+				ConstantBufferRef.WVPMatrix = WVPMatrix;
+
+				DeviceContext->Unmap(ConstantBuffers[i], 0);
+
+				UINT Stride = sizeof(Vertex), Offset = 0;
+
+				DeviceContext->IASetVertexBuffers(0, 1, &renderMesh->VertexBuffer, &Stride, &Offset);
+				DeviceContext->IASetIndexBuffer(renderMesh->IndexBuffer, DXGI_FORMAT::DXGI_FORMAT_R16_UINT, 0);
+
+				DeviceContext->VSSetShader(renderMaterial->ShadowMapPassVertexShader, nullptr, 0);
+				DeviceContext->PSSetShader(nullptr, nullptr, 0);
+
+				DeviceContext->VSSetConstantBuffers(0, 1, &ConstantBuffers[i]);
+
+				DeviceContext->DrawIndexed(8 * 8 * 6 * 6, 0, 0);
+			}
+		}
+	}
+
+	// ===============================================================================================================
+
+	{
+		DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		
+		DeviceContext->OMSetRenderTargets(1, &ShadowMaskTextureRTV, nullptr);
+
+		D3D11_VIEWPORT Viewport;
+		Viewport.Height = float(ResolutionHeight);
+		Viewport.MaxDepth = 1.0f;
+		Viewport.MinDepth = 0.0f;
+		Viewport.TopLeftX = 0.0f;
+		Viewport.TopLeftY = 0.0f;
+		Viewport.Width = FLOAT(ResolutionWidth);
+
+		DeviceContext->RSSetViewports(1, &Viewport);
+		
+		DeviceContext->IASetInputLayout(nullptr);
+		DeviceContext->RSSetState(RasterizerState);
+		DeviceContext->OMSetBlendState(BlendDisabledBlendState, nullptr, D3D11_DEFAULT_SAMPLE_MASK);
+		DeviceContext->OMSetDepthStencilState(DepthDisabledDepthStencilState, 0);
+
+		XMMATRIX ReProjMatrices[4];
+		ReProjMatrices[0] = XMMatrixInverse(nullptr, ViewProjMatrix) * ShadowViewProjMatrices[0];
+		ReProjMatrices[1] = XMMatrixInverse(nullptr, ViewProjMatrix) * ShadowViewProjMatrices[1];
+		ReProjMatrices[2] = XMMatrixInverse(nullptr, ViewProjMatrix) * ShadowViewProjMatrices[2];
+		ReProjMatrices[3] = XMMatrixInverse(nullptr, ViewProjMatrix) * ShadowViewProjMatrices[3];
+
+		D3D11_MAPPED_SUBRESOURCE MappedSubResource;
+
+		SAFE_DX(DeviceContext->Map(ShadowResolveConstantBuffer, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, 0, &MappedSubResource));
+
+		ShadowResolveConstantBufferStruct& ConstantBufferRef = *(ShadowResolveConstantBufferStruct*)MappedSubResource.pData;
+
+		ConstantBufferRef.ReProjMatrices[0] = ReProjMatrices[0];
+		ConstantBufferRef.ReProjMatrices[1] = ReProjMatrices[1];
+		ConstantBufferRef.ReProjMatrices[2] = ReProjMatrices[2];
+		ConstantBufferRef.ReProjMatrices[3] = ReProjMatrices[3];
+
+		DeviceContext->Unmap(ShadowResolveConstantBuffer, 0);
+
+		DeviceContext->PSSetSamplers(0, 1, &ShadowMapSampler);
+
+		DeviceContext->VSSetShader(FullScreenQuadVertexShader, nullptr, 0);
+		DeviceContext->PSSetShader(ShadowResolvePixelShader, nullptr, 0);
+
+		DeviceContext->PSSetConstantBuffers(0, 1, &ShadowResolveConstantBuffer);
+		DeviceContext->PSSetShaderResources(0, 1, &ResolvedDepthBufferTextureSRV);
+		DeviceContext->PSSetShaderResources(1, 1, &CascadedShadowMapTexturesSRVs[0]);
+		DeviceContext->PSSetShaderResources(2, 1, &CascadedShadowMapTexturesSRVs[1]);
+		DeviceContext->PSSetShaderResources(3, 1, &CascadedShadowMapTexturesSRVs[2]);
+		DeviceContext->PSSetShaderResources(4, 1, &CascadedShadowMapTexturesSRVs[3]);
+
+		DeviceContext->Draw(4, 0);
+	}
+
+	// ===============================================================================================================
+
+	{
+
+		DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+		DeviceContext->OMSetRenderTargets(1, &HDRSceneColorTextureRTV, nullptr);
+		
+		D3D11_VIEWPORT Viewport;
+		Viewport.Height = float(ResolutionHeight);
+		Viewport.MaxDepth = 1.0f;
+		Viewport.MinDepth = 0.0f;
+		Viewport.TopLeftX = 0.0f;
+		Viewport.TopLeftY = 0.0f;
+		Viewport.Width = FLOAT(ResolutionWidth);
+
+		DeviceContext->RSSetViewports(1, &Viewport); 
+		
+		DeviceContext->IASetInputLayout(nullptr);
+		DeviceContext->RSSetState(RasterizerState);
+		DeviceContext->OMSetBlendState(BlendDisabledBlendState, nullptr, D3D11_DEFAULT_SAMPLE_MASK);
+		DeviceContext->OMSetDepthStencilState(DepthDisabledDepthStencilState, 0);
+
+		XMMATRIX InvViewProjMatrix = XMMatrixInverse(nullptr, ViewProjMatrix);
+
+		D3D11_MAPPED_SUBRESOURCE MappedSubResource;
+		SAFE_DX(DeviceContext->Map(DeferredLightingConstantBuffer, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, 0, &MappedSubResource));
+
+		DeferredLightingConstantBufferStruct& ConstantBufferRef = *(DeferredLightingConstantBufferStruct*)MappedSubResource.pData;
+
+		ConstantBufferRef.InvViewProjMatrix = InvViewProjMatrix;
+		ConstantBufferRef.CameraWorldPosition = CameraLocation;
+
+		DeviceContext->Unmap(DeferredLightingConstantBuffer, 0);
+
+		DeviceContext->Map(LightClustersBuffer, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, 0, &MappedSubResource);
+
+		memcpy(MappedSubResource.pData, clusterizationSubSystem.GetLightClustersData(), 32 * 18 * 24 * 2 * sizeof(uint32_t));
+
+		DeviceContext->Unmap(LightClustersBuffer, 0);
+
+		DeviceContext->Map(LightIndicesBuffer, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, 0, &MappedSubResource);
+
+		memcpy(MappedSubResource.pData, clusterizationSubSystem.GetLightIndicesData(), clusterizationSubSystem.GetTotalIndexCount() * sizeof(uint16_t));
+
+		DeviceContext->Unmap(LightIndicesBuffer, 0);
+
+		DeviceContext->Map(PointLightsBuffer, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, 0, &MappedSubResource);
+
+		memcpy(MappedSubResource.pData, PointLights.data(), PointLights.size() * sizeof(PointLight));
+
+		DeviceContext->Unmap(PointLightsBuffer, 0);
+
+		DeviceContext->VSSetShader(FullScreenQuadVertexShader, nullptr, 0);
+		DeviceContext->PSSetShader(DeferredLightingPixelShader, nullptr, 0);
+
+		DeviceContext->PSSetConstantBuffers(0, 1, &DeferredLightingConstantBuffer);
+		DeviceContext->PSSetShaderResources(0, 1, &GBufferTexturesSRVs[0]);
+		DeviceContext->PSSetShaderResources(1, 1, &GBufferTexturesSRVs[1]);
+		DeviceContext->PSSetShaderResources(2, 1, &DepthBufferTextureSRV);
+		DeviceContext->PSSetShaderResources(3, 1, &ShadowMaskTextureSRV);
+		DeviceContext->PSSetShaderResources(4, 1, &LightClustersBufferSRV);
+		DeviceContext->PSSetShaderResources(5, 1, &LightIndicesBufferSRV);
+		DeviceContext->PSSetShaderResources(6, 1, &PointLightsBufferSRV);
+
+		DeviceContext->Draw(4, 0);		
+	}
+
+	// ===============================================================================================================
+
+	{
+		DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+		DeviceContext->OMSetRenderTargets(1, &HDRSceneColorTextureRTV, nullptr);
+
+		D3D11_VIEWPORT Viewport;
+		Viewport.Height = float(ResolutionHeight);
+		Viewport.MaxDepth = 1.0f;
+		Viewport.MinDepth = 0.0f;
+		Viewport.TopLeftX = 0.0f;
+		Viewport.TopLeftY = 0.0f;
+		Viewport.Width = FLOAT(ResolutionWidth);
+
+		DeviceContext->RSSetViewports(1, &Viewport);
+
+		DeviceContext->IASetInputLayout(nullptr);
+		DeviceContext->RSSetState(RasterizerState);
+		DeviceContext->OMSetBlendState(FogBlendState, nullptr, D3D11_DEFAULT_SAMPLE_MASK);
+		DeviceContext->OMSetDepthStencilState(DepthDisabledDepthStencilState, 0);
+		
+		DeviceContext->VSSetShader(FullScreenQuadVertexShader, nullptr, 0);
+		DeviceContext->PSSetShader(FogPixelShader, nullptr, 0);
+
+		DeviceContext->PSSetShaderResources(0, 1, &DepthBufferTextureSRV);
 
 		DeviceContext->Draw(4, 0);
 
-		DeviceContext->OMSetRenderTargets(1, &BloomRTVs[1][i], nullptr);
+		ID3D11ShaderResourceView *NullSRV = nullptr;
+
+		DeviceContext->PSSetShaderResources(0, 1, &NullSRV);
+		DeviceContext->PSSetShaderResources(2, 1, &NullSRV);
+
+		DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+		DeviceContext->OMSetRenderTargets(1, &HDRSceneColorTextureRTV, DepthBufferTextureDSV);
+		
+		Viewport.Height = float(ResolutionHeight);
+		Viewport.MaxDepth = 1.0f;
+		Viewport.MinDepth = 0.0f;
+		Viewport.TopLeftX = 0.0f;
+		Viewport.TopLeftY = 0.0f;
+		Viewport.Width = FLOAT(ResolutionWidth);
+
+		DeviceContext->RSSetViewports(1, &Viewport);
+
+		DeviceContext->IASetInputLayout(InputLayout);
+		DeviceContext->RSSetState(RasterizerState);
+		DeviceContext->OMSetBlendState(BlendDisabledBlendState, nullptr, D3D11_DEFAULT_SAMPLE_MASK);
+		DeviceContext->OMSetDepthStencilState(SkyAndSunDepthStencilState, 0);
+
+		XMMATRIX SkyWorldMatrix = XMMatrixScaling(900.0f, 900.0f, 900.0f) * XMMatrixTranslation(CameraLocation.x, CameraLocation.y, CameraLocation.z);
+		XMMATRIX SkyWVPMatrix = SkyWorldMatrix * ViewProjMatrix;
+
+		D3D11_MAPPED_SUBRESOURCE MappedSubResource;
+		SAFE_DX(DeviceContext->Map(SkyConstantBuffer, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, 0, &MappedSubResource));
+
+		SkyConstantBufferStruct& SkyConstantBufferRef = *(SkyConstantBufferStruct*)MappedSubResource.pData;
+
+		SkyConstantBufferRef.WVPMatrix = SkyWVPMatrix;
+
+		DeviceContext->Unmap(SkyConstantBuffer, 0);
+
+		DeviceContext->PSSetSamplers(0, 1, &TextureSampler);
+
+		UINT Stride = sizeof(Vertex), Offset = 0;
+
+		DeviceContext->IASetVertexBuffers(0, 1, &SkyVertexBuffer, &Stride, &Offset);
+		DeviceContext->IASetIndexBuffer(SkyIndexBuffer, DXGI_FORMAT::DXGI_FORMAT_R16_UINT, 0);
+
+		DeviceContext->VSSetShader(SkyVertexShader, nullptr, 0);
+		DeviceContext->PSSetShader(SkyPixelShader, nullptr, 0);
+
+		DeviceContext->VSSetConstantBuffers(0, 1, &SkyConstantBuffer);
+		DeviceContext->PSSetShaderResources(0, 1, &SkyTextureSRV);
+
+		DeviceContext->DrawIndexed(300 + 24 * 600 + 300, 0, 0);
+
+		Viewport.Height = float(ResolutionHeight);
+		Viewport.MaxDepth = 1.0f;
+		Viewport.MinDepth = 0.0f;
+		Viewport.TopLeftX = 0.0f;
+		Viewport.TopLeftY = 0.0f;
+		Viewport.Width = FLOAT(ResolutionWidth);
+
+		DeviceContext->IASetInputLayout(InputLayout);
+		DeviceContext->RSSetState(RasterizerState);
+		DeviceContext->OMSetBlendState(SunBlendState, nullptr, D3D11_DEFAULT_SAMPLE_MASK);
+		DeviceContext->OMSetDepthStencilState(SkyAndSunDepthStencilState, 0);
+
+		XMFLOAT3 SunPosition(-500.0f + CameraLocation.x, 500.0f + CameraLocation.y, -500.f + CameraLocation.z);
+
+		SAFE_DX(DeviceContext->Map(SunConstantBuffer, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, 0, &MappedSubResource));
+
+		SunConstantBufferStruct& SunConstantBufferRef = *(SunConstantBufferStruct*)MappedSubResource.pData;
+
+		SunConstantBufferRef.ViewMatrix = ViewMatrix;
+		SunConstantBufferRef.ProjMatrix = ProjMatrix;
+		SunConstantBufferRef.SunPosition = SunPosition;
+
+		DeviceContext->Unmap(SunConstantBuffer, 0);
+
+		DeviceContext->IASetVertexBuffers(0, 1, &SunVertexBuffer, &Stride, &Offset);
+		DeviceContext->IASetIndexBuffer(SunIndexBuffer, DXGI_FORMAT::DXGI_FORMAT_R16_UINT, 0);
+
+		DeviceContext->VSSetShader(SunVertexShader, nullptr, 0);
+		DeviceContext->PSSetShader(SunPixelShader, nullptr, 0);
+
+		DeviceContext->VSSetConstantBuffers(0, 1, &SunConstantBuffer);
+		DeviceContext->PSSetShaderResources(0, 1, &SunTextureSRV);
+
+		DeviceContext->DrawIndexed(6, 0, 0);
+	}
+
+	// ===============================================================================================================
+
+	{
+		DeviceContext->ResolveSubresource(ResolvedHDRSceneColorTexture, 0, HDRSceneColorTexture, 0, DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT);
+	}
+
+	// ===============================================================================================================
+
+	{
+		DeviceContext->CSSetShader(LuminanceCalcComputeShader, nullptr, 0);
+		DeviceContext->CSSetUnorderedAccessViews(0, 1, &SceneLuminanceTexturesUAVs[0], nullptr);
+		DeviceContext->CSSetShaderResources(0, 1, &ResolvedHDRSceneColorTextureSRV);
+
+		DeviceContext->Dispatch(80, 45, 1);
+
+		DeviceContext->CSSetShader(LuminanceSumComputeShader, nullptr, 0);
+
+		DeviceContext->CSSetUnorderedAccessViews(0, 1, &SceneLuminanceTexturesUAVs[1], nullptr);
+		DeviceContext->CSSetShaderResources(0, 1, &SceneLuminanceTexturesSRVs[0]);
+
+		DeviceContext->Dispatch(80, 45, 1);
+
+		DeviceContext->CSSetUnorderedAccessViews(0, 1, &SceneLuminanceTexturesUAVs[2], nullptr);
+		DeviceContext->CSSetShaderResources(0, 1, &SceneLuminanceTexturesSRVs[1]);
+
+		DeviceContext->Dispatch(5, 3, 1);
+
+		DeviceContext->CSSetUnorderedAccessViews(0, 1, &SceneLuminanceTexturesUAVs[3], nullptr);
+		DeviceContext->CSSetShaderResources(0, 1, &SceneLuminanceTexturesSRVs[2]);
+
+		DeviceContext->Dispatch(1, 1, 1);
+
+		DeviceContext->CSSetShader(LuminanceAvgComputeShader, nullptr, 0);
+
+		DeviceContext->CSSetUnorderedAccessViews(0, 1, &AverageLuminanceTextureUAV, nullptr);
+		DeviceContext->CSSetShaderResources(0, 1, &SceneLuminanceTexturesSRVs[3]);
+
+		DeviceContext->Dispatch(1, 1, 1);
+	}
+
+	// ===============================================================================================================
+
+	{
+		DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		
+		DeviceContext->OMSetRenderTargets(1, &BloomTexturesRTVs[0][0], nullptr);
+		
+		D3D11_VIEWPORT Viewport;
+		Viewport.Height = FLOAT(ResolutionHeight);
+		Viewport.MaxDepth = 1.0f;
+		Viewport.MinDepth = 0.0f;
+		Viewport.TopLeftX = 0.0f;
+		Viewport.TopLeftY = 0.0f;
+		Viewport.Width = FLOAT(ResolutionWidth);
+
+		DeviceContext->RSSetViewports(1, &Viewport);
+
+		DeviceContext->IASetInputLayout(nullptr);
+		DeviceContext->RSSetState(RasterizerState);
+		DeviceContext->OMSetBlendState(BlendDisabledBlendState, nullptr, D3D11_DEFAULT_SAMPLE_MASK);
+		DeviceContext->OMSetDepthStencilState(DepthDisabledDepthStencilState, 0);
+
+		DeviceContext->VSSetShader(FullScreenQuadVertexShader, nullptr, 0);
+		DeviceContext->PSSetShader(BrightPassPixelShader, nullptr, 0);
+
+		DeviceContext->PSSetShaderResources(0, 1, &ResolvedHDRSceneColorTextureSRV);
+		DeviceContext->PSSetShaderResources(1, 1, &SceneLuminanceTexturesSRVs[0]);
+
+		DeviceContext->Draw(4, 0);
+
+		DeviceContext->OMSetRenderTargets(1, &BloomTexturesRTVs[1][0], nullptr);
 
 		DeviceContext->VSSetShader(FullScreenQuadVertexShader, nullptr, 0);
 		DeviceContext->PSSetShader(HorizontalBlurPixelShader, nullptr, 0);
 
-		DeviceContext->PSSetShaderResources(0, 1, &BloomSRVs[0][i]);
+		DeviceContext->PSSetShaderResources(0, 1, &BloomTexturesSRVs[0][0]);
 
 		DeviceContext->Draw(4, 0);
 
-		DeviceContext->OMSetRenderTargets(1, &BloomRTVs[2][i], nullptr);
+		DeviceContext->OMSetRenderTargets(1, &BloomTexturesRTVs[2][0], nullptr);
 
 		DeviceContext->VSSetShader(FullScreenQuadVertexShader, nullptr, 0);
 		DeviceContext->PSSetShader(VerticalBlurPixelShader, nullptr, 0);
 
-		DeviceContext->PSSetShaderResources(0, 1, &BloomSRVs[1][i]);
+		DeviceContext->PSSetShaderResources(0, 1, &BloomTexturesSRVs[1][0]);
 
 		DeviceContext->Draw(4, 0);
+
+		for (int i = 1; i < 7; i++)
+		{
+			DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+			
+			DeviceContext->OMSetRenderTargets(1, &BloomTexturesRTVs[0][i], nullptr);
+			
+			Viewport.Height = FLOAT(ResolutionHeight >> i);
+			Viewport.MaxDepth = 1.0f;
+			Viewport.MinDepth = 0.0f;
+			Viewport.TopLeftX = 0.0f;
+			Viewport.TopLeftY = 0.0f;
+			Viewport.Width = FLOAT(ResolutionWidth >> i);
+
+			DeviceContext->RSSetViewports(1, &Viewport);
+
+			DeviceContext->IASetInputLayout(nullptr);
+			DeviceContext->RSSetState(RasterizerState);
+			DeviceContext->OMSetBlendState(BlendDisabledBlendState, nullptr, D3D11_DEFAULT_SAMPLE_MASK);
+			DeviceContext->OMSetDepthStencilState(DepthDisabledDepthStencilState, 0);
+
+			DeviceContext->VSSetShader(FullScreenQuadVertexShader, nullptr, 0);
+			DeviceContext->PSSetShader(ImageResamplePixelShader, nullptr, 0);
+
+			DeviceContext->PSSetShaderResources(0, 1, &BloomTexturesSRVs[0][i - 1]);
+
+			DeviceContext->Draw(4, 0);
+
+			DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+			
+			DeviceContext->OMSetRenderTargets(1, &BloomTexturesRTVs[1][i], nullptr);
+
+			Viewport.Height = FLOAT(ResolutionHeight >> i);
+			Viewport.MaxDepth = 1.0f;
+			Viewport.MinDepth = 0.0f;
+			Viewport.TopLeftX = 0.0f;
+			Viewport.TopLeftY = 0.0f;
+			Viewport.Width = FLOAT(ResolutionWidth >> i);
+
+			DeviceContext->RSSetViewports(1, &Viewport);
+
+			DeviceContext->IASetInputLayout(nullptr);
+			DeviceContext->RSSetState(RasterizerState);
+			DeviceContext->OMSetBlendState(BlendDisabledBlendState, nullptr, D3D11_DEFAULT_SAMPLE_MASK);
+			DeviceContext->OMSetDepthStencilState(DepthDisabledDepthStencilState, 0);
+
+			DeviceContext->VSSetShader(FullScreenQuadVertexShader, nullptr, 0);
+			DeviceContext->PSSetShader(HorizontalBlurPixelShader, nullptr, 0);
+
+			DeviceContext->PSSetShaderResources(0, 1, &BloomTexturesSRVs[0][i]);
+
+			DeviceContext->Draw(4, 0);
+
+			DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+			
+			DeviceContext->OMSetRenderTargets(1, &BloomTexturesRTVs[2][i], nullptr);
+
+			Viewport.Height = FLOAT(ResolutionHeight >> i);
+			Viewport.MaxDepth = 1.0f;
+			Viewport.MinDepth = 0.0f;
+			Viewport.TopLeftX = 0.0f;
+			Viewport.TopLeftY = 0.0f;
+			Viewport.Width = FLOAT(ResolutionWidth >> i);
+
+			DeviceContext->RSSetViewports(1, &Viewport);
+
+			DeviceContext->IASetInputLayout(nullptr);
+			DeviceContext->RSSetState(RasterizerState);
+			DeviceContext->OMSetBlendState(BlendDisabledBlendState, nullptr, D3D11_DEFAULT_SAMPLE_MASK);
+			DeviceContext->OMSetDepthStencilState(DepthDisabledDepthStencilState, 0);
+
+			DeviceContext->VSSetShader(FullScreenQuadVertexShader, nullptr, 0);
+			DeviceContext->PSSetShader(VerticalBlurPixelShader, nullptr, 0);
+
+			DeviceContext->PSSetShaderResources(0, 1, &BloomTexturesSRVs[1][i]);
+
+			DeviceContext->Draw(4, 0);
+		}
+
+		for (int i = 5; i >= 0; i--)
+		{
+			DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+			
+			DeviceContext->OMSetRenderTargets(1, &BloomTexturesRTVs[2][i], nullptr);
+
+			Viewport.Height = FLOAT(ResolutionHeight >> i);
+			Viewport.MaxDepth = 1.0f;
+			Viewport.MinDepth = 0.0f;
+			Viewport.TopLeftX = 0.0f;
+			Viewport.TopLeftY = 0.0f;
+			Viewport.Width = FLOAT(ResolutionWidth >> i);
+
+			DeviceContext->RSSetViewports(1, &Viewport);
+
+			DeviceContext->VSSetShader(FullScreenQuadVertexShader, nullptr, 0);
+			DeviceContext->PSSetShader(ImageResamplePixelShader, nullptr, 0);
+
+			DeviceContext->IASetInputLayout(nullptr);
+			DeviceContext->RSSetState(RasterizerState);
+			DeviceContext->OMSetBlendState(AdditiveBlendState, nullptr, D3D11_DEFAULT_SAMPLE_MASK);
+			DeviceContext->OMSetDepthStencilState(DepthDisabledDepthStencilState, 0);
+
+			DeviceContext->PSSetShaderResources(0, 1, &BloomTexturesSRVs[2][i + 1]);
+
+			DeviceContext->Draw(4, 0);
+		}
 	}
 
-	for (int i = 5; i >= 0; i--)
+	// ===============================================================================================================
+	
 	{
-		Viewport.Height = FLOAT(ResolutionHeight >> i);
+		DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		
+		DeviceContext->OMSetRenderTargets(1, &ToneMappedImageRTV, nullptr);
+
+		D3D11_VIEWPORT Viewport;
+		Viewport.Height = float(ResolutionHeight);
 		Viewport.MaxDepth = 1.0f;
 		Viewport.MinDepth = 0.0f;
 		Viewport.TopLeftX = 0.0f;
 		Viewport.TopLeftY = 0.0f;
-		Viewport.Width = FLOAT(ResolutionWidth >> i);
+		Viewport.Width = FLOAT(ResolutionWidth);
 
 		DeviceContext->RSSetViewports(1, &Viewport);
 
-		DeviceContext->OMSetRenderTargets(1, &BloomRTVs[2][i], nullptr);
 
 		DeviceContext->VSSetShader(FullScreenQuadVertexShader, nullptr, 0);
-		DeviceContext->PSSetShader(ImageResamplePixelShader, nullptr, 0);
+		DeviceContext->PSSetShader(HDRToneMappingPixelShader, nullptr, 0);
 
-		DeviceContext->OMSetBlendState(AdditiveBlendState, nullptr, D3D11_DEFAULT_SAMPLE_MASK);
+		DeviceContext->IASetInputLayout(nullptr);
+		DeviceContext->RSSetState(RasterizerState);
+		DeviceContext->OMSetBlendState(BlendDisabledBlendState, nullptr, D3D11_DEFAULT_SAMPLE_MASK);
+		DeviceContext->OMSetDepthStencilState(DepthDisabledDepthStencilState, 0);
 
-		DeviceContext->PSSetShaderResources(0, 1, &BloomSRVs[2][i + 1]);
+		DeviceContext->PSSetShaderResources(0, 1, &HDRSceneColorTextureSRV);
+		DeviceContext->PSSetShaderResources(1, 1, &BloomTexturesSRVs[2][0]);
 
 		DeviceContext->Draw(4, 0);
 	}
 
-	Viewport.Height = FLOAT(ResolutionHeight);
-	Viewport.Height = float(ResolutionHeight);
-	Viewport.MaxDepth = 1.0f;
-	Viewport.MinDepth = 0.0f;
-	Viewport.TopLeftX = 0.0f;
-	Viewport.TopLeftY = 0.0f;
-	Viewport.Width = FLOAT(ResolutionWidth);
+	// ===============================================================================================================
 
-	DeviceContext->RSSetViewports(1, &Viewport);
-
-	DeviceContext->OMSetRenderTargets(1, &ToneMappedImageRTV, nullptr);
-
-	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-	DeviceContext->VSSetShader(FullScreenQuadVertexShader, nullptr, 0);
-	DeviceContext->PSSetShader(HDRToneMappingPixelShader, nullptr, 0);
-
-	DeviceContext->OMSetBlendState(BlendDisabledBlendState, nullptr, D3D11_DEFAULT_SAMPLE_MASK);
-
-	DeviceContext->PSSetShaderResources(0, 1, &LBufferSRV);
-	DeviceContext->PSSetShaderResources(1, 1, &BloomSRVs[2][0]);
-
-	DeviceContext->Draw(4, 0);
-
-	DeviceContext->ResolveSubresource(BackBufferTexture, 0, ToneMappedImageTexture, 0, DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
+	{
+		DeviceContext->ResolveSubresource(BackBufferTexture, 0, ToneMappedImageTexture, 0, DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
+	}
 
 	SAFE_DX(SwapChain->Present(0, DXGI_PRESENT_ALLOW_TEARING));
 }

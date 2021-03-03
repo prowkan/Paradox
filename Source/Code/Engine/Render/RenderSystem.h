@@ -162,51 +162,70 @@ class RenderSystem
 		COMRCPtr<ID3D11DeviceContext> DeviceContext;
 
 		COMRCPtr<ID3D11Texture2D> BackBufferTexture;
-		COMRCPtr<ID3D11RenderTargetView> BackBufferRTV;
+		COMRCPtr<ID3D11RenderTargetView> BackBufferTextureRTV;
 
-		COMRCPtr<ID3D11Texture2D> DepthBufferTexture;
-		COMRCPtr<ID3D11DepthStencilView> DepthBufferDSV;
-		COMRCPtr<ID3D11ShaderResourceView> DepthBufferSRV;
+		COMRCPtr<ID3D11VertexShader> FullScreenQuadVertexShader;
 
-		COMRCPtr<ID3D11Buffer> ConstantBuffer, ConstantBuffers[4];
+		// ===============================================================================================================
 
 		COMRCPtr<ID3D11Texture2D> GBufferTextures[2];
-		COMRCPtr<ID3D11RenderTargetView>  GBufferRTVs[2];
-		COMRCPtr<ID3D11ShaderResourceView> GBufferSRVs[2];
+		COMRCPtr<ID3D11RenderTargetView>  GBufferTexturesRTVs[2];
+		COMRCPtr<ID3D11ShaderResourceView> GBufferTexturesSRVs[2];
+		
+		COMRCPtr<ID3D11Texture2D> DepthBufferTexture;
+		COMRCPtr<ID3D11DepthStencilView> DepthBufferTextureDSV;
+		COMRCPtr<ID3D11ShaderResourceView> DepthBufferTextureSRV;
+
+		COMRCPtr<ID3D11Buffer> ConstantBuffer;
+
+		// ===============================================================================================================
 
 		COMRCPtr<ID3D11Texture2D> ResolvedDepthBufferTexture;
-		COMRCPtr<ID3D11RenderTargetView> ResolvedDepthBufferRTV;
-		COMRCPtr<ID3D11ShaderResourceView> ResolvedDepthBufferSRV;
+		COMRCPtr<ID3D11RenderTargetView> ResolvedDepthBufferTextureRTV;
+		COMRCPtr<ID3D11ShaderResourceView> ResolvedDepthBufferTextureSRV;
 
+		COMRCPtr<ID3D11PixelShader> MSAADepthResolvePixelShader;
+		
+		// ===============================================================================================================
+		
 		COMRCPtr<ID3D11Texture2D> CascadedShadowMapTextures[4];
-		COMRCPtr<ID3D11DepthStencilView> CascadedShadowMapDSVs[4];
-		COMRCPtr<ID3D11ShaderResourceView> CascadedShadowMapSRVs[4];
+		COMRCPtr<ID3D11DepthStencilView> CascadedShadowMapTexturesDSVs[4];
+		COMRCPtr<ID3D11ShaderResourceView> CascadedShadowMapTexturesSRVs[4];
+		
+		COMRCPtr<ID3D11Buffer> ConstantBuffers[4];
+
+		// ===============================================================================================================
 
 		COMRCPtr<ID3D11Texture2D> ShadowMaskTexture;
-		COMRCPtr<ID3D11RenderTargetView> ShadowMaskRTV;
-		COMRCPtr<ID3D11ShaderResourceView> ShadowMaskSRV;
+		COMRCPtr<ID3D11RenderTargetView> ShadowMaskTextureRTV;
+		COMRCPtr<ID3D11ShaderResourceView> ShadowMaskTextureSRV;
 
-		COMRCPtr<ID3D11Texture2D> LBufferTexture;
-		COMRCPtr<ID3D11RenderTargetView> LBufferRTV;
-		COMRCPtr<ID3D11ShaderResourceView> LBufferSRV;
+		COMRCPtr<ID3D11Buffer> ShadowResolveConstantBuffer;
 
-		COMRCPtr<ID3D11Texture2D> ResolvedHDRSceneColorTexture;
-		COMRCPtr<ID3D11ShaderResourceView> ResolvedHDRSceneColorSRV;
+		COMRCPtr<ID3D11PixelShader> ShadowResolvePixelShader;		
 
-		COMRCPtr<ID3D11Texture2D> SceneLuminanceTextures[4];
-		COMRCPtr<ID3D11UnorderedAccessView> SceneLuminanceUAVs[4];
-		COMRCPtr<ID3D11ShaderResourceView> SceneLuminanceSRVs[4];
+		// ===============================================================================================================
 
-		COMRCPtr<ID3D11Texture2D> AverageLuminanceTexture;
-		COMRCPtr<ID3D11UnorderedAccessView> AverageLuminanceUAV;
-		COMRCPtr<ID3D11ShaderResourceView> AverageLuminanceSRV;
+		COMRCPtr<ID3D11Texture2D> HDRSceneColorTexture;
+		COMRCPtr<ID3D11RenderTargetView> HDRSceneColorTextureRTV;
+		COMRCPtr<ID3D11ShaderResourceView> HDRSceneColorTextureSRV;
 
-		COMRCPtr<ID3D11Texture2D> BloomTextures[3][7];
-		COMRCPtr<ID3D11RenderTargetView> BloomRTVs[3][7];
-		COMRCPtr<ID3D11ShaderResourceView> BloomSRVs[3][7];
+		COMRCPtr<ID3D11Buffer> DeferredLightingConstantBuffer;
 
-		COMRCPtr<ID3D11Texture2D> ToneMappedImageTexture;
-		COMRCPtr<ID3D11RenderTargetView> ToneMappedImageRTV;
+		COMRCPtr<ID3D11PixelShader> DeferredLightingPixelShader;
+
+		COMRCPtr<ID3D11Buffer> LightClustersBuffer;
+		COMRCPtr<ID3D11ShaderResourceView> LightClustersBufferSRV;
+
+		COMRCPtr<ID3D11Buffer> LightIndicesBuffer;
+		COMRCPtr<ID3D11ShaderResourceView> LightIndicesBufferSRV;
+
+		COMRCPtr<ID3D11Buffer> PointLightsBuffer;
+		COMRCPtr<ID3D11ShaderResourceView> PointLightsBufferSRV;
+
+		// ===============================================================================================================
+
+		COMRCPtr<ID3D11PixelShader> FogPixelShader;
 
 		COMRCPtr<ID3D11Buffer> SkyVertexBuffer, SkyIndexBuffer;
 		COMRCPtr<ID3D11Buffer> SkyConstantBuffer;
@@ -222,34 +241,45 @@ class RenderSystem
 		COMRCPtr<ID3D11Texture2D> SunTexture;
 		COMRCPtr<ID3D11ShaderResourceView> SunTextureSRV;
 
-		COMRCPtr<ID3D11Buffer> ShadowResolveConstantBuffer;
+		// ===============================================================================================================
 
-		COMRCPtr<ID3D11Buffer> DeferredLightingConstantBuffer;
+		COMRCPtr<ID3D11Texture2D> ResolvedHDRSceneColorTexture;
+		COMRCPtr<ID3D11ShaderResourceView> ResolvedHDRSceneColorTextureSRV;
 
-		COMRCPtr<ID3D11Buffer> LightClustersBuffer;
-		COMRCPtr<ID3D11ShaderResourceView> LightClustersSRV;
+		// ===============================================================================================================
 
-		COMRCPtr<ID3D11Buffer> LightIndicesBuffer;
-		COMRCPtr<ID3D11ShaderResourceView> LightIndicesSRV;
+		COMRCPtr<ID3D11Texture2D> SceneLuminanceTextures[4];
+		COMRCPtr<ID3D11UnorderedAccessView> SceneLuminanceTexturesUAVs[4];
+		COMRCPtr<ID3D11ShaderResourceView> SceneLuminanceTexturesSRVs[4];
 
-		COMRCPtr<ID3D11Buffer> PointLightsBuffer;
-		COMRCPtr<ID3D11ShaderResourceView> PointLightsSRV;
+		COMRCPtr<ID3D11Texture2D> AverageLuminanceTexture;
+		COMRCPtr<ID3D11UnorderedAccessView> AverageLuminanceTextureUAV;
+		COMRCPtr<ID3D11ShaderResourceView> AverageLuminanceTextureSRV;
 
-		COMRCPtr<ID3D11VertexShader> FullScreenQuadVertexShader;
-
-		COMRCPtr<ID3D11PixelShader> MSAADepthResolvePixelShader;
-		COMRCPtr<ID3D11PixelShader> ShadowResolvePixelShader;
-		COMRCPtr<ID3D11PixelShader> DeferredLightingPixelShader;
-		COMRCPtr<ID3D11PixelShader> FogPixelShader;
-		COMRCPtr<ID3D11PixelShader> HDRToneMappingPixelShader;
 		COMRCPtr<ID3D11ComputeShader> LuminanceCalcComputeShader;
 		COMRCPtr<ID3D11ComputeShader> LuminanceSumComputeShader;
 		COMRCPtr<ID3D11ComputeShader> LuminanceAvgComputeShader;
+		
+		// ===============================================================================================================
+
+		COMRCPtr<ID3D11Texture2D> BloomTextures[3][7];
+		COMRCPtr<ID3D11RenderTargetView> BloomTexturesRTVs[3][7];
+		COMRCPtr<ID3D11ShaderResourceView> BloomTexturesSRVs[3][7];
+
 		COMRCPtr<ID3D11PixelShader> BrightPassPixelShader;
 		COMRCPtr<ID3D11PixelShader> ImageResamplePixelShader;
 		COMRCPtr<ID3D11PixelShader> HorizontalBlurPixelShader;
 		COMRCPtr<ID3D11PixelShader> VerticalBlurPixelShader;
 
+		// ===============================================================================================================
+
+		COMRCPtr<ID3D11Texture2D> ToneMappedImageTexture;
+		COMRCPtr<ID3D11RenderTargetView> ToneMappedImageRTV;		
+
+		COMRCPtr<ID3D11PixelShader> HDRToneMappingPixelShader;
+		
+		// ===============================================================================================================
+				
 		COMRCPtr<ID3D11SamplerState> TextureSampler, ShadowMapSampler, BiLinearSampler;
 
 		COMRCPtr<ID3D11InputLayout> InputLayout;

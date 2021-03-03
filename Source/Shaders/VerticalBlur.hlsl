@@ -30,7 +30,7 @@ float4 PS(PSInput PixelShaderInput) : SV_Target
 	[unroll]
 	for (int i = -5; i <= 5; i++)
 	{
-		BlurredColor += GaussianWeights[i + 5] * InputTexture.Load(int3(Coords.x, Coords.y + i, 0));
+		BlurredColor += GaussianWeights[i + 5] * InputTexture.Load(int3(Coords.x, Coords.y + i, 0)).rgb;
 	}
 
 	return float4(BlurredColor, 1.0f);

@@ -6,7 +6,7 @@ struct PSInput
 
 struct PSConstants
 {
-	float4x4 InvViewProjMatrices[4];
+	float4x4 ReProjMatrices[4];
 };
 
 cbuffer cb0 : register(b0)
@@ -34,7 +34,7 @@ float4 PS(PSInput PixelShaderInput) : SV_Target
 	[unroll]
 	for (uint i = 0; i < 4; i++)
 	{
-		float4 ProjectedPosition = mul(Position, PixelShaderConstants.InvViewProjMatrices[i]);
+		float4 ProjectedPosition = mul(Position, PixelShaderConstants.ReProjMatrices[i]);
 		ProjectedPosition /= ProjectedPosition.w;
 		ProjectedPosition.xy = ProjectedPosition.xy * float2(0.5f, -0.5f) + float2(0.5f, 0.5f);
 
