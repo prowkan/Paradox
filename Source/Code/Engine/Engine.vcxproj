@@ -103,6 +103,9 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <ForcedIncludeFiles>StdAfx.h</ForcedIncludeFiles>
       <AdditionalOptions>/source-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessToFile>false</PreprocessToFile>
+      <AssemblerOutput>All</AssemblerOutput>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -120,6 +123,9 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <ForcedIncludeFiles>StdAfx.h</ForcedIncludeFiles>
       <AdditionalOptions>/source-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessToFile>false</PreprocessToFile>
+      <AssemblerOutput>All</AssemblerOutput>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -137,6 +143,9 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <ForcedIncludeFiles>StdAfx.h</ForcedIncludeFiles>
       <AdditionalOptions>/source-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessToFile>false</PreprocessToFile>
+      <AssemblerOutput>All</AssemblerOutput>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -154,6 +163,9 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <ForcedIncludeFiles>StdAfx.h</ForcedIncludeFiles>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessToFile>false</PreprocessToFile>
+      <AssemblerOutput>All</AssemblerOutput>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -186,6 +198,7 @@
     <ClInclude Include="MemoryManager\MemoryManager.h" />
     <ClInclude Include="MemoryManager\Pool.h" />
     <ClInclude Include="MemoryManager\ScopedMemoryBlock.h" />
+    <ClInclude Include="MemoryManager\ScopedMemoryBlockBase.h" />
     <ClInclude Include="MemoryManager\Stack.h" />
     <ClInclude Include="MultiThreading\MultiThreadingSystem.h" />
     <ClInclude Include="MultiThreading\Task.h" />
@@ -225,6 +238,7 @@
     <ClCompile Include="MemoryManager\Heap.cpp" />
     <ClCompile Include="MemoryManager\MemoryManager.cpp" />
     <ClCompile Include="MemoryManager\Pool.cpp" />
+    <ClCompile Include="MemoryManager\ScopedMemoryBlockBase.cpp" />
     <ClCompile Include="MemoryManager\Stack.cpp" />
     <ClCompile Include="MultiThreading\MultiThreadingSystem.cpp" />
     <ClCompile Include="MultiThreading\Task.cpp" />

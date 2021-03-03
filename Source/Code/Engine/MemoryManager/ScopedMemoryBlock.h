@@ -1,33 +1,26 @@
 #pragma once
 
-#include <Engine/Engine.h>
+#include "ScopedMemoryBlockBase.h"
 
-/*template<typename T>
-class ScopedMemoryBlock
+template<typename T>
+class ScopedMemoryBlock : public ScopedMemoryBlockBase
 {
 	public:
 
-		ScopedMemoryBlock(T* BlockData, const size_t BlockSize) : BlockData(BlockData), BlockSize(BlockSize)
+		ScopedMemoryBlock(T* BlockData, const size_t BlockSize) : BlockData(BlockData) 
 		{
-
+			this->BlockSize = BlockSize;
 		}
 
-		~ScopedMemoryBlock()
+		template<typename U>
+		operator U*()
 		{
-			Engine::GetEngine().GetMemoryManager().GetGlobalStack().DeAllocateToStack(BlockSize);
-		}
-
-		operator void*()
-		{
-			return BlockData;
+			return (U*)BlockData;
 		}
 
 	protected:
 
 		T *BlockData;
-		size_t BlockSize;
-
-	public:
 };
 
 template<typename T>
@@ -35,17 +28,20 @@ class ScopedMemoryBlockArray : public ScopedMemoryBlock<T>
 {
 	public:
 
-		ScopedMemoryBlockArray(T* BlockData, const size_t BlockSize, const size_t ElementsCount) : ScopedMemoryBlock(BlockData, BlockSize), ElementsCount(ElementsCount)
-		{
+		ScopedMemoryBlockArray(T* BlockData, const size_t BlockSize, const size_t ElementsCount) : ScopedMemoryBlock<T>(BlockData, BlockSize), ElementsCount(ElementsCount) {}
 
+		template<typename U>
+		operator U*()
+		{
+			return (U*)this->BlockData;
 		}
 
-		operator void*()
+		T& operator[](const size_t Index)
 		{
-			return BlockData;
+			return this->BlockData[Index];
 		}
 
-	private:		
+	private:
 
 		size_t ElementsCount;
-};*/
+};
