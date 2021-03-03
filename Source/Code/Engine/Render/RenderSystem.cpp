@@ -148,9 +148,9 @@ void RenderSystem::InitSystem()
 	SAFE_DX(Device->CreateFence(1, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE, UUIDOF(FrameSyncFences[1])));
 
 	FrameSyncEvent = CreateEvent(NULL, FALSE, FALSE, (const wchar_t*)u"FrameSyncEvent");
-	
+
 	SAFE_DX(Device->CreateFence(0, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE, UUIDOF(CopySyncFence)));
-	
+
 	CopySyncEvent = CreateEvent(NULL, FALSE, FALSE, (const wchar_t*)u"CopySyncEvent");
 
 	D3D12_DESCRIPTOR_HEAP_DESC DescriptorHeapDesc;
@@ -758,7 +758,7 @@ void RenderSystem::InitSystem()
 		HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
 		HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD;
 		HeapProperties.VisibleNodeMask = 0;
-					
+
 		SAFE_DX(Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUConstantBuffers2[0][0])));
 		SAFE_DX(Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUConstantBuffers2[1][0])));
 		SAFE_DX(Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUConstantBuffers2[2][0])));
@@ -1569,7 +1569,7 @@ void RenderSystem::InitSystem()
 		++TexturesDescriptorsCount;
 
 		Device->CreateShaderResourceView(SkyTexture, &SRVDesc, SkyTextureSRV);
-		
+
 		UINT SunMeshVertexCount = 4;
 		UINT SunMeshIndexCount = 6;
 
@@ -1918,7 +1918,7 @@ void RenderSystem::InitSystem()
 		ScopedMemoryBlockArray<BYTE> FogPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(FogPixelShaderByteCodeLength.QuadPart);
 		Result = ReadFile(FogPixelShaderFile, FogPixelShaderByteCodeData, (DWORD)FogPixelShaderByteCodeLength.QuadPart, NULL, NULL);
 		Result = CloseHandle(FogPixelShaderFile);
-		
+
 		ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
 		GraphicsPipelineStateDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE::D3D12_COLOR_WRITE_ENABLE_ALL;
 		GraphicsPipelineStateDesc.BlendState.RenderTarget[0].BlendEnable = TRUE;
@@ -2458,7 +2458,7 @@ void RenderSystem::InitSystem()
 		GraphicsPipelineStateDesc.VS.pShaderBytecode = FullScreenQuadVertexShaderByteCodeData;
 
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(HDRToneMappingPipelineState)));
-	}			
+	}
 }
 
 void RenderSystem::ShutdownSystem()
@@ -2512,9 +2512,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 	XMMATRIX ShadowViewMatrices[4], ShadowProjMatrices[4], ShadowViewProjMatrices[4];
 
 	ShadowViewMatrices[0] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 10.0f, CameraLocation.y + 10.0f, CameraLocation.z - 10.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
-	ShadowViewMatrices[1] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 20.0f, CameraLocation.y + 20.0f, CameraLocation.z - 20.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
-	ShadowViewMatrices[2] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 50.0f, CameraLocation.y + 50.0f, CameraLocation.z - 50.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
-	ShadowViewMatrices[3] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 100.0f, CameraLocation.y + 100.0f, CameraLocation.z - 100.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
+	ShadowViewMatrices[1] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 20.0f, CameraLocation.y + 20.0f, CameraLocation.z - 10.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
+	ShadowViewMatrices[2] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 50.0f, CameraLocation.y + 50.0f, CameraLocation.z - 10.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
+	ShadowViewMatrices[3] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 100.0f, CameraLocation.y + 100.0f, CameraLocation.z - 10.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
 
 	ShadowProjMatrices[0] = XMMatrixOrthographicLH(10.0f, 10.0f, 0.01f, 500.0f);
 	ShadowProjMatrices[1] = XMMatrixOrthographicLH(20.0f, 20.0f, 0.01f, 500.0f);
@@ -2556,8 +2556,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 		DWORD WaitResult = WaitForSingleObject(FrameSyncEvent, INFINITE);
 	}
 
-	SAFE_DX(FrameSyncFences[CurrentFrameIndex]->Signal(0)); 
-	
+	SAFE_DX(FrameSyncFences[CurrentFrameIndex]->Signal(0));
+
 	SAFE_DX(CommandAllocators[CurrentFrameIndex]->Reset());
 	SAFE_DX(CommandList->Reset(CommandAllocators[CurrentFrameIndex], nullptr));
 
@@ -2572,13 +2572,13 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	CommandList->SetDescriptorHeaps(2, DescriptorHeaps);
 	CommandList->SetGraphicsRootSignature(GraphisRootSignature);
-	CommandList->SetComputeRootSignature(ComputeRootSignature);	
+	CommandList->SetComputeRootSignature(ComputeRootSignature);
 
 	OPTICK_EVENT("Draw Calls")
 
-	// ===============================================================================================================
+		// ===============================================================================================================
 
-	D3D12_RESOURCE_BARRIER ResourceBarriers[8];
+		D3D12_RESOURCE_BARRIER ResourceBarriers[8];
 	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarriers[0].Transition.pResource = GBufferTextures[0];
 	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
@@ -2694,7 +2694,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		CommandList->ClearRenderTargetView(GBufferTexturesRTVs[0], ClearColor, 0, nullptr);
 		CommandList->ClearRenderTargetView(GBufferTexturesRTVs[1], ClearColor, 0, nullptr);
 		CommandList->ClearDepthStencilView(DepthBufferTextureDSV, D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_STENCIL, 0.0f, 0, 0, nullptr);
-		
+
 		Device->CopyDescriptorsSimple(1, SamplerCPUHandle, TextureSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 		SamplerCPUHandle.ptr += SamplerHandleSize;
 
@@ -3229,8 +3229,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 		ResourceBarriers[3].Transition.Subresource = 0;
 		ResourceBarriers[3].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(4, ResourceBarriers);	
-		
+		CommandList->ResourceBarrier(4, ResourceBarriers);
+
 		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 		CommandList->OMSetRenderTargets(1, &HDRSceneColorTextureRTV, TRUE, nullptr);
@@ -3251,7 +3251,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		ScissorRect.right = ResolutionWidth;
 		ScissorRect.top = 0;
 
-		CommandList->RSSetScissorRects(1, &ScissorRect);	
+		CommandList->RSSetScissorRects(1, &ScissorRect);
 
 		CommandList->DiscardResource(HDRSceneColorTexture, nullptr);
 
@@ -3971,7 +3971,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 			CommandList->ResourceBarrier(2, ResourceBarriers);
 
 			CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-			
+
 			CommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[2][i], TRUE, nullptr);
 
 			Viewport.Height = FLOAT(ResolutionHeight >> i);
@@ -4055,7 +4055,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 			ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
 			CommandList->DrawInstanced(4, 1, 0, 0);
-		}		
+		}
 	}
 
 	// ===============================================================================================================
@@ -4320,42 +4320,42 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 		{
 			switch (renderTextureCreateInfo.CompressionType)
 			{
-				case BlockCompression::BC1:
-					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC1_UNORM_SRGB;
-					break;
-				case BlockCompression::BC2:
-					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC2_UNORM_SRGB;
-					break;
-				case BlockCompression::BC3:
-					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC3_UNORM_SRGB;
-					break;
-				default:
-					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
-					break;
+			case BlockCompression::BC1:
+				TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC1_UNORM_SRGB;
+				break;
+			case BlockCompression::BC2:
+				TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC2_UNORM_SRGB;
+				break;
+			case BlockCompression::BC3:
+				TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC3_UNORM_SRGB;
+				break;
+			default:
+				TextureFormat = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
+				break;
 			}
 		}
 		else
 		{
 			switch (renderTextureCreateInfo.CompressionType)
 			{
-				case BlockCompression::BC1:
-					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC1_UNORM;
-					break;
-				case BlockCompression::BC2:
-					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC2_UNORM;
-					break;
-				case BlockCompression::BC3:
-					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC3_UNORM;
-					break;
-				case BlockCompression::BC4:
-					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC4_UNORM;
-					break;
-				case BlockCompression::BC5:
-					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC5_UNORM;
-					break;
-				default:
-					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
-					break;
+			case BlockCompression::BC1:
+				TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC1_UNORM;
+				break;
+			case BlockCompression::BC2:
+				TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC2_UNORM;
+				break;
+			case BlockCompression::BC3:
+				TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC3_UNORM;
+				break;
+			case BlockCompression::BC4:
+				TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC4_UNORM;
+				break;
+			case BlockCompression::BC5:
+				TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC5_UNORM;
+				break;
+			default:
+				TextureFormat = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
+				break;
 			}
 		}
 	}
@@ -4649,189 +4649,189 @@ inline const char16_t* RenderSystem::GetDXErrorMessageFromHRESULT(HRESULT hr)
 {
 	switch (hr)
 	{
-		case E_UNEXPECTED:
-			return u"E_UNEXPECTED"; 
-			break; 
-		case E_NOTIMPL:
-			return u"E_NOTIMPL";
-			break;
-		case E_OUTOFMEMORY:
-			return u"E_OUTOFMEMORY";
-			break; 
-		case E_INVALIDARG:
-			return u"E_INVALIDARG";
-			break; 
-		case E_NOINTERFACE:
-			return u"E_NOINTERFACE";
-			break; 
-		case E_POINTER:
-			return u"E_POINTER"; 
-			break; 
-		case E_HANDLE:
-			return u"E_HANDLE"; 
-			break;
-		case E_ABORT:
-			return u"E_ABORT"; 
-			break; 
-		case E_FAIL:
-			return u"E_FAIL"; 
-			break;
-		case E_ACCESSDENIED:
-			return u"E_ACCESSDENIED";
-			break; 
-		case E_PENDING:
-			return u"E_PENDING";
-			break; 
-		case E_BOUNDS:
-			return u"E_BOUNDS";
-			break; 
-		case E_CHANGED_STATE:
-			return u"E_CHANGED_STATE";
-			break; 
-		case E_ILLEGAL_STATE_CHANGE:
-			return u"E_ILLEGAL_STATE_CHANGE";
-			break; 
-		case E_ILLEGAL_METHOD_CALL:
-			return u"E_ILLEGAL_METHOD_CALL";
-			break; 
-		case E_STRING_NOT_NULL_TERMINATED:
-			return u"E_STRING_NOT_NULL_TERMINATED"; 
-			break; 
-		case E_ILLEGAL_DELEGATE_ASSIGNMENT:
-			return u"E_ILLEGAL_DELEGATE_ASSIGNMENT";
-			break; 
-		case E_ASYNC_OPERATION_NOT_STARTED:
-			return u"E_ASYNC_OPERATION_NOT_STARTED"; 
-			break; 
-		case E_APPLICATION_EXITING:
-			return u"E_APPLICATION_EXITING";
-			break; 
-		case E_APPLICATION_VIEW_EXITING:
-			return u"E_APPLICATION_VIEW_EXITING";
-			break; 
-		case DXGI_ERROR_INVALID_CALL:
-			return u"DXGI_ERROR_INVALID_CALL";
-			break; 
-		case DXGI_ERROR_NOT_FOUND:
-			return u"DXGI_ERROR_NOT_FOUND";
-			break; 
-		case DXGI_ERROR_MORE_DATA:
-			return u"DXGI_ERROR_MORE_DATA";
-			break; 
-		case DXGI_ERROR_UNSUPPORTED:
-			return u"DXGI_ERROR_UNSUPPORTED";
-			break; 
-		case DXGI_ERROR_DEVICE_REMOVED:
-			return u"DXGI_ERROR_DEVICE_REMOVED";
-			break; 
-		case DXGI_ERROR_DEVICE_HUNG:
-			return u"DXGI_ERROR_DEVICE_HUNG";
-			break; 
-		case DXGI_ERROR_DEVICE_RESET:
-			return u"DXGI_ERROR_DEVICE_RESET";
-			break; 
-		case DXGI_ERROR_WAS_STILL_DRAWING:
-			return u"DXGI_ERROR_WAS_STILL_DRAWING";
-			break; 
-		case DXGI_ERROR_FRAME_STATISTICS_DISJOINT:
-			return u"DXGI_ERROR_FRAME_STATISTICS_DISJOINT";
-			break; 
-		case DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE:
-			return u"DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE"; 
-			break; 
-		case DXGI_ERROR_DRIVER_INTERNAL_ERROR:
-			return u"DXGI_ERROR_DRIVER_INTERNAL_ERROR";
-			break; 
-		case DXGI_ERROR_NONEXCLUSIVE:
-			return u"DXGI_ERROR_NONEXCLUSIVE";
-			break; 
-		case DXGI_ERROR_NOT_CURRENTLY_AVAILABLE:
-			return u"DXGI_ERROR_NOT_CURRENTLY_AVAILABLE"; 
-			break; 
-		case DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED:
-			return u"DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED";
-			break; 
-		case DXGI_ERROR_REMOTE_OUTOFMEMORY:
-			return u"DXGI_ERROR_REMOTE_OUTOFMEMORY"; 
-			break; 
-		case DXGI_ERROR_ACCESS_LOST:
-			return u"DXGI_ERROR_ACCESS_LOST";
-			break; 
-		case DXGI_ERROR_WAIT_TIMEOUT:
-			return u"DXGI_ERROR_WAIT_TIMEOUT";
-			break; 
-		case DXGI_ERROR_SESSION_DISCONNECTED:
-			return u"DXGI_ERROR_SESSION_DISCONNECTED";
-			break; 
-		case DXGI_ERROR_RESTRICT_TO_OUTPUT_STALE:
-			return u"DXGI_ERROR_RESTRICT_TO_OUTPUT_STALE";
-			break; 
-		case DXGI_ERROR_CANNOT_PROTECT_CONTENT:
-			return u"DXGI_ERROR_CANNOT_PROTECT_CONTENT";
-			break; 
-		case DXGI_ERROR_ACCESS_DENIED:
-			return u"DXGI_ERROR_ACCESS_DENIED"; 
-			break; 
-		case DXGI_ERROR_NAME_ALREADY_EXISTS:
-			return u"DXGI_ERROR_NAME_ALREADY_EXISTS";
-			break; 
-		case DXGI_ERROR_SDK_COMPONENT_MISSING:
-			return u"DXGI_ERROR_SDK_COMPONENT_MISSING"; 
-			break; 
-		case DXGI_ERROR_NOT_CURRENT:
-			return u"DXGI_ERROR_NOT_CURRENT";
-			break; 
-		case DXGI_ERROR_HW_PROTECTION_OUTOFMEMORY:
-			return u"DXGI_ERROR_HW_PROTECTION_OUTOFMEMORY"; 
-			break; 
-		case DXGI_ERROR_DYNAMIC_CODE_POLICY_VIOLATION:
-			return u"DXGI_ERROR_DYNAMIC_CODE_POLICY_VIOLATION"; 
-			break; 
-		case DXGI_ERROR_NON_COMPOSITED_UI:
-			return u"DXGI_ERROR_NON_COMPOSITED_UI";
-			break; 
-		case DXGI_ERROR_MODE_CHANGE_IN_PROGRESS:
-			return u"DXGI_ERROR_MODE_CHANGE_IN_PROGRESS";
-			break; 
-		case DXGI_ERROR_CACHE_CORRUPT:
-			return u"DXGI_ERROR_CACHE_CORRUPT";
-			break;
-		case DXGI_ERROR_CACHE_FULL:
-			return u"DXGI_ERROR_CACHE_FULL";
-			break;
-		case DXGI_ERROR_CACHE_HASH_COLLISION:
-			return u"DXGI_ERROR_CACHE_HASH_COLLISION";
-			break;
-		case DXGI_ERROR_ALREADY_EXISTS:
-			return u"DXGI_ERROR_ALREADY_EXISTS"; 
-			break;
-		case D3D10_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS:
-			return u"D3D10_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS";
-			break; 
-		case D3D10_ERROR_FILE_NOT_FOUND:
-			return u"D3D10_ERROR_FILE_NOT_FOUND";
-			break;
-		case D3D11_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS:
-			return u"D3D11_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS";
-			break;
-		case D3D11_ERROR_FILE_NOT_FOUND:
-			return u"D3D11_ERROR_FILE_NOT_FOUND"; 
-			break;
-		case D3D11_ERROR_TOO_MANY_UNIQUE_VIEW_OBJECTS:
-			return u"D3D11_ERROR_TOO_MANY_UNIQUE_VIEW_OBJECTS"; 
-			break; 
-		case D3D11_ERROR_DEFERRED_CONTEXT_MAP_WITHOUT_INITIAL_DISCARD:
-			return u"D3D11_ERROR_DEFERRED_CONTEXT_MAP_WITHOUT_INITIAL_DISCARD";
-			break;
-		case D3D12_ERROR_ADAPTER_NOT_FOUND:
-			return u"D3D12_ERROR_ADAPTER_NOT_FOUND";
-			break;
-		case D3D12_ERROR_DRIVER_VERSION_MISMATCH:
-			return u"D3D12_ERROR_DRIVER_VERSION_MISMATCH"; 
-			break;
-		default:
-			return nullptr;
-			break;
+	case E_UNEXPECTED:
+		return u"E_UNEXPECTED";
+		break;
+	case E_NOTIMPL:
+		return u"E_NOTIMPL";
+		break;
+	case E_OUTOFMEMORY:
+		return u"E_OUTOFMEMORY";
+		break;
+	case E_INVALIDARG:
+		return u"E_INVALIDARG";
+		break;
+	case E_NOINTERFACE:
+		return u"E_NOINTERFACE";
+		break;
+	case E_POINTER:
+		return u"E_POINTER";
+		break;
+	case E_HANDLE:
+		return u"E_HANDLE";
+		break;
+	case E_ABORT:
+		return u"E_ABORT";
+		break;
+	case E_FAIL:
+		return u"E_FAIL";
+		break;
+	case E_ACCESSDENIED:
+		return u"E_ACCESSDENIED";
+		break;
+	case E_PENDING:
+		return u"E_PENDING";
+		break;
+	case E_BOUNDS:
+		return u"E_BOUNDS";
+		break;
+	case E_CHANGED_STATE:
+		return u"E_CHANGED_STATE";
+		break;
+	case E_ILLEGAL_STATE_CHANGE:
+		return u"E_ILLEGAL_STATE_CHANGE";
+		break;
+	case E_ILLEGAL_METHOD_CALL:
+		return u"E_ILLEGAL_METHOD_CALL";
+		break;
+	case E_STRING_NOT_NULL_TERMINATED:
+		return u"E_STRING_NOT_NULL_TERMINATED";
+		break;
+	case E_ILLEGAL_DELEGATE_ASSIGNMENT:
+		return u"E_ILLEGAL_DELEGATE_ASSIGNMENT";
+		break;
+	case E_ASYNC_OPERATION_NOT_STARTED:
+		return u"E_ASYNC_OPERATION_NOT_STARTED";
+		break;
+	case E_APPLICATION_EXITING:
+		return u"E_APPLICATION_EXITING";
+		break;
+	case E_APPLICATION_VIEW_EXITING:
+		return u"E_APPLICATION_VIEW_EXITING";
+		break;
+	case DXGI_ERROR_INVALID_CALL:
+		return u"DXGI_ERROR_INVALID_CALL";
+		break;
+	case DXGI_ERROR_NOT_FOUND:
+		return u"DXGI_ERROR_NOT_FOUND";
+		break;
+	case DXGI_ERROR_MORE_DATA:
+		return u"DXGI_ERROR_MORE_DATA";
+		break;
+	case DXGI_ERROR_UNSUPPORTED:
+		return u"DXGI_ERROR_UNSUPPORTED";
+		break;
+	case DXGI_ERROR_DEVICE_REMOVED:
+		return u"DXGI_ERROR_DEVICE_REMOVED";
+		break;
+	case DXGI_ERROR_DEVICE_HUNG:
+		return u"DXGI_ERROR_DEVICE_HUNG";
+		break;
+	case DXGI_ERROR_DEVICE_RESET:
+		return u"DXGI_ERROR_DEVICE_RESET";
+		break;
+	case DXGI_ERROR_WAS_STILL_DRAWING:
+		return u"DXGI_ERROR_WAS_STILL_DRAWING";
+		break;
+	case DXGI_ERROR_FRAME_STATISTICS_DISJOINT:
+		return u"DXGI_ERROR_FRAME_STATISTICS_DISJOINT";
+		break;
+	case DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE:
+		return u"DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE";
+		break;
+	case DXGI_ERROR_DRIVER_INTERNAL_ERROR:
+		return u"DXGI_ERROR_DRIVER_INTERNAL_ERROR";
+		break;
+	case DXGI_ERROR_NONEXCLUSIVE:
+		return u"DXGI_ERROR_NONEXCLUSIVE";
+		break;
+	case DXGI_ERROR_NOT_CURRENTLY_AVAILABLE:
+		return u"DXGI_ERROR_NOT_CURRENTLY_AVAILABLE";
+		break;
+	case DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED:
+		return u"DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED";
+		break;
+	case DXGI_ERROR_REMOTE_OUTOFMEMORY:
+		return u"DXGI_ERROR_REMOTE_OUTOFMEMORY";
+		break;
+	case DXGI_ERROR_ACCESS_LOST:
+		return u"DXGI_ERROR_ACCESS_LOST";
+		break;
+	case DXGI_ERROR_WAIT_TIMEOUT:
+		return u"DXGI_ERROR_WAIT_TIMEOUT";
+		break;
+	case DXGI_ERROR_SESSION_DISCONNECTED:
+		return u"DXGI_ERROR_SESSION_DISCONNECTED";
+		break;
+	case DXGI_ERROR_RESTRICT_TO_OUTPUT_STALE:
+		return u"DXGI_ERROR_RESTRICT_TO_OUTPUT_STALE";
+		break;
+	case DXGI_ERROR_CANNOT_PROTECT_CONTENT:
+		return u"DXGI_ERROR_CANNOT_PROTECT_CONTENT";
+		break;
+	case DXGI_ERROR_ACCESS_DENIED:
+		return u"DXGI_ERROR_ACCESS_DENIED";
+		break;
+	case DXGI_ERROR_NAME_ALREADY_EXISTS:
+		return u"DXGI_ERROR_NAME_ALREADY_EXISTS";
+		break;
+	case DXGI_ERROR_SDK_COMPONENT_MISSING:
+		return u"DXGI_ERROR_SDK_COMPONENT_MISSING";
+		break;
+	case DXGI_ERROR_NOT_CURRENT:
+		return u"DXGI_ERROR_NOT_CURRENT";
+		break;
+	case DXGI_ERROR_HW_PROTECTION_OUTOFMEMORY:
+		return u"DXGI_ERROR_HW_PROTECTION_OUTOFMEMORY";
+		break;
+	case DXGI_ERROR_DYNAMIC_CODE_POLICY_VIOLATION:
+		return u"DXGI_ERROR_DYNAMIC_CODE_POLICY_VIOLATION";
+		break;
+	case DXGI_ERROR_NON_COMPOSITED_UI:
+		return u"DXGI_ERROR_NON_COMPOSITED_UI";
+		break;
+	case DXGI_ERROR_MODE_CHANGE_IN_PROGRESS:
+		return u"DXGI_ERROR_MODE_CHANGE_IN_PROGRESS";
+		break;
+	case DXGI_ERROR_CACHE_CORRUPT:
+		return u"DXGI_ERROR_CACHE_CORRUPT";
+		break;
+	case DXGI_ERROR_CACHE_FULL:
+		return u"DXGI_ERROR_CACHE_FULL";
+		break;
+	case DXGI_ERROR_CACHE_HASH_COLLISION:
+		return u"DXGI_ERROR_CACHE_HASH_COLLISION";
+		break;
+	case DXGI_ERROR_ALREADY_EXISTS:
+		return u"DXGI_ERROR_ALREADY_EXISTS";
+		break;
+	case D3D10_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS:
+		return u"D3D10_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS";
+		break;
+	case D3D10_ERROR_FILE_NOT_FOUND:
+		return u"D3D10_ERROR_FILE_NOT_FOUND";
+		break;
+	case D3D11_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS:
+		return u"D3D11_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS";
+		break;
+	case D3D11_ERROR_FILE_NOT_FOUND:
+		return u"D3D11_ERROR_FILE_NOT_FOUND";
+		break;
+	case D3D11_ERROR_TOO_MANY_UNIQUE_VIEW_OBJECTS:
+		return u"D3D11_ERROR_TOO_MANY_UNIQUE_VIEW_OBJECTS";
+		break;
+	case D3D11_ERROR_DEFERRED_CONTEXT_MAP_WITHOUT_INITIAL_DISCARD:
+		return u"D3D11_ERROR_DEFERRED_CONTEXT_MAP_WITHOUT_INITIAL_DISCARD";
+		break;
+	case D3D12_ERROR_ADAPTER_NOT_FOUND:
+		return u"D3D12_ERROR_ADAPTER_NOT_FOUND";
+		break;
+	case D3D12_ERROR_DRIVER_VERSION_MISMATCH:
+		return u"D3D12_ERROR_DRIVER_VERSION_MISMATCH";
+		break;
+	default:
+		return nullptr;
+		break;
 	}
 
 	return nullptr;

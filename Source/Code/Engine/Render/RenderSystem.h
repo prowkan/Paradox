@@ -150,6 +150,8 @@ class RenderSystem
 		void DestroyRenderTexture(RenderTexture* renderTexture);
 		void DestroyRenderMaterial(RenderMaterial* renderMaterial);
 
+		CullingSubSystem& GetCullingSubSystem() { return cullingSubSystem; }
+
 	private:
 
 		COMRCPtr<ID3D12Device> Device;
@@ -181,7 +183,7 @@ class RenderSystem
 
 		// ===============================================================================================================
 
-		D3D12_CPU_DESCRIPTOR_HANDLE TextureSampler, ShadowMapSampler, BiLinearSampler;
+		D3D12_CPU_DESCRIPTOR_HANDLE TextureSampler, ShadowMapSampler, BiLinearSampler, MinSampler;
 
 		// ===============================================================================================================
 
@@ -212,6 +214,13 @@ class RenderSystem
 
 		COMRCPtr<ID3D12Resource> ResolvedDepthBufferTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE ResolvedDepthBufferTextureSRV;
+
+		// ===============================================================================================================
+
+		COMRCPtr<ID3D12Resource> OcclusionBufferTexture, OcclusionBufferTextureReadback[2];
+		D3D12_CPU_DESCRIPTOR_HANDLE OcclusionBufferRTV;
+
+		COMRCPtr<ID3D12PipelineState> OcclusionBufferPipelineState;
 
 		// ===============================================================================================================
 

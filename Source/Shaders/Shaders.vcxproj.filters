@@ -21,6 +21,8 @@
     <None Include="CompileShaders.bat">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="MaterialBase_PixelShader.hlsl" />
+    <None Include="MaterialBase_VertexShader.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="DeferredLighting.hlsl" />
@@ -42,5 +44,6 @@
     <FxCompile Include="HorizontalBlur.hlsl" />
     <FxCompile Include="BrightPass.hlsl" />
     <FxCompile Include="VerticalBlur.hlsl" />
+    <FxCompile Include="OcclusionBuffer.hlsl" />
   </ItemGroup>
 </Project>
