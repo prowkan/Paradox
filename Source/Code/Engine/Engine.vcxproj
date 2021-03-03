@@ -74,25 +74,25 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
-    <IncludePath>$(ProjectDir);C:\VulkanSDK\1.2.162.0\Include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir);C:\VulkanSDK\1.2.162.1\Include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
-    <IncludePath>$(ProjectDir);C:\VulkanSDK\1.2.162.0\Include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir);C:\VulkanSDK\1.2.162.1\Include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
-    <IncludePath>$(ProjectDir);C:\VulkanSDK\1.2.162.0\Include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir);C:\VulkanSDK\1.2.162.1\Include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
-    <IncludePath>$(ProjectDir);C:\VulkanSDK\1.2.162.0\Include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir);C:\VulkanSDK\1.2.162.1\Include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
