@@ -3,9 +3,10 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:wf="clr-namespace:System.Windows.Forms;assembly=System.Windows.Forms"
         xmlns:local="clr-namespace:Editor"
         mc:Ignorable="d"
-        Title="Paradox Engine 1.0 - Level Editor" Height="450" Width="800" WindowState="Maximized" WindowStartupLocation="CenterScreen">
+        Title="Paradox Engine 1.0 - Level Editor" Height="450" Width="800" WindowState="Maximized" WindowStartupLocation="CenterScreen" Closing="Window_Closing" Loaded="Window_Loaded">
     <DockPanel LastChildFill="True">
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="File">
@@ -44,7 +45,11 @@
         </ToolBar>
         <StatusBar DockPanel.Dock="Bottom" Height="32">
 
-        </StatusBar>        
-        <Canvas x:Name="LevelRenderCanvas"/>
+        </StatusBar>
+        <WindowsFormsHost Name="WFHost">
+            <WindowsFormsHost.Child>
+                <wf:Panel Name="LevelRenderPanel"/>
+            </WindowsFormsHost.Child>
+        </WindowsFormsHost>
     </DockPanel>
 </Window>

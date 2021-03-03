@@ -5,8 +5,10 @@
 
 #include <Engine/Engine.h>
 
+bool Application::EditorFlag;
 bool Application::AppExitFlag;
 HWND Application::MainWindowHandle;
+HWND Application::LevelRenderCanvasHandle;
 atomic<bool> Application::ExceptionFlag;
 
 LRESULT CALLBACK Application::MainWindowProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
@@ -131,6 +133,8 @@ LONG WINAPI Application::UnhandledExceptionFilter(_EXCEPTION_POINTERS* Exception
 
 void Application::StartApplication(const char16_t* WindowTitle, HINSTANCE hInstance)
 {
+	Application::EditorFlag = false;
+
 	LPTOP_LEVEL_EXCEPTION_FILTER TopLevelExceptionFilter = SetUnhandledExceptionFilter(&Application::UnhandledExceptionFilter);
 
 	BOOL Result;
@@ -218,6 +222,50 @@ void Application::RunMainLoop()
 		if (GetAsyncKeyState(VK_ESCAPE) & 0x8000)
 			Application::AppExitFlag = true;
 
+		NewTime = GetTickCount64();
+
+		DeltaTime = float(NewTime - CurrentTime) / 1000.0f;
+
+		Engine::GetEngine().TickEngine(DeltaTime);
+
+		CurrentTime = NewTime;
+	}
+}
+
+void Application::EditorStartApplication()
+{
+	Application::EditorFlag = true;
+
+	LPTOP_LEVEL_EXCEPTION_FILTER TopLevelExceptionFilter = SetUnhandledExceptionFilter(&Application::UnhandledExceptionFilter);
+
+	BOOL Result;
+
+	Result = AllocConsole();
+	//Result = SetConsoleTitle((wchar_t*)"");
+	freopen("CONOUT$", "w", stdout);
+
+	Application::AppExitFlag = false;
+	Application::ExceptionFlag.store(false, memory_order::memory_order_seq_cst);
+
+	Engine::GetEngine().InitEngine();
+}
+
+void Application::EditorStopApplication()
+{
+	Engine::GetEngine().ShutdownEngine();
+
+	BOOL Result;
+
+	Result = FreeConsole();
+}
+
+void Application::EditorRunMainLoop()
+{
+	ULONGLONG CurrentTime = GetTickCount64(), NewTime;
+	float DeltaTime;
+
+	while (!Application::AppExitFlag)
+	{
 		NewTime = GetTickCount64();
 
 		DeltaTime = float(NewTime - CurrentTime) / 1000.0f;

@@ -87,11 +87,14 @@ void RenderSystem::InitSystem()
 	SwapChainFullScreenDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER::DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 	SwapChainFullScreenDesc.Windowed = TRUE;
 
+	HWND RenderTargetHandle = !Application::IsEditor() ? Application::GetMainWindowHandle() : Application::GetLevelRenderCanvasHandle();
+
 	COMRCPtr<IDXGISwapChain1> SwapChain1;
-	SAFE_DX(Factory->CreateSwapChainForHwnd(CommandQueue, Application::GetMainWindowHandle(), &SwapChainDesc, &SwapChainFullScreenDesc, nullptr, &SwapChain1));
+	SAFE_DX(Factory->CreateSwapChainForHwnd(CommandQueue, RenderTargetHandle, &SwapChainDesc, &SwapChainFullScreenDesc, nullptr, &SwapChain1));
 	SAFE_DX(SwapChain1->QueryInterface<IDXGISwapChain4>(&SwapChain));
 
-	SAFE_DX(Factory->MakeWindowAssociation(Application::GetMainWindowHandle(), DXGI_MWA_NO_ALT_ENTER));
+	if (!Application::IsEditor())
+		SAFE_DX(Factory->MakeWindowAssociation(RenderTargetHandle, DXGI_MWA_NO_ALT_ENTER));
 
 	delete[] DisplayModes;
 
