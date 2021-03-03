@@ -1,3 +1,6 @@
+// This is an independent project of an individual developer. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+
 #include "Camera.h"
 
 void Camera::InitCamera()
@@ -21,5 +24,7 @@ void Camera::TickCamera(float DeltaTime)
 	ForwardVector = XMVector4Transform(ForwardVector, RotationMatrix);
 	UpVector = XMVector4Transform(UpVector, RotationMatrix);
 
-	ViewProjMatrix = XMMatrixLookToLH(XMVectorSet(CameraLocation.x, CameraLocation.y, CameraLocation.z, 1.0f), ForwardVector, UpVector) * XMMatrixPerspectiveFovLH(3.14f / 2.0f, 16.0f / 9.0f, 0.01f, 1000.0f);
+	ViewMatrix = XMMatrixLookToLH(XMVectorSet(CameraLocation.x, CameraLocation.y, CameraLocation.z, 1.0f), ForwardVector, UpVector);
+	ProjMatrix = XMMatrixPerspectiveFovLH(3.14f / 2.0f, 16.0f / 9.0f, 0.01f, 1000.0f);
+	ViewProjMatrix = ViewMatrix * ProjMatrix;
 }

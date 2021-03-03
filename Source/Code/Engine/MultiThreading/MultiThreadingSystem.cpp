@@ -1,3 +1,6 @@
+// This is an independent project of an individual developer. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+
 #include "MultiThreadingSystem.h"
 
 #include "WorkerThread.h"
@@ -17,7 +20,7 @@ void MultiThreadingSystem::InitSystem()
 	for (UINT i = 0; i < WorkerThreadsCount; i++)
 	{
 		ThreadIndices[i] = i;
-		WorkerThreads[i] = CreateThread(NULL, 0, &WorkerThreadFunc, &ThreadIndices[i], 0, NULL);
+		WorkerThreads[i] = CreateThread(NULL, 0, &WorkerThreadFunc, &ThreadIndices[i], 0, NULL); //-V513
 	}
 }
 

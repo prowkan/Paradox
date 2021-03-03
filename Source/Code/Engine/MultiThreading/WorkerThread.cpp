@@ -1,3 +1,6 @@
+// This is an independent project of an individual developer. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+
 #include "WorkerThread.h"
 
 #include <Engine/Engine.h>
@@ -6,7 +9,7 @@
 
 DWORD WINAPI WorkerThreadFunc(LPVOID lpThreadParameter)
 {
-	const UINT ThreadID = *(UINT*)lpThreadParameter;
+	const UINT ThreadID = *(UINT*)lpThreadParameter; //-V206
 
 	char16_t ThreadName[256];
 	wsprintf((wchar_t*)ThreadName, (const wchar_t*)u"Worker Thread %u", ThreadID + 1);
@@ -28,6 +31,7 @@ DWORD WINAPI WorkerThreadFunc(LPVOID lpThreadParameter)
 		if (TaskQueue.Pop(task))
 		{
 			task->Execute(ThreadID);
+			task->Finish();
 		}
 		else
 		{

@@ -60,9 +60,9 @@ public: \
 \
 static void StaticConstructor(void* Pointer) { new (Pointer) Class(); } \
 \
-static MetaClass* GetMetaClassStatic() { return Class ## StaticMetaClass; }\
+static MetaClass* GetMetaClassStatic() { return Class ## StaticMetaClass; } \
 \
-static void InitMetaClass() { Class ## StaticMetaClass = new MetaClass(&CallObjectConstructor<Class>, sizeof(Class), # Class, BaseClass::GetMetaClassStatic()); }\
+static void InitMetaClass() { Class ## StaticMetaClass = new MetaClass(&CallObjectConstructor<Class>, sizeof(Class), # Class, BaseClass::GetMetaClassStatic()); } \
 \
 private: \
 \

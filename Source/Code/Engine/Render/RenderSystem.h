@@ -22,10 +22,10 @@ struct RenderMaterial
 
 struct RenderMeshCreateInfo
 {
-	UINT VertexCount;
 	void *VertexData;
-	UINT IndexCount;
 	void *IndexData;
+	UINT VertexCount;
+	UINT IndexCount;
 };
 
 struct RenderTextureCreateInfo
@@ -39,10 +39,10 @@ struct RenderTextureCreateInfo
 
 struct RenderMaterialCreateInfo
 {
-	UINT VertexShaderByteCodeLength;
 	void *VertexShaderByteCodeData;
-	UINT PixelShaderByteCodeLength;
 	void *PixelShaderByteCodeData;
+	size_t VertexShaderByteCodeLength;
+	size_t PixelShaderByteCodeLength;
 };
 
 struct Vertex

@@ -7,7 +7,7 @@ class Pool
 		void CreatePool(const size_t ObjectSize, const size_t MaxObjectsInPool);
 		void DestroyPool();
 
-		void *AllocateObject();
+		void* AllocateObject();
 
 	private:
 
