@@ -46,6 +46,12 @@
         <StatusBar DockPanel.Dock="Bottom" Height="32">
 
         </StatusBar>
+        <StackPanel DockPanel.Dock="Left" Width="300">
+            
+        </StackPanel>
+        <StackPanel DockPanel.Dock="Right" Width="300">
+
+        </StackPanel>
         <WindowsFormsHost Name="WFHost">
             <WindowsFormsHost.Child>
                 <wf:Panel Name="LevelRenderPanel"/>
