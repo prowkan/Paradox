@@ -38,3 +38,5 @@
 
 using namespace std;
 using namespace DirectX;
+
+#define WITH_EDITOR 1

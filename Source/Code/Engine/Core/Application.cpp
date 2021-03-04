@@ -232,11 +232,12 @@ void Application::RunMainLoop()
 	}
 }
 
+#if WITH_EDITOR
 void Application::EditorStartApplication()
 {
 	Application::EditorFlag = true;
 
-	LPTOP_LEVEL_EXCEPTION_FILTER TopLevelExceptionFilter = SetUnhandledExceptionFilter(&Application::UnhandledExceptionFilter);
+	//LPTOP_LEVEL_EXCEPTION_FILTER TopLevelExceptionFilter = SetUnhandledExceptionFilter(&Application::UnhandledExceptionFilter);
 
 	/*BOOL Result;
 
@@ -245,7 +246,7 @@ void Application::EditorStartApplication()
 	freopen("CONOUT$", "w", stdout);*/
 
 	Application::AppExitFlag = false;
-	Application::ExceptionFlag.store(false, memory_order::memory_order_seq_cst);
+	//Application::ExceptionFlag.store(false, memory_order::memory_order_seq_cst);
 
 	Engine::GetEngine().InitEngine();
 }
@@ -275,3 +276,4 @@ void Application::EditorRunMainLoop()
 		CurrentTime = NewTime;
 	}
 }
+#endif
