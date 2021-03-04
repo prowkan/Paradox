@@ -238,11 +238,11 @@ void Application::EditorStartApplication()
 
 	LPTOP_LEVEL_EXCEPTION_FILTER TopLevelExceptionFilter = SetUnhandledExceptionFilter(&Application::UnhandledExceptionFilter);
 
-	BOOL Result;
+	/*BOOL Result;
 
 	Result = AllocConsole();
 	//Result = SetConsoleTitle((wchar_t*)"");
-	freopen("CONOUT$", "w", stdout);
+	freopen("CONOUT$", "w", stdout);*/
 
 	Application::AppExitFlag = false;
 	Application::ExceptionFlag.store(false, memory_order::memory_order_seq_cst);
@@ -254,9 +254,9 @@ void Application::EditorStopApplication()
 {
 	Engine::GetEngine().ShutdownEngine();
 
-	BOOL Result;
+	/*BOOL Result;
 
-	Result = FreeConsole();
+	Result = FreeConsole();*/
 }
 
 void Application::EditorRunMainLoop()
