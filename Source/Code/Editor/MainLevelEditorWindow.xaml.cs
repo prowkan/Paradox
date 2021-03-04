@@ -24,22 +24,7 @@ namespace Editor
     /// </summary>
     public partial class MainLevelEditorWindow : Window
     {
-        [DllImport("EditorEngine.NET.dll")]
-        static extern void StartApplication();
-
-        [DllImport("EditorEngine.NET.dll")]
-        static extern void StopApplication();
-
-        [DllImport("EditorEngine.NET.dll")]
-        static extern void RunMainLoop();
-
-        [DllImport("EditorEngine.NET.dll")]
-        static extern void SetLevelRenderCanvasHandle(IntPtr LevelRenderCanvasHandle);
-
-        [DllImport("EditorEngine.NET.dll")]
-        static extern void SetAppExitFlag(bool Value);
-
-        private IntPtr LevelRenderCanvasHandle;
+        EditorEngine editorEngine;
 
         public MainLevelEditorWindow()
         {
@@ -48,26 +33,13 @@ namespace Editor
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            MainLevelEditorWindow.SetAppExitFlag(true);
+            editorEngine.StopEditorEngine();
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            LevelRenderCanvasHandle = this.WFHost.Child.Handle;
-
-            Thread EngineThread = new Thread(new ThreadStart(() =>
-            {
-                MainLevelEditorWindow.SetLevelRenderCanvasHandle(LevelRenderCanvasHandle);
-
-                MainLevelEditorWindow.StartApplication();
-
-                MainLevelEditorWindow.RunMainLoop();
-
-                MainLevelEditorWindow.StopApplication();
-
-            }));
-
-            EngineThread.Start();
+            editorEngine = new EditorEngine(this.WFHost.Child.Handle);
+            editorEngine.StartEditorEngine();
         }
     }
 }
