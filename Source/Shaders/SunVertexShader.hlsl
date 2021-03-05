@@ -21,7 +21,10 @@ struct VSConstants
 	float3 SunPosition;
 };
 
-ConstantBuffer<VSConstants> VertexShaderConstants : register(b0);
+cbuffer cb0 : register(b0)
+{
+	VSConstants VertexShaderConstants;
+};
 
 VSOutput VS(VSInput VertexShaderInput)
 {

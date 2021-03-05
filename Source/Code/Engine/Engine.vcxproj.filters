@@ -126,6 +126,9 @@
     <ClInclude Include="Render\ClusterizationSubSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="MemoryManager\Stack.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="MemoryManager\ScopedMemoryBlockBase.h">
       <Filter>Header Files</Filter>
     </ClInclude>

@@ -9,7 +9,10 @@ struct PSConstants
 	float4x4 ReProjMatrices[4];
 };
 
-ConstantBuffer<PSConstants> PixelShaderConstants : register(b0);
+cbuffer cb0 : register(b0)
+{
+	PSConstants PixelShaderConstants;
+};
 
 Texture2D<float> DepthBufferTexture : register(t0);
 Texture2D<float> CascadedShadowMaps[4] : register(t1);

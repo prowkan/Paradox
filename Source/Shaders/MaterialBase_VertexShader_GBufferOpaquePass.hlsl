@@ -24,7 +24,10 @@ struct VSConstants
 	float3x3 VectorTransformMatrix;
 };
 
-ConstantBuffer<VSConstants> VertexShaderConstants : register(b0);
+cbuffer cb0 : register(b0)
+{
+	VSConstants VertexShaderConstants;
+};
 
 VSOutput VS(VSInput VertexShaderInput)
 {

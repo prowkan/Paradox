@@ -18,7 +18,10 @@ struct PointLight
 	float Brightness;
 };
 
-ConstantBuffer<PSConstants> PixelShaderConstants : register(b0);
+cbuffer cb0 : register(b0)
+{
+	PSConstants PixelShaderConstants;
+};
 
 Texture2DMS<float4> GBufferTexture0 : register(t0);
 Texture2DMS<float4> GBufferTexture1 : register(t1);

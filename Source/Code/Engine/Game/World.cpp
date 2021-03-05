@@ -655,6 +655,11 @@ void World::UnLoadWorld()
 	Engine::GetEngine().GetResourceManager().DestroyAllResources();
 }
 
+void World::TickWorld(float DeltaTime)
+{
+
+}
+
 Entity* World::SpawnEntity(MetaClass* metaClass)
 {
 	void *entityPtr = Engine::GetEngine().GetMemoryManager().AllocateEntity(metaClass);
@@ -665,10 +670,4 @@ Entity* World::SpawnEntity(MetaClass* metaClass)
 	entity->InitDefaultProperties();
 	Entities.push_back(entity);
 	return entity;
-}
-
-
-void World::TickWorld(float DeltaTime)
-{
-
 }

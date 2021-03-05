@@ -176,6 +176,7 @@
     <FxCompile Include="MaterialBase_PixelShader_GBufferOpaquePass.hlsl" />
     <FxCompile Include="MaterialBase_VertexShader_GBufferOpaquePass.hlsl" />
     <FxCompile Include="MaterialBase_VertexShader_ShadowMapPass.hlsl" />
+    <FxCompile Include="MSAADepthResolve.hlsl" />
     <FxCompile Include="ShadowResolve.hlsl" />
     <FxCompile Include="SkyPixelShader.hlsl" />
     <FxCompile Include="SkyVertexShader.hlsl" />
