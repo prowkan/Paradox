@@ -9,7 +9,7 @@
 void InputSystem::InitSystem()
 {
 #if WITH_EDITOR
-	if (Application::IsEditor())
+	if (!Application::IsEditor())
 #endif
 	{
 		RECT WindowRect;
@@ -50,7 +50,7 @@ void InputSystem::TickSystem(float DeltaTime)
 	CameraRotation.y += MouseSensetivity * (CurrentCursorPosition.x - PreviousCursorPosition.x) * DeltaTime;
 
 #if WITH_EDITOR
-	if (Application::IsEditor())
+	if (!Application::IsEditor())
 #endif
 	{
 		RECT WindowRect;
