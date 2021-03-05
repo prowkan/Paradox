@@ -39,6 +39,8 @@ namespace Editor
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             editorEngine = new EditorEngine(this.WFHost.Child.Handle);
+            editorEngine.EditorViewportWidth = (uint)this.WFHost.Child.Width;
+            editorEngine.EditorViewportHeight = (uint)this.WFHost.Child.Height;
             editorEngine.StartEditorEngine();
         }
     }

@@ -2,6 +2,7 @@
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 
 #include <../Engine/Core/Application.h>
+#include <../Engine/Engine/Engine.h>
 
 extern "C" __declspec(dllexport) void StartApplication()
 {
@@ -26,4 +27,9 @@ extern "C" __declspec(dllexport) void SetLevelRenderCanvasHandle(HWND LevelRende
 extern "C" __declspec(dllexport) void SetAppExitFlag(bool Value)
 {
 	Application::SetAppExitFlag(Value);
+}
+
+extern "C" __declspec(dllexport) void SetEditorViewportSize(UINT Width, UINT Height)
+{
+	Engine::GetEngine().GetRenderSystem().SetEditorViewportSize(Width, Height);
 }

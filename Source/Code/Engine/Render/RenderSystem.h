@@ -130,6 +130,14 @@ class RenderSystem
 		void DestroyRenderTexture(RenderTexture* renderTexture);
 		void DestroyRenderMaterial(RenderMaterial* renderMaterial);
 
+#if WITH_EDITOR
+		void SetEditorViewportSize(const UINT Width, const UINT Height)
+		{
+			EditorViewportWidth = Width;
+			EditorViewportHeight = Height;
+		}
+#endif
+
 	private:
 
 		COMRCPtr<ID3D12Device> Device;
@@ -137,6 +145,11 @@ class RenderSystem
 
 		int ResolutionWidth;
 		int ResolutionHeight;
+
+#if WITH_EDITOR
+		UINT EditorViewportWidth;
+		UINT EditorViewportHeight;
+#endif
 
 		COMRCPtr<ID3D12CommandQueue> CommandQueue;
 		COMRCPtr<ID3D12CommandAllocator> CommandAllocators[2];

@@ -47,8 +47,18 @@ void RenderSystem::InitSystem()
 	/*ResolutionWidth = DisplayModes[(size_t)DisplayModesCount - 1].Width;
 	ResolutionHeight = DisplayModes[(size_t)DisplayModesCount - 1].Height;*/
 
-	ResolutionWidth = 1280;
-	ResolutionHeight = 720;
+#if WITH_EDITOR
+	if (Application::IsEditor())
+	{
+		ResolutionWidth = EditorViewportWidth;
+		ResolutionHeight = EditorViewportHeight;
+	}
+	else
+#endif
+	{
+		ResolutionWidth = 1280;
+		ResolutionHeight = 720;
+	}
 
 	SAFE_DX(D3D12CreateDevice(Adapter, D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_11_0, UUIDOF(Device)));
 
@@ -426,6 +436,13 @@ void RenderSystem::ShutdownSystem()
 
 void RenderSystem::TickSystem(float DeltaTime)
 {
+#if WITH_EDITOR
+	if (Application::IsEditor())
+	{
+		Engine::GetEngine().GetGameFramework().GetCamera().SetAspectRatio((float)EditorViewportWidth / (float)EditorViewportHeight);
+	}
+#endif
+
 	if (FrameSyncFences[CurrentFrameIndex]->GetCompletedValue() != 1)
 	{
 		SAFE_DX(FrameSyncFences[CurrentFrameIndex]->SetEventOnCompletion(1, FrameSyncEvent));

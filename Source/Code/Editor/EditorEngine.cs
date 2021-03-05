@@ -11,22 +11,26 @@ namespace Editor
     class EditorEngine
     {
         [DllImport("EditorEngine.NET.dll")]
-        static extern void StartApplication();
+        private static extern void StartApplication();
 
         [DllImport("EditorEngine.NET.dll")]
-        static extern void StopApplication();
+        private static extern void StopApplication();
 
         [DllImport("EditorEngine.NET.dll")]
-        static extern void RunMainLoop();
+        private static extern void RunMainLoop();
 
         [DllImport("EditorEngine.NET.dll")]
-        static extern void SetLevelRenderCanvasHandle(IntPtr LevelRenderCanvasHandle);
+        private static extern void SetLevelRenderCanvasHandle(IntPtr LevelRenderCanvasHandle);
 
         [DllImport("EditorEngine.NET.dll")]
-        static extern void SetAppExitFlag(bool Value);
+        private static extern void SetAppExitFlag(bool Value);
+
+        [DllImport("EditorEngine.NET.dll")]
+        private static extern void SetEditorViewportSize(uint Width, uint Height);
 
         private IntPtr LevelRenderCanvasHandle;
         private Thread EngineThread;
+        public uint EditorViewportWidth, EditorViewportHeight;
 
         public EditorEngine(IntPtr NewLevelRenderCanvasHandle)
         {
@@ -36,6 +40,7 @@ namespace Editor
         private void EditorEngineThreadFunc()
         {
             SetLevelRenderCanvasHandle(LevelRenderCanvasHandle);
+            SetEditorViewportSize(EditorViewportWidth, EditorViewportHeight);
             StartApplication();
             RunMainLoop();
             StopApplication();
