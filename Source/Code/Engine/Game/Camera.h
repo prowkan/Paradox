@@ -18,6 +18,9 @@ class Camera
 		XMFLOAT3 GetCameraRotation() { return CameraRotation; }
 		void SetCameraRotation(const XMFLOAT3& NewCameraRotation) { CameraRotation = NewCameraRotation; }
 
+		void SetFOV(const float NewFOV) { FOV = NewFOV; }
+		void SetAspectRatio(const float NewAspectRatio) { AspectRatio = NewAspectRatio; }
+
 	private:
 
 		XMFLOAT3 CameraLocation;
@@ -26,4 +29,7 @@ class Camera
 		XMMATRIX ViewMatrix;
 		XMMATRIX ProjMatrix;
 		XMMATRIX ViewProjMatrix;
+
+		float FOV;
+		float AspectRatio;
 };
