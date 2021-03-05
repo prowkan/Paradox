@@ -18,7 +18,7 @@ class DynamicArray
 			ArrayLength = OtherArray.ArrayLength;
 			ArrayCapacity = OtherArray.ArrayCapacity;
 
-			ArrayData = new T[ArrayCapacity];
+			ArrayData = (T*)malloc(sizeof(T) * ArrayCapacity);
 
 			for (int i = 0; i < ArrayLength; i++)
 			{
@@ -28,7 +28,12 @@ class DynamicArray
 
 		~DynamicArray()
 		{
-			delete[] ArrayData;
+			for (int i = 0; i < ArrayLength; i++)
+			{
+				ArrayData[i].~T();
+			}
+
+			free(ArrayData);
 		}
 
 		void Add(const T& Element)
@@ -39,18 +44,20 @@ class DynamicArray
 
 				ArrayCapacity++;
 
-				ArrayData = new T[ArrayCapacity];
+				ArrayData = (T*)malloc(sizeof(T) * ArrayCapacity);
 
 				for (size_t i = 0; i < ArrayLength; i++)
 				{
 					ArrayData[i] = OldArrayData[i];
+					OldArrayData[i].~T();
 				}
 
 				ArrayData[ArrayLength] = Element;
 
+				free(OldArrayData);
+
 				ArrayLength++;
 
-				delete[] OldArrayData;
 			}
 			else
 			{
@@ -62,6 +69,8 @@ class DynamicArray
 
 		void Remove(size_t Index)
 		{
+			ArrayData[Index].~T();
+
 			for (size_t i = Index; i < ArrayLength - 1; i++)
 			{
 				ArrayData[i] = ArrayData[i + 1];
@@ -74,11 +83,12 @@ class DynamicArray
 
 			ArrayCapacity += OtherArray.ArrayCapacity;
 
-			ArrayData = new T[ArrayCapacity];
+			ArrayData = (T*)malloc(sizeof(T) * ArrayCapacity);
 
 			for (int i = 0; i < ArrayLength; i++)
 			{
 				ArrayData[i] = OldArrayData[i];
+				OldArrayData[i].~T();
 			}
 
 			for (int i = 0; i < OtherArray.ArrayLength; i++)
@@ -88,7 +98,7 @@ class DynamicArray
 
 			ArrayLength += OtherArray.ArrayLength;
 
-			delete[] OldArrayData;
+			free(OldArrayData);
 		}
 
 		T& operator[](size_t Index)
