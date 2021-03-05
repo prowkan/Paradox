@@ -32,18 +32,18 @@ void RenderSystem::InitSystem()
 		renderDevice = new RenderDeviceDX11();
 	}
 
-	renderDevice->InitSystem();
+	renderDevice->InitDevice();
 }
 
 void RenderSystem::ShutdownSystem()
 {
-	renderDevice->ShutdownSystem();
+	renderDevice->ShutdownDevice();
 	delete renderDevice;
 }
 
 void RenderSystem::TickSystem(float DeltaTime)
 {
-	renderDevice->TickSystem(DeltaTime);
+	renderDevice->TickDevice(DeltaTime);
 }
 
 RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMeshCreateInfo)

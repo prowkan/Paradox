@@ -79,7 +79,7 @@ bool FrustumCullingTask::CullBoxVsFrustum(const XMVECTOR* BoundingBoxVertices, c
 		TransformedBoundingBoxVertices[i].vector4_f32[1] = -72.0f * TransformedBoundingBoxVertices[i].vector4_f32[1] + 72.0f;
 	}
 
-	float *OcclusionBufferData = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetOcclusionBufferData();
+	float *OcclusionBufferData = Engine::GetEngine().GetRenderSystem().GetRenderDevice()->GetCullingSubSystem().GetOcclusionBufferData();
 
 	static WORD BBIndices[36] =
 	{

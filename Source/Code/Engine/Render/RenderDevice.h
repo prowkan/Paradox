@@ -1,17 +1,22 @@
 #pragma once
 
+#include "CullingSubSystem.h"
+#include "ClusterizationSubSystem.h"
+
 struct RenderMesh {};
 
 struct RenderTexture {};
 
 struct RenderMaterial {};
 
+enum class BlockCompression { BC1, BC2, BC3, BC4, BC5 };
+
 struct RenderMeshCreateInfo
 {
-	UINT VertexCount;
 	void *VertexData;
-	UINT IndexCount;
 	void *IndexData;
+	UINT VertexCount;
+	UINT IndexCount;
 };
 
 struct RenderTextureCreateInfo
@@ -20,21 +25,29 @@ struct RenderTextureCreateInfo
 	UINT MIPLevels;
 	BOOL SRGB;
 	BOOL Compressed;
+	BlockCompression CompressionType;
 	BYTE *TexelData;
 };
 
 struct RenderMaterialCreateInfo
 {
-	UINT VertexShaderByteCodeLength;
-	void *VertexShaderByteCodeData;
-	UINT PixelShaderByteCodeLength;
-	void *PixelShaderByteCodeData;
+	void *GBufferOpaquePassVertexShaderByteCodeData;
+	void *GBufferOpaquePassPixelShaderByteCodeData;
+	size_t GBufferOpaquePassVertexShaderByteCodeLength;
+	size_t GBufferOpaquePassPixelShaderByteCodeLength;
+	void *ShadowMapPassVertexShaderByteCodeData;
+	void *ShadowMapPassPixelShaderByteCodeData;
+	size_t ShadowMapPassVertexShaderByteCodeLength;
+	size_t ShadowMapPassPixelShaderByteCodeLength;
 };
 
 struct Vertex
 {
 	XMFLOAT3 Position;
 	XMFLOAT2 TexCoord;
+	XMFLOAT3 Normal;
+	XMFLOAT3 Tangent;
+	XMFLOAT3 Binormal;
 };
 
 struct Texel
@@ -42,10 +55,61 @@ struct Texel
 	BYTE R, G, B, A;
 };
 
-struct CompressedTexelBlock
+struct CompressedTexelBlockBC1
 {
 	uint16_t Colors[2];
 	uint8_t Texels[4];
+};
+
+struct CompressedTexelBlockBC5
+{
+	uint8_t Red[2];
+	uint8_t RedIndices[6];
+	uint8_t Green[2];
+	uint8_t GreenIndices[6];
+};
+
+struct PointLight
+{
+	XMFLOAT3 Position;
+	float Radius;
+	XMFLOAT3 Color;
+	float Brightness;
+};
+
+struct GBufferOpaquePassConstantBufferStruct
+{
+	XMMATRIX WVPMatrix;
+	XMMATRIX WorldMatrix;
+	XMFLOAT3X4 VectorTransformMatrix;
+};
+
+struct ShadowMapPassConstantBufferStruct
+{
+	XMMATRIX WVPMatrix;
+};
+
+struct ShadowResolveConstantBufferStruct
+{
+	XMMATRIX ReProjMatrices[4];
+};
+
+struct DeferredLightingConstantBufferStruct
+{
+	XMMATRIX InvViewProjMatrix;
+	XMFLOAT3 CameraWorldPosition;
+};
+
+struct SkyConstantBufferStruct
+{
+	XMMATRIX WVPMatrix;
+};
+
+struct SunConstantBufferStruct
+{
+	XMMATRIX ViewMatrix;
+	XMMATRIX ProjMatrix;
+	XMFLOAT3 SunPosition;
 };
 
 struct Color
@@ -105,9 +169,9 @@ class RenderDevice
 {
 	public:
 
-		virtual void InitSystem() = 0;
-		virtual void ShutdownSystem() = 0;
-		virtual void TickSystem(float DeltaTime) = 0;
+		virtual void InitDevice() = 0;
+		virtual void ShutdownDevice() = 0;
+		virtual void TickDevice(float DeltaTime) = 0;
 
 		virtual RenderMesh* CreateRenderMesh(const RenderMeshCreateInfo& renderMeshCreateInfo) = 0;
 		virtual RenderTexture* CreateRenderTexture(const RenderTextureCreateInfo& renderTextureCreateInfo) = 0;
@@ -118,6 +182,18 @@ class RenderDevice
 		virtual void DestroyRenderMaterial(RenderMaterial* renderMaterial) = 0;
 
 		virtual DirectXVersion GetDirectXVersion() = 0;
+
+		CullingSubSystem& GetCullingSubSystem() { return cullingSubSystem; }
+
+	protected:
+
+		int ResolutionWidth;
+		int ResolutionHeight;
+
+		CullingSubSystem cullingSubSystem;
+		ClusterizationSubSystem clusterizationSubSystem;
+
+		static const UINT MAX_MIP_LEVELS_IN_TEXTURE = 16;
 
 	private:
 };
