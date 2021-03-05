@@ -8,7 +8,30 @@
 
 void RenderSystem::InitSystem()
 {
-	renderDevice = new RenderDeviceDX12();
+	int CommandLineArgsCount;
+	LPWSTR CommandLine = GetCommandLineW();
+	LPWSTR *CommandLineArgs = CommandLineToArgvW(CommandLine, &CommandLineArgsCount);
+
+	bool UseDirectX12 = false;
+
+	for (int i = 0; i < CommandLineArgsCount; i++)
+	{
+		if (wcscmp(CommandLineArgs[i], (const wchar_t*)u"-DX12") == 0)
+		{
+			UseDirectX12 = true;
+			break;
+		}
+	}
+
+	if (UseDirectX12)
+	{
+		renderDevice = new RenderDeviceDX12();
+	}
+	else
+	{
+		renderDevice = new RenderDeviceDX11();
+	}
+
 	renderDevice->InitSystem();
 }
 

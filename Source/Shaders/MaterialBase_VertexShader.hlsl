@@ -15,7 +15,12 @@ struct VSConstants
 	float4x4 WVPMatrix;
 };
 
-ConstantBuffer<VSConstants> VertexShaderConstants : register(b0);
+//ConstantBuffer<VSConstants> VertexShaderConstants : register(b0);
+
+cbuffer cb0 : register(b0)
+{
+	VSConstants VertexShaderConstants;
+};
 
 VSOutput VS(VSInput VertexShaderInput)
 {
