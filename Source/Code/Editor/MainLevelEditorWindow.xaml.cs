@@ -107,9 +107,34 @@ namespace Editor
             }
         }
 
+        private bool bForward, bBackward, bLeft, bRight;
+
+        private void WFHost_KeyUp(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == Key.W) bForward = false;
+            if (e.Key == Key.S) bBackward = false;
+            if (e.Key == Key.A) bLeft = false;
+            if (e.Key == Key.D) bRight = false;           
+        }
+
+        private void WFHost_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == Key.W) bForward = true;
+            if (e.Key == Key.S) bBackward = true;
+            if (e.Key == Key.A) bLeft = true;
+            if (e.Key == Key.D) bRight = true;
+
+            EditorEngine.MoveCamera(bForward, bBackward, bLeft, bRight);
+        }
+
         private void LevelRenderPanel_KeyDown(object sender, System.Windows.Forms.KeyEventArgs e)
         {
+            
+        }
 
+        private void LevelRenderPanel_KeyUp(object sender, System.Windows.Forms.KeyEventArgs e)
+        {
+            
         }
     }
 }
