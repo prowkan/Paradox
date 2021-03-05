@@ -155,13 +155,13 @@ class RenderSystem
 
 	private:
 
-		COMRCPtr<ID3D11Device> Device;
+		COMRCPtr<ID3D11Device1> Device;
 		COMRCPtr<IDXGISwapChain4> SwapChain;
 
 		int ResolutionWidth;
 		int ResolutionHeight;
 
-		COMRCPtr<ID3D11DeviceContext> DeviceContext;
+		COMRCPtr<ID3D11DeviceContext1> DeviceContext;
 
 		COMRCPtr<ID3D11Texture2D> BackBufferTexture;
 		COMRCPtr<ID3D11RenderTargetView> BackBufferTextureRTV;

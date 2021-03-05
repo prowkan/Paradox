@@ -96,7 +96,13 @@ void RenderSystem::InitSystem()
 
 	D3D_FEATURE_LEVEL FeatureLevel = D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_11_0;
 
-	SAFE_DX(D3D11CreateDevice(Adapter, D3D_DRIVER_TYPE::D3D_DRIVER_TYPE_UNKNOWN, NULL, DeviceCreationFlags, &FeatureLevel, 1, D3D11_SDK_VERSION, &Device, nullptr, &DeviceContext));
+	COMRCPtr<ID3D11Device> Device110;
+	COMRCPtr<ID3D11DeviceContext> DeviceContext110;
+
+	SAFE_DX(D3D11CreateDevice(Adapter, D3D_DRIVER_TYPE::D3D_DRIVER_TYPE_UNKNOWN, NULL, DeviceCreationFlags, &FeatureLevel, 1, D3D11_SDK_VERSION, &Device110, nullptr, &DeviceContext110));
+
+	SAFE_DX(Device110->QueryInterface<ID3D11Device1>(&Device));
+	SAFE_DX(DeviceContext110->QueryInterface<ID3D11DeviceContext1>(&DeviceContext));
 
 	DXGI_SWAP_CHAIN_DESC1 SwapChainDesc;
 	SwapChainDesc.AlphaMode = DXGI_ALPHA_MODE::DXGI_ALPHA_MODE_UNSPECIFIED;
@@ -218,7 +224,7 @@ void RenderSystem::InitSystem()
 
 		D3D11_BUFFER_DESC BufferDesc;
 		BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_CONSTANT_BUFFER;
-		BufferDesc.ByteWidth = 256;
+		BufferDesc.ByteWidth = 256 * 20000;
 		BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_WRITE;
 		BufferDesc.MiscFlags = 0;
 		BufferDesc.StructureByteStride = 0;
@@ -366,7 +372,7 @@ void RenderSystem::InitSystem()
 
 		D3D11_BUFFER_DESC BufferDesc;
 		BufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_CONSTANT_BUFFER;
-		BufferDesc.ByteWidth = 256;
+		BufferDesc.ByteWidth = 256 * 20000;
 		BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_WRITE;
 		BufferDesc.MiscFlags = 0;
 		BufferDesc.StructureByteStride = 0;
@@ -1329,21 +1335,14 @@ void RenderSystem::TickSystem(float DeltaTime)
 		DeviceContext->ClearRenderTargetView(GBufferTexturesRTVs[1], ClearColor);
 		DeviceContext->ClearDepthStencilView(DepthBufferTextureDSV, D3D11_CLEAR_FLAG::D3D11_CLEAR_DEPTH | D3D11_CLEAR_FLAG::D3D11_CLEAR_STENCIL, 0.0f, 0);
 
+		D3D11_MAPPED_SUBRESOURCE MappedSubResource;
+
+		SAFE_DX(DeviceContext->Map(ConstantBuffer, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, 0, &MappedSubResource));
+
+		SIZE_T ConstantBufferOffset = 0;
+
 		for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
 		{
-			StaticMeshComponent *staticMeshComponent = VisbleStaticMeshComponents[k];
-
-			RenderMesh *renderMesh = staticMeshComponent->GetStaticMesh()->GetRenderMesh();
-			RenderMaterial *renderMaterial = staticMeshComponent->GetMaterial()->GetRenderMaterial();
-			RenderTexture *renderTexture0 = staticMeshComponent->GetMaterial()->GetTexture(0)->GetRenderTexture();
-			RenderTexture *renderTexture1 = staticMeshComponent->GetMaterial()->GetTexture(1)->GetRenderTexture();
-
-			ID3D11ShaderResourceView *TexturesSRVs[2] =
-			{
-				renderTexture0->TextureSRV,
-				renderTexture1->TextureSRV
-			};
-
 			XMMATRIX WorldMatrix = VisbleStaticMeshComponents[k]->GetTransformComponent()->GetTransformMatrix();
 			XMMATRIX WVPMatrix = WorldMatrix * ViewProjMatrix;
 			XMFLOAT3X4 VectorTransformMatrix;
@@ -1369,18 +1368,34 @@ void RenderSystem::TickSystem(float DeltaTime)
 			VectorTransformMatrix.m[1][3] = 0.0f;
 			VectorTransformMatrix.m[2][3] = 0.0f;
 
-			D3D11_MAPPED_SUBRESOURCE MappedSubResource;
-
-			SAFE_DX(DeviceContext->Map(ConstantBuffer, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, 0, &MappedSubResource));
-
-			GBufferOpaquePassConstantBufferStruct& ConstantBufferRef = *(GBufferOpaquePassConstantBufferStruct*)MappedSubResource.pData;
+			GBufferOpaquePassConstantBufferStruct& ConstantBufferRef = *(GBufferOpaquePassConstantBufferStruct*)((BYTE*)MappedSubResource.pData + ConstantBufferOffset);
 
 			ConstantBufferRef.WVPMatrix = WVPMatrix;
 			ConstantBufferRef.WorldMatrix = WorldMatrix;
 			ConstantBufferRef.VectorTransformMatrix = VectorTransformMatrix;
 
-			DeviceContext->Unmap(ConstantBuffer, 0);
+			ConstantBufferOffset += 256;
+		}
 
+		DeviceContext->Unmap(ConstantBuffer, 0);
+
+		UINT FirstConstant = 0, NumConstants = 16;
+
+		for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
+		{
+			StaticMeshComponent *staticMeshComponent = VisbleStaticMeshComponents[k];
+
+			RenderMesh *renderMesh = staticMeshComponent->GetStaticMesh()->GetRenderMesh();
+			RenderMaterial *renderMaterial = staticMeshComponent->GetMaterial()->GetRenderMaterial();
+			RenderTexture *renderTexture0 = staticMeshComponent->GetMaterial()->GetTexture(0)->GetRenderTexture();
+			RenderTexture *renderTexture1 = staticMeshComponent->GetMaterial()->GetTexture(1)->GetRenderTexture();
+
+			ID3D11ShaderResourceView *TexturesSRVs[2] =
+			{
+				renderTexture0->TextureSRV,
+				renderTexture1->TextureSRV
+			};
+			
 			UINT Stride = sizeof(Vertex), Offset = 0;
 
 			DeviceContext->IASetVertexBuffers(0, 1, &renderMesh->VertexBuffer, &Stride, &Offset);
@@ -1389,8 +1404,10 @@ void RenderSystem::TickSystem(float DeltaTime)
 			DeviceContext->VSSetShader(renderMaterial->GBufferOpaquePassVertexShader, nullptr, 0);
 			DeviceContext->PSSetShader(renderMaterial->GBufferOpaquePassPixelShader, nullptr, 0);
 
-			DeviceContext->VSSetConstantBuffers(0, 1, &ConstantBuffer);
+			DeviceContext->VSSetConstantBuffers1(0, 1, &ConstantBuffer, &FirstConstant, &NumConstants);
 			DeviceContext->PSSetShaderResources(0, 2, TexturesSRVs);
+
+			FirstConstant += 16;
 
 			DeviceContext->DrawIndexed(8 * 8 * 6 * 6, 0, 0);
 		}
@@ -1475,8 +1492,6 @@ void RenderSystem::TickSystem(float DeltaTime)
 	{
 		for (int i = 0; i < 4; i++)
 		{
-			SIZE_T ConstantBufferOffset = 0;
-
 			vector<StaticMeshComponent*> AllStaticMeshComponents = Engine::GetEngine().GetGameFramework().GetWorld().GetRenderScene().GetStaticMeshComponents();
 			vector<StaticMeshComponent*> VisbleStaticMeshComponents = cullingSubSystem.GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ShadowViewProjMatrices[i], false);
 			size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.size();
@@ -1502,6 +1517,12 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			DeviceContext->ClearDepthStencilView(CascadedShadowMapTexturesDSVs[i], D3D11_CLEAR_FLAG::D3D11_CLEAR_DEPTH, 1.0f, 0);
 
+			SIZE_T ConstantBufferOffset = 0;
+
+			D3D11_MAPPED_SUBRESOURCE MappedSubResource;
+
+			SAFE_DX(DeviceContext->Map(ConstantBuffers[i], 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, 0, &MappedSubResource)); 
+			
 			for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
 			{
 				StaticMeshComponent *staticMeshComponent = VisbleStaticMeshComponents[k];
@@ -1514,15 +1535,27 @@ void RenderSystem::TickSystem(float DeltaTime)
 				XMMATRIX WorldMatrix = VisbleStaticMeshComponents[k]->GetTransformComponent()->GetTransformMatrix();
 				XMMATRIX WVPMatrix = WorldMatrix * ShadowViewProjMatrices[i];
 
-				D3D11_MAPPED_SUBRESOURCE MappedSubResource;
-
-				SAFE_DX(DeviceContext->Map(ConstantBuffers[i], 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, 0, &MappedSubResource));
-
-				ShadowMapPassConstantBufferStruct& ConstantBufferRef = *(ShadowMapPassConstantBufferStruct*)MappedSubResource.pData;
+				ShadowMapPassConstantBufferStruct& ConstantBufferRef = *(ShadowMapPassConstantBufferStruct*)((BYTE*)MappedSubResource.pData + ConstantBufferOffset);
 
 				ConstantBufferRef.WVPMatrix = WVPMatrix;
 
-				DeviceContext->Unmap(ConstantBuffers[i], 0);
+				ConstantBufferOffset += 256;
+			}
+
+			DeviceContext->Unmap(ConstantBuffers[i], 0);
+
+			UINT FirstConstant = 0, NumConstants = 16;
+
+			for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
+			{
+				StaticMeshComponent *staticMeshComponent = VisbleStaticMeshComponents[k];
+
+				RenderMesh *renderMesh = staticMeshComponent->GetStaticMesh()->GetRenderMesh();
+				RenderMaterial *renderMaterial = staticMeshComponent->GetMaterial()->GetRenderMaterial();
+				RenderTexture *renderTexture0 = staticMeshComponent->GetMaterial()->GetTexture(0)->GetRenderTexture();
+				RenderTexture *renderTexture1 = staticMeshComponent->GetMaterial()->GetTexture(1)->GetRenderTexture();				
+
+				ShadowMapPassConstantBufferStruct& ConstantBufferRef = *(ShadowMapPassConstantBufferStruct*)MappedSubResource.pData;
 
 				UINT Stride = sizeof(Vertex), Offset = 0;
 
@@ -1532,7 +1565,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 				DeviceContext->VSSetShader(renderMaterial->ShadowMapPassVertexShader, nullptr, 0);
 				DeviceContext->PSSetShader(nullptr, nullptr, 0);
 
-				DeviceContext->VSSetConstantBuffers(0, 1, &ConstantBuffers[i]);
+				DeviceContext->VSSetConstantBuffers1(0, 1, &ConstantBuffers[i], &FirstConstant, &NumConstants);
+
+				FirstConstant += 16;
 
 				DeviceContext->DrawIndexed(8 * 8 * 6 * 6, 0, 0);
 			}
