@@ -202,6 +202,7 @@
     <ClInclude Include="MultiThreading\Tasks\FrustumCullingTask.h" />
     <ClInclude Include="MultiThreading\ThreadSafeQueue.h" />
     <ClInclude Include="MultiThreading\WorkerThread.h" />
+    <ClInclude Include="Render\ClusterizationSubSystem.h" />
     <ClInclude Include="Render\CullingSubSystem.h" />
     <ClInclude Include="Render\DX11\RenderDeviceDX11.h" />
     <ClInclude Include="Render\DX12\RenderDeviceDX12.h" />
@@ -242,6 +243,7 @@
     <ClCompile Include="MultiThreading\Tasks\FrustumCullingTask.cpp" />
     <ClCompile Include="MultiThreading\ThreadSafeQueue.cpp" />
     <ClCompile Include="MultiThreading\WorkerThread.cpp" />
+    <ClCompile Include="Render\ClusterizationSubSystem.cpp" />
     <ClCompile Include="Render\CullingSubSystem.cpp" />
     <ClCompile Include="Render\DX11\RenderDeviceDX11.cpp" />
     <ClCompile Include="Render\DX12\RenderDeviceDX12.cpp" />

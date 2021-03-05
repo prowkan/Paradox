@@ -123,7 +123,7 @@
     <ClInclude Include="Game\Components\Render\Lights\PointLightComponent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MemoryManager\Stack.h">
+    <ClInclude Include="Render\ClusterizationSubSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="MemoryManager\ScopedMemoryBlockBase.h">
@@ -240,6 +240,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Game\Components\Render\Lights\PointLightComponent.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Render\ClusterizationSubSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MemoryManager\Stack.cpp">

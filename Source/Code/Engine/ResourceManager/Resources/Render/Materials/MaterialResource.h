@@ -8,10 +8,14 @@ class Texture2DResource;
 
 struct MaterialResourceCreateInfo
 {
-	void *VertexShaderByteCodeData;
-	void *PixelShaderByteCodeData;
-	size_t VertexShaderByteCodeLength;
-	size_t PixelShaderByteCodeLength;
+	void *GBufferOpaquePassVertexShaderByteCodeData;
+	void *GBufferOpaquePassPixelShaderByteCodeData;
+	size_t GBufferOpaquePassVertexShaderByteCodeLength;
+	size_t GBufferOpaquePassPixelShaderByteCodeLength;
+	void *ShadowMapPassVertexShaderByteCodeData;
+	void *ShadowMapPassPixelShaderByteCodeData;
+	size_t ShadowMapPassVertexShaderByteCodeLength;
+	size_t ShadowMapPassPixelShaderByteCodeLength;
 	vector<Texture2DResource*> Textures;
 };
 
@@ -22,7 +26,7 @@ class MaterialResource : public Resource
 		virtual void CreateResource(const void* ResourceData) override;
 		virtual void DestroyResource() override;
 
-		Texture2DResource* GetTexture(UINT Index) { return Textures[0]; }
+		Texture2DResource* GetTexture(UINT Index) { return Textures[Index]; }
 
 		RenderMaterial* GetRenderMaterial() { return renderMaterial; }
 

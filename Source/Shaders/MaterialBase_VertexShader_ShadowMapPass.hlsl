@@ -2,7 +2,11 @@ struct VSInput
 {
 	float3 Position : POSITION;
 	float2 TexCoord : TEXCOORD;
+	float3 Normal : NORMAL;
+	float3 Tangent : TANGENT;
+	float3 Binormal : BINORMAL;
 };
+
 
 struct VSOutput
 {
