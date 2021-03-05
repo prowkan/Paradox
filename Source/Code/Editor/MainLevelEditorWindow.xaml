@@ -56,7 +56,7 @@
         </StackPanel>
         <WindowsFormsHost Name="WFHost">
             <WindowsFormsHost.Child>
-                <wf:Panel Name="LevelRenderPanel"/>
+                <wf:Panel Name="LevelRenderPanel" MouseDown="LevelRenderPanel_MouseDown" MouseUp="LevelRenderPanel_MouseUp" MouseMove="LevelRenderPanel_MouseMove" KeyDown="LevelRenderPanel_KeyDown" KeyUp="LevelRenderPanel_KeyDown"/>
             </WindowsFormsHost.Child>
         </WindowsFormsHost>
     </DockPanel>

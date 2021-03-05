@@ -33,3 +33,12 @@ extern "C" __declspec(dllexport) void SetEditorViewportSize(UINT Width, UINT Hei
 {
 	Engine::GetEngine().GetRenderSystem().SetEditorViewportSize(Width, Height);
 }
+
+extern "C" __declspec(dllexport) void RotateCamera(int MouseDeltaX, int MouseDeltaY)
+{
+	Camera& camera = Engine::GetEngine().GetGameFramework().GetCamera();
+	XMFLOAT3 CameraRotation = camera.GetCameraRotation();
+	CameraRotation.x += MouseDeltaY * 0.01f;
+	CameraRotation.y += MouseDeltaX * 0.01f;
+	camera.SetCameraRotation(CameraRotation);
+}

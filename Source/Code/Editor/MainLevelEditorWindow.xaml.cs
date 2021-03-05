@@ -58,7 +58,56 @@ namespace Editor
             editorEngine.StartEditorEngine();
         }
 
+        [DllImport("user32.dll")]
+        private extern static int ShowCursor(bool bShow);
+
+        [DllImport("user32.dll")]
+        private extern static bool SetCursorPos(int X, int Y);
+
         private void LevelEnitiesList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+
+        }
+
+        private int X, Y;
+        private bool bIsMouseCaptured;
+
+        private void LevelRenderPanel_MouseDown(object sender, System.Windows.Forms.MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right)
+            {
+                bIsMouseCaptured = true;
+                ShowCursor(false);
+
+                var Pnt = WFHost.Child.PointToScreen(new System.Drawing.Point(e.X, e.Y));
+
+                X = Pnt.X;
+                Y = Pnt.Y;                
+            }
+        }
+
+        private void LevelRenderPanel_MouseUp(object sender, System.Windows.Forms.MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right)
+            {
+                bIsMouseCaptured = false;
+                ShowCursor(true);
+            }
+        }
+
+        private void LevelRenderPanel_MouseMove(object sender, System.Windows.Forms.MouseEventArgs e)
+        {
+            if (bIsMouseCaptured)
+            {
+                var Pnt = WFHost.Child.PointToScreen(new System.Drawing.Point(e.X, e.Y));
+
+                EditorEngine.RotateCamera(Pnt.X - X, Pnt.Y - Y);
+
+                SetCursorPos(X, Y);
+            }
+        }
+
+        private void LevelRenderPanel_KeyDown(object sender, System.Windows.Forms.KeyEventArgs e)
         {
 
         }
