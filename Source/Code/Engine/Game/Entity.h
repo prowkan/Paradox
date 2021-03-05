@@ -35,9 +35,9 @@ class Entity
 		}
 
 		template<typename T>
-		static T* DynamicCast(Entity* gameObject)
+		static T* DynamicCast(Entity* entity)
 		{
-			if (gameObject->GetMetaClass() == T::GetMetaClassStatic() || gameObject->GetMetaClass()->IsBaseOf(T::GetMetaClassStatic()) || T::GetMetaClassStatic()->IsBaseOf(gameObject->GetMetaClass())) return (T*)gameObject;
+			if (entity->GetMetaClass() == T::GetMetaClassStatic() || entity->GetMetaClass()->IsBaseOf(T::GetMetaClassStatic()) || T::GetMetaClassStatic()->IsBaseOf(entity->GetMetaClass())) return (T*)entity;
 
 			return nullptr;
 		}

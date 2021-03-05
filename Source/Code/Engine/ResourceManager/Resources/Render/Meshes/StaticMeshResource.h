@@ -6,10 +6,10 @@ struct RenderMesh;
 
 struct StaticMeshResourceCreateInfo
 {
-	UINT VertexCount;
 	void *VertexData;
-	UINT IndexCount;
 	void *IndexData;
+	UINT VertexCount;
+	UINT IndexCount;
 };
 
 class StaticMeshResource : public Resource

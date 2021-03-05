@@ -2,7 +2,6 @@
 
 #include "MetaClass.h"
 
-class Component;
 class Entity;
 
 class Component

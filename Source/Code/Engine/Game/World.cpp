@@ -7,9 +7,11 @@
 #include "Entity.h"
 
 #include "Entities/Render/Meshes/StaticMeshEntity.h"
+#include "Entities/Render/Lights/PointLightEntity.h"
 
 #include "Components/Common/TransformComponent.h"
 #include "Components/Render/Meshes/StaticMeshComponent.h"
+#include "Components/Render/Lights/PointLightComponent.h"
 
 #include <Containers/COMRCPtr.h>
 
@@ -115,7 +117,7 @@ void World::LoadWorld()
 		Engine::GetEngine().GetResourceManager().AddResource<StaticMeshResource>(StaticMeshResourceName, &staticMeshResourceCreateInfo);
 	}
 
-	Texel *TexelData = new Texel[512 * 512 + 256 * 256 + 128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4];
+	ScopedMemoryBlockArray<Texel> TexelData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<Texel>(512 * 512 + 256 * 256 + 128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4);
 
 	Texel *Texels[8];
 
@@ -155,7 +157,7 @@ void World::LoadWorld()
 		}
 	}
 
-	CompressedTexelBlock *CompressedTexelBlockData = new CompressedTexelBlock[128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4 + 2 * 2 + 1 * 1];
+	ScopedMemoryBlockArray<CompressedTexelBlock> CompressedTexelBlockData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<CompressedTexelBlock>(128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4 + 2 * 2 + 1 * 1);
 
 	CompressedTexelBlock *CompressedTexelBlocks[8];
 
@@ -258,104 +260,25 @@ void World::LoadWorld()
 		Engine::GetEngine().GetResourceManager().AddResource<Texture2DResource>(Texture2DResourceName, &texture2DResourceCreateInfo);
 	}
 
-	delete[] TexelData;
+	HANDLE VertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/MaterialBase_VertexShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+	LARGE_INTEGER VertexShaderByteCodeLength;
+	BOOL Result = GetFileSizeEx(VertexShaderFile, &VertexShaderByteCodeLength);
+	ScopedMemoryBlockArray<BYTE> VertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(VertexShaderByteCodeLength.QuadPart);
+	Result = ReadFile(VertexShaderFile, VertexShaderByteCodeData, (DWORD)VertexShaderByteCodeLength.QuadPart, NULL, NULL);
+	Result = CloseHandle(VertexShaderFile);
 
-	const char *VertexShaderSourceCode = R"(
-	
-			struct VSInput
-			{
-				float3 Position : POSITION;
-				float2 TexCoord : TEXCOORD;
-			};
-
-			struct VSOutput
-			{
-				float4 Position : SV_Position;
-				float2 TexCoord : TEXCOORD;
-			};
-
-			struct VSConstants
-			{
-				float4x4 WVPMatrix;
-			};
-
-			#if SHADER_MODEL_VERSION >= 51
-
-			ConstantBuffer<VSConstants> VertexShaderConstants : register(b0);
-
-			#else
-
-			cbuffer cb0 : register(b0)
-			{
-				VSConstants VertexShaderConstants;
-			};
-
-			#endif
-
-			VSOutput VS(VSInput VertexShaderInput)
-			{
-				VSOutput VertexShaderOutput;
-
-				VertexShaderOutput.Position = mul(float4(VertexShaderInput.Position, 1.0f), VertexShaderConstants.WVPMatrix);
-				VertexShaderOutput.TexCoord = VertexShaderInput.TexCoord;
-
-				return VertexShaderOutput;
-			}
-
-		)";
-
-	const char *PixelShaderSourceCode = R"(
-
-			struct PSInput
-			{
-				float4 Position : SV_Position;
-				float2 TexCoord : TEXCOORD;
-			};
-
-			Texture2D Texture : register(t0);
-			SamplerState Sampler : register(s0);
-
-			float4 PS(PSInput PixelShaderInput) : SV_Target
-			{
-				return float4(Texture.Sample(Sampler, PixelShaderInput.TexCoord).rgb, 1.0f);
-			}
-
-		)";
-
-	COMRCPtr<ID3DBlob> ErrorBlob;
-
-	COMRCPtr<ID3DBlob> VertexShaderBlob, PixelShaderBlob;
-
-	HRESULT hr;
-
-	DirectXVersion DXVersion = Engine::GetEngine().GetRenderSystem().GetRenderDevice()->GetDirectXVersion();
-
-	D3D_SHADER_MACRO ShaderDefines[2];
-
-	ShaderDefines[0].Name = "SHADER_MODEL_VERSION";
-	ShaderDefines[1].Name = nullptr;
-	ShaderDefines[1].Definition = nullptr;
-
-	if (DXVersion == DirectXVersion::DirectX12)
-	{
-		ShaderDefines[0].Definition = "51";
-
-		hr = D3DCompile(VertexShaderSourceCode, strlen(VertexShaderSourceCode), "VertexShader", ShaderDefines, nullptr, "VS", "vs_5_1", D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &VertexShaderBlob, &ErrorBlob);
-		hr = D3DCompile(PixelShaderSourceCode, strlen(PixelShaderSourceCode), "PixelShader", ShaderDefines, nullptr, "PS", "ps_5_1", D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &PixelShaderBlob, &ErrorBlob);
-	}
-	else
-	{
-		ShaderDefines[0].Definition = "50";
-
-		hr = D3DCompile(VertexShaderSourceCode, strlen(VertexShaderSourceCode), "VertexShader", ShaderDefines, nullptr, "VS", "vs_5_0", D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &VertexShaderBlob, &ErrorBlob);
-		hr = D3DCompile(PixelShaderSourceCode, strlen(PixelShaderSourceCode), "PixelShader", ShaderDefines, nullptr, "PS", "ps_5_0", D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &PixelShaderBlob, &ErrorBlob);
-	}
+	HANDLE PixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/MaterialBase_PixelShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+	LARGE_INTEGER PixelShaderByteCodeLength;
+	Result = GetFileSizeEx(PixelShaderFile, &PixelShaderByteCodeLength);
+	ScopedMemoryBlockArray<BYTE> PixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(PixelShaderByteCodeLength.QuadPart);
+	Result = ReadFile(PixelShaderFile, PixelShaderByteCodeData, (DWORD)PixelShaderByteCodeLength.QuadPart, NULL, NULL);
+	Result = CloseHandle(PixelShaderFile);
 
 	MaterialResourceCreateInfo materialResourceCreateInfo;
-	materialResourceCreateInfo.PixelShaderByteCodeData = PixelShaderBlob->GetBufferPointer();
-	materialResourceCreateInfo.PixelShaderByteCodeLength = (UINT)PixelShaderBlob->GetBufferSize();
-	materialResourceCreateInfo.VertexShaderByteCodeData = VertexShaderBlob->GetBufferPointer();
-	materialResourceCreateInfo.VertexShaderByteCodeLength = (UINT)VertexShaderBlob->GetBufferSize();
+	materialResourceCreateInfo.PixelShaderByteCodeData = PixelShaderByteCodeData;
+	materialResourceCreateInfo.PixelShaderByteCodeLength = PixelShaderByteCodeLength.QuadPart;
+	materialResourceCreateInfo.VertexShaderByteCodeData = VertexShaderByteCodeData;
+	materialResourceCreateInfo.VertexShaderByteCodeLength = VertexShaderByteCodeLength.QuadPart;
 	materialResourceCreateInfo.Textures.resize(1);
 
 	for (int k = 0; k < 4000; k++)
@@ -382,10 +305,10 @@ void World::LoadWorld()
 			char StaticMeshResourceName[255];
 			char MaterialResourceName[255];
 
-			sprintf(StaticMeshResourceName, "Cube_%d", ResourceCounter);
-			sprintf(MaterialResourceName, "Standart_%d", ResourceCounter);
+			sprintf(StaticMeshResourceName, "Cube_%u", ResourceCounter);
+			sprintf(MaterialResourceName, "Standart_%u", ResourceCounter);
 
-			StaticMeshEntity *staticMeshEntity = Entity::DynamicCast<StaticMeshEntity>(SpawnEntity(StaticMeshEntity::GetMetaClassStatic()));
+			StaticMeshEntity *staticMeshEntity = SpawnEntity<StaticMeshEntity>();
 			staticMeshEntity->GetTransformComponent()->SetLocation(XMFLOAT3(i * 5.0f + 2.5f, -0.0f, j * 5.0f + 2.5f));
 			staticMeshEntity->GetStaticMeshComponent()->SetStaticMesh(Engine::GetEngine().GetResourceManager().GetResource<StaticMeshResource>(StaticMeshResourceName));
 			staticMeshEntity->GetStaticMeshComponent()->SetMaterial(Engine::GetEngine().GetResourceManager().GetResource<MaterialResource>(MaterialResourceName));
@@ -395,13 +318,19 @@ void World::LoadWorld()
 			sprintf(StaticMeshResourceName, "Cube_%d", ResourceCounter);
 			sprintf(MaterialResourceName, "Standart_%d", ResourceCounter);
 
-			staticMeshEntity = Entity::DynamicCast<StaticMeshEntity>(SpawnEntity(StaticMeshEntity::GetMetaClassStatic()));
+			staticMeshEntity = SpawnEntity<StaticMeshEntity>();
 			staticMeshEntity->GetTransformComponent()->SetLocation(XMFLOAT3(i * 10.0f + 5.0f, -2.0f, j * 10.0f + 5.0f));
 			staticMeshEntity->GetTransformComponent()->SetScale(XMFLOAT3(5.0f, 1.0f, 5.0f));
 			staticMeshEntity->GetStaticMeshComponent()->SetStaticMesh(Engine::GetEngine().GetResourceManager().GetResource<StaticMeshResource>(StaticMeshResourceName));
 			staticMeshEntity->GetStaticMeshComponent()->SetMaterial(Engine::GetEngine().GetResourceManager().GetResource<MaterialResource>(MaterialResourceName));
 
 			ResourceCounter = (ResourceCounter + 1) % 4000;
+
+			PointLightEntity *pointLightEntity = SpawnEntity<PointLightEntity>();
+			pointLightEntity->GetTransformComponent()->SetLocation(XMFLOAT3(i * 10.0f + 5.0f, 1.5f, j * 10.0f + 5.0f));
+			pointLightEntity->GetPointLightComponent()->SetBrightness(10.0f);
+			pointLightEntity->GetPointLightComponent()->SetRadius(5.0f);
+			pointLightEntity->GetPointLightComponent()->SetColor(XMFLOAT3((i + 51) / 100.0f, 0.1f, (j + 51) / 100.0f));
 		}
 	}
 }

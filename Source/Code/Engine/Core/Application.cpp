@@ -7,6 +7,7 @@
 
 bool Application::AppExitFlag;
 HWND Application::MainWindowHandle;
+atomic<bool> Application::ExceptionFlag;
 
 LRESULT CALLBACK Application::MainWindowProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
@@ -18,6 +19,13 @@ LRESULT CALLBACK Application::MainWindowProc(HWND hWnd, UINT Msg, WPARAM wParam,
 
 LONG WINAPI Application::UnhandledExceptionFilter(_EXCEPTION_POINTERS* ExceptionInfo)
 {
+	if (Application::ExceptionFlag.load(memory_order::memory_order_seq_cst) == true)
+	{
+		return EXCEPTION_CONTINUE_EXECUTION;
+	}
+	
+	Application::ExceptionFlag.store(true, memory_order::memory_order_seq_cst);
+
 	char16_t ErrorMessageBuffer[1024];
 	char16_t ExceptionCodeBuffer[256];
 
@@ -147,17 +155,37 @@ void Application::StartApplication(const char16_t* WindowTitle, HINSTANCE hInsta
 
 	ATOM Atom = RegisterClassEx(&WndClassEx);
 
-	DWORD WindowStyle = WS_POPUP;
+	//DWORD WindowStyle = WS_POPUP;
+
+	DWORD WindowStyle = WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
 
 	int ScreenWidth = GetSystemMetrics(SM_CXSCREEN);
 	int ScreenHeight = GetSystemMetrics(SM_CYSCREEN);
 
-	Application::MainWindowHandle = CreateWindowEx(0, (const wchar_t*)u"MainWindowClass", (const wchar_t*)WindowTitle, WindowStyle, 0, 0, ScreenWidth, ScreenHeight, NULL, NULL, hInstance, NULL);
+	int WindowWidth = 1280;
+	int WindowHeight = 720;
+
+	int WindowLeft = ScreenWidth / 2 - WindowWidth / 2;
+	int WindowTop = ScreenHeight / 2 - WindowHeight / 2;
+
+	RECT WindowRect;
+	WindowRect.bottom = WindowTop + WindowHeight;
+	WindowRect.left = WindowLeft;
+	WindowRect.right = WindowLeft + WindowWidth;
+	WindowRect.top = WindowTop;
+
+	Result = AdjustWindowRect(&WindowRect, WindowStyle, FALSE);
+
+	WindowWidth = WindowRect.right - WindowRect.left;
+	WindowHeight = WindowRect.bottom - WindowRect.top;
+
+	Application::MainWindowHandle = CreateWindowEx(0, (const wchar_t*)u"MainWindowClass", (const wchar_t*)WindowTitle, WindowStyle, WindowLeft, WindowTop, WindowWidth, WindowHeight, NULL, NULL, hInstance, NULL);
 
 	Result = UpdateWindow(Application::MainWindowHandle);
 	Result = ShowWindow(Application::MainWindowHandle, SW_SHOW);
 
 	Application::AppExitFlag = false;
+	Application::ExceptionFlag.store(false, memory_order::memory_order_seq_cst);
 
 	Engine::GetEngine().InitEngine();
 }
