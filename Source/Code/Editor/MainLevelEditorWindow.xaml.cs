@@ -28,7 +28,21 @@ namespace Editor
 
         public MainLevelEditorWindow()
         {
-            InitializeComponent();            
+            InitializeComponent();
+            
+            for (int i = 0; i < 20000; i++)
+            {
+                var EntityItem = new ListBoxItem();
+                EntityItem.Content = "StaticMeshEntity_" + i;
+                LevelEnitiesList.Items.Add(EntityItem);
+            }
+
+            for (int i = 0; i < 10000; i++)
+            {
+                var EntityItem = new ListBoxItem();
+                EntityItem.Content = "PointLightEntity_" + i;
+                LevelEnitiesList.Items.Add(EntityItem);
+            }
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
@@ -42,6 +56,11 @@ namespace Editor
             editorEngine.EditorViewportWidth = (uint)this.WFHost.Child.Width;
             editorEngine.EditorViewportHeight = (uint)this.WFHost.Child.Height;
             editorEngine.StartEditorEngine();
+        }
+
+        private void LevelEnitiesList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+
         }
     }
 }

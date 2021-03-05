@@ -47,10 +47,12 @@
 
         </StatusBar>
         <StackPanel DockPanel.Dock="Left" Width="300">
-            
+            <ListBox x:Name="LevelEnitiesList" Height="800" SelectionMode="Single" SelectionChanged="LevelEnitiesList_SelectionChanged">
+                
+            </ListBox>
         </StackPanel>
         <StackPanel DockPanel.Dock="Right" Width="300">
-
+            
         </StackPanel>
         <WindowsFormsHost Name="WFHost">
             <WindowsFormsHost.Child>
