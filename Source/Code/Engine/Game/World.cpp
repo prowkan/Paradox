@@ -279,7 +279,7 @@ void World::LoadWorld()
 	materialResourceCreateInfo.PixelShaderByteCodeLength = PixelShaderByteCodeLength.QuadPart;
 	materialResourceCreateInfo.VertexShaderByteCodeData = VertexShaderByteCodeData;
 	materialResourceCreateInfo.VertexShaderByteCodeLength = VertexShaderByteCodeLength.QuadPart;
-	materialResourceCreateInfo.Textures.resize(1);
+	//materialResourceCreateInfo.Textures.resize(1);
 
 	for (int k = 0; k < 4000; k++)
 	{
@@ -291,7 +291,7 @@ void World::LoadWorld()
 
 		sprintf(Texture2DResourceName, "Checker_%d", k);
 
-		materialResourceCreateInfo.Textures[0] = Engine::GetEngine().GetResourceManager().GetResource<Texture2DResource>(Texture2DResourceName);
+		materialResourceCreateInfo.Textures.Add(Engine::GetEngine().GetResourceManager().GetResource<Texture2DResource>(Texture2DResourceName));
 
 		Engine::GetEngine().GetResourceManager().AddResource<MaterialResource>(MaterialResourceName, &materialResourceCreateInfo);
 	}

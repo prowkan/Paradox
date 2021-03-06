@@ -26,6 +26,28 @@ class DynamicArray
 			}
 		}
 
+		DynamicArray& operator=(const DynamicArray& OtherArray)
+		{
+			for (int i = 0; i < ArrayLength; i++)
+			{
+				ArrayData[i].~T();
+			}
+
+			free(ArrayData);
+
+			ArrayLength = OtherArray.ArrayLength;
+			ArrayCapacity = OtherArray.ArrayCapacity;
+
+			ArrayData = (T*)malloc(sizeof(T) * ArrayCapacity);
+
+			for (int i = 0; i < ArrayLength; i++)
+			{
+				ArrayData[i] = OtherArray.ArrayData[i];
+			}
+
+			return *this;
+		}
+
 		~DynamicArray()
 		{
 			for (int i = 0; i < ArrayLength; i++)
