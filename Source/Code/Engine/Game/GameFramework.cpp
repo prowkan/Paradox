@@ -7,21 +7,25 @@
 
 #include "Entity.h"
 #include "Entities/Render/Meshes/StaticMeshEntity.h"
+#include "Entities/Render/Lights/PointLightEntity.h"
 
 #include "Component.h"
 #include "Components/Common/TransformComponent.h"
 #include "Components/Common/BoundingBoxComponent.h"
 #include "Components/Render/Meshes/StaticMeshComponent.h"
+#include "Components/Render/Lights/PointLightComponent.h"
 
 void GameFramework::InitFramework()
 {
 	Entity::InitMetaClass();
 	StaticMeshEntity::InitMetaClass();
+	PointLightEntity::InitMetaClass();
 
 	Component::InitMetaClass();
 	TransformComponent::InitMetaClass();
 	BoundingBoxComponent::InitMetaClass();
 	StaticMeshComponent::InitMetaClass();
+	PointLightComponent::InitMetaClass();
 
 	camera.InitCamera();
 	world.LoadWorld();

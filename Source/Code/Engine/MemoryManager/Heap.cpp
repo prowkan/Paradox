@@ -6,11 +6,14 @@
 void Heap::CreateHeap(const size_t HeapSize)
 {
 	HeapData = HeapAlloc(GetProcessHeap(), 0, HeapSize);
+	HeapOffset = 0;
 }
 
 void Heap::DestroyHeap()
 {
 	BOOL Result = HeapFree(GetProcessHeap(), 0, HeapData);
+	HeapData = nullptr;
+	HeapOffset = 0;
 }
 
 void* Heap::AllocateMemory(const size_t Size)
