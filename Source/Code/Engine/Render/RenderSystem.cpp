@@ -1149,7 +1149,7 @@ void RenderSystem::InitSystem()
 	SamplerDesc.MinLOD = 0;
 	SamplerDesc.MipLODBias = 0.0f;
 
-	SAFE_DX(Device->CreateSamplerState(&SamplerDesc, &BiLinearSampler));
+	SAFE_DX(Device->CreateSamplerState(&SamplerDesc, &MinSampler));
 
 	D3D11_RASTERIZER_DESC RasterizerDesc;
 	ZeroMemory(&RasterizerDesc, sizeof(D3D11_RASTERIZER_DESC));
@@ -1868,6 +1868,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 		DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 		DeviceContext->OMSetRenderTargets(1, &BloomTexturesRTVs[0][0], nullptr);
+
+		DeviceContext->PSSetSamplers(0, 1, &BiLinearSampler);
 
 		D3D11_VIEWPORT Viewport;
 		Viewport.Height = FLOAT(ResolutionHeight);
