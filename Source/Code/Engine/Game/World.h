@@ -22,6 +22,8 @@ class World
 
 		RenderScene& GetRenderScene() { return renderScene; }
 
+		Entity* FindEntityByName(const char* EntityName);
+
 	private:
 
 		vector<Entity*> Entities;

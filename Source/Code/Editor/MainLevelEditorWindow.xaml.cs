@@ -15,7 +15,6 @@ using System.Windows.Shapes;
 using System.Windows.Interop;
 using System.Runtime.InteropServices;
 using System.Threading;
-using System.Windows.Forms;
 
 namespace Editor
 {
@@ -29,7 +28,20 @@ namespace Editor
         public MainLevelEditorWindow()
         {
             InitializeComponent();
-            
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            editorEngine.StopEditorEngine();
+        }
+
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            editorEngine = new EditorEngine(this.WFHost.Child.Handle);
+            editorEngine.EditorViewportWidth = (uint)this.WFHost.Child.Width;
+            editorEngine.EditorViewportHeight = (uint)this.WFHost.Child.Height;
+            editorEngine.StartEditorEngine();
+
             for (int i = 0; i < 20000; i++)
             {
                 var EntityItem = new ListBoxItem();
@@ -45,19 +57,6 @@ namespace Editor
             }
         }
 
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
-        {
-            editorEngine.StopEditorEngine();
-        }
-
-        private void Window_Loaded(object sender, RoutedEventArgs e)
-        {
-            editorEngine = new EditorEngine(this.WFHost.Child.Handle);
-            editorEngine.EditorViewportWidth = (uint)this.WFHost.Child.Width;
-            editorEngine.EditorViewportHeight = (uint)this.WFHost.Child.Height;
-            editorEngine.StartEditorEngine();
-        }
-
         [DllImport("user32.dll")]
         private extern static int ShowCursor(bool bShow);
 
@@ -66,7 +65,10 @@ namespace Editor
 
         private void LevelEnitiesList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-
+            ListBox listBox = (ListBox)sender;
+            ListBoxItem listBoxItem = (ListBoxItem)listBox.Items[listBox.SelectedIndex];
+            string EntityClassName = System.Runtime.InteropServices.Marshal.PtrToStringAnsi(EditorEngine.GetEntityClassName(listBoxItem.Content.ToString()));
+            StatusBarLabel.Content = EntityClassName;
         }
 
         private int X, Y;
@@ -74,7 +76,7 @@ namespace Editor
 
         private void LevelRenderPanel_MouseDown(object sender, System.Windows.Forms.MouseEventArgs e)
         {
-            if (e.Button == MouseButtons.Right)
+            if (e.Button == System.Windows.Forms.MouseButtons.Right)
             {
                 bIsMouseCaptured = true;
                 ShowCursor(false);
@@ -88,7 +90,7 @@ namespace Editor
 
         private void LevelRenderPanel_MouseUp(object sender, System.Windows.Forms.MouseEventArgs e)
         {
-            if (e.Button == MouseButtons.Right)
+            if (e.Button == System.Windows.Forms.MouseButtons.Right)
             {
                 bIsMouseCaptured = false;
                 ShowCursor(true);

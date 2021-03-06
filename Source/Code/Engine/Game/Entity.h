@@ -42,6 +42,9 @@ class Entity
 			return nullptr;
 		}
 
+		const char* GetEntityName() { return EntityName; }
+		const char *EntityName;
+
 	protected:
 
 		MetaClass *metaClass;
@@ -49,6 +52,8 @@ class Entity
 		vector<Component*> Components;
 
 		World *OwningWorld;
+
+		//const char *EntityName;
 
 	private:
 };

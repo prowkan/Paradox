@@ -345,6 +345,10 @@ Entity* World::SpawnEntity(MetaClass* metaClass)
 	void *entityPtr = Engine::GetEngine().GetMemoryManager().AllocateEntity(metaClass);
 	metaClass->ObjectConstructorFunc(entityPtr);
 	Entity *entity = (Entity*)entityPtr;
+	string EntityName = string(metaClass->GetClassName()) + "_" + to_string(metaClass->InstancesCount);
+	metaClass->InstancesCount++;
+	entity->EntityName = new char[EntityName.length() + 1];
+	strcpy((char*)entity->EntityName, EntityName.c_str());
 	entity->SetMetaClass(metaClass);
 	entity->SetWorld(this);
 	entity->InitDefaultProperties();
@@ -352,6 +356,15 @@ Entity* World::SpawnEntity(MetaClass* metaClass)
 	return entity;
 }
 
+Entity* World::FindEntityByName(const char* EntityName)
+{
+	for (Entity* entity : Entities)
+	{
+		if (strcmp(entity->EntityName, EntityName) == 0) return entity;
+	}
+
+	return nullptr;
+}
 
 void World::TickWorld(float DeltaTime)
 {

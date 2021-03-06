@@ -33,6 +33,8 @@ class MetaClass
 			return false;
 		}
 
+		uint32_t InstancesCount = 0;
+
 	private:
 
 		size_t ClassSize;

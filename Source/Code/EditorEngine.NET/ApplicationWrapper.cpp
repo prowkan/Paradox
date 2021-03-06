@@ -3,6 +3,7 @@
 
 #include <../Engine/Core/Application.h>
 #include <../Engine/Engine/Engine.h>
+#include <../Engine/Game/Entity.h>
 
 extern "C" __declspec(dllexport) void StartApplication()
 {
@@ -69,4 +70,9 @@ extern "C" __declspec(dllexport) void MoveCamera(bool bForward, bool bBackward, 
 	CameraLocation.z += CameraOffset.z;
 
 	camera.SetCameraLocation(CameraLocation);
+}
+
+extern "C" __declspec(dllexport) const char* GetEntityClassName(const char* EntityName)
+{
+	return Engine::GetEngine().GetGameFramework().GetWorld().FindEntityByName(EntityName)->GetMetaClass()->GetClassName();
 }

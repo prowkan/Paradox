@@ -44,7 +44,7 @@
             </ComboBox>
         </ToolBar>
         <StatusBar DockPanel.Dock="Bottom" Height="32">
-
+            <Label x:Name="StatusBarLabel" />
         </StatusBar>
         <StackPanel DockPanel.Dock="Left" Width="300">
             <ListBox x:Name="LevelEnitiesList" Height="800" SelectionMode="Single" SelectionChanged="LevelEnitiesList_SelectionChanged">
