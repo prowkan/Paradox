@@ -28,6 +28,12 @@ namespace Editor
         [DllImport("EditorEngine.NET.dll")]
         private static extern void SetEditorViewportSize(uint Width, uint Height);
 
+        [DllImport("EditorEngine.NET.dll")]
+        public static extern void RotateCamera(int MouseDeltaX, int MouseDeltaY);
+
+        [DllImport("EditorEngine.NET.dll")]
+        public static extern void MoveCamera(bool bForward, bool bBackward, bool bLeft, bool bRight);
+
         private IntPtr LevelRenderCanvasHandle;
         private Thread EngineThread;
         public uint EditorViewportWidth, EditorViewportHeight;

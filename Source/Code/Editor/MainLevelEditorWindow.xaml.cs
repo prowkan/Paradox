@@ -58,9 +58,83 @@ namespace Editor
             editorEngine.StartEditorEngine();
         }
 
+        [DllImport("user32.dll")]
+        private extern static int ShowCursor(bool bShow);
+
+        [DllImport("user32.dll")]
+        private extern static bool SetCursorPos(int X, int Y);
+
         private void LevelEnitiesList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
 
+        }
+
+        private int X, Y;
+        private bool bIsMouseCaptured;
+
+        private void LevelRenderPanel_MouseDown(object sender, System.Windows.Forms.MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right)
+            {
+                bIsMouseCaptured = true;
+                ShowCursor(false);
+
+                var Pnt = WFHost.Child.PointToScreen(new System.Drawing.Point(e.X, e.Y));
+
+                X = Pnt.X;
+                Y = Pnt.Y;                
+            }
+        }
+
+        private void LevelRenderPanel_MouseUp(object sender, System.Windows.Forms.MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right)
+            {
+                bIsMouseCaptured = false;
+                ShowCursor(true);
+            }
+        }
+
+        private void LevelRenderPanel_MouseMove(object sender, System.Windows.Forms.MouseEventArgs e)
+        {
+            if (bIsMouseCaptured)
+            {
+                var Pnt = WFHost.Child.PointToScreen(new System.Drawing.Point(e.X, e.Y));
+
+                EditorEngine.RotateCamera(Pnt.X - X, Pnt.Y - Y);
+
+                SetCursorPos(X, Y);
+            }
+        }
+
+        private bool bForward, bBackward, bLeft, bRight;
+
+        private void WFHost_KeyUp(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == Key.W) bForward = false;
+            if (e.Key == Key.S) bBackward = false;
+            if (e.Key == Key.A) bLeft = false;
+            if (e.Key == Key.D) bRight = false;           
+        }
+
+        private void WFHost_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == Key.W) bForward = true;
+            if (e.Key == Key.S) bBackward = true;
+            if (e.Key == Key.A) bLeft = true;
+            if (e.Key == Key.D) bRight = true;
+
+            EditorEngine.MoveCamera(bForward, bBackward, bLeft, bRight);
+        }
+
+        private void LevelRenderPanel_KeyDown(object sender, System.Windows.Forms.KeyEventArgs e)
+        {
+            
+        }
+
+        private void LevelRenderPanel_KeyUp(object sender, System.Windows.Forms.KeyEventArgs e)
+        {
+            
         }
     }
 }
