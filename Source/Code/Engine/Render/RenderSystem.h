@@ -224,6 +224,10 @@ class RenderSystem
 
 		VkImage ResolvedDepthBufferTexture;
 		VkImageView ResolvedDepthBufferTextureView;
+		VkDeviceMemory ResolvedDepthBufferTextureMemoryHeap;
+
+		VkRenderPass MSAADepthBufferResolveRenderPass;
+		VkFramebuffer ResolvedDepthFrameBuffer;
 
 		// ===============================================================================================================
 

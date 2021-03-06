@@ -78,7 +78,7 @@ void RenderSystem::InitSystem()
 	delete[] InstanceLayerProperties;
 
 	VkApplicationInfo ApplicationInfo;
-	ApplicationInfo.apiVersion = VK_MAKE_VERSION(1, 2, 0);
+	ApplicationInfo.apiVersion = VK_MAKE_VERSION(1, 0, 0);
 	ApplicationInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 	ApplicationInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
 	ApplicationInfo.pApplicationName = "Tolerance Paradox";
@@ -87,16 +87,16 @@ void RenderSystem::InitSystem()
 	ApplicationInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_APPLICATION_INFO;
 
 #ifdef _DEBUG
-	uint32_t EnabledInstanceExtensionsCount = 3;
+	uint32_t EnabledInstanceExtensionsCount = 4;
 	uint32_t EnabledInstanceLayersCount = 1;
 
-	const char* EnabledInstanceExtensionsNames[] = { VK_EXT_DEBUG_UTILS_EXTENSION_NAME, VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME };
+	const char* EnabledInstanceExtensionsNames[] = { VK_EXT_DEBUG_UTILS_EXTENSION_NAME, VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME, VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME };
 	const char* EnabledInstanceLayersNames[] = { "VK_LAYER_KHRONOS_validation" };
 #else
-	uint32_t EnabledInstanceExtensionsCount = 2;
+	uint32_t EnabledInstanceExtensionsCount = 3;
 	uint32_t EnabledInstanceLayersCount = 0;
 
-	const char* EnabledInstanceExtensionsNames[] = { VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME };
+	const char* EnabledInstanceExtensionsNames[] = { VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME, VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME };
 	const char** EnabledInstanceLayersNames = nullptr;
 #endif
 
@@ -204,9 +204,16 @@ void RenderSystem::InitSystem()
 	DeviceQueueCreateInfo.queueFamilyIndex = QueueFamilyIndex;
 	DeviceQueueCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 
-	uint32_t EnabledDeviceExtensionsCount = 1;
+	uint32_t EnabledDeviceExtensionsCount = 5;
 
-	const char* EnabledDeviceExtensionsNames[] = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+	const char* EnabledDeviceExtensionsNames[] = 
+	{ 
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+		VK_KHR_MULTIVIEW_EXTENSION_NAME, 
+		VK_KHR_MAINTENANCE2_EXTENSION_NAME, 
+		VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME, 
+		VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME 
+	};
 
 	VkDeviceCreateInfo DeviceCreateInfo;
 	DeviceCreateInfo.enabledExtensionCount = EnabledDeviceExtensionsCount;
@@ -322,7 +329,7 @@ void RenderSystem::InitSystem()
 	VkDescriptorPoolSize DescriptorPoolSizes[3];
 	DescriptorPoolSizes[0].descriptorCount = 20000;
 	DescriptorPoolSizes[0].type = VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	DescriptorPoolSizes[1].descriptorCount = 20000;
+	DescriptorPoolSizes[1].descriptorCount = 40000;
 	DescriptorPoolSizes[1].type = VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
 	DescriptorPoolSizes[2].descriptorCount = 1;
 	DescriptorPoolSizes[2].type = VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLER;
@@ -893,7 +900,169 @@ void RenderSystem::InitSystem()
 		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUConstantBufferMemoryHeaps[1]));
 
 		SAFE_VK(vkBindBufferMemory(Device, CPUConstantBuffers[1], CPUConstantBufferMemoryHeaps[1], 0));
-	}	
+	}
+
+	// ===============================================================================================================	
+
+	{
+		VkImageCreateInfo ImageCreateInfo;
+		ImageCreateInfo.arrayLayers = 1;
+		ImageCreateInfo.extent.depth = 1;
+		ImageCreateInfo.extent.height = ResolutionHeight;
+		ImageCreateInfo.extent.width = ResolutionWidth;
+		ImageCreateInfo.flags = 0;
+		ImageCreateInfo.format = VkFormat::VK_FORMAT_D32_SFLOAT_S8_UINT;
+		ImageCreateInfo.imageType = VkImageType::VK_IMAGE_TYPE_2D;
+		ImageCreateInfo.initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
+		ImageCreateInfo.mipLevels = 1;
+		ImageCreateInfo.pNext = nullptr;
+		ImageCreateInfo.pQueueFamilyIndices = nullptr;
+		ImageCreateInfo.queueFamilyIndexCount = 0;
+		ImageCreateInfo.samples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
+		ImageCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
+		ImageCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		ImageCreateInfo.tiling = VkImageTiling::VK_IMAGE_TILING_OPTIMAL;
+		ImageCreateInfo.usage = VkImageUsageFlagBits::VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VkImageUsageFlagBits::VK_IMAGE_USAGE_SAMPLED_BIT;
+
+		SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &ResolvedDepthBufferTexture));
+
+		VkMemoryRequirements MemoryRequirements;
+
+		vkGetImageMemoryRequirements(Device, DepthBufferTexture, &MemoryRequirements);
+
+		VkMemoryAllocateInfo MemoryAllocateInfo;
+		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
+		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
+
+			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
+			{
+				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
+					return i;
+			}
+
+			return -1;
+
+		} ();
+		MemoryAllocateInfo.pNext = nullptr;
+		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+
+		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &ResolvedDepthBufferTextureMemoryHeap));
+
+		SAFE_VK(vkBindImageMemory(Device, ResolvedDepthBufferTexture, ResolvedDepthBufferTextureMemoryHeap, 0));
+
+		VkImageViewCreateInfo ImageViewCreateInfo;
+		ImageViewCreateInfo.components.a = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
+		ImageViewCreateInfo.components.b = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
+		ImageViewCreateInfo.components.g = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
+		ImageViewCreateInfo.components.r = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
+		ImageViewCreateInfo.flags = 0;
+		ImageViewCreateInfo.format = VkFormat::VK_FORMAT_D32_SFLOAT_S8_UINT;
+		ImageViewCreateInfo.image = ResolvedDepthBufferTexture;
+		ImageViewCreateInfo.pNext = nullptr;
+		ImageViewCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		ImageViewCreateInfo.subresourceRange.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_DEPTH_BIT | VkImageAspectFlagBits::VK_IMAGE_ASPECT_STENCIL_BIT;
+		ImageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+		ImageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+		ImageViewCreateInfo.subresourceRange.layerCount = 1;
+		ImageViewCreateInfo.subresourceRange.levelCount = 1;
+		ImageViewCreateInfo.viewType = VkImageViewType::VK_IMAGE_VIEW_TYPE_2D;
+
+		SAFE_VK(vkCreateImageView(Device, &ImageViewCreateInfo, nullptr, &ResolvedDepthBufferTextureView));
+
+		VkAttachmentDescription2 AttachmentDescriptions[2];
+		AttachmentDescriptions[0].finalLayout = VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		AttachmentDescriptions[0].flags = 0;
+		AttachmentDescriptions[0].format = VkFormat::VK_FORMAT_D32_SFLOAT_S8_UINT;
+		AttachmentDescriptions[0].initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		AttachmentDescriptions[0].loadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_LOAD;
+		AttachmentDescriptions[0].pNext = nullptr;
+		AttachmentDescriptions[0].samples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_8_BIT;
+		AttachmentDescriptions[0].stencilLoadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_LOAD;
+		AttachmentDescriptions[0].stencilStoreOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_STORE;
+		AttachmentDescriptions[0].storeOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_STORE;
+		AttachmentDescriptions[0].sType = VkStructureType::VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
+		AttachmentDescriptions[1].finalLayout = VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		AttachmentDescriptions[1].flags = 0;
+		AttachmentDescriptions[1].format = VkFormat::VK_FORMAT_D32_SFLOAT_S8_UINT;
+		AttachmentDescriptions[1].initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		AttachmentDescriptions[1].loadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_LOAD;
+		AttachmentDescriptions[1].pNext = nullptr;
+		AttachmentDescriptions[1].samples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
+		AttachmentDescriptions[1].stencilLoadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_LOAD;
+		AttachmentDescriptions[1].stencilStoreOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_STORE;
+		AttachmentDescriptions[1].storeOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_STORE;
+		AttachmentDescriptions[1].sType = VkStructureType::VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
+
+		VkAttachmentReference2 AttachmentReferences[2];
+		AttachmentReferences[0].aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_DEPTH_BIT | VkImageAspectFlagBits::VK_IMAGE_ASPECT_STENCIL_BIT;
+		AttachmentReferences[0].attachment = 0;
+		AttachmentReferences[0].layout = VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		AttachmentReferences[0].pNext = nullptr;
+		AttachmentReferences[0].sType = VkStructureType::VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
+		AttachmentReferences[1].aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_DEPTH_BIT | VkImageAspectFlagBits::VK_IMAGE_ASPECT_STENCIL_BIT;
+		AttachmentReferences[1].attachment = 1;
+		AttachmentReferences[1].layout = VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		AttachmentReferences[1].pNext = nullptr;
+		AttachmentReferences[1].sType = VkStructureType::VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
+
+		VkSubpassDescriptionDepthStencilResolve SubpassDescriptionDepthStencilResolve;
+		SubpassDescriptionDepthStencilResolve.depthResolveMode = VkResolveModeFlagBits::VK_RESOLVE_MODE_MAX_BIT;
+		SubpassDescriptionDepthStencilResolve.pDepthStencilResolveAttachment = &AttachmentReferences[1];
+		SubpassDescriptionDepthStencilResolve.pNext = nullptr;
+		SubpassDescriptionDepthStencilResolve.stencilResolveMode = VkResolveModeFlagBits::VK_RESOLVE_MODE_NONE;
+		SubpassDescriptionDepthStencilResolve.sType = VkStructureType::VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_DEPTH_STENCIL_RESOLVE;
+
+		VkSubpassDescription2 SubpassDescription;
+		SubpassDescription.colorAttachmentCount = 0;
+		SubpassDescription.flags = 0;
+		SubpassDescription.inputAttachmentCount = 0;
+		SubpassDescription.pColorAttachments = nullptr;
+		SubpassDescription.pDepthStencilAttachment = &AttachmentReferences[0];
+		SubpassDescription.pInputAttachments = nullptr;
+		SubpassDescription.pipelineBindPoint = VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS;
+		SubpassDescription.pNext = &SubpassDescriptionDepthStencilResolve;
+		SubpassDescription.pPreserveAttachments = nullptr;
+		SubpassDescription.preserveAttachmentCount = 0;
+		SubpassDescription.pResolveAttachments = nullptr;
+		SubpassDescription.sType = VkStructureType::VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2;
+		SubpassDescription.viewMask = 0;
+
+		VkRenderPassCreateInfo2 RenderPassCreateInfo;
+		RenderPassCreateInfo.attachmentCount = 2;
+		RenderPassCreateInfo.correlatedViewMaskCount = 0;
+		RenderPassCreateInfo.dependencyCount = 0;
+		RenderPassCreateInfo.flags = 0;
+		RenderPassCreateInfo.pAttachments = AttachmentDescriptions;
+		RenderPassCreateInfo.pCorrelatedViewMasks = nullptr;
+		RenderPassCreateInfo.pDependencies = nullptr;
+		RenderPassCreateInfo.pNext = nullptr;
+		RenderPassCreateInfo.pSubpasses = &SubpassDescription;
+		RenderPassCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2;
+		RenderPassCreateInfo.subpassCount = 1;
+
+		PFN_vkCreateRenderPass2 vkCreateRenderPass2 = (PFN_vkCreateRenderPass2)vkGetDeviceProcAddr(Device, "vkCreateRenderPass2KHR");
+
+		SAFE_VK(vkCreateRenderPass2(Device, &RenderPassCreateInfo, nullptr, &MSAADepthBufferResolveRenderPass));
+
+		VkImageView FrameBufferAttachments[2] =
+		{
+			DepthBufferTextureView,
+			ResolvedDepthBufferTextureView
+		};
+
+		VkFramebufferCreateInfo FramebufferCreateInfo;
+		FramebufferCreateInfo.attachmentCount = 2;
+		FramebufferCreateInfo.flags = 0;
+		FramebufferCreateInfo.height = ResolutionHeight;
+		FramebufferCreateInfo.layers = 1;
+		FramebufferCreateInfo.pAttachments = FrameBufferAttachments;
+		FramebufferCreateInfo.pNext = nullptr;
+		FramebufferCreateInfo.renderPass = MSAADepthBufferResolveRenderPass;
+		FramebufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		FramebufferCreateInfo.width = ResolutionWidth;
+
+		SAFE_VK(vkCreateFramebuffer(Device, &FramebufferCreateInfo, nullptr, &ResolvedDepthFrameBuffer));
+	}
 
 	// ===============================================================================================================	
 }
@@ -1350,86 +1519,316 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	SAFE_VK(vkBeginCommandBuffer(CommandBuffers[CurrentFrameIndex], &CommandBufferBeginInfo));
 
-	void *ConstantBufferData;
-	size_t ConstantBufferOffset = 0;
-
-	SAFE_VK(vkMapMemory(Device, CPUConstantBufferMemoryHeaps[CurrentFrameIndex], 0, VK_WHOLE_SIZE, 0, &ConstantBufferData));
-
-	for (int k = 0; k < VisbleStaticMeshComponentsCount; k++)
 	{
-		XMMATRIX WorldMatrix = VisbleStaticMeshComponents[k]->GetTransformComponent()->GetTransformMatrix();
-		XMMATRIX WVPMatrix = WorldMatrix * ViewProjMatrix;
+		void *ConstantBufferData;
+		size_t ConstantBufferOffset = 0;
 
-		XMFLOAT3X4 VectorTransformMatrix;
+		SAFE_VK(vkMapMemory(Device, CPUConstantBufferMemoryHeaps[CurrentFrameIndex], 0, VK_WHOLE_SIZE, 0, &ConstantBufferData));
 
-		float Determinant =
-			WorldMatrix.m[0][0] * (WorldMatrix.m[1][1] * WorldMatrix.m[2][2] - WorldMatrix.m[2][1] * WorldMatrix.m[1][2]) -
-			WorldMatrix.m[1][0] * (WorldMatrix.m[0][1] * WorldMatrix.m[2][2] - WorldMatrix.m[2][1] * WorldMatrix.m[0][2]) +
-			WorldMatrix.m[2][0] * (WorldMatrix.m[0][1] * WorldMatrix.m[1][2] - WorldMatrix.m[1][1] * WorldMatrix.m[0][2]);
+		for (int k = 0; k < VisbleStaticMeshComponentsCount; k++)
+		{
+			XMMATRIX WorldMatrix = VisbleStaticMeshComponents[k]->GetTransformComponent()->GetTransformMatrix();
+			XMMATRIX WVPMatrix = WorldMatrix * ViewProjMatrix;
 
-		VectorTransformMatrix.m[0][0] = (WorldMatrix.m[1][1] * WorldMatrix.m[2][2] - WorldMatrix.m[2][1] * WorldMatrix.m[1][2]) / Determinant;
-		VectorTransformMatrix.m[1][0] = -(WorldMatrix.m[0][1] * WorldMatrix.m[2][2] - WorldMatrix.m[2][1] * WorldMatrix.m[0][2]) / Determinant;
-		VectorTransformMatrix.m[2][0] = (WorldMatrix.m[0][1] * WorldMatrix.m[1][2] - WorldMatrix.m[1][1] * WorldMatrix.m[0][2]) / Determinant;
+			XMFLOAT3X4 VectorTransformMatrix;
 
-		VectorTransformMatrix.m[0][1] = -(WorldMatrix.m[1][0] * WorldMatrix.m[2][2] - WorldMatrix.m[2][0] * WorldMatrix.m[1][2]) / Determinant;
-		VectorTransformMatrix.m[1][1] = (WorldMatrix.m[0][0] * WorldMatrix.m[2][2] - WorldMatrix.m[2][0] * WorldMatrix.m[0][2]) / Determinant;
-		VectorTransformMatrix.m[2][1] = -(WorldMatrix.m[0][0] * WorldMatrix.m[1][0] - WorldMatrix.m[0][2] * WorldMatrix.m[1][2]) / Determinant;
+			float Determinant =
+				WorldMatrix.m[0][0] * (WorldMatrix.m[1][1] * WorldMatrix.m[2][2] - WorldMatrix.m[2][1] * WorldMatrix.m[1][2]) -
+				WorldMatrix.m[1][0] * (WorldMatrix.m[0][1] * WorldMatrix.m[2][2] - WorldMatrix.m[2][1] * WorldMatrix.m[0][2]) +
+				WorldMatrix.m[2][0] * (WorldMatrix.m[0][1] * WorldMatrix.m[1][2] - WorldMatrix.m[1][1] * WorldMatrix.m[0][2]);
 
-		VectorTransformMatrix.m[0][2] = (WorldMatrix.m[1][0] * WorldMatrix.m[2][1] - WorldMatrix.m[2][0] * WorldMatrix.m[1][1]) / Determinant;
-		VectorTransformMatrix.m[1][2] = -(WorldMatrix.m[0][0] * WorldMatrix.m[2][1] - WorldMatrix.m[2][0] * WorldMatrix.m[0][1]) / Determinant;
-		VectorTransformMatrix.m[2][2] = (WorldMatrix.m[0][0] * WorldMatrix.m[1][1] - WorldMatrix.m[1][0] * WorldMatrix.m[0][1]) / Determinant;
+			VectorTransformMatrix.m[0][0] = (WorldMatrix.m[1][1] * WorldMatrix.m[2][2] - WorldMatrix.m[2][1] * WorldMatrix.m[1][2]) / Determinant;
+			VectorTransformMatrix.m[1][0] = -(WorldMatrix.m[0][1] * WorldMatrix.m[2][2] - WorldMatrix.m[2][1] * WorldMatrix.m[0][2]) / Determinant;
+			VectorTransformMatrix.m[2][0] = (WorldMatrix.m[0][1] * WorldMatrix.m[1][2] - WorldMatrix.m[1][1] * WorldMatrix.m[0][2]) / Determinant;
 
-		VectorTransformMatrix.m[0][3] = 0.0f;
-		VectorTransformMatrix.m[1][3] = 0.0f;
-		VectorTransformMatrix.m[2][3] = 0.0f;
+			VectorTransformMatrix.m[0][1] = -(WorldMatrix.m[1][0] * WorldMatrix.m[2][2] - WorldMatrix.m[2][0] * WorldMatrix.m[1][2]) / Determinant;
+			VectorTransformMatrix.m[1][1] = (WorldMatrix.m[0][0] * WorldMatrix.m[2][2] - WorldMatrix.m[2][0] * WorldMatrix.m[0][2]) / Determinant;
+			VectorTransformMatrix.m[2][1] = -(WorldMatrix.m[0][0] * WorldMatrix.m[1][0] - WorldMatrix.m[0][2] * WorldMatrix.m[1][2]) / Determinant;
 
-		memcpy((BYTE*)ConstantBufferData + ConstantBufferOffset, &WVPMatrix, sizeof(XMMATRIX));
-		memcpy((BYTE*)ConstantBufferData + ConstantBufferOffset + sizeof(XMMATRIX), &WorldMatrix, sizeof(XMMATRIX));
-		memcpy((BYTE*)ConstantBufferData + ConstantBufferOffset + 2 * sizeof(XMMATRIX), &VectorTransformMatrix, sizeof(XMFLOAT3X4));
+			VectorTransformMatrix.m[0][2] = (WorldMatrix.m[1][0] * WorldMatrix.m[2][1] - WorldMatrix.m[2][0] * WorldMatrix.m[1][1]) / Determinant;
+			VectorTransformMatrix.m[1][2] = -(WorldMatrix.m[0][0] * WorldMatrix.m[2][1] - WorldMatrix.m[2][0] * WorldMatrix.m[0][1]) / Determinant;
+			VectorTransformMatrix.m[2][2] = (WorldMatrix.m[0][0] * WorldMatrix.m[1][1] - WorldMatrix.m[1][0] * WorldMatrix.m[0][1]) / Determinant;
 
-		ConstantBufferOffset += 256;
+			VectorTransformMatrix.m[0][3] = 0.0f;
+			VectorTransformMatrix.m[1][3] = 0.0f;
+			VectorTransformMatrix.m[2][3] = 0.0f;
+
+			memcpy((BYTE*)ConstantBufferData + ConstantBufferOffset, &WVPMatrix, sizeof(XMMATRIX));
+			memcpy((BYTE*)ConstantBufferData + ConstantBufferOffset + sizeof(XMMATRIX), &WorldMatrix, sizeof(XMMATRIX));
+			memcpy((BYTE*)ConstantBufferData + ConstantBufferOffset + 2 * sizeof(XMMATRIX), &VectorTransformMatrix, sizeof(XMFLOAT3X4));
+
+			ConstantBufferOffset += 256;
+		}
+
+		vkUnmapMemory(Device, CPUConstantBufferMemoryHeaps[CurrentFrameIndex]);
+
+		VkBufferMemoryBarrier BufferMemoryBarrier;
+		BufferMemoryBarrier.buffer = CPUConstantBuffers[CurrentFrameIndex];
+		BufferMemoryBarrier.dstAccessMask = VkAccessFlagBits::VK_ACCESS_TRANSFER_READ_BIT;
+		BufferMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		BufferMemoryBarrier.offset = 0;
+		BufferMemoryBarrier.pNext = nullptr;
+		BufferMemoryBarrier.size = VK_WHOLE_SIZE;
+		BufferMemoryBarrier.srcAccessMask = 0;
+		BufferMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		BufferMemoryBarrier.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+
+		vkCmdPipelineBarrier(CommandBuffers[CurrentFrameIndex], VkPipelineStageFlagBits::VK_PIPELINE_STAGE_HOST_BIT, VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 1, &BufferMemoryBarrier, 0, nullptr);
+
+		if (ConstantBufferOffset > 0)
+		{
+			VkBufferCopy BufferCopy;
+			BufferCopy.dstOffset = 0;
+			BufferCopy.size = ConstantBufferOffset;
+			BufferCopy.srcOffset = 0;
+
+			vkCmdCopyBuffer(CommandBuffers[CurrentFrameIndex], CPUConstantBuffers[CurrentFrameIndex], GPUConstantBuffer, 1, &BufferCopy);
+		}
+
+		BufferMemoryBarrier.buffer = GPUConstantBuffer;
+		BufferMemoryBarrier.dstAccessMask = VkAccessFlagBits::VK_ACCESS_UNIFORM_READ_BIT;
+		BufferMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		BufferMemoryBarrier.offset = 0;
+		BufferMemoryBarrier.pNext = nullptr;
+		BufferMemoryBarrier.size = VK_WHOLE_SIZE;
+		BufferMemoryBarrier.srcAccessMask = VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT;
+		BufferMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		BufferMemoryBarrier.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+
+		VkImageMemoryBarrier ImageMemoryBarriers[3];
+		ImageMemoryBarriers[0].dstAccessMask = VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		ImageMemoryBarriers[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[0].image = GBufferTextures[0];
+		ImageMemoryBarriers[0].newLayout = VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		ImageMemoryBarriers[0].oldLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
+		ImageMemoryBarriers[0].pNext = nullptr;
+		ImageMemoryBarriers[0].srcAccessMask = 0;
+		ImageMemoryBarriers[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[0].sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		ImageMemoryBarriers[0].subresourceRange.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT;
+		ImageMemoryBarriers[0].subresourceRange.baseArrayLayer = 0;
+		ImageMemoryBarriers[0].subresourceRange.baseMipLevel = 0;
+		ImageMemoryBarriers[0].subresourceRange.layerCount = 1;
+		ImageMemoryBarriers[0].subresourceRange.levelCount = 1;
+		ImageMemoryBarriers[1].dstAccessMask = VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		ImageMemoryBarriers[1].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[1].image = GBufferTextures[1];
+		ImageMemoryBarriers[1].newLayout = VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		ImageMemoryBarriers[1].oldLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
+		ImageMemoryBarriers[1].pNext = nullptr;
+		ImageMemoryBarriers[1].srcAccessMask = 0;
+		ImageMemoryBarriers[1].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[1].sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		ImageMemoryBarriers[1].subresourceRange.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT;
+		ImageMemoryBarriers[1].subresourceRange.baseArrayLayer = 0;
+		ImageMemoryBarriers[1].subresourceRange.baseMipLevel = 0;
+		ImageMemoryBarriers[1].subresourceRange.layerCount = 1;
+		ImageMemoryBarriers[1].subresourceRange.levelCount = 1;
+		ImageMemoryBarriers[2].dstAccessMask = VkAccessFlagBits::VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VkAccessFlagBits::VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		ImageMemoryBarriers[2].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[2].image = DepthBufferTexture;
+		ImageMemoryBarriers[2].newLayout = VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		ImageMemoryBarriers[2].oldLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
+		ImageMemoryBarriers[2].pNext = nullptr;
+		ImageMemoryBarriers[2].srcAccessMask = 0;
+		ImageMemoryBarriers[2].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[2].sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		ImageMemoryBarriers[2].subresourceRange.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_DEPTH_BIT | VkImageAspectFlagBits::VK_IMAGE_ASPECT_STENCIL_BIT;
+		ImageMemoryBarriers[2].subresourceRange.baseArrayLayer = 0;
+		ImageMemoryBarriers[2].subresourceRange.baseMipLevel = 0;
+		ImageMemoryBarriers[2].subresourceRange.layerCount = 1;
+		ImageMemoryBarriers[2].subresourceRange.levelCount = 1;
+
+		vkCmdPipelineBarrier(CommandBuffers[CurrentFrameIndex], VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT, VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VkPipelineStageFlagBits::VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VkPipelineStageFlagBits::VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VkPipelineStageFlagBits::VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, 0, 0, nullptr, 1, &BufferMemoryBarrier, 3, ImageMemoryBarriers);
+
+		VkClearValue ClearValues[3];
+		ClearValues[0].color.float32[0] = 0.0f;
+		ClearValues[0].color.float32[1] = 0.0f;
+		ClearValues[0].color.float32[2] = 0.0f;
+		ClearValues[0].color.float32[3] = 0.0f;
+		ClearValues[1].color.float32[0] = 0.0f;
+		ClearValues[1].color.float32[1] = 0.0f;
+		ClearValues[1].color.float32[2] = 0.0f;
+		ClearValues[1].color.float32[3] = 0.0f;
+		ClearValues[2].depthStencil.depth = 0.0f;
+		ClearValues[2].depthStencil.stencil = 0;
+
+		VkRenderPassBeginInfo RenderPassBeginInfo;
+		RenderPassBeginInfo.clearValueCount = 3;
+		RenderPassBeginInfo.framebuffer = GBufferFrameBuffer;
+		RenderPassBeginInfo.pClearValues = ClearValues;
+		RenderPassBeginInfo.pNext = nullptr;
+		RenderPassBeginInfo.renderArea.extent.height = ResolutionHeight;
+		RenderPassBeginInfo.renderArea.extent.width = ResolutionWidth;
+		RenderPassBeginInfo.renderArea.offset.x = 0;
+		RenderPassBeginInfo.renderArea.offset.y = 0;
+		RenderPassBeginInfo.renderPass = GBufferClearRenderPass;
+		RenderPassBeginInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+
+		vkCmdBeginRenderPass(CommandBuffers[CurrentFrameIndex], &RenderPassBeginInfo, VkSubpassContents::VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdEndRenderPass(CommandBuffers[CurrentFrameIndex]);
+
+		RenderPassBeginInfo.clearValueCount = 0;
+		RenderPassBeginInfo.framebuffer = GBufferFrameBuffer;
+		RenderPassBeginInfo.pClearValues = nullptr;
+		RenderPassBeginInfo.pNext = nullptr;
+		RenderPassBeginInfo.renderArea.extent.height = ResolutionHeight;
+		RenderPassBeginInfo.renderArea.extent.width = ResolutionWidth;
+		RenderPassBeginInfo.renderArea.offset.x = 0;
+		RenderPassBeginInfo.renderArea.offset.y = 0;
+		RenderPassBeginInfo.renderPass = GBufferDrawRenderPass;
+		RenderPassBeginInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+
+		vkCmdBeginRenderPass(CommandBuffers[CurrentFrameIndex], &RenderPassBeginInfo, VkSubpassContents::VK_SUBPASS_CONTENTS_INLINE);
+
+		VkViewport Viewport;
+		Viewport.height = float(ResolutionHeight);
+		Viewport.maxDepth = 1.0f;
+		Viewport.minDepth = 0.0f;
+		Viewport.x = 0.0f;
+		Viewport.y = 0.0f;
+		Viewport.width = float(ResolutionWidth);
+
+		vkCmdSetViewport(CommandBuffers[CurrentFrameIndex], 0, 1, &Viewport);
+
+		VkRect2D ScissorRect;
+		ScissorRect.extent.height = ResolutionHeight;
+		ScissorRect.offset.x = 0;
+		ScissorRect.extent.width = ResolutionWidth;
+		ScissorRect.offset.y = 0;
+
+		vkCmdSetScissor(CommandBuffers[CurrentFrameIndex], 0, 1, &ScissorRect);
+
+		VkDescriptorImageInfo DescriptorImageInfo;
+		DescriptorImageInfo.imageLayout = (VkImageLayout)0;
+		DescriptorImageInfo.imageView = VK_NULL_HANDLE;
+		DescriptorImageInfo.sampler = TextureSampler;
+
+		VkWriteDescriptorSet WriteDescriptorSet;
+		WriteDescriptorSet.descriptorCount = 1;
+		WriteDescriptorSet.descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLER;
+		WriteDescriptorSet.dstArrayElement = 0;
+		WriteDescriptorSet.dstBinding = 0;
+		WriteDescriptorSet.dstSet = SamplersSets[CurrentFrameIndex];
+		WriteDescriptorSet.pBufferInfo = nullptr;
+		WriteDescriptorSet.pImageInfo = &DescriptorImageInfo;
+		WriteDescriptorSet.pNext = nullptr;
+		WriteDescriptorSet.pTexelBufferView = nullptr;
+		WriteDescriptorSet.sType = VkStructureType::VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+
+		vkUpdateDescriptorSets(Device, 1, &WriteDescriptorSet, 0, nullptr);
+
+		vkCmdBindDescriptorSets(CommandBuffers[CurrentFrameIndex], VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 2, 1, &SamplersSets[CurrentFrameIndex], 0, nullptr);
+
+		VkDeviceSize Offset = 0;
+
+		for (int k = 0; k < VisbleStaticMeshComponentsCount; k++)
+		{
+			StaticMeshComponent *staticMeshComponent = VisbleStaticMeshComponents[k];
+
+			RenderMesh *renderMesh = staticMeshComponent->GetStaticMesh()->GetRenderMesh();
+			RenderMaterial *renderMaterial = staticMeshComponent->GetMaterial()->GetRenderMaterial();
+			RenderTexture *renderTexture0 = staticMeshComponent->GetMaterial()->GetTexture(0)->GetRenderTexture();
+			RenderTexture *renderTexture1 = staticMeshComponent->GetMaterial()->GetTexture(1)->GetRenderTexture();
+
+			VkDescriptorBufferInfo DescriptorBufferInfo;
+			DescriptorBufferInfo.buffer = GPUConstantBuffer;
+			DescriptorBufferInfo.offset = 256 * k;
+			DescriptorBufferInfo.range = 256;
+
+			VkDescriptorImageInfo DescriptorImageInfos[2];
+			DescriptorImageInfos[0].imageLayout = VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			DescriptorImageInfos[0].imageView = renderTexture0->TextureView;
+			DescriptorImageInfos[0].sampler = VK_NULL_HANDLE;
+			DescriptorImageInfos[1].imageLayout = VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			DescriptorImageInfos[1].imageView = renderTexture1->TextureView;
+			DescriptorImageInfos[1].sampler = VK_NULL_HANDLE;
+
+			VkWriteDescriptorSet WriteDescriptorSets[2];
+			WriteDescriptorSets[0].descriptorCount = 1;
+			WriteDescriptorSets[0].descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			WriteDescriptorSets[0].dstArrayElement = 0;
+			WriteDescriptorSets[0].dstBinding = 0;
+			WriteDescriptorSets[0].dstSet = ConstantBuffersSets[CurrentFrameIndex][k];
+			WriteDescriptorSets[0].pBufferInfo = &DescriptorBufferInfo;
+			WriteDescriptorSets[0].pImageInfo = nullptr;
+			WriteDescriptorSets[0].pNext = nullptr;
+			WriteDescriptorSets[0].pTexelBufferView = nullptr;
+			WriteDescriptorSets[0].sType = VkStructureType::VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			WriteDescriptorSets[1].descriptorCount = 2;
+			WriteDescriptorSets[1].descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+			WriteDescriptorSets[1].dstArrayElement = 0;
+			WriteDescriptorSets[1].dstBinding = 0;
+			WriteDescriptorSets[1].dstSet = TexturesSets[CurrentFrameIndex][k];
+			WriteDescriptorSets[1].pBufferInfo = nullptr;
+			WriteDescriptorSets[1].pImageInfo = DescriptorImageInfos;
+			WriteDescriptorSets[1].pNext = nullptr;
+			WriteDescriptorSets[1].pTexelBufferView = nullptr;
+			WriteDescriptorSets[1].sType = VkStructureType::VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+
+			vkUpdateDescriptorSets(Device, 2, WriteDescriptorSets, 0, nullptr);
+
+			vkCmdBindVertexBuffers(CommandBuffers[CurrentFrameIndex], 0, 1, &renderMesh->VertexBuffer, &Offset);
+			vkCmdBindIndexBuffer(CommandBuffers[CurrentFrameIndex], renderMesh->IndexBuffer, 0, VkIndexType::VK_INDEX_TYPE_UINT16);
+
+			vkCmdBindPipeline(CommandBuffers[CurrentFrameIndex], VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS, renderMaterial->GBufferOpaquePassPipeline);
+
+			VkDescriptorSet DescriptorSets[2] =
+			{
+				ConstantBuffersSets[CurrentFrameIndex][k],
+				TexturesSets[CurrentFrameIndex][k]
+			};
+
+			vkCmdBindDescriptorSets(CommandBuffers[CurrentFrameIndex], VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0, 2, DescriptorSets, 0, nullptr);
+
+			vkCmdDrawIndexed(CommandBuffers[CurrentFrameIndex], 8 * 8 * 6 * 6, 1, 0, 0, 0);
+		}
+
+		vkCmdEndRenderPass(CommandBuffers[CurrentFrameIndex]);
 	}
 
-	vkUnmapMemory(Device, CPUConstantBufferMemoryHeaps[CurrentFrameIndex]);
+	// ===============================================================================================================	
 
-	VkBufferMemoryBarrier BufferMemoryBarrier;
-	BufferMemoryBarrier.buffer = CPUConstantBuffers[CurrentFrameIndex];
-	BufferMemoryBarrier.dstAccessMask = VkAccessFlagBits::VK_ACCESS_TRANSFER_READ_BIT;
-	BufferMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	BufferMemoryBarrier.offset = 0;
-	BufferMemoryBarrier.pNext = nullptr;
-	BufferMemoryBarrier.size = VK_WHOLE_SIZE;
-	BufferMemoryBarrier.srcAccessMask = 0;
-	BufferMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	BufferMemoryBarrier.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-
-	vkCmdPipelineBarrier(CommandBuffers[CurrentFrameIndex], VkPipelineStageFlagBits::VK_PIPELINE_STAGE_HOST_BIT, VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 1, &BufferMemoryBarrier, 0, nullptr);
-
-	if (ConstantBufferOffset > 0)
 	{
-		VkBufferCopy BufferCopy;
-		BufferCopy.dstOffset = 0;
-		BufferCopy.size = ConstantBufferOffset;
-		BufferCopy.srcOffset = 0;
+		VkImageMemoryBarrier ImageMemoryBarriers[1];
+		ImageMemoryBarriers[0].dstAccessMask = VkAccessFlagBits::VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VkAccessFlagBits::VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		ImageMemoryBarriers[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[0].image = ResolvedDepthBufferTexture;
+		ImageMemoryBarriers[0].newLayout = VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		ImageMemoryBarriers[0].oldLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
+		ImageMemoryBarriers[0].pNext = nullptr;
+		ImageMemoryBarriers[0].srcAccessMask = 0;
+		ImageMemoryBarriers[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[0].sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		ImageMemoryBarriers[0].subresourceRange.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_DEPTH_BIT | VkImageAspectFlagBits::VK_IMAGE_ASPECT_STENCIL_BIT;
+		ImageMemoryBarriers[0].subresourceRange.baseArrayLayer = 0;
+		ImageMemoryBarriers[0].subresourceRange.baseMipLevel = 0;
+		ImageMemoryBarriers[0].subresourceRange.layerCount = 1;
+		ImageMemoryBarriers[0].subresourceRange.levelCount = 1;
 
-		vkCmdCopyBuffer(CommandBuffers[CurrentFrameIndex], CPUConstantBuffers[CurrentFrameIndex], GPUConstantBuffer, 1, &BufferCopy);
+		vkCmdPipelineBarrier(CommandBuffers[CurrentFrameIndex], VkPipelineStageFlagBits::VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VkPipelineStageFlagBits::VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VkPipelineStageFlagBits::VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, 0, 0, nullptr, 0, nullptr, 1, ImageMemoryBarriers);
+
+		VkRenderPassBeginInfo RenderPassBeginInfo;
+		RenderPassBeginInfo.clearValueCount = 0;
+		RenderPassBeginInfo.framebuffer = ResolvedDepthFrameBuffer;
+		RenderPassBeginInfo.pClearValues = nullptr;
+		RenderPassBeginInfo.pNext = nullptr;
+		RenderPassBeginInfo.renderArea.extent.height = ResolutionHeight;
+		RenderPassBeginInfo.renderArea.extent.width = ResolutionWidth;
+		RenderPassBeginInfo.renderArea.offset.x = 0;
+		RenderPassBeginInfo.renderArea.offset.y = 0;
+		RenderPassBeginInfo.renderPass = MSAADepthBufferResolveRenderPass;
+		RenderPassBeginInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+
+		vkCmdBeginRenderPass(CommandBuffers[CurrentFrameIndex], &RenderPassBeginInfo, VkSubpassContents::VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdEndRenderPass(CommandBuffers[CurrentFrameIndex]);
 	}
 
-	BufferMemoryBarrier.buffer = GPUConstantBuffer;
-	BufferMemoryBarrier.dstAccessMask = VkAccessFlagBits::VK_ACCESS_UNIFORM_READ_BIT;
-	BufferMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	BufferMemoryBarrier.offset = 0;
-	BufferMemoryBarrier.pNext = nullptr;
-	BufferMemoryBarrier.size = VK_WHOLE_SIZE;
-	BufferMemoryBarrier.srcAccessMask = VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT;
-	BufferMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	BufferMemoryBarrier.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-
-	VkImageMemoryBarrier ImageMemoryBarriers[3];
-	ImageMemoryBarriers[0].dstAccessMask = VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	VkImageMemoryBarrier ImageMemoryBarriers[1];
+	ImageMemoryBarriers[0].dstAccessMask = VkAccessFlagBits::VK_ACCESS_MEMORY_READ_BIT;
 	ImageMemoryBarriers[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	ImageMemoryBarriers[0].image = GBufferTextures[0];
-	ImageMemoryBarriers[0].newLayout = VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	ImageMemoryBarriers[0].image = BackBufferTextures[CurrentBackBufferIndex];
+	ImageMemoryBarriers[0].newLayout = VkImageLayout::VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 	ImageMemoryBarriers[0].oldLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
 	ImageMemoryBarriers[0].pNext = nullptr;
 	ImageMemoryBarriers[0].srcAccessMask = 0;
@@ -1440,198 +1839,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 	ImageMemoryBarriers[0].subresourceRange.baseMipLevel = 0;
 	ImageMemoryBarriers[0].subresourceRange.layerCount = 1;
 	ImageMemoryBarriers[0].subresourceRange.levelCount = 1;
-	ImageMemoryBarriers[1].dstAccessMask = VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	ImageMemoryBarriers[1].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	ImageMemoryBarriers[1].image = GBufferTextures[1];
-	ImageMemoryBarriers[1].newLayout = VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	ImageMemoryBarriers[1].oldLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
-	ImageMemoryBarriers[1].pNext = nullptr;
-	ImageMemoryBarriers[1].srcAccessMask = 0;
-	ImageMemoryBarriers[1].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	ImageMemoryBarriers[1].sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-	ImageMemoryBarriers[1].subresourceRange.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT;
-	ImageMemoryBarriers[1].subresourceRange.baseArrayLayer = 0;
-	ImageMemoryBarriers[1].subresourceRange.baseMipLevel = 0;
-	ImageMemoryBarriers[1].subresourceRange.layerCount = 1;
-	ImageMemoryBarriers[1].subresourceRange.levelCount = 1;
-	ImageMemoryBarriers[2].dstAccessMask = VkAccessFlagBits::VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VkAccessFlagBits::VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-	ImageMemoryBarriers[2].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	ImageMemoryBarriers[2].image = DepthBufferTexture;
-	ImageMemoryBarriers[2].newLayout = VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-	ImageMemoryBarriers[2].oldLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
-	ImageMemoryBarriers[2].pNext = nullptr;
-	ImageMemoryBarriers[2].srcAccessMask = 0;
-	ImageMemoryBarriers[2].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	ImageMemoryBarriers[2].sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-	ImageMemoryBarriers[2].subresourceRange.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_DEPTH_BIT | VkImageAspectFlagBits::VK_IMAGE_ASPECT_STENCIL_BIT;
-	ImageMemoryBarriers[2].subresourceRange.baseArrayLayer = 0;
-	ImageMemoryBarriers[2].subresourceRange.baseMipLevel = 0;
-	ImageMemoryBarriers[2].subresourceRange.layerCount = 1;
-	ImageMemoryBarriers[2].subresourceRange.levelCount = 1;
 
-	vkCmdPipelineBarrier(CommandBuffers[CurrentFrameIndex], VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT, VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VkPipelineStageFlagBits::VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VkPipelineStageFlagBits::VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VkPipelineStageFlagBits::VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, 0, 0, nullptr, 1, &BufferMemoryBarrier, 3, ImageMemoryBarriers);
-
-	VkClearValue ClearValues[3];
-	ClearValues[0].color.float32[0] = 0.0f;
-	ClearValues[0].color.float32[1] = 0.0f;
-	ClearValues[0].color.float32[2] = 0.0f;
-	ClearValues[0].color.float32[3] = 0.0f;
-	ClearValues[1].color.float32[0] = 0.0f;
-	ClearValues[1].color.float32[1] = 0.0f;
-	ClearValues[1].color.float32[2] = 0.0f;
-	ClearValues[1].color.float32[3] = 0.0f;
-	ClearValues[2].depthStencil.depth = 0.0f;
-	ClearValues[2].depthStencil.stencil = 0;
-
-	VkRenderPassBeginInfo RenderPassBeginInfo;
-	RenderPassBeginInfo.clearValueCount = 3;
-	RenderPassBeginInfo.framebuffer = GBufferFrameBuffer;
-	RenderPassBeginInfo.pClearValues = ClearValues;
-	RenderPassBeginInfo.pNext = nullptr;
-	RenderPassBeginInfo.renderArea.extent.height = ResolutionHeight;
-	RenderPassBeginInfo.renderArea.extent.width = ResolutionWidth;
-	RenderPassBeginInfo.renderArea.offset.x = 0;
-	RenderPassBeginInfo.renderArea.offset.y = 0;
-	RenderPassBeginInfo.renderPass = GBufferClearRenderPass;
-	RenderPassBeginInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-
-	vkCmdBeginRenderPass(CommandBuffers[CurrentFrameIndex], &RenderPassBeginInfo, VkSubpassContents::VK_SUBPASS_CONTENTS_INLINE);
-	vkCmdEndRenderPass(CommandBuffers[CurrentFrameIndex]);
-
-	RenderPassBeginInfo.clearValueCount = 0;
-	RenderPassBeginInfo.framebuffer = GBufferFrameBuffer;
-	RenderPassBeginInfo.pClearValues = nullptr;
-	RenderPassBeginInfo.pNext = nullptr;
-	RenderPassBeginInfo.renderArea.extent.height = ResolutionHeight;
-	RenderPassBeginInfo.renderArea.extent.width = ResolutionWidth;
-	RenderPassBeginInfo.renderArea.offset.x = 0;
-	RenderPassBeginInfo.renderArea.offset.y = 0;
-	RenderPassBeginInfo.renderPass = GBufferDrawRenderPass;
-	RenderPassBeginInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-
-	vkCmdBeginRenderPass(CommandBuffers[CurrentFrameIndex], &RenderPassBeginInfo, VkSubpassContents::VK_SUBPASS_CONTENTS_INLINE);
-
-	VkViewport Viewport;
-	Viewport.height = float(ResolutionHeight);
-	Viewport.maxDepth = 1.0f;
-	Viewport.minDepth = 0.0f;
-	Viewport.x = 0.0f;
-	Viewport.y = 0.0f;
-	Viewport.width = float(ResolutionWidth);
-
-	vkCmdSetViewport(CommandBuffers[CurrentFrameIndex], 0, 1, &Viewport);
-
-	VkRect2D ScissorRect;
-	ScissorRect.extent.height = ResolutionHeight;
-	ScissorRect.offset.x = 0;
-	ScissorRect.extent.width = ResolutionWidth;
-	ScissorRect.offset.y = 0;
-
-	vkCmdSetScissor(CommandBuffers[CurrentFrameIndex], 0, 1, &ScissorRect);
-
-	VkDescriptorImageInfo DescriptorImageInfo;
-	DescriptorImageInfo.imageLayout = (VkImageLayout)0;
-	DescriptorImageInfo.imageView = VK_NULL_HANDLE;
-	DescriptorImageInfo.sampler = TextureSampler;
-
-	VkWriteDescriptorSet WriteDescriptorSet;
-	WriteDescriptorSet.descriptorCount = 1;
-	WriteDescriptorSet.descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLER;
-	WriteDescriptorSet.dstArrayElement = 0;
-	WriteDescriptorSet.dstBinding = 0;
-	WriteDescriptorSet.dstSet = SamplersSets[CurrentFrameIndex];
-	WriteDescriptorSet.pBufferInfo = nullptr;
-	WriteDescriptorSet.pImageInfo = &DescriptorImageInfo;
-	WriteDescriptorSet.pNext = nullptr;
-	WriteDescriptorSet.pTexelBufferView = nullptr;
-	WriteDescriptorSet.sType = VkStructureType::VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-
-	vkUpdateDescriptorSets(Device, 1, &WriteDescriptorSet, 0, nullptr);
-
-	vkCmdBindDescriptorSets(CommandBuffers[CurrentFrameIndex], VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 2, 1, &SamplersSets[CurrentFrameIndex], 0, nullptr);
-
-	VkDeviceSize Offset = 0;
-
-	for (int k = 0; k < VisbleStaticMeshComponentsCount; k++)
-	{
-		StaticMeshComponent *staticMeshComponent = VisbleStaticMeshComponents[k];
-
-		RenderMesh *renderMesh = staticMeshComponent->GetStaticMesh()->GetRenderMesh();
-		RenderMaterial *renderMaterial = staticMeshComponent->GetMaterial()->GetRenderMaterial();
-		RenderTexture *renderTexture0 = staticMeshComponent->GetMaterial()->GetTexture(0)->GetRenderTexture();
-		RenderTexture *renderTexture1 = staticMeshComponent->GetMaterial()->GetTexture(1)->GetRenderTexture();
-
-		VkDescriptorBufferInfo DescriptorBufferInfo;
-		DescriptorBufferInfo.buffer = GPUConstantBuffer;
-		DescriptorBufferInfo.offset = 256 * k;
-		DescriptorBufferInfo.range = 256;
-
-		VkDescriptorImageInfo DescriptorImageInfos[2];
-		DescriptorImageInfos[0].imageLayout = VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		DescriptorImageInfos[0].imageView = renderTexture0->TextureView;
-		DescriptorImageInfos[0].sampler = VK_NULL_HANDLE;
-		DescriptorImageInfos[1].imageLayout = VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		DescriptorImageInfos[1].imageView = renderTexture1->TextureView;
-		DescriptorImageInfos[1].sampler = VK_NULL_HANDLE;
-
-		VkWriteDescriptorSet WriteDescriptorSets[2];
-		WriteDescriptorSets[0].descriptorCount = 1;
-		WriteDescriptorSets[0].descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		WriteDescriptorSets[0].dstArrayElement = 0;
-		WriteDescriptorSets[0].dstBinding = 0;
-		WriteDescriptorSets[0].dstSet = ConstantBuffersSets[CurrentFrameIndex][k];
-		WriteDescriptorSets[0].pBufferInfo = &DescriptorBufferInfo;
-		WriteDescriptorSets[0].pImageInfo = nullptr;
-		WriteDescriptorSets[0].pNext = nullptr;
-		WriteDescriptorSets[0].pTexelBufferView = nullptr;
-		WriteDescriptorSets[0].sType = VkStructureType::VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		WriteDescriptorSets[1].descriptorCount = 2;
-		WriteDescriptorSets[1].descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-		WriteDescriptorSets[1].dstArrayElement = 0;
-		WriteDescriptorSets[1].dstBinding = 0;
-		WriteDescriptorSets[1].dstSet = TexturesSets[CurrentFrameIndex][k];
-		WriteDescriptorSets[1].pBufferInfo = nullptr;
-		WriteDescriptorSets[1].pImageInfo = DescriptorImageInfos;
-		WriteDescriptorSets[1].pNext = nullptr;
-		WriteDescriptorSets[1].pTexelBufferView = nullptr;
-		WriteDescriptorSets[1].sType = VkStructureType::VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-
-		vkUpdateDescriptorSets(Device, 2, WriteDescriptorSets, 0, nullptr);
-
-		vkCmdBindVertexBuffers(CommandBuffers[CurrentFrameIndex], 0, 1, &renderMesh->VertexBuffer, &Offset);
-		vkCmdBindIndexBuffer(CommandBuffers[CurrentFrameIndex], renderMesh->IndexBuffer, 0, VkIndexType::VK_INDEX_TYPE_UINT16);
-
-		vkCmdBindPipeline(CommandBuffers[CurrentFrameIndex], VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS, renderMaterial->GBufferOpaquePassPipeline);
-
-		VkDescriptorSet DescriptorSets[2] =
-		{
-			ConstantBuffersSets[CurrentFrameIndex][k],
-			TexturesSets[CurrentFrameIndex][k]
-		};
-
-		vkCmdBindDescriptorSets(CommandBuffers[CurrentFrameIndex], VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0, 2, DescriptorSets, 0, nullptr);
-
-		vkCmdDrawIndexed(CommandBuffers[CurrentFrameIndex], 8 * 8 * 6 * 6, 1, 0, 0, 0);
-	}
-
-	vkCmdEndRenderPass(CommandBuffers[CurrentFrameIndex]);
-
-	ImageMemoryBarriers[0].dstAccessMask = VkAccessFlagBits::VK_ACCESS_MEMORY_READ_BIT;
-	ImageMemoryBarriers[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	ImageMemoryBarriers[0].image = BackBufferTextures[CurrentBackBufferIndex];
-	ImageMemoryBarriers[0].newLayout = VkImageLayout::VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-	ImageMemoryBarriers[0].oldLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
-	ImageMemoryBarriers[0].pNext = nullptr;
-	ImageMemoryBarriers[0].srcAccessMask = VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	ImageMemoryBarriers[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	ImageMemoryBarriers[0].sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-	ImageMemoryBarriers[0].subresourceRange.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT;
-	ImageMemoryBarriers[0].subresourceRange.baseArrayLayer = 0;
-	ImageMemoryBarriers[0].subresourceRange.baseMipLevel = 0;
-	ImageMemoryBarriers[0].subresourceRange.layerCount = 1;
-	ImageMemoryBarriers[0].subresourceRange.levelCount = 1;
-
-	vkCmdPipelineBarrier(CommandBuffers[CurrentFrameIndex], VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, ImageMemoryBarriers);
+	vkCmdPipelineBarrier(CommandBuffers[CurrentFrameIndex], VkPipelineStageFlagBits::VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, ImageMemoryBarriers);
 
 	SAFE_VK(vkEndCommandBuffer(CommandBuffers[CurrentFrameIndex]));
 
