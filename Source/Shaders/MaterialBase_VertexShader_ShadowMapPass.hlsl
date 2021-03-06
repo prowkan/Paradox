@@ -1,13 +1,17 @@
 struct VSInput
 {
-	[[vk::location(0)]] float3 Position : POSITION;
-	[[vk::location(1)]] float2 TexCoord : TEXCOORD;
+	float3 Position : POSITION;
+	float2 TexCoord : TEXCOORD;
+	float3 Normal : NORMAL;
+	float3 Tangent : TANGENT;
+	float3 Binormal : BINORMAL;
 };
+
 
 struct VSOutput
 {
 	float4 Position : SV_Position;
-	[[vk::location(0)]] float2 TexCoord : TEXCOORD;
+	float2 TexCoord : TEXCOORD;
 };
 
 struct VSConstants
@@ -15,7 +19,7 @@ struct VSConstants
 	float4x4 WVPMatrix;
 };
 
-[[vk::binding(0, 0)]] ConstantBuffer<VSConstants> VertexShaderConstants : register(b0);
+ConstantBuffer<VSConstants> VertexShaderConstants : register(b0);
 
 VSOutput VS(VSInput VertexShaderInput)
 {
