@@ -7,9 +7,11 @@
 #include "Entity.h"
 
 #include "Entities/Render/Meshes/StaticMeshEntity.h"
+#include "Entities/Render/Lights/PointLightEntity.h"
 
 #include "Components/Common/TransformComponent.h"
 #include "Components/Render/Meshes/StaticMeshComponent.h"
+#include "Components/Render/Lights/PointLightComponent.h"
 
 #include <Containers/COMRCPtr.h>
 
@@ -115,7 +117,7 @@ void World::LoadWorld()
 		Engine::GetEngine().GetResourceManager().AddResource<StaticMeshResource>(StaticMeshResourceName, &staticMeshResourceCreateInfo);
 	}
 
-	Texel *TexelData = new Texel[512 * 512 + 256 * 256 + 128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4];
+	ScopedMemoryBlockArray<Texel> TexelData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<Texel>(512 * 512 + 256 * 256 + 128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4);
 
 	Texel *Texels[8];
 
@@ -155,7 +157,7 @@ void World::LoadWorld()
 		}
 	}
 
-	CompressedTexelBlock *CompressedTexelBlockData = new CompressedTexelBlock[128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4 + 2 * 2 + 1 * 1];
+	ScopedMemoryBlockArray<CompressedTexelBlock> CompressedTexelBlockData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<CompressedTexelBlock>(128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4 + 2 * 2 + 1 * 1);
 
 	CompressedTexelBlock *CompressedTexelBlocks[8];
 
@@ -258,19 +260,17 @@ void World::LoadWorld()
 		Engine::GetEngine().GetResourceManager().AddResource<Texture2DResource>(Texture2DResourceName, &texture2DResourceCreateInfo);
 	}
 
-	delete[] TexelData;
-
 	HANDLE VertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/MaterialBase_VertexShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER VertexShaderByteCodeLength;
 	BOOL Result = GetFileSizeEx(VertexShaderFile, &VertexShaderByteCodeLength);
-	void *VertexShaderByteCodeData = malloc(VertexShaderByteCodeLength.QuadPart);
+	ScopedMemoryBlockArray<BYTE> VertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(VertexShaderByteCodeLength.QuadPart);
 	Result = ReadFile(VertexShaderFile, VertexShaderByteCodeData, (DWORD)VertexShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(VertexShaderFile);
 
 	HANDLE PixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/MaterialBase_PixelShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER PixelShaderByteCodeLength;
 	Result = GetFileSizeEx(PixelShaderFile, &PixelShaderByteCodeLength);
-	void *PixelShaderByteCodeData = malloc(PixelShaderByteCodeLength.QuadPart);
+	ScopedMemoryBlockArray<BYTE> PixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(PixelShaderByteCodeLength.QuadPart);
 	Result = ReadFile(PixelShaderFile, PixelShaderByteCodeData, (DWORD)PixelShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(PixelShaderFile);
 
@@ -296,9 +296,6 @@ void World::LoadWorld()
 		Engine::GetEngine().GetResourceManager().AddResource<MaterialResource>(MaterialResourceName, &materialResourceCreateInfo);
 	}
 
-	free(VertexShaderByteCodeData);
-	free(PixelShaderByteCodeData);
-
 	UINT ResourceCounter = 0;
 
 	for (int i = -50; i < 50; i++)
@@ -311,8 +308,8 @@ void World::LoadWorld()
 			sprintf(StaticMeshResourceName, "Cube_%u", ResourceCounter);
 			sprintf(MaterialResourceName, "Standart_%u", ResourceCounter);
 
-			StaticMeshEntity *staticMeshEntity = Entity::DynamicCast<StaticMeshEntity>(SpawnEntity(StaticMeshEntity::GetMetaClassStatic()));
-			staticMeshEntity->GetTransformComponent()->SetLocation(XMFLOAT3(i * 5.0f + 2.5f, 0.0f, j * 5.0f + 2.5f));
+			StaticMeshEntity *staticMeshEntity = SpawnEntity<StaticMeshEntity>();
+			staticMeshEntity->GetTransformComponent()->SetLocation(XMFLOAT3(i * 5.0f + 2.5f, -0.0f, j * 5.0f + 2.5f));
 			staticMeshEntity->GetStaticMeshComponent()->SetStaticMesh(Engine::GetEngine().GetResourceManager().GetResource<StaticMeshResource>(StaticMeshResourceName));
 			staticMeshEntity->GetStaticMeshComponent()->SetMaterial(Engine::GetEngine().GetResourceManager().GetResource<MaterialResource>(MaterialResourceName));
 
@@ -321,13 +318,19 @@ void World::LoadWorld()
 			sprintf(StaticMeshResourceName, "Cube_%d", ResourceCounter);
 			sprintf(MaterialResourceName, "Standart_%d", ResourceCounter);
 
-			staticMeshEntity = Entity::DynamicCast<StaticMeshEntity>(SpawnEntity(StaticMeshEntity::GetMetaClassStatic()));
+			staticMeshEntity = SpawnEntity<StaticMeshEntity>();
 			staticMeshEntity->GetTransformComponent()->SetLocation(XMFLOAT3(i * 10.0f + 5.0f, -2.0f, j * 10.0f + 5.0f));
 			staticMeshEntity->GetTransformComponent()->SetScale(XMFLOAT3(5.0f, 1.0f, 5.0f));
 			staticMeshEntity->GetStaticMeshComponent()->SetStaticMesh(Engine::GetEngine().GetResourceManager().GetResource<StaticMeshResource>(StaticMeshResourceName));
 			staticMeshEntity->GetStaticMeshComponent()->SetMaterial(Engine::GetEngine().GetResourceManager().GetResource<MaterialResource>(MaterialResourceName));
 
 			ResourceCounter = (ResourceCounter + 1) % 4000;
+
+			PointLightEntity *pointLightEntity = SpawnEntity<PointLightEntity>();
+			pointLightEntity->GetTransformComponent()->SetLocation(XMFLOAT3(i * 10.0f + 5.0f, 1.5f, j * 10.0f + 5.0f));
+			pointLightEntity->GetPointLightComponent()->SetBrightness(10.0f);
+			pointLightEntity->GetPointLightComponent()->SetRadius(5.0f);
+			pointLightEntity->GetPointLightComponent()->SetColor(XMFLOAT3((i + 51) / 100.0f, 0.1f, (j + 51) / 100.0f));
 		}
 	}
 }
