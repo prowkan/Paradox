@@ -180,6 +180,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Containers\COMRCPtr.h" />
+    <ClInclude Include="Containers\DefaultAllocator.h" />
     <ClInclude Include="Containers\DynamicArray.h" />
     <ClInclude Include="Containers\FixedSizeString.h" />
     <ClInclude Include="Containers\Queue.h" />

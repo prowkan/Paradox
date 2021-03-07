@@ -1,6 +1,8 @@
 #pragma once
 
-template<typename T>
+#include "DefaultAllocator.h"
+
+template<typename T, typename Allocator = DefaultAllocator>
 class Queue
 {
 	public:
@@ -15,7 +17,7 @@ class Queue
 		{
 			if (Last)
 			{
-				Node *NewNode = new Node;
+				Node *NewNode = (Node*)Allocator::AllocateMemory(sizeof(Node));
 				NewNode->Data = Element;
 				NewNode->Prev = Last;
 				NewNode->Next = nullptr;
@@ -24,7 +26,7 @@ class Queue
 			}
 			else
 			{
-				Node *NewNode = new Node;
+				Node *NewNode = (Node*)Allocator::AllocateMemory(sizeof(Node));
 				NewNode->Data = Element;
 				NewNode->Next = nullptr;
 				NewNode->Prev = nullptr;
@@ -44,7 +46,7 @@ class Queue
 				if (First->Next) First->Next->Prev = nullptr;
 				else Last = nullptr;
 				Node *NewFirst = First->Next;
-				delete First;
+				Allocator::FreeMemory(First);
 				First = NewFirst;
 				return Element;
 			}

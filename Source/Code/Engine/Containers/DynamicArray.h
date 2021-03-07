@@ -1,6 +1,8 @@
 #pragma once
 
-template<typename T>
+#include "DefaultAllocator.h"
+
+template<typename T, typename Allocator = DefaultAllocator>
 class DynamicArray
 {
 	public:
@@ -18,7 +20,7 @@ class DynamicArray
 			ArrayLength = OtherArray.ArrayLength;
 			ArrayCapacity = OtherArray.ArrayCapacity;
 
-			ArrayData = (T*)malloc(sizeof(T) * ArrayCapacity);
+			ArrayData = (T*)Allocator::AllocateMemory(sizeof(T) * ArrayCapacity);
 
 			for (int i = 0; i < ArrayLength; i++)
 			{
@@ -33,12 +35,12 @@ class DynamicArray
 				ArrayData[i].~T();
 			}
 
-			free(ArrayData);
+			Allocator::FreeMemory(ArrayData);
 
 			ArrayLength = OtherArray.ArrayLength;
 			ArrayCapacity = OtherArray.ArrayCapacity;
 
-			ArrayData = (T*)malloc(sizeof(T) * ArrayCapacity);
+			ArrayData = (T*)Allocator::AllocateMemory(sizeof(T) * ArrayCapacity);
 
 			for (int i = 0; i < ArrayLength; i++)
 			{
@@ -55,7 +57,7 @@ class DynamicArray
 				ArrayData[i].~T();
 			}
 
-			free(ArrayData);
+			Allocator::FreeMemory(ArrayData);
 		}
 
 		void Add(const T& Element)
@@ -66,7 +68,7 @@ class DynamicArray
 
 				ArrayCapacity++;
 
-				ArrayData = (T*)malloc(sizeof(T) * ArrayCapacity);
+				ArrayData = (T*)Allocator::AllocateMemory(sizeof(T) * ArrayCapacity);
 
 				for (size_t i = 0; i < ArrayLength; i++)
 				{
@@ -76,7 +78,7 @@ class DynamicArray
 
 				ArrayData[ArrayLength] = Element;
 
-				free(OldArrayData);
+				Allocator::FreeMemory(OldArrayData);
 
 				ArrayLength++;
 
@@ -105,7 +107,7 @@ class DynamicArray
 
 			ArrayCapacity += OtherArray.ArrayCapacity;
 
-			ArrayData = (T*)malloc(sizeof(T) * ArrayCapacity);
+			ArrayData = (T*)Allocator::AllocateMemory(sizeof(T) * ArrayCapacity);
 
 			for (int i = 0; i < ArrayLength; i++)
 			{
@@ -120,7 +122,7 @@ class DynamicArray
 
 			ArrayLength += OtherArray.ArrayLength;
 
-			free(OldArrayData);
+			Allocator::FreeMemory(OldArrayData);
 		}
 
 		T& operator[](size_t Index)
