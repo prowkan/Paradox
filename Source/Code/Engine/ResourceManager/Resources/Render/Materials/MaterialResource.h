@@ -22,7 +22,7 @@ class MaterialResource : public Resource
 		virtual void CreateResource(const void* ResourceData) override;
 		virtual void DestroyResource() override;
 
-		Texture2DResource* GetTexture(UINT Index) { return Textures[0]; }
+		Texture2DResource* GetTexture(UINT Index) { return Textures[Index]; }
 
 		RenderMaterial* GetRenderMaterial() { return renderMaterial; }
 
