@@ -3,6 +3,16 @@
 
 #include "RenderSystem.h"
 
+#include "RenderPasses/GBufferOpaquePass.h"
+#include "RenderPasses/OcclusionBufferPass.h"
+#include "RenderPasses/ShadowMapPass.h"
+#include "RenderPasses/ShadowResolvePass.h"
+#include "RenderPasses/DeferredLightingPass.h"
+#include "RenderPasses/SkyAndFogPass.h"
+#include "RenderPasses/PostProcessLuminancePass.h"
+#include "RenderPasses/PostProcessBloomPass.h"
+#include "RenderPasses/PostProcessHDRToneMappingPass.h"
+
 #include <Core/Application.h>
 
 #include <Engine/Engine.h>
@@ -2578,6 +2588,21 @@ void RenderSystem::InitSystem()
 
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(HDRToneMappingPipelineState)));
 	}
+
+	RenderPasses.push_back(new GBufferOpaquePass);
+	RenderPasses.push_back(new OcclusionBufferPass);
+	RenderPasses.push_back(new ShadowMapPass);
+	RenderPasses.push_back(new ShadowResolvePass);
+	RenderPasses.push_back(new DeferredLightingPass);
+	RenderPasses.push_back(new SkyAndFogPass);
+	RenderPasses.push_back(new PostProcessLuminancePass);
+	RenderPasses.push_back(new PostProcessBloomPass);
+	RenderPasses.push_back(new PostProcessHDRToneMappingPass);
+
+	for (RenderPass* renderPass : RenderPasses)
+	{
+		renderPass->Init();
+	}
 }
 
 void RenderSystem::ShutdownSystem()
@@ -2618,6 +2643,11 @@ void RenderSystem::ShutdownSystem()
 
 void RenderSystem::TickSystem(float DeltaTime)
 {
+	for (RenderPass* renderPass : RenderPasses)
+	{
+		renderPass->Execute();
+	}
+
 	GameFramework& gameFramework = Engine::GetEngine().GetGameFramework();
 
 	Camera& camera = gameFramework.GetCamera();
@@ -2631,9 +2661,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 	XMMATRIX ShadowViewMatrices[4], ShadowProjMatrices[4], ShadowViewProjMatrices[4];
 
 	ShadowViewMatrices[0] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 10.0f, CameraLocation.y + 10.0f, CameraLocation.z - 10.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
-	ShadowViewMatrices[1] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 20.0f, CameraLocation.y + 20.0f, CameraLocation.z - 10.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
-	ShadowViewMatrices[2] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 50.0f, CameraLocation.y + 50.0f, CameraLocation.z - 10.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
-	ShadowViewMatrices[3] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 100.0f, CameraLocation.y + 100.0f, CameraLocation.z - 10.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
+	ShadowViewMatrices[1] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 20.0f, CameraLocation.y + 20.0f, CameraLocation.z - 20.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
+	ShadowViewMatrices[2] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 50.0f, CameraLocation.y + 50.0f, CameraLocation.z - 50.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
+	ShadowViewMatrices[3] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 100.0f, CameraLocation.y + 100.0f, CameraLocation.z - 100.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
 
 	ShadowProjMatrices[0] = XMMatrixOrthographicLH(10.0f, 10.0f, 0.01f, 500.0f);
 	ShadowProjMatrices[1] = XMMatrixOrthographicLH(20.0f, 20.0f, 0.01f, 500.0f);

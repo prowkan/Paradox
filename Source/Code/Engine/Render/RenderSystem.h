@@ -131,6 +131,8 @@ inline float DistanceBetweenColor(const Color& Color1, const Color& Color2)
 	return powf(Color1.R - Color2.R, 2.0f) + powf(Color1.G - Color2.G, 2.0f) + powf(Color1.B - Color2.B, 2.0f);
 }
 
+class RenderPass;
+
 #define SAFE_DX(Func) CheckDXCallResult(Func, u#Func);
 #define UUIDOF(Value) __uuidof(Value), (void**)&Value
 
@@ -327,4 +329,6 @@ class RenderSystem
 		inline const char16_t* GetDXErrorMessageFromHRESULT(HRESULT hr);
 
 		static const UINT MAX_MIP_LEVELS_IN_TEXTURE = 16;
+
+		vector<RenderPass*> RenderPasses;
 };
