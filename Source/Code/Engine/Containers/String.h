@@ -1,6 +1,9 @@
 #pragma once
 
-class String
+#include "DefaultAllocator.h"
+
+template<typename Allocator = DefaultAllocator>
+class StringTemplate
 {
 	public:
 
@@ -20,42 +23,42 @@ class String
 			return (const wchar_t*)StringData;
 		}*/
 
-		String()
+		StringTemplate()
 		{
 			StringData = nullptr;
 			StringLength = 0;
 		}
 
-		String(const String& OtherString)
+		StringTemplate(const StringTemplate& OtherString)
 		{
 			StringLength = strlen(OtherString.StringData);
-			StringData = new char[StringLength + 1];
+			StringData = (char*)Allocator::AllocateMemory(sizeof(char) * (StringLength + 1));
 			strcpy(StringData, OtherString.StringData);
 		}
 
-		String(const char* Arg)
+		StringTemplate(const char* Arg)
 		{
 			StringLength = strlen(Arg);
-			StringData = new char[StringLength + 1];
+			StringData = (char*)Allocator::AllocateMemory(sizeof(char) * (StringLength + 1));
 			strcpy(StringData, Arg);
 		}
 
-		~String()
+		~StringTemplate()
 		{
-			delete[] StringData;
+			Allocator::FreeMemory(StringData);
 		}
 
-		String& operator=(const String& OtherString)
+		StringTemplate& operator=(const StringTemplate& OtherString)
 		{
-			delete[] StringData;
+			Allocator::FreeMemory(StringData);
 			StringLength = strlen(OtherString.StringData);
-			StringData = new char[StringLength + 1];
+			StringData = (char*)Allocator::AllocateMemory(sizeof(char) * (StringLength + 1));
 			strcpy(StringData, OtherString.StringData);
 
 			return *this;
 		}
 
-		bool operator==(const String& OtherString)
+		bool operator==(const StringTemplate& OtherString)
 		{
 			return strcmp(StringData, OtherString.StringData) == 0;
 		}
@@ -69,3 +72,5 @@ class String
 		char *StringData;
 		size_t StringLength;
 };
+
+using String = StringTemplate<>;

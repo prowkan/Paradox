@@ -183,6 +183,7 @@
     <ClInclude Include="Containers\DefaultAllocator.h" />
     <ClInclude Include="Containers\DynamicArray.h" />
     <ClInclude Include="Containers\FixedSizeString.h" />
+    <ClInclude Include="Containers\Hash.h" />
     <ClInclude Include="Containers\HashTable.h" />
     <ClInclude Include="Containers\Queue.h" />
     <ClInclude Include="Containers\StaticArray.h" />
@@ -227,6 +228,7 @@
     <ClCompile Include="Containers\COMRCPtr.cpp" />
     <ClCompile Include="Containers\DynamicArray.cpp" />
     <ClCompile Include="Containers\FixedSizeString.cpp" />
+    <ClCompile Include="Containers\Hash.cpp" />
     <ClCompile Include="Containers\HashTable.cpp" />
     <ClCompile Include="Containers\Queue.cpp" />
     <ClCompile Include="Containers\StaticArray.cpp" />
