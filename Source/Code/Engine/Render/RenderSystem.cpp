@@ -3948,6 +3948,12 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->RSSetScissorRects(1, &ScissorRect);
 
+		Device->CopyDescriptorsSimple(1, SamplerCPUHandle, BiLinearSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+		SamplerCPUHandle.ptr += SamplerHandleSize;
+
+		CommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
+		SamplerGPUHandle.ptr += SamplerHandleSize;
+
 		CommandList->DiscardResource(BloomTextures[0][0], nullptr);
 
 		UINT DestRangeSize = 2;
