@@ -74,31 +74,31 @@
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
-    <NMakeBuildCommandLine>CompileShaders.bat</NMakeBuildCommandLine>
-    <NMakeReBuildCommandLine>CompileShaders.bat</NMakeReBuildCommandLine>
-    <NMakeCleanCommandLine>CleanShaders.bat</NMakeCleanCommandLine>
+    <NMakeBuildCommandLine>CompileShaders.py</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>CompileShaders.py</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>CleanShaders.py</NMakeCleanCommandLine>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
-    <NMakeBuildCommandLine>CompileShaders.bat</NMakeBuildCommandLine>
-    <NMakeReBuildCommandLine>CompileShaders.bat</NMakeReBuildCommandLine>
-    <NMakeCleanCommandLine>CleanShaders.bat</NMakeCleanCommandLine>
+    <NMakeBuildCommandLine>CompileShaders.py</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>CompileShaders.py</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>CleanShaders.py</NMakeCleanCommandLine>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
-    <NMakeBuildCommandLine>CompileShaders.bat</NMakeBuildCommandLine>
-    <NMakeReBuildCommandLine>CompileShaders.bat</NMakeReBuildCommandLine>
-    <NMakeCleanCommandLine>CleanShaders.bat</NMakeCleanCommandLine>
+    <NMakeBuildCommandLine>CompileShaders.py</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>CompileShaders.py</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>CleanShaders.py</NMakeCleanCommandLine>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <NMakeBuildCommandLine>CompileShaders.bat</NMakeBuildCommandLine>
-    <NMakeReBuildCommandLine>CompileShaders.bat</NMakeReBuildCommandLine>
-    <NMakeCleanCommandLine>CleanShaders.bat</NMakeCleanCommandLine>
+    <NMakeBuildCommandLine>CompileShaders.py</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>CompileShaders.py</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>CleanShaders.py</NMakeCleanCommandLine>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
   </PropertyGroup>
@@ -159,8 +159,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <None Include="CleanShaders.bat" />
+    <None Include="CleanShaders.py" />
     <None Include="CompileShaders.bat" />
+    <None Include="CompileShaders.py" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="BrightPass.hlsl" />

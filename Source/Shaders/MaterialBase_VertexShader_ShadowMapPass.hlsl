@@ -19,12 +19,14 @@ struct VSConstants
 	float4x4 WVPMatrix;
 };
 
-//ConstantBuffer<VSConstants> VertexShaderConstants : register(b0);
-
+#if SHADER_MODEL >= 51
+ConstantBuffer<VSConstants> VertexShaderConstants : register(b0);
+#else
 cbuffer cb0 : register(b0)
 {
 	VSConstants VertexShaderConstants;
 };
+#endif
 
 VSOutput VS(VSInput VertexShaderInput)
 {

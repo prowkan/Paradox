@@ -561,21 +561,39 @@ void World::LoadWorld()
 		Engine::GetEngine().GetResourceManager().AddResource<Texture2DResource>(Texture2DResourceName, &texture2DResourceCreateInfo);
 	}
 
-	HANDLE GBufferOpaquePassVertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/MaterialBase_VertexShader_GBufferOpaquePass.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+	HANDLE GBufferOpaquePassVertexShaderFile;
+
+	if (Engine::GetEngine().GetRenderSystem().GetRenderDevice()->GetDirectXVersion() == DirectXVersion::DirectX11)
+		GBufferOpaquePassVertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/ShaderModel50/MaterialBase_VertexShader_GBufferOpaquePass.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+	else
+		GBufferOpaquePassVertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/ShaderModel51/MaterialBase_VertexShader_GBufferOpaquePass.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+		
 	LARGE_INTEGER GBufferOpaquePassVertexShaderByteCodeLength;
 	BOOL Result = GetFileSizeEx(GBufferOpaquePassVertexShaderFile, &GBufferOpaquePassVertexShaderByteCodeLength);
 	ScopedMemoryBlockArray<BYTE> GBufferOpaquePassVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(GBufferOpaquePassVertexShaderByteCodeLength.QuadPart);
 	Result = ReadFile(GBufferOpaquePassVertexShaderFile, GBufferOpaquePassVertexShaderByteCodeData, (DWORD)GBufferOpaquePassVertexShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(GBufferOpaquePassVertexShaderFile);
 
-	HANDLE GBufferOpaquePassPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/MaterialBase_PixelShader_GBufferOpaquePass.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+	HANDLE GBufferOpaquePassPixelShaderFile;
+
+	if (Engine::GetEngine().GetRenderSystem().GetRenderDevice()->GetDirectXVersion() == DirectXVersion::DirectX11)
+		GBufferOpaquePassPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/ShaderModel50/MaterialBase_PixelShader_GBufferOpaquePass.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+	else
+		GBufferOpaquePassPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/ShaderModel51/MaterialBase_PixelShader_GBufferOpaquePass.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+
 	LARGE_INTEGER GBufferOpaquePassPixelShaderByteCodeLength;
 	Result = GetFileSizeEx(GBufferOpaquePassPixelShaderFile, &GBufferOpaquePassPixelShaderByteCodeLength);
 	ScopedMemoryBlockArray<BYTE> GBufferOpaquePassPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(GBufferOpaquePassPixelShaderByteCodeLength.QuadPart);
 	Result = ReadFile(GBufferOpaquePassPixelShaderFile, GBufferOpaquePassPixelShaderByteCodeData, (DWORD)GBufferOpaquePassPixelShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(GBufferOpaquePassPixelShaderFile);
 
-	HANDLE ShadowMapPassVertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/MaterialBase_VertexShader_ShadowMapPass.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+	HANDLE ShadowMapPassVertexShaderFile;
+
+	if (Engine::GetEngine().GetRenderSystem().GetRenderDevice()->GetDirectXVersion() == DirectXVersion::DirectX11)
+		ShadowMapPassVertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/ShaderModel50/MaterialBase_VertexShader_ShadowMapPass.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+	else
+		ShadowMapPassVertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/ShaderModel51/MaterialBase_VertexShader_ShadowMapPass.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+	
 	LARGE_INTEGER ShadowMapPassVertexShaderByteCodeLength;
 	Result = GetFileSizeEx(ShadowMapPassVertexShaderFile, &ShadowMapPassVertexShaderByteCodeLength);
 	ScopedMemoryBlockArray<BYTE> ShadowMapPassVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(ShadowMapPassVertexShaderByteCodeLength.QuadPart);

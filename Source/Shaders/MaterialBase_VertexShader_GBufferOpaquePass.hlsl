@@ -24,10 +24,14 @@ struct VSConstants
 	float3x3 VectorTransformMatrix;
 };
 
+#if SHADER_MODEL >= 51
+ConstantBuffer<VSConstants> VertexShaderConstants;
+#else
 cbuffer cb0 : register(b0)
 {
 	VSConstants VertexShaderConstants;
 };
+#endif
 
 VSOutput VS(VSInput VertexShaderInput)
 {
