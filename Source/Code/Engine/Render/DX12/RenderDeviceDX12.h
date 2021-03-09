@@ -45,9 +45,9 @@ class RenderDeviceDX12 : public RenderDevice
 		COMRCPtr<ID3D12Device> Device;
 		COMRCPtr<IDXGISwapChain4> SwapChain;
 
-		COMRCPtr<ID3D12CommandQueue> CommandQueue;
-		COMRCPtr<ID3D12CommandAllocator> CommandAllocators[2];
-		COMRCPtr<ID3D12GraphicsCommandList> CommandList;
+		COMRCPtr<ID3D12CommandQueue> GraphicsCommandQueue, ComputeCommandQueue, CopyCommandQueue;
+		COMRCPtr<ID3D12CommandAllocator> GraphicsCommandAllocators[2], ComputeCommandAllocators[2], CopyCommandAllocator;
+		COMRCPtr<ID3D12GraphicsCommandList> GraphicsCommandList, ComputeCommandList, CopyCommandList;
 
 		UINT CurrentBackBufferIndex, CurrentFrameIndex;
 

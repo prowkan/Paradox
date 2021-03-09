@@ -61,13 +61,38 @@ void RenderDeviceDX12::InitDevice()
 	CommandQueueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY::D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
 	CommandQueueDesc.Type = D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT;
 
-	SAFE_DX(Device->CreateCommandQueue(&CommandQueueDesc, UUIDOF(CommandQueue)));
+	SAFE_DX(Device->CreateCommandQueue(&CommandQueueDesc, UUIDOF(GraphicsCommandQueue)));
 
-	SAFE_DX(Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT, UUIDOF(CommandAllocators[0])));
-	SAFE_DX(Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT, UUIDOF(CommandAllocators[1])));
+	CommandQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAGS::D3D12_COMMAND_QUEUE_FLAG_NONE;
+	CommandQueueDesc.NodeMask = 0;
+	CommandQueueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY::D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
+	CommandQueueDesc.Type = D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COMPUTE;
 
-	SAFE_DX(Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT, CommandAllocators[0], nullptr, UUIDOF(CommandList)));
-	SAFE_DX(CommandList->Close());
+	SAFE_DX(Device->CreateCommandQueue(&CommandQueueDesc, UUIDOF(ComputeCommandQueue)));
+
+	CommandQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAGS::D3D12_COMMAND_QUEUE_FLAG_NONE;
+	CommandQueueDesc.NodeMask = 0;
+	CommandQueueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY::D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
+	CommandQueueDesc.Type = D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COPY;
+
+	SAFE_DX(Device->CreateCommandQueue(&CommandQueueDesc, UUIDOF(CopyCommandQueue)));
+
+	SAFE_DX(Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT, UUIDOF(GraphicsCommandAllocators[0])));
+	SAFE_DX(Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT, UUIDOF(GraphicsCommandAllocators[1])));
+
+	SAFE_DX(Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT, GraphicsCommandAllocators[0], nullptr, UUIDOF(GraphicsCommandList)));
+	SAFE_DX(GraphicsCommandList->Close());
+
+	SAFE_DX(Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COMPUTE, UUIDOF(ComputeCommandAllocators[0])));
+	SAFE_DX(Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COMPUTE, UUIDOF(ComputeCommandAllocators[1])));
+
+	SAFE_DX(Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COMPUTE, ComputeCommandAllocators[0], nullptr, UUIDOF(ComputeCommandList)));
+	SAFE_DX(ComputeCommandList->Close());
+
+	SAFE_DX(Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COPY, UUIDOF(CopyCommandAllocator)));
+
+	SAFE_DX(Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COPY, CopyCommandAllocator, nullptr, UUIDOF(CopyCommandList)));
+	SAFE_DX(CopyCommandList->Close());
 
 	DXGI_SWAP_CHAIN_DESC1 SwapChainDesc;
 	SwapChainDesc.AlphaMode = DXGI_ALPHA_MODE::DXGI_ALPHA_MODE_UNSPECIFIED;
@@ -91,7 +116,7 @@ void RenderDeviceDX12::InitDevice()
 	SwapChainFullScreenDesc.Windowed = TRUE;
 
 	COMRCPtr<IDXGISwapChain1> SwapChain1;
-	SAFE_DX(Factory->CreateSwapChainForHwnd(CommandQueue, Application::GetMainWindowHandle(), &SwapChainDesc, &SwapChainFullScreenDesc, nullptr, &SwapChain1));
+	SAFE_DX(Factory->CreateSwapChainForHwnd(GraphicsCommandQueue, Application::GetMainWindowHandle(), &SwapChainDesc, &SwapChainFullScreenDesc, nullptr, &SwapChain1));
 	SAFE_DX(SwapChain1->QueryInterface<IDXGISwapChain4>(&SwapChain));
 
 	SAFE_DX(Factory->MakeWindowAssociation(Application::GetMainWindowHandle(), DXGI_MWA_NO_ALT_ENTER));
@@ -1369,11 +1394,11 @@ void RenderDeviceDX12::InitDevice()
 		memcpy((BYTE*)MappedData + sizeof(Vertex) * SkyMeshVertexCount, SkyMeshIndices, sizeof(WORD) * SkyMeshIndexCount);
 		UploadBuffer->Unmap(0, &WrittenRange);
 
-		SAFE_DX(CommandAllocators[0]->Reset());
-		SAFE_DX(CommandList->Reset(CommandAllocators[0], nullptr));
+		SAFE_DX(GraphicsCommandAllocators[0]->Reset());
+		SAFE_DX(GraphicsCommandList->Reset(GraphicsCommandAllocators[0], nullptr));
 
-		CommandList->CopyBufferRegion(SkyVertexBuffer, 0, UploadBuffer, 0, sizeof(Vertex) * SkyMeshVertexCount);
-		CommandList->CopyBufferRegion(SkyIndexBuffer, 0, UploadBuffer, sizeof(Vertex) * SkyMeshVertexCount, sizeof(WORD) * SkyMeshIndexCount);
+		GraphicsCommandList->CopyBufferRegion(SkyVertexBuffer, 0, UploadBuffer, 0, sizeof(Vertex) * SkyMeshVertexCount);
+		GraphicsCommandList->CopyBufferRegion(SkyIndexBuffer, 0, UploadBuffer, sizeof(Vertex) * SkyMeshVertexCount, sizeof(WORD) * SkyMeshIndexCount);
 
 		D3D12_RESOURCE_BARRIER ResourceBarriers[2];
 		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
@@ -1389,13 +1414,13 @@ void RenderDeviceDX12::InitDevice()
 		ResourceBarriers[1].Transition.Subresource = 0;
 		ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(2, ResourceBarriers);
+		GraphicsCommandList->ResourceBarrier(2, ResourceBarriers);
 
-		SAFE_DX(CommandList->Close());
+		SAFE_DX(GraphicsCommandList->Close());
 
-		CommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CommandList);
+		GraphicsCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&GraphicsCommandList);
 
-		SAFE_DX(CommandQueue->Signal(CopySyncFence, 1));
+		SAFE_DX(GraphicsCommandQueue->Signal(CopySyncFence, 1));
 
 		if (CopySyncFence->GetCompletedValue() != 1)
 		{
@@ -1592,8 +1617,8 @@ void RenderDeviceDX12::InitDevice()
 
 		UploadBuffer->Unmap(0, &WrittenRange);
 
-		SAFE_DX(CommandAllocators[0]->Reset());
-		SAFE_DX(CommandList->Reset(CommandAllocators[0], nullptr));
+		SAFE_DX(GraphicsCommandAllocators[0]->Reset());
+		SAFE_DX(GraphicsCommandList->Reset(GraphicsCommandAllocators[0], nullptr));
 
 		D3D12_TEXTURE_COPY_LOCATION SourceTextureCopyLocation, DestTextureCopyLocation;
 
@@ -1606,7 +1631,7 @@ void RenderDeviceDX12::InitDevice()
 		SourceTextureCopyLocation.PlacedFootprint = PlacedSubResourceFootPrint;
 		DestTextureCopyLocation.SubresourceIndex = 0;
 
-		CommandList->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
+		GraphicsCommandList->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
 
 		D3D12_RESOURCE_BARRIER ResourceBarrier;
 		ResourceBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
@@ -1616,13 +1641,13 @@ void RenderDeviceDX12::InitDevice()
 		ResourceBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 		ResourceBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(1, &ResourceBarrier);
+		GraphicsCommandList->ResourceBarrier(1, &ResourceBarrier);
 
-		SAFE_DX(CommandList->Close());
+		SAFE_DX(GraphicsCommandList->Close());
 
-		CommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CommandList);
+		GraphicsCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&GraphicsCommandList);
 
-		SAFE_DX(CommandQueue->Signal(CopySyncFence, 1));
+		SAFE_DX(GraphicsCommandQueue->Signal(CopySyncFence, 1));
 
 		if (CopySyncFence->GetCompletedValue() != 1)
 		{
@@ -1717,11 +1742,11 @@ void RenderDeviceDX12::InitDevice()
 		memcpy((BYTE*)MappedData + sizeof(Vertex) * SunMeshVertexCount, SunMeshIndices, sizeof(WORD) * SunMeshIndexCount);
 		UploadBuffer->Unmap(0, &WrittenRange);
 
-		SAFE_DX(CommandAllocators[0]->Reset());
-		SAFE_DX(CommandList->Reset(CommandAllocators[0], nullptr));
+		SAFE_DX(GraphicsCommandAllocators[0]->Reset());
+		SAFE_DX(GraphicsCommandList->Reset(GraphicsCommandAllocators[0], nullptr));
 
-		CommandList->CopyBufferRegion(SunVertexBuffer, 0, UploadBuffer, 0, sizeof(Vertex) * SunMeshVertexCount);
-		CommandList->CopyBufferRegion(SunIndexBuffer, 0, UploadBuffer, sizeof(Vertex) * SunMeshVertexCount, sizeof(WORD) * SunMeshIndexCount);
+		GraphicsCommandList->CopyBufferRegion(SunVertexBuffer, 0, UploadBuffer, 0, sizeof(Vertex) * SunMeshVertexCount);
+		GraphicsCommandList->CopyBufferRegion(SunIndexBuffer, 0, UploadBuffer, sizeof(Vertex) * SunMeshVertexCount, sizeof(WORD) * SunMeshIndexCount);
 
 		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		ResourceBarriers[0].Transition.pResource = SunVertexBuffer;
@@ -1736,13 +1761,13 @@ void RenderDeviceDX12::InitDevice()
 		ResourceBarriers[1].Transition.Subresource = 0;
 		ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(2, ResourceBarriers);
+		GraphicsCommandList->ResourceBarrier(2, ResourceBarriers);
 
-		SAFE_DX(CommandList->Close());
+		SAFE_DX(GraphicsCommandList->Close());
 
-		CommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CommandList);
+		GraphicsCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&GraphicsCommandList);
 
-		SAFE_DX(CommandQueue->Signal(CopySyncFence, 1));
+		SAFE_DX(GraphicsCommandQueue->Signal(CopySyncFence, 1));
 
 		if (CopySyncFence->GetCompletedValue() != 1)
 		{
@@ -1938,8 +1963,8 @@ void RenderDeviceDX12::InitDevice()
 
 		UploadBuffer->Unmap(0, &WrittenRange);
 
-		SAFE_DX(CommandAllocators[0]->Reset());
-		SAFE_DX(CommandList->Reset(CommandAllocators[0], nullptr));
+		SAFE_DX(GraphicsCommandAllocators[0]->Reset());
+		SAFE_DX(GraphicsCommandList->Reset(GraphicsCommandAllocators[0], nullptr));
 
 		SourceTextureCopyLocation.pResource = UploadBuffer;
 		SourceTextureCopyLocation.Type = D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
@@ -1950,7 +1975,7 @@ void RenderDeviceDX12::InitDevice()
 		SourceTextureCopyLocation.PlacedFootprint = PlacedSubResourceFootPrint;
 		DestTextureCopyLocation.SubresourceIndex = 0;
 
-		CommandList->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
+		GraphicsCommandList->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
 
 		ResourceBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		ResourceBarrier.Transition.pResource = SunTexture;
@@ -1959,13 +1984,13 @@ void RenderDeviceDX12::InitDevice()
 		ResourceBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 		ResourceBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(1, &ResourceBarrier);
+		GraphicsCommandList->ResourceBarrier(1, &ResourceBarrier);
 
-		SAFE_DX(CommandList->Close());
+		SAFE_DX(GraphicsCommandList->Close());
 
-		CommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CommandList);
+		GraphicsCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&GraphicsCommandList);
 
-		SAFE_DX(CommandQueue->Signal(CopySyncFence, 1));
+		SAFE_DX(GraphicsCommandQueue->Signal(CopySyncFence, 1));
 
 		if (CopySyncFence->GetCompletedValue() != 1)
 		{
@@ -2588,9 +2613,9 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 	XMMATRIX ShadowViewMatrices[4], ShadowProjMatrices[4], ShadowViewProjMatrices[4];
 
 	ShadowViewMatrices[0] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 10.0f, CameraLocation.y + 10.0f, CameraLocation.z - 10.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
-	ShadowViewMatrices[1] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 20.0f, CameraLocation.y + 20.0f, CameraLocation.z - 10.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
-	ShadowViewMatrices[2] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 50.0f, CameraLocation.y + 50.0f, CameraLocation.z - 10.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
-	ShadowViewMatrices[3] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 100.0f, CameraLocation.y + 100.0f, CameraLocation.z - 10.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
+	ShadowViewMatrices[1] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 20.0f, CameraLocation.y + 20.0f, CameraLocation.z - 20.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
+	ShadowViewMatrices[2] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 50.0f, CameraLocation.y + 50.0f, CameraLocation.z - 50.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
+	ShadowViewMatrices[3] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 100.0f, CameraLocation.y + 100.0f, CameraLocation.z - 100.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
 
 	ShadowProjMatrices[0] = XMMatrixOrthographicLH(10.0f, 10.0f, 0.01f, 500.0f);
 	ShadowProjMatrices[1] = XMMatrixOrthographicLH(20.0f, 20.0f, 0.01f, 500.0f);
@@ -2634,8 +2659,8 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 
 	SAFE_DX(FrameSyncFences[CurrentFrameIndex]->Signal(0));
 
-	SAFE_DX(CommandAllocators[CurrentFrameIndex]->Reset());
-	SAFE_DX(CommandList->Reset(CommandAllocators[CurrentFrameIndex], nullptr));
+	SAFE_DX(GraphicsCommandAllocators[CurrentFrameIndex]->Reset());
+	SAFE_DX(GraphicsCommandList->Reset(GraphicsCommandAllocators[CurrentFrameIndex], nullptr));
 
 	D3D12_CPU_DESCRIPTOR_HANDLE ResourceCPUHandle = FrameResourcesDescriptorHeaps[CurrentFrameIndex]->GetCPUDescriptorHandleForHeapStart();
 	D3D12_GPU_DESCRIPTOR_HANDLE ResourceGPUHandle = FrameResourcesDescriptorHeaps[CurrentFrameIndex]->GetGPUDescriptorHandleForHeapStart();
@@ -2646,9 +2671,9 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 
 	ID3D12DescriptorHeap *DescriptorHeaps[2] = { FrameResourcesDescriptorHeaps[CurrentFrameIndex], FrameSamplersDescriptorHeaps[CurrentFrameIndex] };
 
-	CommandList->SetDescriptorHeaps(2, DescriptorHeaps);
-	CommandList->SetGraphicsRootSignature(GraphicsRootSignature);
-	CommandList->SetComputeRootSignature(ComputeRootSignature);
+	GraphicsCommandList->SetDescriptorHeaps(2, DescriptorHeaps);
+	GraphicsCommandList->SetGraphicsRootSignature(GraphicsRootSignature);
+	GraphicsCommandList->SetComputeRootSignature(ComputeRootSignature);
 
 	OPTICK_EVENT("Draw Calls")
 
@@ -2730,9 +2755,9 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		ResourceBarriers[2].Transition.Subresource = 0;
 		ResourceBarriers[2].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(3, ResourceBarriers);
+		GraphicsCommandList->ResourceBarrier(3, ResourceBarriers);
 
-		CommandList->CopyBufferRegion(GPUConstantBuffer, 0, CPUConstantBuffers[CurrentFrameIndex], 0, ConstantBufferOffset);
+		GraphicsCommandList->CopyBufferRegion(GPUConstantBuffer, 0, CPUConstantBuffers[CurrentFrameIndex], 0, ConstantBufferOffset);
 
 		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		ResourceBarriers[0].Transition.pResource = GPUConstantBuffer;
@@ -2741,11 +2766,11 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		ResourceBarriers[0].Transition.Subresource = 0;
 		ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(1, ResourceBarriers);
+		GraphicsCommandList->ResourceBarrier(1, ResourceBarriers);
 
-		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-		CommandList->OMSetRenderTargets(2, GBufferTexturesRTVs, TRUE, &DepthBufferTextureDSV);
+		GraphicsCommandList->OMSetRenderTargets(2, GBufferTexturesRTVs, TRUE, &DepthBufferTextureDSV);
 
 		D3D12_VIEWPORT Viewport;
 		Viewport.Height = float(ResolutionHeight);
@@ -2755,7 +2780,7 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		Viewport.TopLeftY = 0.0f;
 		Viewport.Width = float(ResolutionWidth);
 
-		CommandList->RSSetViewports(1, &Viewport);
+		GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 		D3D12_RECT ScissorRect;
 		ScissorRect.bottom = ResolutionHeight;
@@ -2763,18 +2788,18 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		ScissorRect.right = ResolutionWidth;
 		ScissorRect.top = 0;
 
-		CommandList->RSSetScissorRects(1, &ScissorRect);
+		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
 		float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
-		CommandList->ClearRenderTargetView(GBufferTexturesRTVs[0], ClearColor, 0, nullptr);
-		CommandList->ClearRenderTargetView(GBufferTexturesRTVs[1], ClearColor, 0, nullptr);
-		CommandList->ClearDepthStencilView(DepthBufferTextureDSV, D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_STENCIL, 0.0f, 0, 0, nullptr);
+		GraphicsCommandList->ClearRenderTargetView(GBufferTexturesRTVs[0], ClearColor, 0, nullptr);
+		GraphicsCommandList->ClearRenderTargetView(GBufferTexturesRTVs[1], ClearColor, 0, nullptr);
+		GraphicsCommandList->ClearDepthStencilView(DepthBufferTextureDSV, D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_STENCIL, 0.0f, 0, 0, nullptr);
 
 		Device->CopyDescriptorsSimple(1, SamplerCPUHandle, TextureSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 		SamplerCPUHandle.ptr += SamplerHandleSize;
 
-		CommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
 		SamplerGPUHandle.ptr += SamplerHandleSize;
 
 		for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
@@ -2805,17 +2830,17 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 			IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
 			IndexBufferView.SizeInBytes = sizeof(WORD) * 8 * 8 * 6 * 6;
 
-			CommandList->IASetVertexBuffers(0, 1, &VertexBufferView);
-			CommandList->IASetIndexBuffer(&IndexBufferView);
+			GraphicsCommandList->IASetVertexBuffers(0, 1, &VertexBufferView);
+			GraphicsCommandList->IASetIndexBuffer(&IndexBufferView);
 
-			CommandList->SetPipelineState(renderMaterial->GBufferOpaquePassPipelineState);
+			GraphicsCommandList->SetPipelineState(renderMaterial->GBufferOpaquePassPipelineState);
 
-			CommandList->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-			CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+			GraphicsCommandList->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+			GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
 
 			ResourceGPUHandle.ptr += 3 * ResourceHandleSize;
 
-			CommandList->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
+			GraphicsCommandList->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
 		}
 	}
 
@@ -2838,13 +2863,13 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 	// ===============================================================================================================
 
 	{
-		CommandList->ResourceBarrier(2, ResourceBarriers);
+		GraphicsCommandList->ResourceBarrier(2, ResourceBarriers);
 
-		COMRCPtr<ID3D12GraphicsCommandList1> CommandList1;
+		COMRCPtr<ID3D12GraphicsCommandList1> GraphicsCommandList1;
 
-		CommandList->QueryInterface<ID3D12GraphicsCommandList1>(&CommandList1);
+		GraphicsCommandList->QueryInterface<ID3D12GraphicsCommandList1>(&GraphicsCommandList1);
 
-		CommandList1->ResolveSubresourceRegion(ResolvedDepthBufferTexture, 0, 0, 0, DepthBufferTexture, 0, nullptr, DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT_S8X24_UINT, D3D12_RESOLVE_MODE::D3D12_RESOLVE_MODE_MAX);
+		GraphicsCommandList1->ResolveSubresourceRegion(ResolvedDepthBufferTexture, 0, 0, 0, DepthBufferTexture, 0, nullptr, DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT_S8X24_UINT, D3D12_RESOLVE_MODE::D3D12_RESOLVE_MODE_MAX);
 	}
 
 	// ===============================================================================================================
@@ -2866,11 +2891,11 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		ResourceBarriers[1].Transition.Subresource = 0;
 		ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(2, ResourceBarriers);
+		GraphicsCommandList->ResourceBarrier(2, ResourceBarriers);
 
-		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-		CommandList->OMSetRenderTargets(1, &OcclusionBufferTextureRTV, TRUE, nullptr);
+		GraphicsCommandList->OMSetRenderTargets(1, &OcclusionBufferTextureRTV, TRUE, nullptr);
 
 		D3D12_VIEWPORT Viewport;
 		Viewport.Height = 144.0f;
@@ -2880,7 +2905,7 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		Viewport.TopLeftY = 0.0f;
 		Viewport.Width = 256.0f;
 
-		CommandList->RSSetViewports(1, &Viewport);
+		GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 		D3D12_RECT ScissorRect;
 		ScissorRect.bottom = 144;
@@ -2888,14 +2913,14 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		ScissorRect.right = 256;
 		ScissorRect.top = 0;
 
-		CommandList->RSSetScissorRects(1, &ScissorRect);
+		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-		CommandList->DiscardResource(OcclusionBufferTexture, nullptr);
+		GraphicsCommandList->DiscardResource(OcclusionBufferTexture, nullptr);
 
 		Device->CopyDescriptorsSimple(1, SamplerCPUHandle, MinSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 		SamplerCPUHandle.ptr += SamplerHandleSize;
 
-		CommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
 		SamplerGPUHandle.ptr += SamplerHandleSize;
 
 		UINT DestRangeSize = 1;
@@ -2906,13 +2931,13 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 
 		ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->SetPipelineState(OcclusionBufferPipelineState);
+		GraphicsCommandList->SetPipelineState(OcclusionBufferPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 		ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->DrawInstanced(4, 1, 0, 0);
+		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 
 		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		ResourceBarriers[0].Transition.pResource = OcclusionBufferTexture;
@@ -2921,7 +2946,7 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		ResourceBarriers[0].Transition.Subresource = 0;
 		ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(1, ResourceBarriers);
+		GraphicsCommandList->ResourceBarrier(1, ResourceBarriers);
 
 		D3D12_RESOURCE_DESC ResourceDesc = OcclusionBufferTexture->GetDesc();
 
@@ -2942,7 +2967,7 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		DestTextureCopyLocation.pResource = OcclusionBufferTextureReadback[CurrentFrameIndex];
 		DestTextureCopyLocation.Type = D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 
-		CommandList->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
+		GraphicsCommandList->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
 
 		float *OcclusionBufferData = cullingSubSystem.GetOcclusionBufferData();
 
@@ -3040,7 +3065,7 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 				ResourceBarriers[4].Transition.Subresource = 0;
 				ResourceBarriers[4].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-				CommandList->ResourceBarrier(5, ResourceBarriers);
+				GraphicsCommandList->ResourceBarrier(5, ResourceBarriers);
 			}
 			else
 			{
@@ -3051,10 +3076,10 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 				ResourceBarriers[0].Transition.Subresource = 0;
 				ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-				CommandList->ResourceBarrier(1, ResourceBarriers);
+				GraphicsCommandList->ResourceBarrier(1, ResourceBarriers);
 			}
 
-			CommandList->CopyBufferRegion(GPUConstantBuffers2[i], 0, CPUConstantBuffers2[i][CurrentFrameIndex], 0, ConstantBufferOffset);
+			GraphicsCommandList->CopyBufferRegion(GPUConstantBuffers2[i], 0, CPUConstantBuffers2[i][CurrentFrameIndex], 0, ConstantBufferOffset);
 
 			ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 			ResourceBarriers[0].Transition.pResource = GPUConstantBuffers2[i];
@@ -3063,11 +3088,11 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 			ResourceBarriers[0].Transition.Subresource = 0;
 			ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-			CommandList->ResourceBarrier(1, ResourceBarriers);
+			GraphicsCommandList->ResourceBarrier(1, ResourceBarriers);
 
-			CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-			CommandList->OMSetRenderTargets(0, nullptr, TRUE, &CascadedShadowMapTexturesDSVs[i]);
+			GraphicsCommandList->OMSetRenderTargets(0, nullptr, TRUE, &CascadedShadowMapTexturesDSVs[i]);
 
 			D3D12_VIEWPORT Viewport;
 			Viewport.Height = 2048.0f;
@@ -3077,7 +3102,7 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 			Viewport.TopLeftY = 0.0f;
 			Viewport.Width = 2048.0f;
 
-			CommandList->RSSetViewports(1, &Viewport);
+			GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 			D3D12_RECT ScissorRect;
 			ScissorRect.bottom = 2048;
@@ -3085,9 +3110,9 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 			ScissorRect.right = 2048;
 			ScissorRect.top = 0;
 
-			CommandList->RSSetScissorRects(1, &ScissorRect);
+			GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-			CommandList->ClearDepthStencilView(CascadedShadowMapTexturesDSVs[i], D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+			GraphicsCommandList->ClearDepthStencilView(CascadedShadowMapTexturesDSVs[i], D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 			for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
 			{
@@ -3116,16 +3141,16 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 				IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
 				IndexBufferView.SizeInBytes = sizeof(WORD) * 8 * 8 * 6 * 6;
 
-				CommandList->IASetVertexBuffers(0, 1, &VertexBufferView);
-				CommandList->IASetIndexBuffer(&IndexBufferView);
+				GraphicsCommandList->IASetVertexBuffers(0, 1, &VertexBufferView);
+				GraphicsCommandList->IASetIndexBuffer(&IndexBufferView);
 
-				CommandList->SetPipelineState(renderMaterial->ShadowMapPassPipelineState);
+				GraphicsCommandList->SetPipelineState(renderMaterial->ShadowMapPassPipelineState);
 
-				CommandList->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+				GraphicsCommandList->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 				ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-				CommandList->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
+				GraphicsCommandList->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
 			}
 		}
 	}
@@ -3203,9 +3228,9 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		ResourceBarriers[5].Transition.Subresource = 0;
 		ResourceBarriers[5].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(6, ResourceBarriers);
+		GraphicsCommandList->ResourceBarrier(6, ResourceBarriers);
 
-		CommandList->CopyBufferRegion(GPUShadowResolveConstantBuffer, 0, CPUShadowResolveConstantBuffers[CurrentFrameIndex], 0, 256);
+		GraphicsCommandList->CopyBufferRegion(GPUShadowResolveConstantBuffer, 0, CPUShadowResolveConstantBuffers[CurrentFrameIndex], 0, 256);
 
 		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		ResourceBarriers[0].Transition.pResource = GPUShadowResolveConstantBuffer;
@@ -3214,11 +3239,11 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		ResourceBarriers[0].Transition.Subresource = 0;
 		ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(1, ResourceBarriers);
+		GraphicsCommandList->ResourceBarrier(1, ResourceBarriers);
 
-		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-		CommandList->OMSetRenderTargets(1, &ShadowMaskTextureRTV, TRUE, nullptr);
+		GraphicsCommandList->OMSetRenderTargets(1, &ShadowMaskTextureRTV, TRUE, nullptr);
 
 		D3D12_VIEWPORT Viewport;
 		Viewport.Height = float(ResolutionHeight);
@@ -3228,7 +3253,7 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		Viewport.TopLeftY = 0.0f;
 		Viewport.Width = float(ResolutionWidth);
 
-		CommandList->RSSetViewports(1, &Viewport);
+		GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 		D3D12_RECT ScissorRect;
 		ScissorRect.bottom = ResolutionHeight;
@@ -3236,14 +3261,14 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		ScissorRect.right = ResolutionWidth;
 		ScissorRect.top = 0;
 
-		CommandList->RSSetScissorRects(1, &ScissorRect);
+		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-		CommandList->DiscardResource(ShadowMaskTexture, nullptr);
+		GraphicsCommandList->DiscardResource(ShadowMaskTexture, nullptr);
 
 		Device->CopyDescriptorsSimple(1, SamplerCPUHandle, ShadowMapSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 		SamplerCPUHandle.ptr += SamplerHandleSize;
 
-		CommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
 		SamplerGPUHandle.ptr += SamplerHandleSize;
 
 		UINT DestRangeSize = 6;
@@ -3254,14 +3279,14 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 
 		ResourceCPUHandle.ptr += 6 * ResourceHandleSize;
 
-		CommandList->SetPipelineState(ShadowResolvePipelineState);
+		GraphicsCommandList->SetPipelineState(ShadowResolvePipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
 
 		ResourceGPUHandle.ptr += 6 * ResourceHandleSize;
 
-		CommandList->DrawInstanced(4, 1, 0, 0);
+		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 	}
 
 	// ===============================================================================================================
@@ -3374,12 +3399,12 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		ResourceBarriers[7].Transition.Subresource = 0;
 		ResourceBarriers[7].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(8, ResourceBarriers);
+		GraphicsCommandList->ResourceBarrier(8, ResourceBarriers);
 
-		CommandList->CopyBufferRegion(GPUDeferredLightingConstantBuffer, 0, CPUDeferredLightingConstantBuffers[CurrentFrameIndex], 0, 256);
-		CommandList->CopyBufferRegion(GPULightClustersBuffer, 0, CPULightClustersBuffers[CurrentFrameIndex], 0, ClusterizationSubSystem::CLUSTERS_COUNT_X * ClusterizationSubSystem::CLUSTERS_COUNT_Y * ClusterizationSubSystem::CLUSTERS_COUNT_Z * sizeof(LightCluster));
-		CommandList->CopyBufferRegion(GPULightIndicesBuffer, 0, CPULightIndicesBuffers[CurrentFrameIndex], 0, clusterizationSubSystem.GetTotalIndexCount() * sizeof(uint16_t));
-		CommandList->CopyBufferRegion(GPUPointLightsBuffer, 0, CPUPointLightsBuffers[CurrentFrameIndex], 0, PointLights.size() * sizeof(PointLight));
+		GraphicsCommandList->CopyBufferRegion(GPUDeferredLightingConstantBuffer, 0, CPUDeferredLightingConstantBuffers[CurrentFrameIndex], 0, 256);
+		GraphicsCommandList->CopyBufferRegion(GPULightClustersBuffer, 0, CPULightClustersBuffers[CurrentFrameIndex], 0, ClusterizationSubSystem::CLUSTERS_COUNT_X * ClusterizationSubSystem::CLUSTERS_COUNT_Y * ClusterizationSubSystem::CLUSTERS_COUNT_Z * sizeof(LightCluster));
+		GraphicsCommandList->CopyBufferRegion(GPULightIndicesBuffer, 0, CPULightIndicesBuffers[CurrentFrameIndex], 0, clusterizationSubSystem.GetTotalIndexCount() * sizeof(uint16_t));
+		GraphicsCommandList->CopyBufferRegion(GPUPointLightsBuffer, 0, CPUPointLightsBuffers[CurrentFrameIndex], 0, PointLights.size() * sizeof(PointLight));
 
 		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		ResourceBarriers[0].Transition.pResource = GPUDeferredLightingConstantBuffer;
@@ -3409,11 +3434,11 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		ResourceBarriers[3].Transition.Subresource = 0;
 		ResourceBarriers[3].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(4, ResourceBarriers);
+		GraphicsCommandList->ResourceBarrier(4, ResourceBarriers);
 
-		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-		CommandList->OMSetRenderTargets(1, &HDRSceneColorTextureRTV, TRUE, nullptr);
+		GraphicsCommandList->OMSetRenderTargets(1, &HDRSceneColorTextureRTV, TRUE, nullptr);
 
 		D3D12_VIEWPORT Viewport;
 		Viewport.Height = float(ResolutionHeight);
@@ -3423,7 +3448,7 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		Viewport.TopLeftY = 0.0f;
 		Viewport.Width = float(ResolutionWidth);
 
-		CommandList->RSSetViewports(1, &Viewport);
+		GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 		D3D12_RECT ScissorRect;
 		ScissorRect.bottom = ResolutionHeight;
@@ -3431,9 +3456,9 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		ScissorRect.right = ResolutionWidth;
 		ScissorRect.top = 0;
 
-		CommandList->RSSetScissorRects(1, &ScissorRect);
+		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-		CommandList->DiscardResource(HDRSceneColorTexture, nullptr);
+		GraphicsCommandList->DiscardResource(HDRSceneColorTexture, nullptr);
 
 		UINT DestRangeSize = 8;
 		UINT SourceRangeSizes[7] = { 1, 2, 1, 1, 1, 1, 1 };
@@ -3443,14 +3468,14 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 
 		ResourceCPUHandle.ptr += 8 * ResourceHandleSize;
 
-		CommandList->SetPipelineState(DeferredLightingPipelineState);
+		GraphicsCommandList->SetPipelineState(DeferredLightingPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
 
 		ResourceGPUHandle.ptr += 8 * ResourceHandleSize;
 
-		CommandList->DrawInstanced(4, 1, 0, 0);
+		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 	}
 
 	// ===============================================================================================================
@@ -3505,10 +3530,10 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		ResourceBarriers[1].Transition.Subresource = 0;
 		ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(2, ResourceBarriers);
+		GraphicsCommandList->ResourceBarrier(2, ResourceBarriers);
 
-		CommandList->CopyBufferRegion(GPUSkyConstantBuffer, 0, CPUSkyConstantBuffers[CurrentFrameIndex], 0, 256);
-		CommandList->CopyBufferRegion(GPUSunConstantBuffer, 0, CPUSunConstantBuffers[CurrentFrameIndex], 0, 256);
+		GraphicsCommandList->CopyBufferRegion(GPUSkyConstantBuffer, 0, CPUSkyConstantBuffers[CurrentFrameIndex], 0, 256);
+		GraphicsCommandList->CopyBufferRegion(GPUSunConstantBuffer, 0, CPUSunConstantBuffers[CurrentFrameIndex], 0, 256);
 
 		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		ResourceBarriers[0].Transition.pResource = GPUSkyConstantBuffer;
@@ -3524,11 +3549,11 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		ResourceBarriers[1].Transition.Subresource = 0;
 		ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(2, ResourceBarriers);
+		GraphicsCommandList->ResourceBarrier(2, ResourceBarriers);
 
-		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-		CommandList->OMSetRenderTargets(1, &HDRSceneColorTextureRTV, TRUE, nullptr);
+		GraphicsCommandList->OMSetRenderTargets(1, &HDRSceneColorTextureRTV, TRUE, nullptr);
 
 		D3D12_VIEWPORT Viewport;
 		Viewport.Height = float(ResolutionHeight);
@@ -3538,7 +3563,7 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		Viewport.TopLeftY = 0.0f;
 		Viewport.Width = float(ResolutionWidth);
 
-		CommandList->RSSetViewports(1, &Viewport);
+		GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 		D3D12_RECT ScissorRect;
 		ScissorRect.bottom = ResolutionHeight;
@@ -3546,7 +3571,7 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		ScissorRect.right = ResolutionWidth;
 		ScissorRect.top = 0;
 
-		CommandList->RSSetScissorRects(1, &ScissorRect);
+		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
 		UINT DestRangeSize = 1;
 		UINT SourceRangeSizes[2] = { 1 };
@@ -3556,13 +3581,13 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 
 		ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->SetPipelineState(FogPipelineState);
+		GraphicsCommandList->SetPipelineState(FogPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 		ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->DrawInstanced(4, 1, 0, 0);
+		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 
 		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		ResourceBarriers[0].Transition.pResource = DepthBufferTexture;
@@ -3571,11 +3596,11 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		ResourceBarriers[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 		ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(1, ResourceBarriers);
+		GraphicsCommandList->ResourceBarrier(1, ResourceBarriers);
 
-		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-		CommandList->OMSetRenderTargets(1, &HDRSceneColorTextureRTV, TRUE, &DepthBufferTextureDSV);
+		GraphicsCommandList->OMSetRenderTargets(1, &HDRSceneColorTextureRTV, TRUE, &DepthBufferTextureDSV);
 
 		Viewport.Height = float(ResolutionHeight);
 		Viewport.MaxDepth = 1.0f;
@@ -3584,19 +3609,19 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		Viewport.TopLeftY = 0.0f;
 		Viewport.Width = float(ResolutionWidth);
 
-		CommandList->RSSetViewports(1, &Viewport);
+		GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 		ScissorRect.bottom = ResolutionHeight;
 		ScissorRect.left = 0;
 		ScissorRect.right = ResolutionWidth;
 		ScissorRect.top = 0;
 
-		CommandList->RSSetScissorRects(1, &ScissorRect);
+		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
 		Device->CopyDescriptorsSimple(1, SamplerCPUHandle, TextureSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 		SamplerCPUHandle.ptr += SamplerHandleSize;
 
-		CommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
 		SamplerGPUHandle.ptr += SamplerHandleSize;
 
 		DestRangeSize = 2;
@@ -3619,17 +3644,17 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
 		IndexBufferView.SizeInBytes = sizeof(WORD) * (300 + 24 * 600 + 300);
 
-		CommandList->IASetVertexBuffers(0, 1, &VertexBufferView);
-		CommandList->IASetIndexBuffer(&IndexBufferView);
+		GraphicsCommandList->IASetVertexBuffers(0, 1, &VertexBufferView);
+		GraphicsCommandList->IASetIndexBuffer(&IndexBufferView);
 
-		CommandList->SetPipelineState(SkyPipelineState);
+		GraphicsCommandList->SetPipelineState(SkyPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
 
 		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
-		CommandList->DrawIndexedInstanced(300 + 24 * 600 + 300, 1, 0, 0, 0);
+		GraphicsCommandList->DrawIndexedInstanced(300 + 24 * 600 + 300, 1, 0, 0, 0);
 
 		DestRangeSize = 2;
 		SourceRangeSizes[0] = 1;
@@ -3649,17 +3674,17 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
 		IndexBufferView.SizeInBytes = sizeof(WORD) * 6;
 
-		CommandList->IASetVertexBuffers(0, 1, &VertexBufferView);
-		CommandList->IASetIndexBuffer(&IndexBufferView);
+		GraphicsCommandList->IASetVertexBuffers(0, 1, &VertexBufferView);
+		GraphicsCommandList->IASetIndexBuffer(&IndexBufferView);
 
-		CommandList->SetPipelineState(SunPipelineState);
+		GraphicsCommandList->SetPipelineState(SunPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
 
 		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
-		CommandList->DrawIndexedInstanced(6, 1, 0, 0, 0);
+		GraphicsCommandList->DrawIndexedInstanced(6, 1, 0, 0, 0);
 	}
 
 	// ===============================================================================================================
@@ -3681,9 +3706,9 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 	// ===============================================================================================================
 
 	{
-		CommandList->ResourceBarrier(2, ResourceBarriers);
+		GraphicsCommandList->ResourceBarrier(2, ResourceBarriers);
 
-		CommandList->ResolveSubresource(ResolvedHDRSceneColorTexture, 0, HDRSceneColorTexture, 0, DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT);
+		GraphicsCommandList->ResolveSubresource(ResolvedHDRSceneColorTexture, 0, HDRSceneColorTexture, 0, DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT);
 	}
 
 	// ===============================================================================================================
@@ -3712,7 +3737,7 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 	// ===============================================================================================================
 
 	{
-		CommandList->ResourceBarrier(3, ResourceBarriers);
+		GraphicsCommandList->ResourceBarrier(3, ResourceBarriers);
 
 		UINT DestRangeSize = 2;
 		UINT SourceRangeSizes[2] = { 1, 1 };
@@ -3722,16 +3747,16 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 
 		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
 
-		CommandList->SetPipelineState(LuminanceCalcPipelineState);
+		GraphicsCommandList->SetPipelineState(LuminanceCalcPipelineState);
 
-		CommandList->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-		CommandList->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+		GraphicsCommandList->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
 
-		CommandList->DiscardResource(SceneLuminanceTextures[0], nullptr);
+		GraphicsCommandList->DiscardResource(SceneLuminanceTextures[0], nullptr);
 
 		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
-		CommandList->Dispatch(80, 45, 1);
+		GraphicsCommandList->Dispatch(80, 45, 1);
 
 		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		ResourceBarriers[0].Transition.pResource = SceneLuminanceTextures[0];
@@ -3747,7 +3772,7 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		ResourceBarriers[1].Transition.Subresource = 0;
 		ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(2, ResourceBarriers);
+		GraphicsCommandList->ResourceBarrier(2, ResourceBarriers);
 
 		DestRangeSize = 2;
 		SourceRangeSizes[0] = 1;
@@ -3759,16 +3784,16 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 
 		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
 
-		CommandList->SetPipelineState(LuminanceSumPipelineState);
+		GraphicsCommandList->SetPipelineState(LuminanceSumPipelineState);
 
-		CommandList->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-		CommandList->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+		GraphicsCommandList->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
 
-		CommandList->DiscardResource(SceneLuminanceTextures[1], nullptr);
+		GraphicsCommandList->DiscardResource(SceneLuminanceTextures[1], nullptr);
 
 		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
-		CommandList->Dispatch(80, 45, 1);
+		GraphicsCommandList->Dispatch(80, 45, 1);
 
 		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		ResourceBarriers[0].Transition.pResource = SceneLuminanceTextures[1];
@@ -3784,7 +3809,7 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		ResourceBarriers[1].Transition.Subresource = 0;
 		ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(2, ResourceBarriers);
+		GraphicsCommandList->ResourceBarrier(2, ResourceBarriers);
 
 		DestRangeSize = 2;
 		SourceRangeSizes[0] = 1;
@@ -3796,14 +3821,14 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 
 		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
 
-		CommandList->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-		CommandList->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+		GraphicsCommandList->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
 
-		CommandList->DiscardResource(SceneLuminanceTextures[2], nullptr);
+		GraphicsCommandList->DiscardResource(SceneLuminanceTextures[2], nullptr);
 
 		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
-		CommandList->Dispatch(5, 3, 1);
+		GraphicsCommandList->Dispatch(5, 3, 1);
 
 		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		ResourceBarriers[0].Transition.pResource = SceneLuminanceTextures[2];
@@ -3819,7 +3844,7 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		ResourceBarriers[1].Transition.Subresource = 0;
 		ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(2, ResourceBarriers);
+		GraphicsCommandList->ResourceBarrier(2, ResourceBarriers);
 
 		DestRangeSize = 2;
 		SourceRangeSizes[0] = 1;
@@ -3831,14 +3856,14 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 
 		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
 
-		CommandList->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-		CommandList->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+		GraphicsCommandList->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
 
-		CommandList->DiscardResource(SceneLuminanceTextures[3], nullptr);
+		GraphicsCommandList->DiscardResource(SceneLuminanceTextures[3], nullptr);
 
 		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
-		CommandList->Dispatch(1, 1, 1);
+		GraphicsCommandList->Dispatch(1, 1, 1);
 
 		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		ResourceBarriers[0].Transition.pResource = SceneLuminanceTextures[3];
@@ -3847,7 +3872,7 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		ResourceBarriers[0].Transition.Subresource = 0;
 		ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(1, ResourceBarriers);
+		GraphicsCommandList->ResourceBarrier(1, ResourceBarriers);
 
 		DestRangeSize = 2;
 		SourceRangeSizes[0] = 1;
@@ -3859,16 +3884,16 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 
 		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
 
-		CommandList->SetPipelineState(LuminanceAvgPipelineState);
+		GraphicsCommandList->SetPipelineState(LuminanceAvgPipelineState);
 
-		CommandList->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-		CommandList->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+		GraphicsCommandList->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
 
-		CommandList->DiscardResource(AverageLuminanceTexture, nullptr);
+		GraphicsCommandList->DiscardResource(AverageLuminanceTexture, nullptr);
 
 		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
-		CommandList->Dispatch(1, 1, 1);
+		GraphicsCommandList->Dispatch(1, 1, 1);
 	}
 
 	// ===============================================================================================================
@@ -3881,11 +3906,11 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		ResourceBarriers[0].Transition.Subresource = 0;
 		ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(1, ResourceBarriers);
+		GraphicsCommandList->ResourceBarrier(1, ResourceBarriers);
 
-		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-		CommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[0][0], TRUE, nullptr);
+		GraphicsCommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[0][0], TRUE, nullptr);
 
 		D3D12_VIEWPORT Viewport;
 		Viewport.Height = FLOAT(ResolutionHeight);
@@ -3895,7 +3920,7 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		Viewport.TopLeftY = 0.0f;
 		Viewport.Width = FLOAT(ResolutionWidth);
 
-		CommandList->RSSetViewports(1, &Viewport);
+		GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 		D3D12_RECT ScissorRect;
 		ScissorRect.bottom = ResolutionHeight;
@@ -3903,9 +3928,9 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		ScissorRect.right = ResolutionWidth;
 		ScissorRect.top = 0;
 
-		CommandList->RSSetScissorRects(1, &ScissorRect);
+		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-		CommandList->DiscardResource(BloomTextures[0][0], nullptr);
+		GraphicsCommandList->DiscardResource(BloomTextures[0][0], nullptr);
 
 		UINT DestRangeSize = 2;
 		UINT SourceRangeSizes[2] = { 1, 1 };
@@ -3915,13 +3940,13 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 
 		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
 
-		CommandList->SetPipelineState(BrightPassPipelineState);
+		GraphicsCommandList->SetPipelineState(BrightPassPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
-		CommandList->DrawInstanced(4, 1, 0, 0);
+		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 
 		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		ResourceBarriers[0].Transition.pResource = BloomTextures[0][0];
@@ -3937,11 +3962,11 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		ResourceBarriers[1].Transition.Subresource = 0;
 		ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(2, ResourceBarriers);
+		GraphicsCommandList->ResourceBarrier(2, ResourceBarriers);
 
-		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-		CommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[1][0], TRUE, nullptr);
+		GraphicsCommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[1][0], TRUE, nullptr);
 
 		Viewport.Height = FLOAT(ResolutionHeight);
 		Viewport.MaxDepth = 1.0f;
@@ -3950,16 +3975,16 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		Viewport.TopLeftY = 0.0f;
 		Viewport.Width = FLOAT(ResolutionWidth);
 
-		CommandList->RSSetViewports(1, &Viewport);
+		GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 		ScissorRect.bottom = ResolutionHeight;
 		ScissorRect.left = 0;
 		ScissorRect.right = ResolutionWidth;
 		ScissorRect.top = 0;
 
-		CommandList->RSSetScissorRects(1, &ScissorRect);
+		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-		CommandList->DiscardResource(BloomTextures[1][0], nullptr);
+		GraphicsCommandList->DiscardResource(BloomTextures[1][0], nullptr);
 
 		DestRangeSize = 1;
 		SourceRangeSizes[0] = 1;
@@ -3969,13 +3994,13 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 
 		ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->SetPipelineState(HorizontalBlurPipelineState);
+		GraphicsCommandList->SetPipelineState(HorizontalBlurPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 		ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->DrawInstanced(4, 1, 0, 0);
+		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 
 		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		ResourceBarriers[0].Transition.pResource = BloomTextures[1][0];
@@ -3991,11 +4016,11 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		ResourceBarriers[1].Transition.Subresource = 0;
 		ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(2, ResourceBarriers);
+		GraphicsCommandList->ResourceBarrier(2, ResourceBarriers);
 
-		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-		CommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[2][0], TRUE, nullptr);
+		GraphicsCommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[2][0], TRUE, nullptr);
 
 		Viewport.Height = FLOAT(ResolutionHeight);
 		Viewport.MaxDepth = 1.0f;
@@ -4004,16 +4029,16 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		Viewport.TopLeftY = 0.0f;
 		Viewport.Width = FLOAT(ResolutionWidth);
 
-		CommandList->RSSetViewports(1, &Viewport);
+		GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 		ScissorRect.bottom = ResolutionHeight;
 		ScissorRect.left = 0;
 		ScissorRect.right = ResolutionWidth;
 		ScissorRect.top = 0;
 
-		CommandList->RSSetScissorRects(1, &ScissorRect);
+		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-		CommandList->DiscardResource(BloomTextures[2][0], nullptr);
+		GraphicsCommandList->DiscardResource(BloomTextures[2][0], nullptr);
 
 		DestRangeSize = 1;
 		SourceRangeSizes[0] = 1;
@@ -4023,13 +4048,13 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 
 		ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->SetPipelineState(VerticalBlurPipelineState);
+		GraphicsCommandList->SetPipelineState(VerticalBlurPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 		ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->DrawInstanced(4, 1, 0, 0);
+		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 
 		for (int i = 1; i < 7; i++)
 		{
@@ -4040,11 +4065,11 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 			ResourceBarriers[0].Transition.Subresource = 0;
 			ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-			CommandList->ResourceBarrier(1, ResourceBarriers);
+			GraphicsCommandList->ResourceBarrier(1, ResourceBarriers);
 
-			CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+			GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-			CommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[0][i], TRUE, nullptr);
+			GraphicsCommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[0][i], TRUE, nullptr);
 
 			Viewport.Height = FLOAT(ResolutionHeight >> i);
 			Viewport.MaxDepth = 1.0f;
@@ -4053,16 +4078,16 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 			Viewport.TopLeftY = 0.0f;
 			Viewport.Width = FLOAT(ResolutionWidth >> i);
 
-			CommandList->RSSetViewports(1, &Viewport);
+			GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 			ScissorRect.bottom = ResolutionHeight >> i;
 			ScissorRect.left = 0;
 			ScissorRect.right = ResolutionWidth >> i;
 			ScissorRect.top = 0;
 
-			CommandList->RSSetScissorRects(1, &ScissorRect);
+			GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-			CommandList->DiscardResource(BloomTextures[0][i], nullptr);
+			GraphicsCommandList->DiscardResource(BloomTextures[0][i], nullptr);
 
 			DestRangeSize = 1;
 			SourceRangeSizes[0] = 1;
@@ -4072,13 +4097,13 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 
 			ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
-			CommandList->SetPipelineState(DownSamplePipelineState);
+			GraphicsCommandList->SetPipelineState(DownSamplePipelineState);
 
-			CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+			GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 			ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-			CommandList->DrawInstanced(4, 1, 0, 0);
+			GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 
 			ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 			ResourceBarriers[0].Transition.pResource = BloomTextures[0][i];
@@ -4094,11 +4119,11 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 			ResourceBarriers[1].Transition.Subresource = 0;
 			ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-			CommandList->ResourceBarrier(2, ResourceBarriers);
+			GraphicsCommandList->ResourceBarrier(2, ResourceBarriers);
 
-			CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+			GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-			CommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[1][i], TRUE, nullptr);
+			GraphicsCommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[1][i], TRUE, nullptr);
 
 			Viewport.Height = FLOAT(ResolutionHeight >> i);
 			Viewport.MaxDepth = 1.0f;
@@ -4107,16 +4132,16 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 			Viewport.TopLeftY = 0.0f;
 			Viewport.Width = FLOAT(ResolutionWidth >> i);
 
-			CommandList->RSSetViewports(1, &Viewport);
+			GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 			ScissorRect.bottom = ResolutionHeight >> i;
 			ScissorRect.left = 0;
 			ScissorRect.right = ResolutionWidth >> i;
 			ScissorRect.top = 0;
 
-			CommandList->RSSetScissorRects(1, &ScissorRect);
+			GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-			CommandList->DiscardResource(BloomTextures[1][i], nullptr);
+			GraphicsCommandList->DiscardResource(BloomTextures[1][i], nullptr);
 
 			DestRangeSize = 1;
 			SourceRangeSizes[0] = 1;
@@ -4126,13 +4151,13 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 
 			ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
-			CommandList->SetPipelineState(HorizontalBlurPipelineState);
+			GraphicsCommandList->SetPipelineState(HorizontalBlurPipelineState);
 
-			CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+			GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 			ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-			CommandList->DrawInstanced(4, 1, 0, 0);
+			GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 
 			ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 			ResourceBarriers[0].Transition.pResource = BloomTextures[1][i];
@@ -4148,11 +4173,11 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 			ResourceBarriers[1].Transition.Subresource = 0;
 			ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-			CommandList->ResourceBarrier(2, ResourceBarriers);
+			GraphicsCommandList->ResourceBarrier(2, ResourceBarriers);
 
-			CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+			GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-			CommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[2][i], TRUE, nullptr);
+			GraphicsCommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[2][i], TRUE, nullptr);
 
 			Viewport.Height = FLOAT(ResolutionHeight >> i);
 			Viewport.MaxDepth = 1.0f;
@@ -4161,16 +4186,16 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 			Viewport.TopLeftY = 0.0f;
 			Viewport.Width = FLOAT(ResolutionWidth >> i);
 
-			CommandList->RSSetViewports(1, &Viewport);
+			GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 			ScissorRect.bottom = ResolutionHeight >> i;
 			ScissorRect.left = 0;
 			ScissorRect.right = ResolutionWidth >> i;
 			ScissorRect.top = 0;
 
-			CommandList->RSSetScissorRects(1, &ScissorRect);
+			GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-			CommandList->DiscardResource(BloomTextures[2][i], nullptr);
+			GraphicsCommandList->DiscardResource(BloomTextures[2][i], nullptr);
 
 			DestRangeSize = 1;
 			SourceRangeSizes[0] = 1;
@@ -4180,13 +4205,13 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 
 			ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
-			CommandList->SetPipelineState(VerticalBlurPipelineState);
+			GraphicsCommandList->SetPipelineState(VerticalBlurPipelineState);
 
-			CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+			GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 			ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-			CommandList->DrawInstanced(4, 1, 0, 0);
+			GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 		}
 
 		for (int i = 5; i >= 0; i--)
@@ -4198,11 +4223,11 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 			ResourceBarriers[0].Transition.Subresource = 0;
 			ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-			CommandList->ResourceBarrier(1, ResourceBarriers);
+			GraphicsCommandList->ResourceBarrier(1, ResourceBarriers);
 
-			CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+			GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-			CommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[2][i], TRUE, nullptr);
+			GraphicsCommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[2][i], TRUE, nullptr);
 
 			Viewport.Height = FLOAT(ResolutionHeight >> i);
 			Viewport.MaxDepth = 1.0f;
@@ -4211,14 +4236,14 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 			Viewport.TopLeftY = 0.0f;
 			Viewport.Width = FLOAT(ResolutionWidth >> i);
 
-			CommandList->RSSetViewports(1, &Viewport);
+			GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 			ScissorRect.bottom = ResolutionHeight >> i;
 			ScissorRect.left = 0;
 			ScissorRect.right = ResolutionWidth >> i;
 			ScissorRect.top = 0;
 
-			CommandList->RSSetScissorRects(1, &ScissorRect);
+			GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
 			DestRangeSize = 1;
 			SourceRangeSizes[0] = 1;
@@ -4228,13 +4253,13 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 
 			ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
-			CommandList->SetPipelineState(UpSampleWithAddBlendPipelineState);
+			GraphicsCommandList->SetPipelineState(UpSampleWithAddBlendPipelineState);
 
-			CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+			GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 			ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-			CommandList->DrawInstanced(4, 1, 0, 0);
+			GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 		}
 	}
 
@@ -4257,11 +4282,11 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 	// ===============================================================================================================
 
 	{
-		CommandList->ResourceBarrier(2, ResourceBarriers);
+		GraphicsCommandList->ResourceBarrier(2, ResourceBarriers);
 
-		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-		CommandList->OMSetRenderTargets(1, &ToneMappedImageTextureRTV, TRUE, nullptr);
+		GraphicsCommandList->OMSetRenderTargets(1, &ToneMappedImageTextureRTV, TRUE, nullptr);
 
 		D3D12_VIEWPORT Viewport;
 		Viewport.Height = FLOAT(ResolutionHeight);
@@ -4271,7 +4296,7 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		Viewport.TopLeftY = 0.0f;
 		Viewport.Width = FLOAT(ResolutionWidth);
 
-		CommandList->RSSetViewports(1, &Viewport);
+		GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 		D3D12_RECT ScissorRect;
 		ScissorRect.bottom = ResolutionHeight;
@@ -4279,9 +4304,9 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		ScissorRect.right = ResolutionWidth;
 		ScissorRect.top = 0;
 
-		CommandList->RSSetScissorRects(1, &ScissorRect);
+		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-		CommandList->DiscardResource(ToneMappedImageTexture, nullptr);
+		GraphicsCommandList->DiscardResource(ToneMappedImageTexture, nullptr);
 
 		UINT DestRangeSize = 2;
 		UINT SourceRangeSizes[2] = { 1, 1 };
@@ -4291,13 +4316,13 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 
 		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
 
-		CommandList->SetPipelineState(HDRToneMappingPipelineState);
+		GraphicsCommandList->SetPipelineState(HDRToneMappingPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
-		CommandList->DrawInstanced(4, 1, 0, 0);
+		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 	}
 
 	// ===============================================================================================================
@@ -4319,9 +4344,9 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 	// ===============================================================================================================
 
 	{
-		CommandList->ResourceBarrier(2, ResourceBarriers);
+		GraphicsCommandList->ResourceBarrier(2, ResourceBarriers);
 
-		CommandList->ResolveSubresource(BackBufferTextures[CurrentBackBufferIndex], 0, ToneMappedImageTexture, 0, DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
+		GraphicsCommandList->ResolveSubresource(BackBufferTextures[CurrentBackBufferIndex], 0, ToneMappedImageTexture, 0, DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
 	}
 
 	// ===============================================================================================================
@@ -4333,17 +4358,17 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 	ResourceBarriers[0].Transition.Subresource = 0;
 	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(1, ResourceBarriers);
+	GraphicsCommandList->ResourceBarrier(1, ResourceBarriers);
 
 	// ===============================================================================================================
 
-	SAFE_DX(CommandList->Close());
+	SAFE_DX(GraphicsCommandList->Close());
 
-	CommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CommandList);
+	GraphicsCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&GraphicsCommandList);
 
 	SAFE_DX(SwapChain->Present(0, DXGI_PRESENT_ALLOW_TEARING));
 
-	SAFE_DX(CommandQueue->Signal(FrameSyncFences[CurrentFrameIndex], 1));
+	SAFE_DX(GraphicsCommandQueue->Signal(FrameSyncFences[CurrentFrameIndex], 1));
 
 	CurrentFrameIndex = (CurrentFrameIndex + 1) % 2;
 	CurrentBackBufferIndex = SwapChain->GetCurrentBackBufferIndex();
@@ -4446,11 +4471,11 @@ RenderMesh* RenderDeviceDX12::CreateRenderMesh(const RenderMeshCreateInfo& rende
 	memcpy((BYTE*)MappedData + sizeof(Vertex) * renderMeshCreateInfo.VertexCount, renderMeshCreateInfo.IndexData, sizeof(WORD) * renderMeshCreateInfo.IndexCount);
 	UploadBuffer->Unmap(0, &WrittenRange);
 
-	SAFE_DX(CommandAllocators[0]->Reset());
-	SAFE_DX(CommandList->Reset(CommandAllocators[0], nullptr));
+	SAFE_DX(GraphicsCommandAllocators[0]->Reset());
+	SAFE_DX(GraphicsCommandList->Reset(GraphicsCommandAllocators[0], nullptr));
 
-	CommandList->CopyBufferRegion(renderMesh->VertexBuffer, 0, UploadBuffer, 0, sizeof(Vertex) * renderMeshCreateInfo.VertexCount);
-	CommandList->CopyBufferRegion(renderMesh->IndexBuffer, 0, UploadBuffer, sizeof(Vertex) * renderMeshCreateInfo.VertexCount, sizeof(WORD) * renderMeshCreateInfo.IndexCount);
+	GraphicsCommandList->CopyBufferRegion(renderMesh->VertexBuffer, 0, UploadBuffer, 0, sizeof(Vertex) * renderMeshCreateInfo.VertexCount);
+	GraphicsCommandList->CopyBufferRegion(renderMesh->IndexBuffer, 0, UploadBuffer, sizeof(Vertex) * renderMeshCreateInfo.VertexCount, sizeof(WORD) * renderMeshCreateInfo.IndexCount);
 
 	D3D12_RESOURCE_BARRIER ResourceBarriers[2];
 	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
@@ -4466,13 +4491,13 @@ RenderMesh* RenderDeviceDX12::CreateRenderMesh(const RenderMeshCreateInfo& rende
 	ResourceBarriers[1].Transition.Subresource = 0;
 	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(2, ResourceBarriers);
+	GraphicsCommandList->ResourceBarrier(2, ResourceBarriers);
 
-	SAFE_DX(CommandList->Close());
+	SAFE_DX(GraphicsCommandList->Close());
 
-	CommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CommandList);
+	GraphicsCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&GraphicsCommandList);
 
-	SAFE_DX(CommandQueue->Signal(CopySyncFence, 1));
+	SAFE_DX(GraphicsCommandQueue->Signal(CopySyncFence, 1));
 
 	if (CopySyncFence->GetCompletedValue() != 1)
 	{
@@ -4633,8 +4658,8 @@ RenderTexture* RenderDeviceDX12::CreateRenderTexture(const RenderTextureCreateIn
 
 	UploadBuffer->Unmap(0, &WrittenRange);
 
-	SAFE_DX(CommandAllocators[0]->Reset());
-	SAFE_DX(CommandList->Reset(CommandAllocators[0], nullptr));
+	SAFE_DX(GraphicsCommandAllocators[0]->Reset());
+	SAFE_DX(GraphicsCommandList->Reset(GraphicsCommandAllocators[0], nullptr));
 
 	D3D12_TEXTURE_COPY_LOCATION SourceTextureCopyLocation, DestTextureCopyLocation;
 
@@ -4649,7 +4674,7 @@ RenderTexture* RenderDeviceDX12::CreateRenderTexture(const RenderTextureCreateIn
 		SourceTextureCopyLocation.PlacedFootprint = PlacedSubResourceFootPrints[i];
 		DestTextureCopyLocation.SubresourceIndex = i;
 
-		CommandList->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
+		GraphicsCommandList->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
 	}
 
 	D3D12_RESOURCE_BARRIER ResourceBarrier;
@@ -4660,13 +4685,13 @@ RenderTexture* RenderDeviceDX12::CreateRenderTexture(const RenderTextureCreateIn
 	ResourceBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 	ResourceBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(1, &ResourceBarrier);
+	GraphicsCommandList->ResourceBarrier(1, &ResourceBarrier);
 
-	SAFE_DX(CommandList->Close());
+	SAFE_DX(GraphicsCommandList->Close());
 
-	CommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CommandList);
+	GraphicsCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&GraphicsCommandList);
 
-	SAFE_DX(CommandQueue->Signal(CopySyncFence, 1));
+	SAFE_DX(GraphicsCommandQueue->Signal(CopySyncFence, 1));
 
 	if (CopySyncFence->GetCompletedValue() != 1)
 	{
