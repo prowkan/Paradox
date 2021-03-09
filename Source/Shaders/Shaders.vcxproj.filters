@@ -21,9 +21,9 @@
     <None Include="CompileShaders.bat">
       <Filter>Source Files</Filter>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="MaterialBase_VertexShader.hlsl" />
-    <FxCompile Include="MaterialBase_PixelShader.hlsl" />
+    <None Include="MaterialBase_PixelShader.hlsl" />
+    <None Include="MaterialBase_VertexShader.hlsl" />
+    <None Include="CleanShaders.py" />
+    <None Include="CompileShaders.py" />
   </ItemGroup>
 </Project>
