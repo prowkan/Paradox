@@ -135,6 +135,9 @@
     <ClInclude Include="MemoryManager\ScopedMemoryBlock.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="MultiThreading\Tasks\CallBackExecutionTask.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="StdAfx.cpp">
@@ -252,6 +255,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MemoryManager\ScopedMemoryBlockBase.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MultiThreading\Tasks\CallBackExecutionTask.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

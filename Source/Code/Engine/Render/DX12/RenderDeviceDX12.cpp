@@ -63,6 +63,15 @@ void RenderDeviceDX12::InitDevice()
 
 	SAFE_DX(Device->CreateCommandQueue(&CommandQueueDesc, UUIDOF(GraphicsCommandQueue)));
 
+	for (UINT i = 0; i < 16; i++)
+	{
+		SAFE_DX(Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT, UUIDOF(ThreadCommandAllocators[0][i])));
+		SAFE_DX(Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT, UUIDOF(ThreadCommandAllocators[1][i])));
+
+		SAFE_DX(Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT, ThreadCommandAllocators[0][i], nullptr, UUIDOF(ThreadCommandLists[i])));
+		SAFE_DX(ThreadCommandLists[i]->Close());
+	}
+
 	CommandQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAGS::D3D12_COMMAND_QUEUE_FLAG_NONE;
 	CommandQueueDesc.NodeMask = 0;
 	CommandQueueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY::D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
@@ -2659,9 +2668,6 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 
 	SAFE_DX(FrameSyncFences[CurrentFrameIndex]->Signal(0));
 
-	SAFE_DX(GraphicsCommandAllocators[CurrentFrameIndex]->Reset());
-	SAFE_DX(GraphicsCommandList->Reset(GraphicsCommandAllocators[CurrentFrameIndex], nullptr));
-
 	D3D12_CPU_DESCRIPTOR_HANDLE ResourceCPUHandle = FrameResourcesDescriptorHeaps[CurrentFrameIndex]->GetCPUDescriptorHandleForHeapStart();
 	D3D12_GPU_DESCRIPTOR_HANDLE ResourceGPUHandle = FrameResourcesDescriptorHeaps[CurrentFrameIndex]->GetGPUDescriptorHandleForHeapStart();
 	D3D12_CPU_DESCRIPTOR_HANDLE SamplerCPUHandle = FrameSamplersDescriptorHeaps[CurrentFrameIndex]->GetCPUDescriptorHandleForHeapStart();
@@ -2670,6 +2676,10 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 	UINT SamplerHandleSize = Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 
 	ID3D12DescriptorHeap *DescriptorHeaps[2] = { FrameResourcesDescriptorHeaps[CurrentFrameIndex], FrameSamplersDescriptorHeaps[CurrentFrameIndex] };
+
+	SAFE_DX(GraphicsCommandAllocators[CurrentFrameIndex]->Reset());
+
+	SAFE_DX(GraphicsCommandList->Reset(GraphicsCommandAllocators[CurrentFrameIndex], nullptr));
 
 	GraphicsCommandList->SetDescriptorHeaps(2, DescriptorHeaps);
 	GraphicsCommandList->SetGraphicsRootSignature(GraphicsRootSignature);
