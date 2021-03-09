@@ -4424,7 +4424,7 @@ RenderMesh* RenderDeviceDX12::CreateRenderMesh(const RenderMeshCreateInfo& rende
 		AlignedResourceOffset = 0;
 	}
 
-	SAFE_DX(Device->CreatePlacedResource(BufferMemoryHeaps[CurrentBufferMemoryHeapIndex], AlignedResourceOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(renderMesh->VertexBuffer)));
+	SAFE_DX(Device->CreatePlacedResource(BufferMemoryHeaps[CurrentBufferMemoryHeapIndex], AlignedResourceOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON, nullptr, UUIDOF(renderMesh->VertexBuffer)));
 
 	BufferMemoryHeapOffsets[CurrentBufferMemoryHeapIndex] = AlignedResourceOffset + ResourceAllocationInfo.SizeInBytes;
 
@@ -4463,7 +4463,7 @@ RenderMesh* RenderDeviceDX12::CreateRenderMesh(const RenderMeshCreateInfo& rende
 		AlignedResourceOffset = 0;
 	}
 
-	SAFE_DX(Device->CreatePlacedResource(BufferMemoryHeaps[CurrentBufferMemoryHeapIndex], AlignedResourceOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(renderMesh->IndexBuffer)));
+	SAFE_DX(Device->CreatePlacedResource(BufferMemoryHeaps[CurrentBufferMemoryHeapIndex], AlignedResourceOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON, nullptr, UUIDOF(renderMesh->IndexBuffer)));
 
 	BufferMemoryHeapOffsets[CurrentBufferMemoryHeapIndex] = AlignedResourceOffset + ResourceAllocationInfo.SizeInBytes;
 
@@ -4481,23 +4481,40 @@ RenderMesh* RenderDeviceDX12::CreateRenderMesh(const RenderMeshCreateInfo& rende
 	memcpy((BYTE*)MappedData + sizeof(Vertex) * renderMeshCreateInfo.VertexCount, renderMeshCreateInfo.IndexData, sizeof(WORD) * renderMeshCreateInfo.IndexCount);
 	UploadBuffer->Unmap(0, &WrittenRange);
 
+	SAFE_DX(CopyCommandAllocator->Reset());
+	SAFE_DX(CopyCommandList->Reset(CopyCommandAllocator, nullptr));
+
+	CopyCommandList->CopyBufferRegion(renderMesh->VertexBuffer, 0, UploadBuffer, 0, sizeof(Vertex) * renderMeshCreateInfo.VertexCount);
+	CopyCommandList->CopyBufferRegion(renderMesh->IndexBuffer, 0, UploadBuffer, sizeof(Vertex) * renderMeshCreateInfo.VertexCount, sizeof(WORD) * renderMeshCreateInfo.IndexCount);
+
+	SAFE_DX(CopyCommandList->Close());
+
+	CopyCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CopyCommandList);
+
+	SAFE_DX(CopyCommandQueue->Signal(CopySyncFence, 1));
+
+	if (CopySyncFence->GetCompletedValue() != 1)
+	{
+		SAFE_DX(CopySyncFence->SetEventOnCompletion(1, CopySyncEvent));
+		DWORD WaitResult = WaitForSingleObject(CopySyncEvent, INFINITE);
+	}
+
+	SAFE_DX(CopySyncFence->Signal(0));
+
 	SAFE_DX(GraphicsCommandAllocators[0]->Reset());
 	SAFE_DX(GraphicsCommandList->Reset(GraphicsCommandAllocators[0], nullptr));
-
-	GraphicsCommandList->CopyBufferRegion(renderMesh->VertexBuffer, 0, UploadBuffer, 0, sizeof(Vertex) * renderMeshCreateInfo.VertexCount);
-	GraphicsCommandList->CopyBufferRegion(renderMesh->IndexBuffer, 0, UploadBuffer, sizeof(Vertex) * renderMeshCreateInfo.VertexCount, sizeof(WORD) * renderMeshCreateInfo.IndexCount);
 
 	D3D12_RESOURCE_BARRIER ResourceBarriers[2];
 	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarriers[0].Transition.pResource = renderMesh->VertexBuffer;
 	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-	ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
+	ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON;
 	ResourceBarriers[0].Transition.Subresource = 0;
 	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarriers[1].Transition.pResource = renderMesh->IndexBuffer;
 	ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_INDEX_BUFFER;
-	ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
+	ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON;
 	ResourceBarriers[1].Transition.Subresource = 0;
 	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
@@ -4622,7 +4639,7 @@ RenderTexture* RenderDeviceDX12::CreateRenderTexture(const RenderTextureCreateIn
 		AlignedResourceOffset = 0;
 	}
 
-	SAFE_DX(Device->CreatePlacedResource(TextureMemoryHeaps[CurrentTextureMemoryHeapIndex], AlignedResourceOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(renderTexture->Texture)));
+	SAFE_DX(Device->CreatePlacedResource(TextureMemoryHeaps[CurrentTextureMemoryHeapIndex], AlignedResourceOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON, nullptr, UUIDOF(renderTexture->Texture)));
 
 	TextureMemoryHeapOffsets[CurrentTextureMemoryHeapIndex] = AlignedResourceOffset + ResourceAllocationInfo.SizeInBytes;
 
@@ -4668,8 +4685,8 @@ RenderTexture* RenderDeviceDX12::CreateRenderTexture(const RenderTextureCreateIn
 
 	UploadBuffer->Unmap(0, &WrittenRange);
 
-	SAFE_DX(GraphicsCommandAllocators[0]->Reset());
-	SAFE_DX(GraphicsCommandList->Reset(GraphicsCommandAllocators[0], nullptr));
+	SAFE_DX(CopyCommandAllocator->Reset());
+	SAFE_DX(CopyCommandList->Reset(CopyCommandAllocator, nullptr));
 
 	D3D12_TEXTURE_COPY_LOCATION SourceTextureCopyLocation, DestTextureCopyLocation;
 
@@ -4684,14 +4701,31 @@ RenderTexture* RenderDeviceDX12::CreateRenderTexture(const RenderTextureCreateIn
 		SourceTextureCopyLocation.PlacedFootprint = PlacedSubResourceFootPrints[i];
 		DestTextureCopyLocation.SubresourceIndex = i;
 
-		GraphicsCommandList->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
+		CopyCommandList->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
 	}
+
+	SAFE_DX(CopyCommandList->Close());
+
+	CopyCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CopyCommandList);
+
+	SAFE_DX(CopyCommandQueue->Signal(CopySyncFence, 1));
+
+	if (CopySyncFence->GetCompletedValue() != 1)
+	{
+		SAFE_DX(CopySyncFence->SetEventOnCompletion(1, CopySyncEvent));
+		DWORD WaitResult = WaitForSingleObject(CopySyncEvent, INFINITE);
+	}
+
+	SAFE_DX(CopySyncFence->Signal(0));
+
+	SAFE_DX(GraphicsCommandAllocators[0]->Reset());
+	SAFE_DX(GraphicsCommandList->Reset(GraphicsCommandAllocators[0], nullptr));
 
 	D3D12_RESOURCE_BARRIER ResourceBarrier;
 	ResourceBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarrier.Transition.pResource = renderTexture->Texture;
 	ResourceBarrier.Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-	ResourceBarrier.Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
+	ResourceBarrier.Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON;
 	ResourceBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 	ResourceBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
