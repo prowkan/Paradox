@@ -10,4 +10,9 @@ class OcclusionBufferPass : public RenderPass
 		virtual void Execute() override;
 
 	private:
+
+		COMRCPtr<ID3D12Resource> OcclusionBufferTexture, OcclusionBufferTextureReadback[2];
+		D3D12_CPU_DESCRIPTOR_HANDLE OcclusionBufferTextureRTV;
+
+		COMRCPtr<ID3D12PipelineState> OcclusionBufferPipelineState;
 };

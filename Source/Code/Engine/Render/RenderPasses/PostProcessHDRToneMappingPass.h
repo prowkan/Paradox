@@ -10,4 +10,9 @@ class PostProcessHDRToneMappingPass : public RenderPass
 		virtual void Execute() override;
 
 	private:
+
+		COMRCPtr<ID3D12Resource> ToneMappedImageTexture;
+		D3D12_CPU_DESCRIPTOR_HANDLE ToneMappedImageTextureRTV;
+
+		COMRCPtr<ID3D12PipelineState> HDRToneMappingPipelineState;
 };
