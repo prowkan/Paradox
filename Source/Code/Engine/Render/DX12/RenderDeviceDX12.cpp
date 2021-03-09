@@ -7,6 +7,8 @@
 
 #include <Engine/Engine.h>
 
+#include <MultiThreading/Tasks/CallBackExecutionTask.h>
+
 #include <Game/Components/Common/TransformComponent.h>
 #include <Game/Components/Common/BoundingBoxComponent.h>
 #include <Game/Components/Render/Meshes/StaticMeshComponent.h>
@@ -2677,6 +2679,11 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 
 	SAFE_DX(GraphicsCommandAllocators[CurrentFrameIndex]->Reset());
 
+	for (size_t i = 0; i < 16; i++)
+	{
+		SAFE_DX(ThreadCommandAllocators[CurrentFrameIndex][i]->Reset());
+	}
+
 	SAFE_DX(GraphicsCommandList->Reset(GraphicsCommandAllocators[CurrentFrameIndex], nullptr));
 
 	GraphicsCommandList->SetDescriptorHeaps(2, DescriptorHeaps);
@@ -2776,6 +2783,172 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 
 		GraphicsCommandList->ResourceBarrier(1, ResourceBarriers);
 
+		float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+		GraphicsCommandList->ClearRenderTargetView(GBufferTexturesRTVs[0], ClearColor, 0, nullptr);
+		GraphicsCommandList->ClearRenderTargetView(GBufferTexturesRTVs[1], ClearColor, 0, nullptr);
+		GraphicsCommandList->ClearDepthStencilView(DepthBufferTextureDSV, D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_STENCIL, 0.0f, 0, 0, nullptr);
+
+		SAFE_DX(GraphicsCommandList->Close());
+
+		GraphicsCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&GraphicsCommandList);
+
+		Device->CopyDescriptorsSimple(1, SamplerCPUHandle, TextureSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+		SamplerCPUHandle.ptr += SamplerHandleSize;
+
+		/*for (UINT i = 0; i < 16; i++)
+		{
+			SAFE_DX(ThreadCommandLists[i]->Reset(ThreadCommandAllocators[CurrentFrameIndex][i], nullptr));
+		}*/
+
+		bool ThreadCommandListsFlags[16];
+
+		for (UINT i = 0; i < 16; i++)
+		{
+			ThreadCommandListsFlags[i] = false;
+		}
+
+		UINT FirstHandleIndex = (ResourceCPUHandle.ptr - FrameResourcesDescriptorHeaps[CurrentFrameIndex]->GetCPUDescriptorHandleForHeapStart().ptr) / ResourceHandleSize;
+
+		auto CommandListRecordCallBack = [&] (const UINT ThreadID, const size_t Begin, const size_t End) -> void
+		{
+			OPTICK_EVENT("Command List Record");
+
+			if (!ThreadCommandListsFlags[ThreadID])
+			{
+				SAFE_DX(ThreadCommandLists[ThreadID]->Reset(ThreadCommandAllocators[CurrentFrameIndex][ThreadID], nullptr));
+
+				ThreadCommandLists[ThreadID]->SetDescriptorHeaps(2, DescriptorHeaps);
+				ThreadCommandLists[ThreadID]->SetGraphicsRootSignature(GraphicsRootSignature);
+				ThreadCommandLists[ThreadID]->SetComputeRootSignature(ComputeRootSignature);
+
+				ThreadCommandLists[ThreadID]->OMSetRenderTargets(2, GBufferTexturesRTVs, TRUE, &DepthBufferTextureDSV);
+
+				ThreadCommandLists[ThreadID]->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+				D3D12_VIEWPORT Viewport;
+				Viewport.Height = float(ResolutionHeight);
+				Viewport.MaxDepth = 1.0f;
+				Viewport.MinDepth = 0.0f;
+				Viewport.TopLeftX = 0.0f;
+				Viewport.TopLeftY = 0.0f;
+				Viewport.Width = float(ResolutionWidth);
+
+				ThreadCommandLists[ThreadID]->RSSetViewports(1, &Viewport);
+
+				D3D12_RECT ScissorRect;
+				ScissorRect.bottom = ResolutionHeight;
+				ScissorRect.left = 0;
+				ScissorRect.right = ResolutionWidth;
+				ScissorRect.top = 0;
+
+				ThreadCommandLists[ThreadID]->RSSetScissorRects(1, &ScissorRect);
+
+				ThreadCommandLists[ThreadID]->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * SamplerHandleSize });
+
+				ThreadCommandListsFlags[ThreadID] = true;
+			}
+
+			D3D12_CPU_DESCRIPTOR_HANDLE ResourceCPUHandle{ FrameResourcesDescriptorHeaps[CurrentFrameIndex]->GetCPUDescriptorHandleForHeapStart().ptr + (FirstHandleIndex + 3 * Begin) * ResourceHandleSize };
+			D3D12_GPU_DESCRIPTOR_HANDLE ResourceGPUHandle{ FrameResourcesDescriptorHeaps[CurrentFrameIndex]->GetGPUDescriptorHandleForHeapStart().ptr + (FirstHandleIndex + 3 * Begin) * ResourceHandleSize };
+
+			for (size_t k = Begin; k < End; k++)
+			{
+				StaticMeshComponent *staticMeshComponent = VisbleStaticMeshComponents[k];
+
+				RenderMeshDX12 *renderMesh = (RenderMeshDX12*)staticMeshComponent->GetStaticMesh()->GetRenderMesh();
+				RenderMaterialDX12 *renderMaterial = (RenderMaterialDX12*)staticMeshComponent->GetMaterial()->GetRenderMaterial();
+				RenderTextureDX12 *renderTexture0 = (RenderTextureDX12*)staticMeshComponent->GetMaterial()->GetTexture(0)->GetRenderTexture();
+				RenderTextureDX12 *renderTexture1 = (RenderTextureDX12*)staticMeshComponent->GetMaterial()->GetTexture(1)->GetRenderTexture();
+
+				UINT DestRangeSize = 3;
+				UINT SourceRangeSizes[3] = { 1, 1, 1 };
+				D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[3] = { ConstantBufferCBVs[k], renderTexture0->TextureSRV, renderTexture1->TextureSRV };
+
+				Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 3, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+				ResourceCPUHandle.ptr += 3 * ResourceHandleSize;
+
+				D3D12_VERTEX_BUFFER_VIEW VertexBufferView;
+				VertexBufferView.BufferLocation = renderMesh->VertexBufferAddress;
+				VertexBufferView.SizeInBytes = sizeof(Vertex) * 9 * 9 * 6;
+				VertexBufferView.StrideInBytes = sizeof(Vertex);
+
+				D3D12_INDEX_BUFFER_VIEW IndexBufferView;
+				IndexBufferView.BufferLocation = renderMesh->IndexBufferAddress;
+				IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
+				IndexBufferView.SizeInBytes = sizeof(WORD) * 8 * 8 * 6 * 6;
+
+				ThreadCommandLists[ThreadID]->IASetVertexBuffers(0, 1, &VertexBufferView);
+				ThreadCommandLists[ThreadID]->IASetIndexBuffer(&IndexBufferView);
+
+				ThreadCommandLists[ThreadID]->SetPipelineState(renderMaterial->GBufferOpaquePassPipelineState);
+
+				ThreadCommandLists[ThreadID]->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+				ThreadCommandLists[ThreadID]->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+
+				ResourceGPUHandle.ptr += 3 * ResourceHandleSize;
+
+				ThreadCommandLists[ThreadID]->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
+			}
+		};
+
+		using CommandListRecordCallBackTaskType = CallBackExecutionTask<decltype(CommandListRecordCallBack), size_t, size_t>;
+
+		BYTE CallBackExecutionTasksStorage[100 * sizeof(CommandListRecordCallBackTaskType)];
+		CommandListRecordCallBackTaskType *CallBackExecutionTasks = (CommandListRecordCallBackTaskType*)CallBackExecutionTasksStorage;
+
+		UINT TasksCount = 0;
+
+		for (UINT i = 0; i < 100; i++)
+		{
+			new (&CallBackExecutionTasks[i]) CommandListRecordCallBackTaskType(CommandListRecordCallBack, i * 200, min(size_t((i + 1) * 200), VisbleStaticMeshComponentsCount));
+
+			Engine::GetEngine().GetMultiThreadingSystem().AddTask(&CallBackExecutionTasks[i]);
+
+			TasksCount++;
+
+			if (((i + 1) * 200) >= VisbleStaticMeshComponentsCount) break;
+		}
+
+		for (UINT i = 0; i < TasksCount; i++)
+		{
+			CallBackExecutionTasks[i].WaitForFinish();
+		}
+
+		/*for (UINT i = 0; i < 16; i++)
+		{
+			SAFE_DX(ThreadCommandLists[i]->Close());
+		}
+
+		GraphicsCommandQueue->ExecuteCommandLists(16, (ID3D12CommandList**)ThreadCommandLists);*/
+
+		ID3D12CommandList *CommandListsToExecute[16];
+		UINT CommandListsToExecuteCount = 0;
+
+		for (UINT i = 0; i < 16; i++)
+		{
+			if (ThreadCommandListsFlags[i])
+			{
+				SAFE_DX(ThreadCommandLists[i]->Close());
+				CommandListsToExecute[CommandListsToExecuteCount] = ThreadCommandLists[i];
+				CommandListsToExecuteCount++;
+			}
+		}
+
+		GraphicsCommandQueue->ExecuteCommandLists(CommandListsToExecuteCount, CommandListsToExecute);
+
+		ResourceCPUHandle.ptr += 3 * VisbleStaticMeshComponentsCount * ResourceHandleSize;
+		ResourceGPUHandle.ptr += 3 * VisbleStaticMeshComponentsCount * ResourceHandleSize;
+
+		SamplerGPUHandle.ptr += SamplerHandleSize;
+
+		/*SAFE_DX(GraphicsCommandList->Reset(GraphicsCommandAllocators[CurrentFrameIndex], nullptr));
+
+		GraphicsCommandList->SetDescriptorHeaps(2, DescriptorHeaps);
+		GraphicsCommandList->SetGraphicsRootSignature(GraphicsRootSignature);
+		GraphicsCommandList->SetComputeRootSignature(ComputeRootSignature);
+
 		GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 		GraphicsCommandList->OMSetRenderTargets(2, GBufferTexturesRTVs, TRUE, &DepthBufferTextureDSV);
@@ -2797,12 +2970,6 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 		ScissorRect.top = 0;
 
 		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
-
-		float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-
-		GraphicsCommandList->ClearRenderTargetView(GBufferTexturesRTVs[0], ClearColor, 0, nullptr);
-		GraphicsCommandList->ClearRenderTargetView(GBufferTexturesRTVs[1], ClearColor, 0, nullptr);
-		GraphicsCommandList->ClearDepthStencilView(DepthBufferTextureDSV, D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_STENCIL, 0.0f, 0, 0, nullptr);
 
 		Device->CopyDescriptorsSimple(1, SamplerCPUHandle, TextureSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 		SamplerCPUHandle.ptr += SamplerHandleSize;
@@ -2850,6 +3017,16 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 
 			GraphicsCommandList->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
 		}
+
+		SAFE_DX(GraphicsCommandList->Close());
+
+		GraphicsCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&GraphicsCommandList);*/
+
+		SAFE_DX(GraphicsCommandList->Reset(GraphicsCommandAllocators[CurrentFrameIndex], nullptr));
+
+		GraphicsCommandList->SetDescriptorHeaps(2, DescriptorHeaps);
+		GraphicsCommandList->SetGraphicsRootSignature(GraphicsRootSignature);
+		GraphicsCommandList->SetComputeRootSignature(ComputeRootSignature);
 	}
 
 	// ===============================================================================================================
@@ -3098,6 +3275,160 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 
 			GraphicsCommandList->ResourceBarrier(1, ResourceBarriers);
 
+			GraphicsCommandList->ClearDepthStencilView(CascadedShadowMapTexturesDSVs[i], D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+
+			SAFE_DX(GraphicsCommandList->Close());
+
+			GraphicsCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&GraphicsCommandList);
+
+			/*for (UINT x = 0; x < 16; x++)
+			{
+				SAFE_DX(ThreadCommandLists[x]->Reset(ThreadCommandAllocators[CurrentFrameIndex][x], nullptr));
+			}*/
+
+			UINT FirstHandleIndex = (ResourceCPUHandle.ptr - FrameResourcesDescriptorHeaps[CurrentFrameIndex]->GetCPUDescriptorHandleForHeapStart().ptr) / ResourceHandleSize;
+
+			bool ThreadCommandListsFlags[16];
+
+			for (UINT i = 0; i < 16; i++)
+			{
+				ThreadCommandListsFlags[i] = false;
+			}
+
+			auto CommandListRecordCallBack = [&] (const UINT ThreadID, const size_t Begin, const size_t End) -> void
+			{
+				OPTICK_EVENT("Command List Record");
+
+				if (!ThreadCommandListsFlags[ThreadID])
+				{
+					SAFE_DX(ThreadCommandLists[ThreadID]->Reset(ThreadCommandAllocators[CurrentFrameIndex][ThreadID], nullptr));
+
+					ThreadCommandLists[ThreadID]->SetDescriptorHeaps(2, DescriptorHeaps);
+					ThreadCommandLists[ThreadID]->SetGraphicsRootSignature(GraphicsRootSignature);
+					ThreadCommandLists[ThreadID]->SetComputeRootSignature(ComputeRootSignature);
+
+					ThreadCommandLists[ThreadID]->OMSetRenderTargets(0, nullptr, TRUE, &CascadedShadowMapTexturesDSVs[i]);
+
+					ThreadCommandLists[ThreadID]->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+					D3D12_VIEWPORT Viewport;
+					Viewport.Height = 2048.0f;
+					Viewport.MaxDepth = 1.0f;
+					Viewport.MinDepth = 0.0f;
+					Viewport.TopLeftX = 0.0f;
+					Viewport.TopLeftY = 0.0f;
+					Viewport.Width = 2048.0f;
+
+					ThreadCommandLists[ThreadID]->RSSetViewports(1, &Viewport);
+
+					D3D12_RECT ScissorRect;
+					ScissorRect.bottom = 2048;
+					ScissorRect.left = 0;
+					ScissorRect.right = 2048;
+					ScissorRect.top = 0;
+
+					ThreadCommandLists[ThreadID]->RSSetScissorRects(1, &ScissorRect);
+
+					ThreadCommandLists[ThreadID]->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * SamplerHandleSize });
+
+					ThreadCommandListsFlags[ThreadID] = true;
+				}
+
+				D3D12_CPU_DESCRIPTOR_HANDLE ResourceCPUHandle{ FrameResourcesDescriptorHeaps[CurrentFrameIndex]->GetCPUDescriptorHandleForHeapStart().ptr + (FirstHandleIndex + 3 * Begin) * ResourceHandleSize };
+				D3D12_GPU_DESCRIPTOR_HANDLE ResourceGPUHandle{ FrameResourcesDescriptorHeaps[CurrentFrameIndex]->GetGPUDescriptorHandleForHeapStart().ptr + (FirstHandleIndex + 3 * Begin) * ResourceHandleSize };
+
+				for (size_t k = Begin; k < End; k++)
+				{
+					StaticMeshComponent *staticMeshComponent = VisbleStaticMeshComponents[k];
+
+					RenderMeshDX12 *renderMesh = (RenderMeshDX12*)staticMeshComponent->GetStaticMesh()->GetRenderMesh();
+					RenderMaterialDX12 *renderMaterial = (RenderMaterialDX12*)staticMeshComponent->GetMaterial()->GetRenderMaterial();
+
+					UINT DestRangeSize = 1;
+					UINT SourceRangeSizes[1] = { 1 };
+					D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[1] = { ConstantBufferCBVs2[i][k] };
+
+					Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+					ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
+
+					D3D12_VERTEX_BUFFER_VIEW VertexBufferView;
+					VertexBufferView.BufferLocation = renderMesh->VertexBufferAddress;
+					VertexBufferView.SizeInBytes = sizeof(Vertex) * 9 * 9 * 6;
+					VertexBufferView.StrideInBytes = sizeof(Vertex);
+
+					D3D12_INDEX_BUFFER_VIEW IndexBufferView;
+					IndexBufferView.BufferLocation = renderMesh->IndexBufferAddress;
+					IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
+					IndexBufferView.SizeInBytes = sizeof(WORD) * 8 * 8 * 6 * 6;
+
+					ThreadCommandLists[ThreadID]->IASetVertexBuffers(0, 1, &VertexBufferView);
+					ThreadCommandLists[ThreadID]->IASetIndexBuffer(&IndexBufferView);
+
+					ThreadCommandLists[ThreadID]->SetPipelineState(renderMaterial->ShadowMapPassPipelineState);
+
+					ThreadCommandLists[ThreadID]->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+
+					ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
+
+					ThreadCommandLists[ThreadID]->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
+				}
+			};
+
+			using CommandListRecordCallBackTaskType = CallBackExecutionTask<decltype(CommandListRecordCallBack), size_t, size_t>;
+
+			BYTE CallBackExecutionTasksStorage[100 * sizeof(CommandListRecordCallBackTaskType)];
+			CommandListRecordCallBackTaskType *CallBackExecutionTasks = (CommandListRecordCallBackTaskType*)CallBackExecutionTasksStorage;
+
+			UINT TasksCount = 0;
+
+			for (UINT x = 0; x < 100; x++)
+			{
+				new (&CallBackExecutionTasks[x]) CommandListRecordCallBackTaskType(CommandListRecordCallBack, x * 200, min(size_t((x + 1) * 200), VisbleStaticMeshComponentsCount));
+
+				Engine::GetEngine().GetMultiThreadingSystem().AddTask(&CallBackExecutionTasks[x]);
+
+				TasksCount++;
+
+				if (((x + 1) * 200) >= VisbleStaticMeshComponentsCount) break;
+			}
+
+			for (UINT x = 0; x < TasksCount; x++)
+			{
+				CallBackExecutionTasks[x].WaitForFinish();
+			}
+
+			/*for (UINT x = 0; x < 16; x++)
+			{
+				SAFE_DX(ThreadCommandLists[x]->Close());
+			}
+
+			GraphicsCommandQueue->ExecuteCommandLists(16, (ID3D12CommandList**)ThreadCommandLists);*/
+
+			ID3D12CommandList *CommandListsToExecute[16];
+			UINT CommandListsToExecuteCount = 0;
+
+			for (UINT x = 0; x < 16; x++)
+			{
+				if (ThreadCommandListsFlags[x])
+				{
+					SAFE_DX(ThreadCommandLists[x]->Close());
+					CommandListsToExecute[CommandListsToExecuteCount] = ThreadCommandLists[x];
+					CommandListsToExecuteCount++;
+				}
+			}
+
+			GraphicsCommandQueue->ExecuteCommandLists(CommandListsToExecuteCount, CommandListsToExecute);
+
+			ResourceCPUHandle.ptr += 1 * VisbleStaticMeshComponentsCount * ResourceHandleSize;
+			ResourceGPUHandle.ptr += 1 * VisbleStaticMeshComponentsCount * ResourceHandleSize;
+
+			/*SAFE_DX(GraphicsCommandList->Reset(GraphicsCommandAllocators[CurrentFrameIndex], nullptr));
+
+			GraphicsCommandList->SetDescriptorHeaps(2, DescriptorHeaps);
+			GraphicsCommandList->SetGraphicsRootSignature(GraphicsRootSignature);
+			GraphicsCommandList->SetComputeRootSignature(ComputeRootSignature);
+
 			GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 			GraphicsCommandList->OMSetRenderTargets(0, nullptr, TRUE, &CascadedShadowMapTexturesDSVs[i]);
@@ -3119,8 +3450,6 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 			ScissorRect.top = 0;
 
 			GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
-
-			GraphicsCommandList->ClearDepthStencilView(CascadedShadowMapTexturesDSVs[i], D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 			for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
 			{
@@ -3160,6 +3489,16 @@ void RenderDeviceDX12::TickDevice(float DeltaTime)
 
 				GraphicsCommandList->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
 			}
+
+			SAFE_DX(GraphicsCommandList->Close());
+
+			GraphicsCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&GraphicsCommandList);*/
+
+			SAFE_DX(GraphicsCommandList->Reset(GraphicsCommandAllocators[CurrentFrameIndex], nullptr));
+
+			GraphicsCommandList->SetDescriptorHeaps(2, DescriptorHeaps);
+			GraphicsCommandList->SetGraphicsRootSignature(GraphicsRootSignature);
+			GraphicsCommandList->SetComputeRootSignature(ComputeRootSignature);
 		}
 	}
 
