@@ -1188,21 +1188,21 @@ void RenderDeviceDX11::ShutdownDevice()
 {
 	for (RenderMesh* renderMesh : RenderMeshDestructionQueue)
 	{
-		delete renderMesh;
+		delete (RenderMeshDX11*)renderMesh;
 	}
 
 	RenderMeshDestructionQueue.clear();
 
 	for (RenderMaterial* renderMaterial : RenderMaterialDestructionQueue)
 	{
-		delete renderMaterial;
+		delete (RenderMaterialDX11*)renderMaterial;
 	}
 
 	RenderMaterialDestructionQueue.clear();
 
 	for (RenderTexture* renderTexture : RenderTextureDestructionQueue)
 	{
-		delete renderTexture;
+		delete (RenderTextureDX11*)renderTexture;
 	}
 
 	RenderTextureDestructionQueue.clear();

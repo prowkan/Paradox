@@ -1694,8 +1694,6 @@ void RenderDeviceDX12::InitDevice()
 
 		WORD SunMeshIndices[6] = { 0, 1, 2, 2, 1, 3 };
 
-		COMRCPtr<ID3D12Resource> TemporarySunVertexBuffer, TemporarySunIndexBuffer;
-
 		ZeroMemory(&ResourceDesc, sizeof(D3D12_RESOURCE_DESC));
 		ResourceDesc.Alignment = 0;
 		ResourceDesc.DepthOrArraySize = 1;
@@ -2583,21 +2581,21 @@ void RenderDeviceDX12::ShutdownDevice()
 
 	for (RenderMesh* renderMesh : RenderMeshDestructionQueue)
 	{
-		delete renderMesh;
+		delete (RenderMeshDX12*)renderMesh;
 	}
 
 	RenderMeshDestructionQueue.clear();
 
 	for (RenderMaterial* renderMaterial : RenderMaterialDestructionQueue)
 	{
-		delete renderMaterial;
+		delete (RenderMaterialDX12*)renderMaterial;
 	}
 
 	RenderMaterialDestructionQueue.clear();
 
 	for (RenderTexture* renderTexture : RenderTextureDestructionQueue)
 	{
-		delete renderTexture;
+		delete (RenderTextureDX12*)renderTexture;
 	}
 
 	RenderTextureDestructionQueue.clear();

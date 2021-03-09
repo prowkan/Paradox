@@ -10,10 +10,10 @@ class COMRCPtr
 		~COMRCPtr() 
 		{ 
 			if (Pointer) 
-			{ 
-				ULONG RefCount = Pointer->Release(); 
+			{
+				ULONG RefCount = Pointer->Release();
 				Pointer = nullptr; 
-			} 
+			}
 		}
 
 		T** operator&() { return &Pointer; }

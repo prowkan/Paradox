@@ -38,7 +38,11 @@ void RenderSystem::InitSystem()
 void RenderSystem::ShutdownSystem()
 {
 	renderDevice->ShutdownDevice();
-	delete renderDevice;
+	
+	if (renderDevice->GetDirectXVersion() == DirectXVersion::DirectX11)
+		delete (RenderDeviceDX11*)renderDevice;
+	else
+		delete (RenderDeviceDX12*)renderDevice;
 }
 
 void RenderSystem::TickSystem(float DeltaTime)
