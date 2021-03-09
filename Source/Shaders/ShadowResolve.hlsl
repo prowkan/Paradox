@@ -9,10 +9,14 @@ struct PSConstants
 	float4x4 ReProjMatrices[4];
 };
 
+#if SHADER_MODEL >= 51
+ConstantBuffer<PSConstants> PixelShaderConstants;
+#else
 cbuffer cb0 : register(b0)
 {
 	PSConstants PixelShaderConstants;
 };
+#endif
 
 Texture2D<float> DepthBufferTexture : register(t0);
 Texture2D<float> CascadedShadowMaps[4] : register(t1);
