@@ -59,6 +59,83 @@ struct SunConstantBuffer
 	XMFLOAT3 SunPosition;
 };
 
+DescriptorHeap::DescriptorHeap(ID3D12Device *DXDevice, const D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType, const UINT DescriptorsCount)
+{
+	D3D12_DESCRIPTOR_HEAP_DESC DescriptorHeapDesc;
+	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	DescriptorHeapDesc.NodeMask = 0;
+	DescriptorHeapDesc.NumDescriptors = DescriptorsCount;
+	DescriptorHeapDesc.Type = DescriptorHeapType;
+
+	// TODO: Сделать обработку ошибок
+	DXDevice->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(DXDescriptorHeap));
+
+	FirstDescriptor = DXDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr;
+	DescriptorSize = DXDevice->GetDescriptorHandleIncrementSize(DescriptorHeapType);
+
+	AllocatedDescriptorsCount = 0;
+}
+
+RootSignature::RootSignature(ID3D12Device *DXDevice, const D3D12_ROOT_SIGNATURE_DESC& RootSignatureDesc)
+{
+	COMRCPtr<ID3DBlob> RootSignatureBlob;
+
+	// TODO: Сделать обработку ошибок
+	D3D12SerializeRootSignature(&RootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION::D3D_ROOT_SIGNATURE_VERSION_1_0, &RootSignatureBlob, nullptr);
+	// TODO: Сделать обработку ошибок
+	DXDevice->CreateRootSignature(0, RootSignatureBlob->GetBufferPointer(), RootSignatureBlob->GetBufferSize(), UUIDOF(DXRootSignature));
+
+	COMRCPtr<ID3D12RootSignatureDeserializer> RootSignatureDeserializer;
+
+	// TODO: Сделать обработку ошибок
+	D3D12CreateRootSignatureDeserializer(RootSignatureBlob->GetBufferPointer(), RootSignatureBlob->GetBufferSize(), UUIDOF(RootSignatureDeserializer));
+
+	DXRootSignatureDesc = *RootSignatureDeserializer->GetRootSignatureDesc();
+}
+
+FrameDescriptorHeap::FrameDescriptorHeap(ID3D12Device *DXDevice, const D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType, const UINT DescriptorsCount) : DescriptorHeapType(DescriptorHeapType)
+{
+	D3D12_DESCRIPTOR_HEAP_DESC DescriptorHeapDesc;
+	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	DescriptorHeapDesc.NodeMask = 0;
+	DescriptorHeapDesc.NumDescriptors = DescriptorsCount;
+	DescriptorHeapDesc.Type = DescriptorHeapType;
+
+	// TODO: Сделать обработку ошибок
+	DXDevice->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(DXDescriptorHeaps[0]));
+	DXDevice->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(DXDescriptorHeaps[1]));
+
+	FirstDescriptorsCPU[0] = DXDescriptorHeaps[0]->GetCPUDescriptorHandleForHeapStart().ptr;
+	FirstDescriptorsCPU[1] = DXDescriptorHeaps[1]->GetCPUDescriptorHandleForHeapStart().ptr;
+	FirstDescriptorsGPU[0] = DXDescriptorHeaps[0]->GetGPUDescriptorHandleForHeapStart().ptr;
+	FirstDescriptorsGPU[1] = DXDescriptorHeaps[1]->GetGPUDescriptorHandleForHeapStart().ptr;
+	DescriptorSize = DXDevice->GetDescriptorHandleIncrementSize(DescriptorHeapType);
+}
+
+DescriptorTable FrameDescriptorHeap::AllocateDescriptorTable(const D3D12_ROOT_PARAMETER& RootParameter)
+{
+	UINT DescriptorsCountInTable = 0;
+
+	for (UINT i = 0; i < RootParameter.DescriptorTable.NumDescriptorRanges; i++)
+	{
+		DescriptorsCountInTable += RootParameter.DescriptorTable.pDescriptorRanges[i].NumDescriptors;
+	}
+
+	DescriptorTable descriptorTable(
+		DescriptorsCountInTable, 
+		AllocatedDescriptorsForTables, 
+		FirstDescriptorsCPU[0] + AllocatedDescriptorsForTables * DescriptorSize, 
+		FirstDescriptorsCPU[1] + AllocatedDescriptorsForTables * DescriptorSize, 
+		FirstDescriptorsGPU[0] + AllocatedDescriptorsForTables * DescriptorSize,
+		FirstDescriptorsGPU[1] + AllocatedDescriptorsForTables * DescriptorSize,
+		DescriptorHeapType
+	);
+
+	AllocatedDescriptorsForTables += DescriptorsCountInTable;
+
+	return descriptorTable;
+}
+
 void RenderSystem::InitSystem()
 {
 	clusterizationSubSystem.PreComputeClustersPlanes();
@@ -153,72 +230,88 @@ void RenderSystem::InitSystem()
 
 	CopySyncEvent = CreateEvent(NULL, FALSE, FALSE, (const wchar_t*)u"CopySyncEvent");
 
-	D3D12_DESCRIPTOR_HEAP_DESC DescriptorHeapDesc;
-	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
+	//D3D12_DESCRIPTOR_HEAP_DESC DescriptorHeapDesc;
+	/*ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	DescriptorHeapDesc.NodeMask = 0;
 	DescriptorHeapDesc.NumDescriptors = 29;
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(RTDescriptorHeap)));
+	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(RTDescriptorHeap)));*/
 
-	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
+	new (&RTDescriptorHeap) DescriptorHeap(Device, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 29);
+
+	/*ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	DescriptorHeapDesc.NodeMask = 0;
 	DescriptorHeapDesc.NumDescriptors = 5;
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(DSDescriptorHeap)));
+	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(DSDescriptorHeap)));*/
 
-	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
+	new (&DSDescriptorHeap) DescriptorHeap(Device, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 5);
+
+	/*ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	DescriptorHeapDesc.NodeMask = 0;
 	DescriptorHeapDesc.NumDescriptors = 49;
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(CBSRUADescriptorHeap)));
+	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(CBSRUADescriptorHeap)));*/
 
-	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
+	new (&CBSRUADescriptorHeap) DescriptorHeap(Device, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 49);
+
+	/*ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	DescriptorHeapDesc.NodeMask = 0;
 	DescriptorHeapDesc.NumDescriptors = 4;
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(SamplersDescriptorHeap)));
+	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(SamplersDescriptorHeap)));*/
 
-	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
+	new (&SamplersDescriptorHeap) DescriptorHeap(Device, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 4);
+
+	/*ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	DescriptorHeapDesc.NodeMask = 0;
 	DescriptorHeapDesc.NumDescriptors = 100000;
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(ConstantBufferDescriptorHeap)));
+	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(ConstantBufferDescriptorHeap)));*/
 
-	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
+	new (&ConstantBufferDescriptorHeap) DescriptorHeap(Device, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 100000);
+
+	/*ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	DescriptorHeapDesc.NodeMask = 0;
 	DescriptorHeapDesc.NumDescriptors = 8002;
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(TexturesDescriptorHeap)));
+	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(TexturesDescriptorHeap)));*/
 
-	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
+	new (&TexturesDescriptorHeap) DescriptorHeap(Device, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 8002);
+
+	/*ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	DescriptorHeapDesc.NodeMask = 0;
 	DescriptorHeapDesc.NumDescriptors = 500000;
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 
 	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(FrameResourcesDescriptorHeaps[0])));
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(FrameResourcesDescriptorHeaps[1])));
+	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(FrameResourcesDescriptorHeaps[1])));*/
 
-	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
+	new (&FrameResourcesDescriptorHeap) FrameDescriptorHeap(Device, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 500000);
+
+	/*ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	DescriptorHeapDesc.NodeMask = 0;
 	DescriptorHeapDesc.NumDescriptors = 2000;
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 
 	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(FrameSamplersDescriptorHeaps[0])));
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(FrameSamplersDescriptorHeaps[1])));
+	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(FrameSamplersDescriptorHeaps[1])));*/
+
+	new (&FrameSamplersDescriptorHeap) FrameDescriptorHeap(Device, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 2000);
 
 	D3D12_DESCRIPTOR_RANGE DescriptorRanges[4];
 	DescriptorRanges[0].BaseShaderRegister = 0;
@@ -242,71 +335,77 @@ void RenderSystem::InitSystem()
 	DescriptorRanges[3].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE::D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
 	DescriptorRanges[3].RegisterSpace = 0;
 
-	D3D12_ROOT_PARAMETER RootParameters[6];
-	RootParameters[0].DescriptorTable.NumDescriptorRanges = 1;
-	RootParameters[0].DescriptorTable.pDescriptorRanges = &DescriptorRanges[0];
-	RootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	RootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_VERTEX;
-	RootParameters[1].DescriptorTable.NumDescriptorRanges = 1;
-	RootParameters[1].DescriptorTable.pDescriptorRanges = &DescriptorRanges[1];
-	RootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	RootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_VERTEX;
-	RootParameters[2].DescriptorTable.NumDescriptorRanges = 1;
-	RootParameters[2].DescriptorTable.pDescriptorRanges = &DescriptorRanges[2];
-	RootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	RootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_VERTEX;
-	RootParameters[3].DescriptorTable.NumDescriptorRanges = 1;
-	RootParameters[3].DescriptorTable.pDescriptorRanges = &DescriptorRanges[0];
-	RootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	RootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_PIXEL;
-	RootParameters[4].DescriptorTable.NumDescriptorRanges = 1;
-	RootParameters[4].DescriptorTable.pDescriptorRanges = &DescriptorRanges[1];
-	RootParameters[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	RootParameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_PIXEL;
-	RootParameters[5].DescriptorTable.NumDescriptorRanges = 1;
-	RootParameters[5].DescriptorTable.pDescriptorRanges = &DescriptorRanges[2];
-	RootParameters[5].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	RootParameters[5].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_PIXEL;
+	D3D12_ROOT_PARAMETER GraphicsRootParameters[6];
+	GraphicsRootParameters[0].DescriptorTable.NumDescriptorRanges = 1;
+	GraphicsRootParameters[0].DescriptorTable.pDescriptorRanges = &DescriptorRanges[0];
+	GraphicsRootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	GraphicsRootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_VERTEX;
+	GraphicsRootParameters[1].DescriptorTable.NumDescriptorRanges = 1;
+	GraphicsRootParameters[1].DescriptorTable.pDescriptorRanges = &DescriptorRanges[1];
+	GraphicsRootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	GraphicsRootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_VERTEX;
+	GraphicsRootParameters[2].DescriptorTable.NumDescriptorRanges = 1;
+	GraphicsRootParameters[2].DescriptorTable.pDescriptorRanges = &DescriptorRanges[2];
+	GraphicsRootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	GraphicsRootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_VERTEX;
+	GraphicsRootParameters[3].DescriptorTable.NumDescriptorRanges = 1;
+	GraphicsRootParameters[3].DescriptorTable.pDescriptorRanges = &DescriptorRanges[0];
+	GraphicsRootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	GraphicsRootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_PIXEL;
+	GraphicsRootParameters[4].DescriptorTable.NumDescriptorRanges = 1;
+	GraphicsRootParameters[4].DescriptorTable.pDescriptorRanges = &DescriptorRanges[1];
+	GraphicsRootParameters[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	GraphicsRootParameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_PIXEL;
+	GraphicsRootParameters[5].DescriptorTable.NumDescriptorRanges = 1;
+	GraphicsRootParameters[5].DescriptorTable.pDescriptorRanges = &DescriptorRanges[2];
+	GraphicsRootParameters[5].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	GraphicsRootParameters[5].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_PIXEL;
 
-	D3D12_ROOT_SIGNATURE_DESC RootSignatureDesc;
-	RootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS;
-	RootSignatureDesc.NumParameters = 6;
-	RootSignatureDesc.NumStaticSamplers = 0;
-	RootSignatureDesc.pParameters = RootParameters;
-	RootSignatureDesc.pStaticSamplers = nullptr;
+	D3D12_ROOT_SIGNATURE_DESC GraphicsRootSignatureDesc;
+	GraphicsRootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS;
+	GraphicsRootSignatureDesc.NumParameters = 6;
+	GraphicsRootSignatureDesc.NumStaticSamplers = 0;
+	GraphicsRootSignatureDesc.pParameters = GraphicsRootParameters;
+	GraphicsRootSignatureDesc.pStaticSamplers = nullptr;
 
-	COMRCPtr<ID3DBlob> RootSignatureBlob;
-
-	SAFE_DX(D3D12SerializeRootSignature(&RootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION::D3D_ROOT_SIGNATURE_VERSION_1_0, &RootSignatureBlob, nullptr));
-
-	SAFE_DX(Device->CreateRootSignature(0, RootSignatureBlob->GetBufferPointer(), RootSignatureBlob->GetBufferSize(), UUIDOF(GraphicsRootSignature)));
-
-	RootParameters[0].DescriptorTable.NumDescriptorRanges = 1;
-	RootParameters[0].DescriptorTable.pDescriptorRanges = &DescriptorRanges[0];
-	RootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	RootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_ALL;
-	RootParameters[1].DescriptorTable.NumDescriptorRanges = 1;
-	RootParameters[1].DescriptorTable.pDescriptorRanges = &DescriptorRanges[1];
-	RootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	RootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_ALL;
-	RootParameters[2].DescriptorTable.NumDescriptorRanges = 1;
-	RootParameters[2].DescriptorTable.pDescriptorRanges = &DescriptorRanges[2];
-	RootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	RootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_ALL;
-	RootParameters[3].DescriptorTable.NumDescriptorRanges = 1;
-	RootParameters[3].DescriptorTable.pDescriptorRanges = &DescriptorRanges[3];
-	RootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	RootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_ALL;
-
-	RootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS;
-	RootSignatureDesc.NumParameters = 4;
-	RootSignatureDesc.NumStaticSamplers = 0;
-	RootSignatureDesc.pParameters = RootParameters;
-	RootSignatureDesc.pStaticSamplers = nullptr;
+	/*COMRCPtr<ID3DBlob> RootSignatureBlob;
 
 	SAFE_DX(D3D12SerializeRootSignature(&RootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION::D3D_ROOT_SIGNATURE_VERSION_1_0, &RootSignatureBlob, nullptr));
 
-	SAFE_DX(Device->CreateRootSignature(0, RootSignatureBlob->GetBufferPointer(), RootSignatureBlob->GetBufferSize(), UUIDOF(ComputeRootSignature)));
+	SAFE_DX(Device->CreateRootSignature(0, RootSignatureBlob->GetBufferPointer(), RootSignatureBlob->GetBufferSize(), UUIDOF(GraphicsRootSignature)));*/
+
+	new (&GraphicsRootSignature) RootSignature(Device, GraphicsRootSignatureDesc);
+
+	D3D12_ROOT_PARAMETER ComputeRootParameters[6];
+	ComputeRootParameters[0].DescriptorTable.NumDescriptorRanges = 1;
+	ComputeRootParameters[0].DescriptorTable.pDescriptorRanges = &DescriptorRanges[0];
+	ComputeRootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	ComputeRootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_ALL;
+	ComputeRootParameters[1].DescriptorTable.NumDescriptorRanges = 1;
+	ComputeRootParameters[1].DescriptorTable.pDescriptorRanges = &DescriptorRanges[1];
+	ComputeRootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	ComputeRootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_ALL;
+	ComputeRootParameters[2].DescriptorTable.NumDescriptorRanges = 1;
+	ComputeRootParameters[2].DescriptorTable.pDescriptorRanges = &DescriptorRanges[2];
+	ComputeRootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	ComputeRootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_ALL;
+	ComputeRootParameters[3].DescriptorTable.NumDescriptorRanges = 1;
+	ComputeRootParameters[3].DescriptorTable.pDescriptorRanges = &DescriptorRanges[3];
+	ComputeRootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	ComputeRootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_ALL;
+
+	D3D12_ROOT_SIGNATURE_DESC ComputeRootSignatureDesc;
+	ComputeRootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS;
+	ComputeRootSignatureDesc.NumParameters = 4;
+	ComputeRootSignatureDesc.NumStaticSamplers = 0;
+	ComputeRootSignatureDesc.pParameters = ComputeRootParameters;
+	ComputeRootSignatureDesc.pStaticSamplers = nullptr;
+
+	/*SAFE_DX(D3D12SerializeRootSignature(&RootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION::D3D_ROOT_SIGNATURE_VERSION_1_0, &RootSignatureBlob, nullptr));
+
+	SAFE_DX(Device->CreateRootSignature(0, RootSignatureBlob->GetBufferPointer(), RootSignatureBlob->GetBufferSize(), UUIDOF(ComputeRootSignature)));*/
+
+	new (&ComputeRootSignature) RootSignature(Device, ComputeRootSignatureDesc);
 
 	{
 		SAFE_DX(SwapChain->GetBuffer(0, UUIDOF(BackBufferTextures[0])));
@@ -318,10 +417,13 @@ void RenderSystem::InitSystem()
 		RTVDesc.Texture2D.PlaneSlice = 0;
 		RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2D;
 
-		BackBufferTexturesRTVs[0].ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+		/*BackBufferTexturesRTVs[0].ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 		RTDescriptorsCount++;
 		BackBufferTexturesRTVs[1].ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		RTDescriptorsCount++;
+		RTDescriptorsCount++;*/
+
+		BackBufferTexturesRTVs[0] = RTDescriptorHeap.AllocateDescriptor();
+		BackBufferTexturesRTVs[1] = RTDescriptorHeap.AllocateDescriptor();
 
 		Device->CreateRenderTargetView(BackBufferTextures[0], &RTVDesc, BackBufferTexturesRTVs[0]);
 		Device->CreateRenderTargetView(BackBufferTextures[1], &RTVDesc, BackBufferTexturesRTVs[1]);
@@ -350,8 +452,10 @@ void RenderSystem::InitSystem()
 		SamplerDesc.MinLOD = 0;
 		SamplerDesc.MipLODBias = 0.0f;
 
-		TextureSampler.ptr = SamplersDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + SamplersDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-		SamplersDescriptorsCount++;
+		/*TextureSampler.ptr = SamplersDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + SamplersDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+		SamplersDescriptorsCount++;*/
+
+		TextureSampler = SamplersDescriptorHeap.AllocateDescriptor();
 
 		Device->CreateSampler(&SamplerDesc, TextureSampler);
 
@@ -365,8 +469,10 @@ void RenderSystem::InitSystem()
 		SamplerDesc.MinLOD = 0;
 		SamplerDesc.MipLODBias = 0.0f;
 
-		ShadowMapSampler.ptr = SamplersDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + SamplersDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-		SamplersDescriptorsCount++;
+		/*ShadowMapSampler.ptr = SamplersDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + SamplersDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+		SamplersDescriptorsCount++;*/
+
+		ShadowMapSampler = SamplersDescriptorHeap.AllocateDescriptor();
 
 		Device->CreateSampler(&SamplerDesc, ShadowMapSampler);
 
@@ -380,8 +486,10 @@ void RenderSystem::InitSystem()
 		SamplerDesc.MinLOD = 0;
 		SamplerDesc.MipLODBias = 0.0f;
 
-		BiLinearSampler.ptr = SamplersDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + SamplersDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-		SamplersDescriptorsCount++;
+		/*BiLinearSampler.ptr = SamplersDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + SamplersDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+		SamplersDescriptorsCount++;*/
+
+		BiLinearSampler = SamplersDescriptorHeap.AllocateDescriptor();
 
 		Device->CreateSampler(&SamplerDesc, BiLinearSampler);
 
@@ -395,10 +503,33 @@ void RenderSystem::InitSystem()
 		SamplerDesc.MinLOD = 0;
 		SamplerDesc.MipLODBias = 0.0f;
 
-		MinSampler.ptr = SamplersDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + SamplersDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-		SamplersDescriptorsCount++;
+		/*MinSampler.ptr = SamplersDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + SamplersDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+		SamplersDescriptorsCount++;*/
+
+		MinSampler = SamplersDescriptorHeap.AllocateDescriptor();
 
 		Device->CreateSampler(&SamplerDesc, MinSampler);
+
+		TextureSamplerTable = FrameSamplersDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SAMPLERS]);
+		ShadowMapSamplerTable = FrameSamplersDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SAMPLERS]);
+		BiLinearSamplerTable = FrameSamplersDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SAMPLERS]);
+		MinSamplerTable = FrameSamplersDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SAMPLERS]);
+
+		TextureSamplerTable[0] = TextureSampler;
+		TextureSamplerTable.UpdateDescriptorTable(Device, 1);
+		TextureSamplerTable.UpdateDescriptorTable(Device, 0);
+
+		ShadowMapSamplerTable[0] = ShadowMapSampler;
+		ShadowMapSamplerTable.UpdateDescriptorTable(Device, 1);
+		ShadowMapSamplerTable.UpdateDescriptorTable(Device, 0);
+
+		BiLinearSamplerTable[0] = BiLinearSampler;
+		BiLinearSamplerTable.UpdateDescriptorTable(Device, 1);
+		BiLinearSamplerTable.UpdateDescriptorTable(Device, 0);
+
+		MinSamplerTable[0] = MinSampler;
+		MinSamplerTable.UpdateDescriptorTable(Device, 1);
+		MinSamplerTable.UpdateDescriptorTable(Device, 0);
 	}
 
 	// ===============================================================================================================
@@ -501,10 +632,13 @@ void RenderSystem::InitSystem()
 		D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
 		RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2DMS;
 
-		GBufferTexturesRTVs[0].ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+		/*GBufferTexturesRTVs[0].ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 		RTDescriptorsCount++;
 		GBufferTexturesRTVs[1].ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		RTDescriptorsCount++;
+		RTDescriptorsCount++;*/
+
+		GBufferTexturesRTVs[0] = RTDescriptorHeap.AllocateDescriptor();
+		GBufferTexturesRTVs[1] = RTDescriptorHeap.AllocateDescriptor();
 
 		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 		Device->CreateRenderTargetView(GBufferTextures[0], &RTVDesc, GBufferTexturesRTVs[0]);
@@ -516,10 +650,13 @@ void RenderSystem::InitSystem()
 		SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2DMS;
 
-		GBufferTexturesSRVs[0].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		/*GBufferTexturesSRVs[0].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		CBSRUADescriptorsCount++;
 		GBufferTexturesSRVs[1].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		CBSRUADescriptorsCount++;*/
+
+		GBufferTexturesSRVs[0] = CBSRUADescriptorHeap.AllocateDescriptor();
+		GBufferTexturesSRVs[1] = CBSRUADescriptorHeap.AllocateDescriptor();
 
 		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 		Device->CreateShaderResourceView(GBufferTextures[0], &SRVDesc, GBufferTexturesSRVs[0]);
@@ -558,8 +695,10 @@ void RenderSystem::InitSystem()
 		DSVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 		DSVDesc.ViewDimension = D3D12_DSV_DIMENSION::D3D12_DSV_DIMENSION_TEXTURE2DMS;
 
-		DepthBufferTextureDSV.ptr = DSDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + DSDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-		DSDescriptorsCount++;
+		/*DepthBufferTextureDSV.ptr = DSDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + DSDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+		DSDescriptorsCount++;*/
+
+		DepthBufferTextureDSV = DSDescriptorHeap.AllocateDescriptor();
 
 		Device->CreateDepthStencilView(DepthBufferTexture, &DSVDesc, DepthBufferTextureDSV);
 
@@ -567,8 +706,10 @@ void RenderSystem::InitSystem()
 		SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2DMS;
 
-		DepthBufferTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		/*DepthBufferTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		CBSRUADescriptorsCount++;*/
+
+		DepthBufferTextureSRV = CBSRUADescriptorHeap.AllocateDescriptor();
 
 		Device->CreateShaderResourceView(DepthBufferTexture, &SRVDesc, DepthBufferTextureSRV);
 
@@ -610,8 +751,10 @@ void RenderSystem::InitSystem()
 			CBVDesc.BufferLocation = GPUConstantBuffer->GetGPUVirtualAddress() + i * 256;
 			CBVDesc.SizeInBytes = 256;
 
-			ConstantBufferCBVs[i].ptr = ConstantBufferDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + ConstantBufferDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			ConstantBufferDescriptorsCount++;
+			/*ConstantBufferCBVs[i].ptr = ConstantBufferDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + ConstantBufferDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			ConstantBufferDescriptorsCount++;*/
+
+			ConstantBufferCBVs[i] = ConstantBufferDescriptorHeap.AllocateDescriptor();
 
 			Device->CreateConstantBufferView(&CBVDesc, ConstantBufferCBVs[i]);
 		}
@@ -658,8 +801,10 @@ void RenderSystem::InitSystem()
 		SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
-		ResolvedDepthBufferTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		/*ResolvedDepthBufferTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		CBSRUADescriptorsCount++;*/
+
+		ResolvedDepthBufferTextureSRV = CBSRUADescriptorHeap.AllocateDescriptor();
 
 		Device->CreateShaderResourceView(ResolvedDepthBufferTexture, &SRVDesc, ResolvedDepthBufferTextureSRV);
 	}
@@ -704,8 +849,10 @@ void RenderSystem::InitSystem()
 		RTVDesc.Texture2D.PlaneSlice = 0;
 		RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2D;
 
-		OcclusionBufferTextureRTV.ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		RTDescriptorsCount++;
+		/*OcclusionBufferTextureRTV.ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+		RTDescriptorsCount++;*/
+
+		OcclusionBufferTextureRTV = RTDescriptorHeap.AllocateDescriptor();
 
 		Device->CreateRenderTargetView(OcclusionBufferTexture, &RTVDesc, OcclusionBufferTextureRTV);
 
@@ -766,6 +913,14 @@ void RenderSystem::InitSystem()
 		GraphicsPipelineStateDesc.VS.pShaderBytecode = FullScreenQuadVertexShaderByteCodeData;
 
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(OcclusionBufferPipelineState)));
+
+		OcclusionBufferPassSRTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]);
+
+		OcclusionBufferPassSRTable[0] = ResolvedDepthBufferTextureSRV;
+		OcclusionBufferPassSRTable.SetTableSize(1);
+
+		OcclusionBufferPassSRTable.UpdateDescriptorTable(Device, 1);
+		OcclusionBufferPassSRTable.UpdateDescriptorTable(Device, 0);
 	}
 
 	// ===============================================================================================================
@@ -809,14 +964,19 @@ void RenderSystem::InitSystem()
 		DSVDesc.Texture2D.MipSlice = 0;
 		DSVDesc.ViewDimension = D3D12_DSV_DIMENSION::D3D12_DSV_DIMENSION_TEXTURE2D;
 
-		CascadedShadowMapTexturesDSVs[0].ptr = DSDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + DSDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+		/*CascadedShadowMapTexturesDSVs[0].ptr = DSDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + DSDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 		DSDescriptorsCount++;
 		CascadedShadowMapTexturesDSVs[1].ptr = DSDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + DSDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 		DSDescriptorsCount++;
 		CascadedShadowMapTexturesDSVs[2].ptr = DSDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + DSDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 		DSDescriptorsCount++;
 		CascadedShadowMapTexturesDSVs[3].ptr = DSDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + DSDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-		DSDescriptorsCount++;
+		DSDescriptorsCount++;*/
+
+		CascadedShadowMapTexturesDSVs[0] = DSDescriptorHeap.AllocateDescriptor();
+		CascadedShadowMapTexturesDSVs[1] = DSDescriptorHeap.AllocateDescriptor();
+		CascadedShadowMapTexturesDSVs[2] = DSDescriptorHeap.AllocateDescriptor();
+		CascadedShadowMapTexturesDSVs[3] = DSDescriptorHeap.AllocateDescriptor();
 
 		Device->CreateDepthStencilView(CascadedShadowMapTextures[0], &DSVDesc, CascadedShadowMapTexturesDSVs[0]);
 		Device->CreateDepthStencilView(CascadedShadowMapTextures[1], &DSVDesc, CascadedShadowMapTexturesDSVs[1]);
@@ -832,14 +992,19 @@ void RenderSystem::InitSystem()
 		SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
-		CascadedShadowMapTexturesSRVs[0].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		/*CascadedShadowMapTexturesSRVs[0].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		CBSRUADescriptorsCount++;
 		CascadedShadowMapTexturesSRVs[1].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		CBSRUADescriptorsCount++;
 		CascadedShadowMapTexturesSRVs[2].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		CBSRUADescriptorsCount++;
 		CascadedShadowMapTexturesSRVs[3].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		CBSRUADescriptorsCount++;*/
+
+		CascadedShadowMapTexturesSRVs[0] = CBSRUADescriptorHeap.AllocateDescriptor();
+		CascadedShadowMapTexturesSRVs[1] = CBSRUADescriptorHeap.AllocateDescriptor();
+		CascadedShadowMapTexturesSRVs[2] = CBSRUADescriptorHeap.AllocateDescriptor();
+		CascadedShadowMapTexturesSRVs[3] = CBSRUADescriptorHeap.AllocateDescriptor();
 
 		Device->CreateShaderResourceView(CascadedShadowMapTextures[0], &SRVDesc, CascadedShadowMapTexturesSRVs[0]);
 		Device->CreateShaderResourceView(CascadedShadowMapTextures[1], &SRVDesc, CascadedShadowMapTexturesSRVs[1]);
@@ -895,8 +1060,10 @@ void RenderSystem::InitSystem()
 				CBVDesc.BufferLocation = GPUConstantBuffers2[j]->GetGPUVirtualAddress() + i * 256;
 				CBVDesc.SizeInBytes = 256;
 
-				ConstantBufferCBVs2[j][i].ptr = ConstantBufferDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + ConstantBufferDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-				ConstantBufferDescriptorsCount++;
+				/*ConstantBufferCBVs2[j][i].ptr = ConstantBufferDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + ConstantBufferDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+				ConstantBufferDescriptorsCount++;*/
+
+				ConstantBufferCBVs2[j][i] = ConstantBufferDescriptorHeap.AllocateDescriptor();
 
 				Device->CreateConstantBufferView(&CBVDesc, ConstantBufferCBVs2[j][i]);
 			}
@@ -943,8 +1110,10 @@ void RenderSystem::InitSystem()
 		RTVDesc.Texture2D.PlaneSlice = 0;
 		RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2D;
 
-		ShadowMaskTextureRTV.ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		RTDescriptorsCount++;
+		/*ShadowMaskTextureRTV.ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+		RTDescriptorsCount++;*/
+
+		ShadowMaskTextureRTV = RTDescriptorHeap.AllocateDescriptor();
 
 		Device->CreateRenderTargetView(ShadowMaskTexture, &RTVDesc, ShadowMaskTextureRTV);
 
@@ -957,8 +1126,10 @@ void RenderSystem::InitSystem()
 		SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
-		ShadowMaskTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		/*ShadowMaskTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		CBSRUADescriptorsCount++;*/
+
+		ShadowMaskTextureSRV = CBSRUADescriptorHeap.AllocateDescriptor();
 
 		Device->CreateShaderResourceView(ShadowMaskTexture, &SRVDesc, ShadowMaskTextureSRV);
 
@@ -998,8 +1169,10 @@ void RenderSystem::InitSystem()
 		CBVDesc.BufferLocation = GPUShadowResolveConstantBuffer->GetGPUVirtualAddress();
 		CBVDesc.SizeInBytes = 256;
 
-		ShadowResolveConstantBufferCBV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		/*ShadowResolveConstantBufferCBV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		CBSRUADescriptorsCount++;*/
+
+		ShadowResolveConstantBufferCBV = CBSRUADescriptorHeap.AllocateDescriptor();
 
 		Device->CreateConstantBufferView(&CBVDesc, ShadowResolveConstantBufferCBV);
 
@@ -1032,6 +1205,25 @@ void RenderSystem::InitSystem()
 		GraphicsPipelineStateDesc.VS.pShaderBytecode = FullScreenQuadVertexShaderByteCodeData;
 
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(ShadowResolvePipelineState)));
+
+		ShadowResolveCBTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_CONSTANT_BUFFERS]);
+		ShadowResolveSRTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]);
+
+		ShadowResolveCBTable[0] = ShadowResolveConstantBufferCBV;
+		ShadowResolveCBTable.SetTableSize(1);
+
+		ShadowResolveCBTable.UpdateDescriptorTable(Device, 1);
+		ShadowResolveCBTable.UpdateDescriptorTable(Device, 0);
+
+		ShadowResolveSRTable[0] = ResolvedDepthBufferTextureSRV;
+		ShadowResolveSRTable[1] = CascadedShadowMapTexturesSRVs[0];
+		ShadowResolveSRTable[2] = CascadedShadowMapTexturesSRVs[1];
+		ShadowResolveSRTable[3] = CascadedShadowMapTexturesSRVs[2];
+		ShadowResolveSRTable[4] = CascadedShadowMapTexturesSRVs[3];
+		ShadowResolveSRTable.SetTableSize(5);
+
+		ShadowResolveSRTable.UpdateDescriptorTable(Device, 1);
+		ShadowResolveSRTable.UpdateDescriptorTable(Device, 0);
 	}
 
 	// ===============================================================================================================
@@ -1072,8 +1264,10 @@ void RenderSystem::InitSystem()
 		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
 		RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2DMS;
 
-		HDRSceneColorTextureRTV.ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		RTDescriptorsCount++;
+		/*HDRSceneColorTextureRTV.ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+		RTDescriptorsCount++;*/
+
+		HDRSceneColorTextureRTV = RTDescriptorHeap.AllocateDescriptor();
 
 		Device->CreateRenderTargetView(HDRSceneColorTexture, &RTVDesc, HDRSceneColorTextureRTV);
 
@@ -1082,8 +1276,10 @@ void RenderSystem::InitSystem()
 		SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2DMS;
 
-		HDRSceneColorTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		/*HDRSceneColorTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		CBSRUADescriptorsCount++;*/
+
+		HDRSceneColorTextureSRV = CBSRUADescriptorHeap.AllocateDescriptor();
 
 		Device->CreateShaderResourceView(HDRSceneColorTexture, &SRVDesc, HDRSceneColorTextureSRV);
 
@@ -1123,8 +1319,10 @@ void RenderSystem::InitSystem()
 		CBVDesc.BufferLocation = GPUDeferredLightingConstantBuffer->GetGPUVirtualAddress();
 		CBVDesc.SizeInBytes = 256;
 
-		DeferredLightingConstantBufferCBV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		/*DeferredLightingConstantBufferCBV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		CBSRUADescriptorsCount++;*/
+
+		DeferredLightingConstantBufferCBV = CBSRUADescriptorHeap.AllocateDescriptor();
 
 		Device->CreateConstantBufferView(&CBVDesc, DeferredLightingConstantBufferCBV);
 
@@ -1168,8 +1366,10 @@ void RenderSystem::InitSystem()
 		SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_BUFFER;
 
-		LightClustersBufferSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		/*LightClustersBufferSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		CBSRUADescriptorsCount++;*/
+
+		LightClustersBufferSRV = CBSRUADescriptorHeap.AllocateDescriptor();
 
 		Device->CreateShaderResourceView(GPULightClustersBuffer, &SRVDesc, LightClustersBufferSRV);
 
@@ -1213,8 +1413,10 @@ void RenderSystem::InitSystem()
 		SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_BUFFER;
 
-		LightIndicesBufferSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		/*LightIndicesBufferSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		CBSRUADescriptorsCount++;*/
+
+		LightIndicesBufferSRV = CBSRUADescriptorHeap.AllocateDescriptor();
 
 		Device->CreateShaderResourceView(GPULightIndicesBuffer, &SRVDesc, LightIndicesBufferSRV);
 
@@ -1258,8 +1460,10 @@ void RenderSystem::InitSystem()
 		SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_BUFFER;
 
-		PointLightsBufferSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		/*PointLightsBufferSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		CBSRUADescriptorsCount++;*/
+
+		PointLightsBufferSRV = CBSRUADescriptorHeap.AllocateDescriptor();
 
 		Device->CreateShaderResourceView(GPUPointLightsBuffer, &SRVDesc, PointLightsBufferSRV);
 
@@ -1292,6 +1496,27 @@ void RenderSystem::InitSystem()
 		GraphicsPipelineStateDesc.VS.pShaderBytecode = FullScreenQuadVertexShaderByteCodeData;
 
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(DeferredLightingPipelineState)));
+
+		DeferredLightingCBTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_CONSTANT_BUFFERS]);
+		DeferredLightingSRTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]);
+
+		DeferredLightingCBTable[0] = DeferredLightingConstantBufferCBV;
+		DeferredLightingCBTable.SetTableSize(1);
+
+		DeferredLightingCBTable.UpdateDescriptorTable(Device, 1);
+		DeferredLightingCBTable.UpdateDescriptorTable(Device, 0);
+
+		DeferredLightingSRTable[0] = GBufferTexturesSRVs[0];
+		DeferredLightingSRTable[1] = GBufferTexturesSRVs[1];
+		DeferredLightingSRTable[2] = DepthBufferTextureSRV;
+		DeferredLightingSRTable[3] = ShadowMaskTextureSRV;
+		DeferredLightingSRTable[4] = LightClustersBufferSRV;
+		DeferredLightingSRTable[5] = LightIndicesBufferSRV;
+		DeferredLightingSRTable[6] = PointLightsBufferSRV;
+		DeferredLightingSRTable.SetTableSize(7);
+
+		DeferredLightingSRTable.UpdateDescriptorTable(Device, 1);
+		DeferredLightingSRTable.UpdateDescriptorTable(Device, 0);
 	}
 
 	// ===============================================================================================================
@@ -1487,8 +1712,10 @@ void RenderSystem::InitSystem()
 		CBVDesc.BufferLocation = GPUSkyConstantBuffer->GetGPUVirtualAddress();
 		CBVDesc.SizeInBytes = 256;
 
-		SkyConstantBufferCBV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		/*SkyConstantBufferCBV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		CBSRUADescriptorsCount++;*/
+
+		SkyConstantBufferCBV = CBSRUADescriptorHeap.AllocateDescriptor();
 
 		Device->CreateConstantBufferView(&CBVDesc, SkyConstantBufferCBV);
 
@@ -1684,8 +1911,10 @@ void RenderSystem::InitSystem()
 		SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
-		SkyTextureSRV.ptr = TexturesDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + TexturesDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		++TexturesDescriptorsCount;
+		/*SkyTextureSRV.ptr = TexturesDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + TexturesDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		++TexturesDescriptorsCount;*/
+
+		SkyTextureSRV = TexturesDescriptorHeap.AllocateDescriptor();
 
 		Device->CreateShaderResourceView(SkyTexture, &SRVDesc, SkyTextureSRV);
 
@@ -1833,8 +2062,10 @@ void RenderSystem::InitSystem()
 		CBVDesc.BufferLocation = GPUSunConstantBuffer->GetGPUVirtualAddress();
 		CBVDesc.SizeInBytes = 256;
 
-		SunConstantBufferCBV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		/*SunConstantBufferCBV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		CBSRUADescriptorsCount++;*/
+
+		SunConstantBufferCBV = CBSRUADescriptorHeap.AllocateDescriptor();
 
 		Device->CreateConstantBufferView(&CBVDesc, SunConstantBufferCBV);
 
@@ -2026,8 +2257,10 @@ void RenderSystem::InitSystem()
 		SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
-		SunTextureSRV.ptr = TexturesDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + TexturesDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		++TexturesDescriptorsCount;
+		/*SunTextureSRV.ptr = TexturesDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + TexturesDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		++TexturesDescriptorsCount;*/
+
+		SunTextureSRV = TexturesDescriptorHeap.AllocateDescriptor();
 
 		Device->CreateShaderResourceView(SunTexture, &SRVDesc, SunTextureSRV);
 
@@ -2066,6 +2299,40 @@ void RenderSystem::InitSystem()
 		GraphicsPipelineStateDesc.VS.pShaderBytecode = FullScreenQuadVertexShaderByteCodeData;
 
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(FogPipelineState)));
+
+		FogSRTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]);
+
+		FogSRTable[0] = DepthBufferTextureSRV;
+		FogSRTable.SetTableSize(1);
+
+		FogSRTable.UpdateDescriptorTable(Device, 1);
+		FogSRTable.UpdateDescriptorTable(Device, 0);
+
+		SkyCBTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[VERTEX_SHADER_CONSTANT_BUFFERS]);
+		SkySRTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]);
+
+		SunCBTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[VERTEX_SHADER_CONSTANT_BUFFERS]);
+		SunSRTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]);
+
+		SkyCBTable[0] = SkyConstantBufferCBV;
+		SkyCBTable.SetTableSize(1);
+		SkyCBTable.UpdateDescriptorTable(Device, 1);
+		SkyCBTable.UpdateDescriptorTable(Device, 0);
+
+		SkySRTable[0] = SkyTextureSRV;
+		SkySRTable.SetTableSize(1);
+		SkySRTable.UpdateDescriptorTable(Device, 1);
+		SkySRTable.UpdateDescriptorTable(Device, 0);
+
+		SunCBTable[0] = SunConstantBufferCBV;
+		SunCBTable.SetTableSize(1);
+		SunCBTable.UpdateDescriptorTable(Device, 1);
+		SunCBTable.UpdateDescriptorTable(Device, 0);
+
+		SunSRTable[0] = SunTextureSRV;
+		SunSRTable.SetTableSize(1);
+		SunSRTable.UpdateDescriptorTable(Device, 1);
+		SunSRTable.UpdateDescriptorTable(Device, 0);
 	}
 
 	// ===============================================================================================================
@@ -2111,8 +2378,10 @@ void RenderSystem::InitSystem()
 		SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
-		ResolvedHDRSceneColorTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		/*ResolvedHDRSceneColorTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		CBSRUADescriptorsCount++;*/
+
+		ResolvedHDRSceneColorTextureSRV = CBSRUADescriptorHeap.AllocateDescriptor();
 
 		Device->CreateShaderResourceView(ResolvedHDRSceneColorTexture, &SRVDesc, ResolvedHDRSceneColorTextureSRV);
 	}
@@ -2161,8 +2430,10 @@ void RenderSystem::InitSystem()
 
 		for (int i = 0; i < 4; i++)
 		{
-			SceneLuminanceTexturesUAVs[i].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			CBSRUADescriptorsCount++;
+			/*SceneLuminanceTexturesUAVs[i].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			CBSRUADescriptorsCount++;*/
+
+			SceneLuminanceTexturesUAVs[i] = CBSRUADescriptorHeap.AllocateDescriptor();
 
 			Device->CreateUnorderedAccessView(SceneLuminanceTextures[i], nullptr, &UAVDesc, SceneLuminanceTexturesUAVs[i]);
 		}
@@ -2178,8 +2449,10 @@ void RenderSystem::InitSystem()
 
 		for (int i = 0; i < 4; i++)
 		{
-			SceneLuminanceTexturesSRVs[i].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			CBSRUADescriptorsCount++;
+			/*SceneLuminanceTexturesSRVs[i].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			CBSRUADescriptorsCount++;*/
+
+			SceneLuminanceTexturesSRVs[i] = CBSRUADescriptorHeap.AllocateDescriptor();
 
 			Device->CreateShaderResourceView(SceneLuminanceTextures[i], &SRVDesc, SceneLuminanceTexturesSRVs[i]);
 		}
@@ -2211,8 +2484,10 @@ void RenderSystem::InitSystem()
 		UAVDesc.Texture2D.PlaneSlice = 0;
 		UAVDesc.ViewDimension = D3D12_UAV_DIMENSION::D3D12_UAV_DIMENSION_TEXTURE2D;
 
-		AverageLuminanceTextureUAV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		/*AverageLuminanceTextureUAV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		CBSRUADescriptorsCount++;*/
+
+		AverageLuminanceTextureUAV = CBSRUADescriptorHeap.AllocateDescriptor();
 
 		Device->CreateUnorderedAccessView(AverageLuminanceTexture, nullptr, &UAVDesc, AverageLuminanceTextureUAV);
 
@@ -2224,8 +2499,10 @@ void RenderSystem::InitSystem()
 		SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
-		AverageLuminanceTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		/*AverageLuminanceTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		CBSRUADescriptorsCount++;*/
+
+		AverageLuminanceTextureSRV = CBSRUADescriptorHeap.AllocateDescriptor();
 
 		Device->CreateShaderResourceView(AverageLuminanceTexture, &SRVDesc, AverageLuminanceTextureSRV);
 
@@ -2271,6 +2548,30 @@ void RenderSystem::InitSystem()
 		ComputePipelineStateDesc.pRootSignature = ComputeRootSignature;
 
 		SAFE_DX(Device->CreateComputePipelineState(&ComputePipelineStateDesc, UUIDOF(LuminanceAvgPipelineState)));
+
+		LuminancePassSRTables[0] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_SHADER_RESOURCES]); LuminancePassSRTables[0].SetTableSize(1);
+		LuminancePassSRTables[1] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_SHADER_RESOURCES]); LuminancePassSRTables[1].SetTableSize(1);
+		LuminancePassSRTables[2] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_SHADER_RESOURCES]); LuminancePassSRTables[2].SetTableSize(1);
+		LuminancePassSRTables[3] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_SHADER_RESOURCES]); LuminancePassSRTables[3].SetTableSize(1);
+		LuminancePassSRTables[4] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_SHADER_RESOURCES]); LuminancePassSRTables[4].SetTableSize(1);
+
+		LuminancePassSRTables[0][0] = ResolvedHDRSceneColorTextureSRV; LuminancePassSRTables[0].UpdateDescriptorTable(Device, 1); LuminancePassSRTables[0].UpdateDescriptorTable(Device, 0);
+		LuminancePassSRTables[1][0] = SceneLuminanceTexturesSRVs[0]; LuminancePassSRTables[1].UpdateDescriptorTable(Device, 1); LuminancePassSRTables[1].UpdateDescriptorTable(Device, 0);
+		LuminancePassSRTables[2][0] = SceneLuminanceTexturesSRVs[1]; LuminancePassSRTables[2].UpdateDescriptorTable(Device, 1); LuminancePassSRTables[2].UpdateDescriptorTable(Device, 0);
+		LuminancePassSRTables[3][0] = SceneLuminanceTexturesSRVs[2]; LuminancePassSRTables[3].UpdateDescriptorTable(Device, 1); LuminancePassSRTables[3].UpdateDescriptorTable(Device, 0);
+		LuminancePassSRTables[4][0] = SceneLuminanceTexturesSRVs[3]; LuminancePassSRTables[4].UpdateDescriptorTable(Device, 1); LuminancePassSRTables[4].UpdateDescriptorTable(Device, 0);
+
+		LuminancePassUATables[0] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]); LuminancePassUATables[0].SetTableSize(1);
+		LuminancePassUATables[1] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]); LuminancePassUATables[1].SetTableSize(1);
+		LuminancePassUATables[2] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]); LuminancePassUATables[2].SetTableSize(1);
+		LuminancePassUATables[3] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]); LuminancePassUATables[3].SetTableSize(1);
+		LuminancePassUATables[4] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]); LuminancePassUATables[4].SetTableSize(1);
+
+		LuminancePassUATables[0][0] = SceneLuminanceTexturesUAVs[0]; LuminancePassUATables[0].UpdateDescriptorTable(Device, 1); LuminancePassUATables[0].UpdateDescriptorTable(Device, 0);
+		LuminancePassUATables[1][0] = SceneLuminanceTexturesUAVs[1]; LuminancePassUATables[1].UpdateDescriptorTable(Device, 1); LuminancePassUATables[1].UpdateDescriptorTable(Device, 0);
+		LuminancePassUATables[2][0] = SceneLuminanceTexturesUAVs[2]; LuminancePassUATables[2].UpdateDescriptorTable(Device, 1); LuminancePassUATables[2].UpdateDescriptorTable(Device, 0);
+		LuminancePassUATables[3][0] = SceneLuminanceTexturesUAVs[3]; LuminancePassUATables[3].UpdateDescriptorTable(Device, 1); LuminancePassUATables[3].UpdateDescriptorTable(Device, 0);
+		LuminancePassUATables[4][0] = AverageLuminanceTextureUAV; LuminancePassUATables[4].UpdateDescriptorTable(Device, 1); LuminancePassUATables[4].UpdateDescriptorTable(Device, 0);
 	}
 
 	// ===============================================================================================================
@@ -2323,12 +2624,16 @@ void RenderSystem::InitSystem()
 
 		for (int i = 0; i < 7; i++)
 		{
-			BloomTexturesRTVs[0][i].ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+			/*BloomTexturesRTVs[0][i].ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 			RTDescriptorsCount++;
 			BloomTexturesRTVs[1][i].ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 			RTDescriptorsCount++;
 			BloomTexturesRTVs[2][i].ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-			RTDescriptorsCount++;
+			RTDescriptorsCount++;*/
+
+			BloomTexturesRTVs[0][i] = RTDescriptorHeap.AllocateDescriptor();
+			BloomTexturesRTVs[1][i] = RTDescriptorHeap.AllocateDescriptor();
+			BloomTexturesRTVs[2][i] = RTDescriptorHeap.AllocateDescriptor();
 
 			Device->CreateRenderTargetView(BloomTextures[0][i], &RTVDesc, BloomTexturesRTVs[0][i]);
 			Device->CreateRenderTargetView(BloomTextures[1][i], &RTVDesc, BloomTexturesRTVs[1][i]);
@@ -2346,12 +2651,16 @@ void RenderSystem::InitSystem()
 
 		for (int i = 0; i < 7; i++)
 		{
-			BloomTexturesSRVs[0][i].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			/*BloomTexturesSRVs[0][i].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 			CBSRUADescriptorsCount++;
 			BloomTexturesSRVs[1][i].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 			CBSRUADescriptorsCount++;
 			BloomTexturesSRVs[2][i].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			CBSRUADescriptorsCount++;
+			CBSRUADescriptorsCount++;*/
+
+			BloomTexturesSRVs[0][i] = CBSRUADescriptorHeap.AllocateDescriptor();
+			BloomTexturesSRVs[1][i] = CBSRUADescriptorHeap.AllocateDescriptor();
+			BloomTexturesSRVs[2][i] = CBSRUADescriptorHeap.AllocateDescriptor();
 
 			Device->CreateShaderResourceView(BloomTextures[0][i], &SRVDesc, BloomTexturesSRVs[0][i]);
 			Device->CreateShaderResourceView(BloomTextures[1][i], &SRVDesc, BloomTexturesSRVs[1][i]);
@@ -2503,6 +2812,74 @@ void RenderSystem::InitSystem()
 		GraphicsPipelineStateDesc.VS.pShaderBytecode = FullScreenQuadVertexShaderByteCodeData;
 
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(VerticalBlurPipelineState)));
+
+		BloomPassSRTables1[0] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables1[0].SetTableSize(2);
+		BloomPassSRTables1[1] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables1[1].SetTableSize(1);
+		BloomPassSRTables1[2] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables1[2].SetTableSize(1);
+
+		BloomPassSRTables2[0][0] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[0][0].SetTableSize(1);
+		BloomPassSRTables2[0][1] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[0][1].SetTableSize(1);
+		BloomPassSRTables2[0][2] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[0][2].SetTableSize(1);
+		BloomPassSRTables2[1][0] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[1][0].SetTableSize(1);
+		BloomPassSRTables2[1][1] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[1][1].SetTableSize(1);
+		BloomPassSRTables2[1][2] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[1][2].SetTableSize(1);
+		BloomPassSRTables2[2][0] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[2][0].SetTableSize(1);
+		BloomPassSRTables2[2][1] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[2][1].SetTableSize(1);
+		BloomPassSRTables2[2][2] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[2][2].SetTableSize(1);
+		BloomPassSRTables2[3][0] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[3][0].SetTableSize(1);
+		BloomPassSRTables2[3][1] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[3][1].SetTableSize(1);
+		BloomPassSRTables2[3][2] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[3][2].SetTableSize(1);
+		BloomPassSRTables2[4][0] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[4][0].SetTableSize(1);
+		BloomPassSRTables2[4][1] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[4][1].SetTableSize(1);
+		BloomPassSRTables2[4][2] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[4][2].SetTableSize(1);
+		BloomPassSRTables2[5][0] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[5][0].SetTableSize(1);
+		BloomPassSRTables2[5][1] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[5][1].SetTableSize(1);
+		BloomPassSRTables2[5][2] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[5][2].SetTableSize(1);
+
+		BloomPassSRTables3[0] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables3[0].SetTableSize(1);
+		BloomPassSRTables3[1] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables3[1].SetTableSize(1);
+		BloomPassSRTables3[2] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables3[2].SetTableSize(1);
+		BloomPassSRTables3[3] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables3[3].SetTableSize(1);
+		BloomPassSRTables3[4] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables3[4].SetTableSize(1);
+		BloomPassSRTables3[5] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables3[5].SetTableSize(1);
+
+		BloomPassSRTables1[0][0] = ResolvedHDRSceneColorTextureSRV;
+		BloomPassSRTables1[0][1] = SceneLuminanceTexturesSRVs[0];
+		BloomPassSRTables1[0].UpdateDescriptorTable(Device, 1); BloomPassSRTables1[0].UpdateDescriptorTable(Device, 0);
+
+		BloomPassSRTables1[1][0] = BloomTexturesSRVs[0][0]; BloomPassSRTables1[1].UpdateDescriptorTable(Device, 1); BloomPassSRTables1[1].UpdateDescriptorTable(Device, 0);
+		BloomPassSRTables1[2][0] = BloomTexturesSRVs[1][0]; BloomPassSRTables1[2].UpdateDescriptorTable(Device, 1); BloomPassSRTables1[2].UpdateDescriptorTable(Device, 0);
+
+		BloomPassSRTables2[0][0][0] = BloomTexturesSRVs[0][0]; BloomPassSRTables2[0][0].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[0][0].UpdateDescriptorTable(Device, 0);
+		BloomPassSRTables2[0][1][0] = BloomTexturesSRVs[0][1]; BloomPassSRTables2[0][1].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[0][1].UpdateDescriptorTable(Device, 0);
+		BloomPassSRTables2[0][2][0] = BloomTexturesSRVs[1][1]; BloomPassSRTables2[0][2].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[0][2].UpdateDescriptorTable(Device, 0);
+
+		BloomPassSRTables2[1][0][0] = BloomTexturesSRVs[0][1]; BloomPassSRTables2[1][0].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[1][0].UpdateDescriptorTable(Device, 0);
+		BloomPassSRTables2[1][1][0] = BloomTexturesSRVs[0][2]; BloomPassSRTables2[1][1].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[1][1].UpdateDescriptorTable(Device, 0);
+		BloomPassSRTables2[1][2][0] = BloomTexturesSRVs[1][2]; BloomPassSRTables2[1][2].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[1][2].UpdateDescriptorTable(Device, 0);
+
+		BloomPassSRTables2[2][0][0] = BloomTexturesSRVs[0][2]; BloomPassSRTables2[2][0].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[2][0].UpdateDescriptorTable(Device, 0);
+		BloomPassSRTables2[2][1][0] = BloomTexturesSRVs[0][3]; BloomPassSRTables2[2][1].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[2][1].UpdateDescriptorTable(Device, 0);
+		BloomPassSRTables2[2][2][0] = BloomTexturesSRVs[1][3]; BloomPassSRTables2[2][2].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[2][2].UpdateDescriptorTable(Device, 0);
+
+		BloomPassSRTables2[3][0][0] = BloomTexturesSRVs[0][3]; BloomPassSRTables2[3][0].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[3][0].UpdateDescriptorTable(Device, 0);
+		BloomPassSRTables2[3][1][0] = BloomTexturesSRVs[0][4]; BloomPassSRTables2[3][1].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[3][1].UpdateDescriptorTable(Device, 0);
+		BloomPassSRTables2[3][2][0] = BloomTexturesSRVs[1][4]; BloomPassSRTables2[3][2].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[3][2].UpdateDescriptorTable(Device, 0);
+
+		BloomPassSRTables2[4][0][0] = BloomTexturesSRVs[0][4]; BloomPassSRTables2[4][0].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[4][0].UpdateDescriptorTable(Device, 0);
+		BloomPassSRTables2[4][1][0] = BloomTexturesSRVs[0][5]; BloomPassSRTables2[4][1].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[4][1].UpdateDescriptorTable(Device, 0);
+		BloomPassSRTables2[4][2][0] = BloomTexturesSRVs[1][5]; BloomPassSRTables2[4][2].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[4][2].UpdateDescriptorTable(Device, 0);
+
+		BloomPassSRTables2[5][0][0] = BloomTexturesSRVs[0][5]; BloomPassSRTables2[5][0].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[5][0].UpdateDescriptorTable(Device, 0);
+		BloomPassSRTables2[5][1][0] = BloomTexturesSRVs[0][6]; BloomPassSRTables2[5][1].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[5][1].UpdateDescriptorTable(Device, 0);
+		BloomPassSRTables2[5][2][0] = BloomTexturesSRVs[1][6]; BloomPassSRTables2[5][2].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[5][2].UpdateDescriptorTable(Device, 0);
+
+		BloomPassSRTables3[0][0] = BloomTexturesSRVs[2][6]; BloomPassSRTables3[0].UpdateDescriptorTable(Device, 1); BloomPassSRTables3[0].UpdateDescriptorTable(Device, 0);
+		BloomPassSRTables3[1][0] = BloomTexturesSRVs[2][5]; BloomPassSRTables3[1].UpdateDescriptorTable(Device, 1); BloomPassSRTables3[1].UpdateDescriptorTable(Device, 0);
+		BloomPassSRTables3[2][0] = BloomTexturesSRVs[2][4]; BloomPassSRTables3[2].UpdateDescriptorTable(Device, 1); BloomPassSRTables3[2].UpdateDescriptorTable(Device, 0);
+		BloomPassSRTables3[3][0] = BloomTexturesSRVs[2][3]; BloomPassSRTables3[3].UpdateDescriptorTable(Device, 1); BloomPassSRTables3[3].UpdateDescriptorTable(Device, 0);
+		BloomPassSRTables3[4][0] = BloomTexturesSRVs[2][2]; BloomPassSRTables3[4].UpdateDescriptorTable(Device, 1); BloomPassSRTables3[4].UpdateDescriptorTable(Device, 0);
+		BloomPassSRTables3[5][0] = BloomTexturesSRVs[2][1]; BloomPassSRTables3[5].UpdateDescriptorTable(Device, 1); BloomPassSRTables3[5].UpdateDescriptorTable(Device, 0);
 	}
 
 	// ===============================================================================================================
@@ -2543,8 +2920,10 @@ void RenderSystem::InitSystem()
 		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 		RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2DMS;
 
-		ToneMappedImageTextureRTV.ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		RTDescriptorsCount++;
+		/*ToneMappedImageTextureRTV.ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+		RTDescriptorsCount++;*/
+
+		ToneMappedImageTextureRTV = RTDescriptorHeap.AllocateDescriptor();
 
 		Device->CreateRenderTargetView(ToneMappedImageTexture, &RTVDesc, ToneMappedImageTextureRTV);
 
@@ -2577,6 +2956,127 @@ void RenderSystem::InitSystem()
 		GraphicsPipelineStateDesc.VS.pShaderBytecode = FullScreenQuadVertexShaderByteCodeData;
 
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(HDRToneMappingPipelineState)));
+
+		HDRToneMappingPassSRTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]);
+
+		HDRToneMappingPassSRTable[0] = HDRSceneColorTextureSRV;
+		HDRToneMappingPassSRTable[1] = BloomTexturesSRVs[2][0];
+		HDRToneMappingPassSRTable.SetTableSize(2);
+
+		HDRToneMappingPassSRTable.UpdateDescriptorTable(Device, 1);
+		HDRToneMappingPassSRTable.UpdateDescriptorTable(Device, 0);
+	}
+}
+
+void RenderSystem::PostLoad()
+{
+	D3D12_DESCRIPTOR_RANGE DescriptorRanges[4];
+	DescriptorRanges[0].BaseShaderRegister = 0;
+	DescriptorRanges[0].NumDescriptors = 1;
+	DescriptorRanges[0].OffsetInDescriptorsFromTableStart = 0;
+	DescriptorRanges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE::D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+	DescriptorRanges[0].RegisterSpace = 0;
+	DescriptorRanges[1].BaseShaderRegister = 0;
+	DescriptorRanges[1].NumDescriptors = 7;
+	DescriptorRanges[1].OffsetInDescriptorsFromTableStart = 0;
+	DescriptorRanges[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE::D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	DescriptorRanges[1].RegisterSpace = 0;
+	DescriptorRanges[2].BaseShaderRegister = 0;
+	DescriptorRanges[2].NumDescriptors = 1;
+	DescriptorRanges[2].OffsetInDescriptorsFromTableStart = 0;
+	DescriptorRanges[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE::D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+	DescriptorRanges[2].RegisterSpace = 0;
+	DescriptorRanges[3].BaseShaderRegister = 0;
+	DescriptorRanges[3].NumDescriptors = 1;
+	DescriptorRanges[3].OffsetInDescriptorsFromTableStart = 0;
+	DescriptorRanges[3].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE::D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+	DescriptorRanges[3].RegisterSpace = 0;
+
+	D3D12_ROOT_PARAMETER GraphicsRootParameters[6];
+	GraphicsRootParameters[0].DescriptorTable.NumDescriptorRanges = 1;
+	GraphicsRootParameters[0].DescriptorTable.pDescriptorRanges = &DescriptorRanges[0];
+	GraphicsRootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	GraphicsRootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_VERTEX;
+	GraphicsRootParameters[1].DescriptorTable.NumDescriptorRanges = 1;
+	GraphicsRootParameters[1].DescriptorTable.pDescriptorRanges = &DescriptorRanges[1];
+	GraphicsRootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	GraphicsRootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_VERTEX;
+	GraphicsRootParameters[2].DescriptorTable.NumDescriptorRanges = 1;
+	GraphicsRootParameters[2].DescriptorTable.pDescriptorRanges = &DescriptorRanges[2];
+	GraphicsRootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	GraphicsRootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_VERTEX;
+	GraphicsRootParameters[3].DescriptorTable.NumDescriptorRanges = 1;
+	GraphicsRootParameters[3].DescriptorTable.pDescriptorRanges = &DescriptorRanges[0];
+	GraphicsRootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	GraphicsRootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_PIXEL;
+	GraphicsRootParameters[4].DescriptorTable.NumDescriptorRanges = 1;
+	GraphicsRootParameters[4].DescriptorTable.pDescriptorRanges = &DescriptorRanges[1];
+	GraphicsRootParameters[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	GraphicsRootParameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_PIXEL;
+	GraphicsRootParameters[5].DescriptorTable.NumDescriptorRanges = 1;
+	GraphicsRootParameters[5].DescriptorTable.pDescriptorRanges = &DescriptorRanges[2];
+	GraphicsRootParameters[5].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	GraphicsRootParameters[5].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_PIXEL;
+
+	for (UINT i = 0; i < 100000; i++)
+	{
+		ConstantBufferTables[i] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[VERTEX_SHADER_CONSTANT_BUFFERS]);
+		ConstantBufferTables[i].SetTableSize(1);
+	}
+
+	for (UINT i = 0; i < 20000; i++)
+	{
+		ConstantBufferTables[i][0] = ConstantBufferCBVs[i];
+		ConstantBufferTables[i].UpdateDescriptorTable(Device, 1);
+		ConstantBufferTables[i].UpdateDescriptorTable(Device, 0);
+	}
+
+	for (UINT i = 0; i < 20000; i++)
+	{
+		ConstantBufferTables[20000 + i][0] = ConstantBufferCBVs2[0][i];
+		ConstantBufferTables[20000 + i].UpdateDescriptorTable(Device, 1);
+		ConstantBufferTables[20000 + i].UpdateDescriptorTable(Device, 0);
+	}
+
+	for (UINT i = 0; i < 20000; i++)
+	{
+		ConstantBufferTables[40000 + i][0] = ConstantBufferCBVs2[1][i];
+		ConstantBufferTables[40000 + i].UpdateDescriptorTable(Device, 1);
+		ConstantBufferTables[40000 + i].UpdateDescriptorTable(Device, 0);
+	}
+
+	for (UINT i = 0; i < 20000; i++)
+	{
+		ConstantBufferTables[60000 + i][0] = ConstantBufferCBVs2[2][i];
+		ConstantBufferTables[60000 + i].UpdateDescriptorTable(Device, 1);
+		ConstantBufferTables[60000 + i].UpdateDescriptorTable(Device, 0);
+	}
+
+	for (UINT i = 0; i < 20000; i++)
+	{
+		ConstantBufferTables[80000 + i][0] = ConstantBufferCBVs2[3][i];
+		ConstantBufferTables[80000 + i].UpdateDescriptorTable(Device, 1);
+		ConstantBufferTables[80000 + i].UpdateDescriptorTable(Device, 0);
+	}
+
+	for (UINT i = 0; i < 4000; i++)
+	{
+		ShaderResourcesTables[i] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]);
+		ShaderResourcesTables[i].SetTableSize(2);
+
+		char MaterialResourceName[255];
+
+		sprintf(MaterialResourceName, "Standart_%d", i);
+
+		MaterialResource *Material = Engine::GetEngine().GetResourceManager().GetResource<MaterialResource>(MaterialResourceName);
+		RenderTexture *renderTexture0 = Material->GetTexture(0)->GetRenderTexture();
+		RenderTexture *renderTexture1 = Material->GetTexture(1)->GetRenderTexture();
+
+		ShaderResourcesTables[i][0] = renderTexture0->TextureSRV;
+		ShaderResourcesTables[i][1] = renderTexture1->TextureSRV;
+
+		ShaderResourcesTables[i].UpdateDescriptorTable(Device, 1);
+		ShaderResourcesTables[i].UpdateDescriptorTable(Device, 0);
 	}
 }
 
@@ -2680,14 +3180,15 @@ void RenderSystem::TickSystem(float DeltaTime)
 	SAFE_DX(CommandAllocators[CurrentFrameIndex]->Reset());
 	SAFE_DX(CommandList->Reset(CommandAllocators[CurrentFrameIndex], nullptr));
 
-	D3D12_CPU_DESCRIPTOR_HANDLE ResourceCPUHandle = FrameResourcesDescriptorHeaps[CurrentFrameIndex]->GetCPUDescriptorHandleForHeapStart();
+	/*D3D12_CPU_DESCRIPTOR_HANDLE ResourceCPUHandle = FrameResourcesDescriptorHeaps[CurrentFrameIndex]->GetCPUDescriptorHandleForHeapStart();
 	D3D12_GPU_DESCRIPTOR_HANDLE ResourceGPUHandle = FrameResourcesDescriptorHeaps[CurrentFrameIndex]->GetGPUDescriptorHandleForHeapStart();
 	D3D12_CPU_DESCRIPTOR_HANDLE SamplerCPUHandle = FrameSamplersDescriptorHeaps[CurrentFrameIndex]->GetCPUDescriptorHandleForHeapStart();
 	D3D12_GPU_DESCRIPTOR_HANDLE SamplerGPUHandle = FrameSamplersDescriptorHeaps[CurrentFrameIndex]->GetGPUDescriptorHandleForHeapStart();
 	UINT ResourceHandleSize = Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	UINT SamplerHandleSize = Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+	UINT SamplerHandleSize = Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);*/
 
-	ID3D12DescriptorHeap *DescriptorHeaps[2] = { FrameResourcesDescriptorHeaps[CurrentFrameIndex], FrameSamplersDescriptorHeaps[CurrentFrameIndex] };
+	//ID3D12DescriptorHeap *DescriptorHeaps[2] = { FrameResourcesDescriptorHeap.GetDXDescriptorHeap(CurrentFrameIndex), FrameSamplersDescriptorHeap.GetDXDescriptorHeap(CurrentFrameIndex) };
+	ID3D12DescriptorHeap *DescriptorHeaps[2] = { FrameResourcesDescriptorHeap.GetDXDescriptorHeap(0), FrameSamplersDescriptorHeap.GetDXDescriptorHeap(0) };
 
 	CommandList->SetDescriptorHeaps(2, DescriptorHeaps);
 	CommandList->SetGraphicsRootSignature(GraphicsRootSignature);
@@ -2814,11 +3315,11 @@ void RenderSystem::TickSystem(float DeltaTime)
 		CommandList->ClearRenderTargetView(GBufferTexturesRTVs[1], ClearColor, 0, nullptr);
 		CommandList->ClearDepthStencilView(DepthBufferTextureDSV, D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_STENCIL, 0.0f, 0, 0, nullptr);
 
-		Device->CopyDescriptorsSimple(1, SamplerCPUHandle, TextureSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-		SamplerCPUHandle.ptr += SamplerHandleSize;
+		/*Device->CopyDescriptorsSimple(1, SamplerCPUHandle, TextureSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+		SamplerCPUHandle.ptr += SamplerHandleSize;*/
 
-		CommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
-		SamplerGPUHandle.ptr += SamplerHandleSize;
+		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SAMPLERS, TextureSamplerTable);
+		//SamplerGPUHandle.ptr += SamplerHandleSize;
 
 		for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
 		{
@@ -2834,9 +3335,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 			UINT SourceRangeSizes[3] = { 1, 1, 1 };
 			D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[3] = { ConstantBufferCBVs[k], renderTexture0->TextureSRV, renderTexture1->TextureSRV };
 
-			Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 3, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 3, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-			ResourceCPUHandle.ptr += 3 * ResourceHandleSize;
+			ResourceCPUHandle.ptr += 3 * ResourceHandleSize;*/
 
 			D3D12_VERTEX_BUFFER_VIEW VertexBufferView;
 			VertexBufferView.BufferLocation = renderMesh->VertexBufferAddress;
@@ -2853,10 +3354,10 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			CommandList->SetPipelineState(renderMaterial->GBufferOpaquePassPipelineState);
 
-			CommandList->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-			CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+			CommandList->SetGraphicsRootDescriptorTable(VERTEX_SHADER_CONSTANT_BUFFERS, ConstantBufferTables[k]);
+			CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, ShaderResourcesTables[k % 4000]);
 
-			ResourceGPUHandle.ptr += 3 * ResourceHandleSize;
+			//ResourceGPUHandle.ptr += 3 * ResourceHandleSize;
 
 			CommandList->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
 		}
@@ -2935,25 +3436,25 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->DiscardResource(OcclusionBufferTexture, nullptr);
 
-		Device->CopyDescriptorsSimple(1, SamplerCPUHandle, MinSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-		SamplerCPUHandle.ptr += SamplerHandleSize;
+		/*Device->CopyDescriptorsSimple(1, SamplerCPUHandle, MinSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+		SamplerCPUHandle.ptr += SamplerHandleSize;*/
 
-		CommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
-		SamplerGPUHandle.ptr += SamplerHandleSize;
+		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SAMPLERS, MinSamplerTable);
+		//SamplerGPUHandle.ptr += SamplerHandleSize;
 
 		UINT DestRangeSize = 1;
 		UINT SourceRangeSizes[1] = { 1 };
 		D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[1] = { ResolvedDepthBufferTextureSRV };
 
-		Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-		ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
+		ResourceCPUHandle.ptr += 1 * ResourceHandleSize;*/
 
 		CommandList->SetPipelineState(OcclusionBufferPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, OcclusionBufferPassSRTable);
 
-		ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
+		//ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
 		CommandList->DrawInstanced(4, 1, 0, 0);
 
@@ -3145,9 +3646,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 				UINT SourceRangeSizes[1] = { 1 };
 				D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[1] = { ConstantBufferCBVs2[i][k] };
 
-				Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+				/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-				ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
+				ResourceCPUHandle.ptr += 1 * ResourceHandleSize;*/
 
 				D3D12_VERTEX_BUFFER_VIEW VertexBufferView;
 				VertexBufferView.BufferLocation = renderMesh->VertexBufferAddress;
@@ -3164,9 +3665,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 				CommandList->SetPipelineState(renderMaterial->ShadowMapPassPipelineState);
 
-				CommandList->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+				CommandList->SetGraphicsRootDescriptorTable(VERTEX_SHADER_CONSTANT_BUFFERS, ConstantBufferTables[(i + 1) * 20000 + k]);
 
-				ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
+				//ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
 				CommandList->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
 			}
@@ -3283,26 +3784,26 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->DiscardResource(ShadowMaskTexture, nullptr);
 
-		Device->CopyDescriptorsSimple(1, SamplerCPUHandle, ShadowMapSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-		SamplerCPUHandle.ptr += SamplerHandleSize;
+		/*Device->CopyDescriptorsSimple(1, SamplerCPUHandle, ShadowMapSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+		SamplerCPUHandle.ptr += SamplerHandleSize;*/
 
-		CommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
-		SamplerGPUHandle.ptr += SamplerHandleSize;
+		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SAMPLERS, ShadowMapSamplerTable);
+		//SamplerGPUHandle.ptr += SamplerHandleSize;
 
 		UINT DestRangeSize = 6;
 		UINT SourceRangeSizes[7] = { 1, 1, 4 };
 		D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[7] = { ShadowResolveConstantBufferCBV, ResolvedDepthBufferTextureSRV, CascadedShadowMapTexturesSRVs[0] };
 
-		Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 3, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 3, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-		ResourceCPUHandle.ptr += 6 * ResourceHandleSize;
+		ResourceCPUHandle.ptr += 6 * ResourceHandleSize;*/
 
 		CommandList->SetPipelineState(ShadowResolvePipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_CONSTANT_BUFFERS, ShadowResolveCBTable);
+		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, ShadowResolveSRTable);
 
-		ResourceGPUHandle.ptr += 6 * ResourceHandleSize;
+		//ResourceGPUHandle.ptr += 6 * ResourceHandleSize;
 
 		CommandList->DrawInstanced(4, 1, 0, 0);
 	}
@@ -3482,16 +3983,16 @@ void RenderSystem::TickSystem(float DeltaTime)
 		UINT SourceRangeSizes[7] = { 1, 2, 1, 1, 1, 1, 1 };
 		D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[7] = { DeferredLightingConstantBufferCBV, GBufferTexturesSRVs[0], DepthBufferTextureSRV, ShadowMaskTextureSRV, LightClustersBufferSRV, LightIndicesBufferSRV, PointLightsBufferSRV };
 
-		Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 7, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 7, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-		ResourceCPUHandle.ptr += 8 * ResourceHandleSize;
+		ResourceCPUHandle.ptr += 8 * ResourceHandleSize;*/
 
 		CommandList->SetPipelineState(DeferredLightingPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_CONSTANT_BUFFERS, DeferredLightingCBTable);
+		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, DeferredLightingSRTable);
 
-		ResourceGPUHandle.ptr += 8 * ResourceHandleSize;
+		//ResourceGPUHandle.ptr += 8 * ResourceHandleSize;
 
 		CommandList->DrawInstanced(4, 1, 0, 0);
 	}
@@ -3595,15 +4096,15 @@ void RenderSystem::TickSystem(float DeltaTime)
 		UINT SourceRangeSizes[2] = { 1 };
 		D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[2] = { DepthBufferTextureSRV };
 
-		Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-		ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
+		ResourceCPUHandle.ptr += 1 * ResourceHandleSize;*/
 
 		CommandList->SetPipelineState(FogPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, FogSRTable);
 
-		ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
+		//ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
 		CommandList->DrawInstanced(4, 1, 0, 0);
 
@@ -3636,11 +4137,11 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->RSSetScissorRects(1, &ScissorRect);
 
-		Device->CopyDescriptorsSimple(1, SamplerCPUHandle, TextureSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-		SamplerCPUHandle.ptr += SamplerHandleSize;
+		/*Device->CopyDescriptorsSimple(1, SamplerCPUHandle, TextureSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+		SamplerCPUHandle.ptr += SamplerHandleSize;*/
 
-		CommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
-		SamplerGPUHandle.ptr += SamplerHandleSize;
+		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SAMPLERS, TextureSamplerTable);
+		//SamplerGPUHandle.ptr += SamplerHandleSize;
 
 		DestRangeSize = 2;
 		SourceRangeSizes[0] = 1;
@@ -3648,9 +4149,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 		SourceCPUHandles[0] = SkyConstantBufferCBV;
 		SourceCPUHandles[1] = SkyTextureSRV;
 
-		Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
+		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;*/
 
 		D3D12_VERTEX_BUFFER_VIEW VertexBufferView;
 		VertexBufferView.BufferLocation = SkyVertexBufferAddress;
@@ -3667,10 +4168,10 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->SetPipelineState(SkyPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+		CommandList->SetGraphicsRootDescriptorTable(VERTEX_SHADER_CONSTANT_BUFFERS, SkyCBTable);
+		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, SkySRTable);
 
-		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
+		//ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
 		CommandList->DrawIndexedInstanced(300 + 24 * 600 + 300, 1, 0, 0, 0);
 
@@ -3680,9 +4181,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 		SourceCPUHandles[0] = SunConstantBufferCBV;
 		SourceCPUHandles[1] = SunTextureSRV;
 
-		Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
+		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;*/
 
 		VertexBufferView.BufferLocation = SunVertexBufferAddress;
 		VertexBufferView.SizeInBytes = sizeof(Vertex) * 4;
@@ -3697,10 +4198,10 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->SetPipelineState(SunPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+		CommandList->SetGraphicsRootDescriptorTable(VERTEX_SHADER_CONSTANT_BUFFERS, SunCBTable);
+		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, SunSRTable);
 
-		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
+		//ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
 		CommandList->DrawIndexedInstanced(6, 1, 0, 0, 0);
 	}
@@ -3761,18 +4262,18 @@ void RenderSystem::TickSystem(float DeltaTime)
 		UINT SourceRangeSizes[2] = { 1, 1 };
 		D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[2] = { ResolvedHDRSceneColorTextureSRV, SceneLuminanceTexturesUAVs[0] };
 
-		Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
+		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;*/
 
 		CommandList->SetPipelineState(LuminanceCalcPipelineState);
 
-		CommandList->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-		CommandList->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+		CommandList->SetComputeRootDescriptorTable(COMPUTE_SHADER_SHADER_RESOURCES, LuminancePassSRTables[0]);
+		CommandList->SetComputeRootDescriptorTable(COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS, LuminancePassUATables[0]);
 
 		CommandList->DiscardResource(SceneLuminanceTextures[0], nullptr);
 
-		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
+		//ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
 		CommandList->Dispatch(80, 45, 1);
 
@@ -3798,18 +4299,18 @@ void RenderSystem::TickSystem(float DeltaTime)
 		SourceCPUHandles[0] = SceneLuminanceTexturesSRVs[0];
 		SourceCPUHandles[1] = SceneLuminanceTexturesUAVs[1];
 
-		Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
+		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;*/
 
 		CommandList->SetPipelineState(LuminanceSumPipelineState);
 
-		CommandList->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-		CommandList->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+		CommandList->SetComputeRootDescriptorTable(COMPUTE_SHADER_SHADER_RESOURCES, LuminancePassSRTables[1]);
+		CommandList->SetComputeRootDescriptorTable(COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS, LuminancePassUATables[1]);
 
 		CommandList->DiscardResource(SceneLuminanceTextures[1], nullptr);
 
-		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
+		//ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
 		CommandList->Dispatch(80, 45, 1);
 
@@ -3835,16 +4336,16 @@ void RenderSystem::TickSystem(float DeltaTime)
 		SourceCPUHandles[0] = SceneLuminanceTexturesSRVs[1];
 		SourceCPUHandles[1] = SceneLuminanceTexturesUAVs[2];
 
-		Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
+		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;*/
 
-		CommandList->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-		CommandList->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+		CommandList->SetComputeRootDescriptorTable(COMPUTE_SHADER_SHADER_RESOURCES, LuminancePassSRTables[2]);
+		CommandList->SetComputeRootDescriptorTable(COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS, LuminancePassUATables[2]);
 
 		CommandList->DiscardResource(SceneLuminanceTextures[2], nullptr);
 
-		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
+		//ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
 		CommandList->Dispatch(5, 3, 1);
 
@@ -3870,16 +4371,16 @@ void RenderSystem::TickSystem(float DeltaTime)
 		SourceCPUHandles[0] = SceneLuminanceTexturesSRVs[2];
 		SourceCPUHandles[1] = SceneLuminanceTexturesUAVs[3];
 
-		Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
+		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;*/
 
-		CommandList->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-		CommandList->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+		CommandList->SetComputeRootDescriptorTable(COMPUTE_SHADER_SHADER_RESOURCES, LuminancePassSRTables[3]);
+		CommandList->SetComputeRootDescriptorTable(COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS, LuminancePassUATables[3]);
 
 		CommandList->DiscardResource(SceneLuminanceTextures[3], nullptr);
 
-		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
+		//ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
 		CommandList->Dispatch(1, 1, 1);
 
@@ -3898,18 +4399,18 @@ void RenderSystem::TickSystem(float DeltaTime)
 		SourceCPUHandles[0] = SceneLuminanceTexturesSRVs[3];
 		SourceCPUHandles[1] = AverageLuminanceTextureUAV;
 
-		Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
+		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;*/
 
 		CommandList->SetPipelineState(LuminanceAvgPipelineState);
 
-		CommandList->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-		CommandList->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+		CommandList->SetComputeRootDescriptorTable(COMPUTE_SHADER_SHADER_RESOURCES, LuminancePassSRTables[4]);
+		CommandList->SetComputeRootDescriptorTable(COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS, LuminancePassUATables[4]);
 
 		CommandList->DiscardResource(AverageLuminanceTexture, nullptr);
 
-		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
+		//ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
 		CommandList->Dispatch(1, 1, 1);
 	}
@@ -3948,11 +4449,11 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->RSSetScissorRects(1, &ScissorRect);
 
-		Device->CopyDescriptorsSimple(1, SamplerCPUHandle, BiLinearSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-		SamplerCPUHandle.ptr += SamplerHandleSize;
+		/*Device->CopyDescriptorsSimple(1, SamplerCPUHandle, BiLinearSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+		SamplerCPUHandle.ptr += SamplerHandleSize;*/
 
-		CommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
-		SamplerGPUHandle.ptr += SamplerHandleSize;
+		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SAMPLERS, BiLinearSamplerTable);
+		//SamplerGPUHandle.ptr += SamplerHandleSize;
 
 		CommandList->DiscardResource(BloomTextures[0][0], nullptr);
 
@@ -3960,15 +4461,15 @@ void RenderSystem::TickSystem(float DeltaTime)
 		UINT SourceRangeSizes[2] = { 1, 1 };
 		D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[2] = { ResolvedHDRSceneColorTextureSRV, SceneLuminanceTexturesSRVs[0] };
 
-		Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
+		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;*/
 
 		CommandList->SetPipelineState(BrightPassPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, BloomPassSRTables1[0]);
 
-		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
+		//ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
 		CommandList->DrawInstanced(4, 1, 0, 0);
 
@@ -4014,15 +4515,15 @@ void RenderSystem::TickSystem(float DeltaTime)
 		SourceRangeSizes[0] = 1;
 		SourceCPUHandles[0] = BloomTexturesSRVs[0][0];
 
-		Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-		ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
+		ResourceCPUHandle.ptr += 1 * ResourceHandleSize;*/
 
 		CommandList->SetPipelineState(HorizontalBlurPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, BloomPassSRTables1[1]);
 
-		ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
+		//ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
 		CommandList->DrawInstanced(4, 1, 0, 0);
 
@@ -4068,15 +4569,15 @@ void RenderSystem::TickSystem(float DeltaTime)
 		SourceRangeSizes[0] = 1;
 		SourceCPUHandles[0] = BloomTexturesSRVs[1][0];
 
-		Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-		ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
+		ResourceCPUHandle.ptr += 1 * ResourceHandleSize;*/
 
 		CommandList->SetPipelineState(VerticalBlurPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, BloomPassSRTables1[2]);
 
-		ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
+		//ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
 		CommandList->DrawInstanced(4, 1, 0, 0);
 
@@ -4117,15 +4618,15 @@ void RenderSystem::TickSystem(float DeltaTime)
 			SourceRangeSizes[0] = 1;
 			SourceCPUHandles[0] = BloomTexturesSRVs[0][i - 1];
 
-			Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-			ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
+			ResourceCPUHandle.ptr += 1 * ResourceHandleSize;*/
 
 			CommandList->SetPipelineState(DownSamplePipelineState);
 
-			CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+			CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, BloomPassSRTables2[i - 1][0]);
 
-			ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
+			//ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
 			CommandList->DrawInstanced(4, 1, 0, 0);
 
@@ -4171,15 +4672,15 @@ void RenderSystem::TickSystem(float DeltaTime)
 			SourceRangeSizes[0] = 1;
 			SourceCPUHandles[0] = BloomTexturesSRVs[0][i];
 
-			Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-			ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
+			ResourceCPUHandle.ptr += 1 * ResourceHandleSize;*/
 
 			CommandList->SetPipelineState(HorizontalBlurPipelineState);
 
-			CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+			CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, BloomPassSRTables2[i - 1][1]);
 
-			ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
+			//ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
 			CommandList->DrawInstanced(4, 1, 0, 0);
 
@@ -4225,15 +4726,15 @@ void RenderSystem::TickSystem(float DeltaTime)
 			SourceRangeSizes[0] = 1;
 			SourceCPUHandles[0] = BloomTexturesSRVs[1][i];
 
-			Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-			ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
+			ResourceCPUHandle.ptr += 1 * ResourceHandleSize;*/
 
 			CommandList->SetPipelineState(VerticalBlurPipelineState);
 
-			CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+			CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, BloomPassSRTables2[i - 1][2]);
 
-			ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
+			//ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
 			CommandList->DrawInstanced(4, 1, 0, 0);
 		}
@@ -4273,15 +4774,15 @@ void RenderSystem::TickSystem(float DeltaTime)
 			SourceRangeSizes[0] = 1;
 			SourceCPUHandles[0] = BloomTexturesSRVs[2][i + 1];
 
-			Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-			ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
+			ResourceCPUHandle.ptr += 1 * ResourceHandleSize;*/
 
 			CommandList->SetPipelineState(UpSampleWithAddBlendPipelineState);
 
-			CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+			CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, BloomPassSRTables3[5 - i]);
 
-			ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
+			//ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
 			CommandList->DrawInstanced(4, 1, 0, 0);
 		}
@@ -4332,19 +4833,19 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->DiscardResource(ToneMappedImageTexture, nullptr);
 
-		UINT DestRangeSize = 2;
+		/*UINT DestRangeSize = 2;
 		UINT SourceRangeSizes[2] = { 1, 1 };
 		D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[2] = { HDRSceneColorTextureSRV, BloomTexturesSRVs[2][0] };
 
 		Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
+		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;*/
 
 		CommandList->SetPipelineState(HDRToneMappingPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, HDRToneMappingPassSRTable);
 
-		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
+		//ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
 		CommandList->DrawInstanced(4, 1, 0, 0);
 	}
@@ -4734,8 +5235,10 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 	SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 	SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
-	renderTexture->TextureSRV.ptr = TexturesDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + TexturesDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	++TexturesDescriptorsCount;
+	/*renderTexture->TextureSRV.ptr = TexturesDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + TexturesDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	++TexturesDescriptorsCount;*/
+
+	renderTexture->TextureSRV = TexturesDescriptorHeap.AllocateDescriptor();
 
 	Device->CreateShaderResourceView(renderTexture->Texture, &SRVDesc, renderTexture->TextureSRV);
 
