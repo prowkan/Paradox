@@ -160,7 +160,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <None Include="CleanShaders.py" />
-    <None Include="CompileShaders.bat" />
     <None Include="CompileShaders.py" />
   </ItemGroup>
   <ItemGroup>
