@@ -3331,9 +3331,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 			RenderTexture *renderTexture0 = Material->GetTexture(0)->GetRenderTexture();
 			RenderTexture *renderTexture1 = Material->GetTexture(1)->GetRenderTexture();
 
-			UINT DestRangeSize = 3;
+			/*UINT DestRangeSize = 3;
 			UINT SourceRangeSizes[3] = { 1, 1, 1 };
-			D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[3] = { ConstantBufferCBVs[k], renderTexture0->TextureSRV, renderTexture1->TextureSRV };
+			D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[3] = { ConstantBufferCBVs[k], renderTexture0->TextureSRV, renderTexture1->TextureSRV };*/
 
 			/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 3, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
@@ -3442,9 +3442,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SAMPLERS, MinSamplerTable);
 		//SamplerGPUHandle.ptr += SamplerHandleSize;
 
-		UINT DestRangeSize = 1;
+		/*UINT DestRangeSize = 1;
 		UINT SourceRangeSizes[1] = { 1 };
-		D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[1] = { ResolvedDepthBufferTextureSRV };
+		D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[1] = { ResolvedDepthBufferTextureSRV };*/
 
 		/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
@@ -3642,9 +3642,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 				RenderTexture *renderTexture0 = staticMeshComponent->GetMaterial()->GetTexture(0)->GetRenderTexture();
 				RenderTexture *renderTexture1 = staticMeshComponent->GetMaterial()->GetTexture(1)->GetRenderTexture();
 
-				UINT DestRangeSize = 1;
+				/*UINT DestRangeSize = 1;
 				UINT SourceRangeSizes[1] = { 1 };
-				D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[1] = { ConstantBufferCBVs2[i][k] };
+				D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[1] = { ConstantBufferCBVs2[i][k] };*/
 
 				/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
@@ -3790,9 +3790,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SAMPLERS, ShadowMapSamplerTable);
 		//SamplerGPUHandle.ptr += SamplerHandleSize;
 
-		UINT DestRangeSize = 6;
+		/*UINT DestRangeSize = 6;
 		UINT SourceRangeSizes[7] = { 1, 1, 4 };
-		D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[7] = { ShadowResolveConstantBufferCBV, ResolvedDepthBufferTextureSRV, CascadedShadowMapTexturesSRVs[0] };
+		D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[7] = { ShadowResolveConstantBufferCBV, ResolvedDepthBufferTextureSRV, CascadedShadowMapTexturesSRVs[0] };*/
 
 		/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 3, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
@@ -3979,9 +3979,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->DiscardResource(HDRSceneColorTexture, nullptr);
 
-		UINT DestRangeSize = 8;
+		/*UINT DestRangeSize = 8;
 		UINT SourceRangeSizes[7] = { 1, 2, 1, 1, 1, 1, 1 };
-		D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[7] = { DeferredLightingConstantBufferCBV, GBufferTexturesSRVs[0], DepthBufferTextureSRV, ShadowMaskTextureSRV, LightClustersBufferSRV, LightIndicesBufferSRV, PointLightsBufferSRV };
+		D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[7] = { DeferredLightingConstantBufferCBV, GBufferTexturesSRVs[0], DepthBufferTextureSRV, ShadowMaskTextureSRV, LightClustersBufferSRV, LightIndicesBufferSRV, PointLightsBufferSRV };*/
 
 		/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 7, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
@@ -4092,9 +4092,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->RSSetScissorRects(1, &ScissorRect);
 
-		UINT DestRangeSize = 1;
+		/*UINT DestRangeSize = 1;
 		UINT SourceRangeSizes[2] = { 1 };
-		D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[2] = { DepthBufferTextureSRV };
+		D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[2] = { DepthBufferTextureSRV };*/
 
 		/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
@@ -4143,11 +4143,11 @@ void RenderSystem::TickSystem(float DeltaTime)
 		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SAMPLERS, TextureSamplerTable);
 		//SamplerGPUHandle.ptr += SamplerHandleSize;
 
-		DestRangeSize = 2;
+		/*DestRangeSize = 2;
 		SourceRangeSizes[0] = 1;
 		SourceRangeSizes[1] = 1;
 		SourceCPUHandles[0] = SkyConstantBufferCBV;
-		SourceCPUHandles[1] = SkyTextureSRV;
+		SourceCPUHandles[1] = SkyTextureSRV;*/
 
 		/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
@@ -4175,11 +4175,11 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->DrawIndexedInstanced(300 + 24 * 600 + 300, 1, 0, 0, 0);
 
-		DestRangeSize = 2;
+		/*DestRangeSize = 2;
 		SourceRangeSizes[0] = 1;
 		SourceRangeSizes[1] = 1;
 		SourceCPUHandles[0] = SunConstantBufferCBV;
-		SourceCPUHandles[1] = SunTextureSRV;
+		SourceCPUHandles[1] = SunTextureSRV;*/
 
 		/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
@@ -4258,9 +4258,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 	{
 		CommandList->ResourceBarrier(3, ResourceBarriers);
 
-		UINT DestRangeSize = 2;
+		/*UINT DestRangeSize = 2;
 		UINT SourceRangeSizes[2] = { 1, 1 };
-		D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[2] = { ResolvedHDRSceneColorTextureSRV, SceneLuminanceTexturesUAVs[0] };
+		D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[2] = { ResolvedHDRSceneColorTextureSRV, SceneLuminanceTexturesUAVs[0] };*/
 
 		/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
@@ -4293,11 +4293,11 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->ResourceBarrier(2, ResourceBarriers);
 
-		DestRangeSize = 2;
+		/*DestRangeSize = 2;
 		SourceRangeSizes[0] = 1;
 		SourceRangeSizes[1] = 1;
 		SourceCPUHandles[0] = SceneLuminanceTexturesSRVs[0];
-		SourceCPUHandles[1] = SceneLuminanceTexturesUAVs[1];
+		SourceCPUHandles[1] = SceneLuminanceTexturesUAVs[1];*/
 
 		/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
@@ -4330,11 +4330,11 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->ResourceBarrier(2, ResourceBarriers);
 
-		DestRangeSize = 2;
+		/*DestRangeSize = 2;
 		SourceRangeSizes[0] = 1;
 		SourceRangeSizes[1] = 1;
 		SourceCPUHandles[0] = SceneLuminanceTexturesSRVs[1];
-		SourceCPUHandles[1] = SceneLuminanceTexturesUAVs[2];
+		SourceCPUHandles[1] = SceneLuminanceTexturesUAVs[2];*/
 
 		/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
@@ -4365,11 +4365,11 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->ResourceBarrier(2, ResourceBarriers);
 
-		DestRangeSize = 2;
+		/*DestRangeSize = 2;
 		SourceRangeSizes[0] = 1;
 		SourceRangeSizes[1] = 1;
 		SourceCPUHandles[0] = SceneLuminanceTexturesSRVs[2];
-		SourceCPUHandles[1] = SceneLuminanceTexturesUAVs[3];
+		SourceCPUHandles[1] = SceneLuminanceTexturesUAVs[3];*/
 
 		/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
@@ -4393,11 +4393,11 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->ResourceBarrier(1, ResourceBarriers);
 
-		DestRangeSize = 2;
+		/*DestRangeSize = 2;
 		SourceRangeSizes[0] = 1;
 		SourceRangeSizes[1] = 1;
 		SourceCPUHandles[0] = SceneLuminanceTexturesSRVs[3];
-		SourceCPUHandles[1] = AverageLuminanceTextureUAV;
+		SourceCPUHandles[1] = AverageLuminanceTextureUAV;*/
 
 		/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
@@ -4457,9 +4457,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->DiscardResource(BloomTextures[0][0], nullptr);
 
-		UINT DestRangeSize = 2;
+		/*UINT DestRangeSize = 2;
 		UINT SourceRangeSizes[2] = { 1, 1 };
-		D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[2] = { ResolvedHDRSceneColorTextureSRV, SceneLuminanceTexturesSRVs[0] };
+		D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[2] = { ResolvedHDRSceneColorTextureSRV, SceneLuminanceTexturesSRVs[0] };*/
 
 		/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
@@ -4511,9 +4511,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->DiscardResource(BloomTextures[1][0], nullptr);
 
-		DestRangeSize = 1;
+		/*DestRangeSize = 1;
 		SourceRangeSizes[0] = 1;
-		SourceCPUHandles[0] = BloomTexturesSRVs[0][0];
+		SourceCPUHandles[0] = BloomTexturesSRVs[0][0];*/
 
 		/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
@@ -4565,9 +4565,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->DiscardResource(BloomTextures[2][0], nullptr);
 
-		DestRangeSize = 1;
+		/*DestRangeSize = 1;
 		SourceRangeSizes[0] = 1;
-		SourceCPUHandles[0] = BloomTexturesSRVs[1][0];
+		SourceCPUHandles[0] = BloomTexturesSRVs[1][0];*/
 
 		/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
@@ -4614,9 +4614,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			CommandList->DiscardResource(BloomTextures[0][i], nullptr);
 
-			DestRangeSize = 1;
+			/*DestRangeSize = 1;
 			SourceRangeSizes[0] = 1;
-			SourceCPUHandles[0] = BloomTexturesSRVs[0][i - 1];
+			SourceCPUHandles[0] = BloomTexturesSRVs[0][i - 1];*/
 
 			/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
@@ -4668,9 +4668,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			CommandList->DiscardResource(BloomTextures[1][i], nullptr);
 
-			DestRangeSize = 1;
+			/*DestRangeSize = 1;
 			SourceRangeSizes[0] = 1;
-			SourceCPUHandles[0] = BloomTexturesSRVs[0][i];
+			SourceCPUHandles[0] = BloomTexturesSRVs[0][i];*/
 
 			/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
@@ -4722,9 +4722,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			CommandList->DiscardResource(BloomTextures[2][i], nullptr);
 
-			DestRangeSize = 1;
+			/*DestRangeSize = 1;
 			SourceRangeSizes[0] = 1;
-			SourceCPUHandles[0] = BloomTexturesSRVs[1][i];
+			SourceCPUHandles[0] = BloomTexturesSRVs[1][i];*/
 
 			/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
@@ -4770,9 +4770,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			CommandList->RSSetScissorRects(1, &ScissorRect);
 
-			DestRangeSize = 1;
+			/*DestRangeSize = 1;
 			SourceRangeSizes[0] = 1;
-			SourceCPUHandles[0] = BloomTexturesSRVs[2][i + 1];
+			SourceCPUHandles[0] = BloomTexturesSRVs[2][i + 1];*/
 
 			/*Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
