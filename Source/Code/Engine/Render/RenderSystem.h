@@ -555,7 +555,7 @@ class RenderSystem
 		inline void CheckDXCallResult(HRESULT hr, const char16_t* Function);
 		inline const char16_t* GetDXErrorMessageFromHRESULT(HRESULT hr);
 
-		static const UINT MAX_MIP_LEVELS_IN_TEXTURE = 16;
+		static const UINT MAX_MIP_LEVELS_IN_TEXTURE = 16;		
 
 		static const UINT VERTEX_SHADER_CONSTANT_BUFFERS = 0;
 		static const UINT VERTEX_SHADER_SHADER_RESOURCES = 1;
@@ -569,4 +569,12 @@ class RenderSystem
 		static const UINT COMPUTE_SHADER_SHADER_RESOURCES = 1;
 		static const UINT COMPUTE_SHADER_SAMPLERS = 2;
 		static const UINT COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS = 3;
+
+		static const UINT MAX_PENDING_BARRIERS_COUNT = 200;
+		UINT PendingBarriersCount = 0;
+
+		D3D12_RESOURCE_BARRIER PendingResourceBarriers[MAX_PENDING_BARRIERS_COUNT];
+
+		void SwitchResourceState(ID3D12Resource *Resource, const UINT SubResource, const D3D12_RESOURCE_STATES OldState, const D3D12_RESOURCE_STATES NewState);
+		void ApplyPendingBarriers();
 };
