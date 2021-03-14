@@ -414,22 +414,6 @@ void RenderSystem::InitSystem()
 		ShadowMapSamplerTable = FrameSamplersDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SAMPLERS]);
 		BiLinearSamplerTable = FrameSamplersDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SAMPLERS]);
 		MinSamplerTable = FrameSamplersDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SAMPLERS]);
-
-		TextureSamplerTable[0] = TextureSampler;
-		TextureSamplerTable.UpdateDescriptorTable(Device, 1);
-		TextureSamplerTable.UpdateDescriptorTable(Device, 0);
-
-		ShadowMapSamplerTable[0] = ShadowMapSampler;
-		ShadowMapSamplerTable.UpdateDescriptorTable(Device, 1);
-		ShadowMapSamplerTable.UpdateDescriptorTable(Device, 0);
-
-		BiLinearSamplerTable[0] = BiLinearSampler;
-		BiLinearSamplerTable.UpdateDescriptorTable(Device, 1);
-		BiLinearSamplerTable.UpdateDescriptorTable(Device, 0);
-
-		MinSamplerTable[0] = MinSampler;
-		MinSamplerTable.UpdateDescriptorTable(Device, 1);
-		MinSamplerTable.UpdateDescriptorTable(Device, 0);
 	}
 
 	// ===============================================================================================================
@@ -790,12 +774,6 @@ void RenderSystem::InitSystem()
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(OcclusionBufferPipelineState)));
 
 		OcclusionBufferPassSRTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]);
-
-		OcclusionBufferPassSRTable[0] = ResolvedDepthBufferTextureSRV;
-		OcclusionBufferPassSRTable.SetTableSize(1);
-
-		OcclusionBufferPassSRTable.UpdateDescriptorTable(Device, 1);
-		OcclusionBufferPassSRTable.UpdateDescriptorTable(Device, 0);
 	}
 
 	// ===============================================================================================================
@@ -1053,22 +1031,6 @@ void RenderSystem::InitSystem()
 
 		ShadowResolveCBTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_CONSTANT_BUFFERS]);
 		ShadowResolveSRTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]);
-
-		ShadowResolveCBTable[0] = ShadowResolveConstantBufferCBV;
-		ShadowResolveCBTable.SetTableSize(1);
-
-		ShadowResolveCBTable.UpdateDescriptorTable(Device, 1);
-		ShadowResolveCBTable.UpdateDescriptorTable(Device, 0);
-
-		ShadowResolveSRTable[0] = ResolvedDepthBufferTextureSRV;
-		ShadowResolveSRTable[1] = CascadedShadowMapTexturesSRVs[0];
-		ShadowResolveSRTable[2] = CascadedShadowMapTexturesSRVs[1];
-		ShadowResolveSRTable[3] = CascadedShadowMapTexturesSRVs[2];
-		ShadowResolveSRTable[4] = CascadedShadowMapTexturesSRVs[3];
-		ShadowResolveSRTable.SetTableSize(5);
-
-		ShadowResolveSRTable.UpdateDescriptorTable(Device, 1);
-		ShadowResolveSRTable.UpdateDescriptorTable(Device, 0);
 	}
 
 	// ===============================================================================================================
@@ -1326,24 +1288,6 @@ void RenderSystem::InitSystem()
 
 		DeferredLightingCBTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_CONSTANT_BUFFERS]);
 		DeferredLightingSRTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]);
-
-		DeferredLightingCBTable[0] = DeferredLightingConstantBufferCBV;
-		DeferredLightingCBTable.SetTableSize(1);
-
-		DeferredLightingCBTable.UpdateDescriptorTable(Device, 1);
-		DeferredLightingCBTable.UpdateDescriptorTable(Device, 0);
-
-		DeferredLightingSRTable[0] = GBufferTexturesSRVs[0];
-		DeferredLightingSRTable[1] = GBufferTexturesSRVs[1];
-		DeferredLightingSRTable[2] = DepthBufferTextureSRV;
-		DeferredLightingSRTable[3] = ShadowMaskTextureSRV;
-		DeferredLightingSRTable[4] = LightClustersBufferSRV;
-		DeferredLightingSRTable[5] = LightIndicesBufferSRV;
-		DeferredLightingSRTable[6] = PointLightsBufferSRV;
-		DeferredLightingSRTable.SetTableSize(7);
-
-		DeferredLightingSRTable.UpdateDescriptorTable(Device, 1);
-		DeferredLightingSRTable.UpdateDescriptorTable(Device, 0);
 	}
 
 	// ===============================================================================================================
@@ -2117,37 +2061,11 @@ void RenderSystem::InitSystem()
 
 		FogSRTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]);
 
-		FogSRTable[0] = DepthBufferTextureSRV;
-		FogSRTable.SetTableSize(1);
-
-		FogSRTable.UpdateDescriptorTable(Device, 1);
-		FogSRTable.UpdateDescriptorTable(Device, 0);
-
 		SkyCBTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[VERTEX_SHADER_CONSTANT_BUFFERS]);
 		SkySRTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]);
 
 		SunCBTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[VERTEX_SHADER_CONSTANT_BUFFERS]);
 		SunSRTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]);
-
-		SkyCBTable[0] = SkyConstantBufferCBV;
-		SkyCBTable.SetTableSize(1);
-		SkyCBTable.UpdateDescriptorTable(Device, 1);
-		SkyCBTable.UpdateDescriptorTable(Device, 0);
-
-		SkySRTable[0] = SkyTextureSRV;
-		SkySRTable.SetTableSize(1);
-		SkySRTable.UpdateDescriptorTable(Device, 1);
-		SkySRTable.UpdateDescriptorTable(Device, 0);
-
-		SunCBTable[0] = SunConstantBufferCBV;
-		SunCBTable.SetTableSize(1);
-		SunCBTable.UpdateDescriptorTable(Device, 1);
-		SunCBTable.UpdateDescriptorTable(Device, 0);
-
-		SunSRTable[0] = SunTextureSRV;
-		SunSRTable.SetTableSize(1);
-		SunSRTable.UpdateDescriptorTable(Device, 1);
-		SunSRTable.UpdateDescriptorTable(Device, 0);
 	}
 
 	// ===============================================================================================================
@@ -2349,29 +2267,17 @@ void RenderSystem::InitSystem()
 
 		SAFE_DX(Device->CreateComputePipelineState(&ComputePipelineStateDesc, UUIDOF(LuminanceAvgPipelineState)));
 
-		LuminancePassSRTables[0] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_SHADER_RESOURCES]); LuminancePassSRTables[0].SetTableSize(1);
-		LuminancePassSRTables[1] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_SHADER_RESOURCES]); LuminancePassSRTables[1].SetTableSize(1);
-		LuminancePassSRTables[2] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_SHADER_RESOURCES]); LuminancePassSRTables[2].SetTableSize(1);
-		LuminancePassSRTables[3] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_SHADER_RESOURCES]); LuminancePassSRTables[3].SetTableSize(1);
-		LuminancePassSRTables[4] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_SHADER_RESOURCES]); LuminancePassSRTables[4].SetTableSize(1);
+		LuminancePassSRTables[0] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_SHADER_RESOURCES]);
+		LuminancePassSRTables[1] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_SHADER_RESOURCES]);
+		LuminancePassSRTables[2] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_SHADER_RESOURCES]);
+		LuminancePassSRTables[3] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_SHADER_RESOURCES]);
+		LuminancePassSRTables[4] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_SHADER_RESOURCES]);
 
-		LuminancePassSRTables[0][0] = ResolvedHDRSceneColorTextureSRV; LuminancePassSRTables[0].UpdateDescriptorTable(Device, 1); LuminancePassSRTables[0].UpdateDescriptorTable(Device, 0);
-		LuminancePassSRTables[1][0] = SceneLuminanceTexturesSRVs[0]; LuminancePassSRTables[1].UpdateDescriptorTable(Device, 1); LuminancePassSRTables[1].UpdateDescriptorTable(Device, 0);
-		LuminancePassSRTables[2][0] = SceneLuminanceTexturesSRVs[1]; LuminancePassSRTables[2].UpdateDescriptorTable(Device, 1); LuminancePassSRTables[2].UpdateDescriptorTable(Device, 0);
-		LuminancePassSRTables[3][0] = SceneLuminanceTexturesSRVs[2]; LuminancePassSRTables[3].UpdateDescriptorTable(Device, 1); LuminancePassSRTables[3].UpdateDescriptorTable(Device, 0);
-		LuminancePassSRTables[4][0] = SceneLuminanceTexturesSRVs[3]; LuminancePassSRTables[4].UpdateDescriptorTable(Device, 1); LuminancePassSRTables[4].UpdateDescriptorTable(Device, 0);
-
-		LuminancePassUATables[0] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]); LuminancePassUATables[0].SetTableSize(1);
-		LuminancePassUATables[1] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]); LuminancePassUATables[1].SetTableSize(1);
-		LuminancePassUATables[2] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]); LuminancePassUATables[2].SetTableSize(1);
-		LuminancePassUATables[3] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]); LuminancePassUATables[3].SetTableSize(1);
-		LuminancePassUATables[4] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]); LuminancePassUATables[4].SetTableSize(1);
-
-		LuminancePassUATables[0][0] = SceneLuminanceTexturesUAVs[0]; LuminancePassUATables[0].UpdateDescriptorTable(Device, 1); LuminancePassUATables[0].UpdateDescriptorTable(Device, 0);
-		LuminancePassUATables[1][0] = SceneLuminanceTexturesUAVs[1]; LuminancePassUATables[1].UpdateDescriptorTable(Device, 1); LuminancePassUATables[1].UpdateDescriptorTable(Device, 0);
-		LuminancePassUATables[2][0] = SceneLuminanceTexturesUAVs[2]; LuminancePassUATables[2].UpdateDescriptorTable(Device, 1); LuminancePassUATables[2].UpdateDescriptorTable(Device, 0);
-		LuminancePassUATables[3][0] = SceneLuminanceTexturesUAVs[3]; LuminancePassUATables[3].UpdateDescriptorTable(Device, 1); LuminancePassUATables[3].UpdateDescriptorTable(Device, 0);
-		LuminancePassUATables[4][0] = AverageLuminanceTextureUAV; LuminancePassUATables[4].UpdateDescriptorTable(Device, 1); LuminancePassUATables[4].UpdateDescriptorTable(Device, 0);
+		LuminancePassUATables[0] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]);
+		LuminancePassUATables[1] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]);
+		LuminancePassUATables[2] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]);
+		LuminancePassUATables[3] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]);
+		LuminancePassUATables[4] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]);
 	}
 
 	// ===============================================================================================================
@@ -2628,44 +2534,6 @@ void RenderSystem::InitSystem()
 		BloomPassSRTables3[3] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables3[3].SetTableSize(1);
 		BloomPassSRTables3[4] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables3[4].SetTableSize(1);
 		BloomPassSRTables3[5] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables3[5].SetTableSize(1);
-
-		BloomPassSRTables1[0][0] = ResolvedHDRSceneColorTextureSRV;
-		BloomPassSRTables1[0][1] = SceneLuminanceTexturesSRVs[0];
-		BloomPassSRTables1[0].UpdateDescriptorTable(Device, 1); BloomPassSRTables1[0].UpdateDescriptorTable(Device, 0);
-
-		BloomPassSRTables1[1][0] = BloomTexturesSRVs[0][0]; BloomPassSRTables1[1].UpdateDescriptorTable(Device, 1); BloomPassSRTables1[1].UpdateDescriptorTable(Device, 0);
-		BloomPassSRTables1[2][0] = BloomTexturesSRVs[1][0]; BloomPassSRTables1[2].UpdateDescriptorTable(Device, 1); BloomPassSRTables1[2].UpdateDescriptorTable(Device, 0);
-
-		BloomPassSRTables2[0][0][0] = BloomTexturesSRVs[0][0]; BloomPassSRTables2[0][0].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[0][0].UpdateDescriptorTable(Device, 0);
-		BloomPassSRTables2[0][1][0] = BloomTexturesSRVs[0][1]; BloomPassSRTables2[0][1].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[0][1].UpdateDescriptorTable(Device, 0);
-		BloomPassSRTables2[0][2][0] = BloomTexturesSRVs[1][1]; BloomPassSRTables2[0][2].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[0][2].UpdateDescriptorTable(Device, 0);
-
-		BloomPassSRTables2[1][0][0] = BloomTexturesSRVs[0][1]; BloomPassSRTables2[1][0].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[1][0].UpdateDescriptorTable(Device, 0);
-		BloomPassSRTables2[1][1][0] = BloomTexturesSRVs[0][2]; BloomPassSRTables2[1][1].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[1][1].UpdateDescriptorTable(Device, 0);
-		BloomPassSRTables2[1][2][0] = BloomTexturesSRVs[1][2]; BloomPassSRTables2[1][2].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[1][2].UpdateDescriptorTable(Device, 0);
-
-		BloomPassSRTables2[2][0][0] = BloomTexturesSRVs[0][2]; BloomPassSRTables2[2][0].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[2][0].UpdateDescriptorTable(Device, 0);
-		BloomPassSRTables2[2][1][0] = BloomTexturesSRVs[0][3]; BloomPassSRTables2[2][1].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[2][1].UpdateDescriptorTable(Device, 0);
-		BloomPassSRTables2[2][2][0] = BloomTexturesSRVs[1][3]; BloomPassSRTables2[2][2].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[2][2].UpdateDescriptorTable(Device, 0);
-
-		BloomPassSRTables2[3][0][0] = BloomTexturesSRVs[0][3]; BloomPassSRTables2[3][0].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[3][0].UpdateDescriptorTable(Device, 0);
-		BloomPassSRTables2[3][1][0] = BloomTexturesSRVs[0][4]; BloomPassSRTables2[3][1].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[3][1].UpdateDescriptorTable(Device, 0);
-		BloomPassSRTables2[3][2][0] = BloomTexturesSRVs[1][4]; BloomPassSRTables2[3][2].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[3][2].UpdateDescriptorTable(Device, 0);
-
-		BloomPassSRTables2[4][0][0] = BloomTexturesSRVs[0][4]; BloomPassSRTables2[4][0].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[4][0].UpdateDescriptorTable(Device, 0);
-		BloomPassSRTables2[4][1][0] = BloomTexturesSRVs[0][5]; BloomPassSRTables2[4][1].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[4][1].UpdateDescriptorTable(Device, 0);
-		BloomPassSRTables2[4][2][0] = BloomTexturesSRVs[1][5]; BloomPassSRTables2[4][2].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[4][2].UpdateDescriptorTable(Device, 0);
-
-		BloomPassSRTables2[5][0][0] = BloomTexturesSRVs[0][5]; BloomPassSRTables2[5][0].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[5][0].UpdateDescriptorTable(Device, 0);
-		BloomPassSRTables2[5][1][0] = BloomTexturesSRVs[0][6]; BloomPassSRTables2[5][1].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[5][1].UpdateDescriptorTable(Device, 0);
-		BloomPassSRTables2[5][2][0] = BloomTexturesSRVs[1][6]; BloomPassSRTables2[5][2].UpdateDescriptorTable(Device, 1); BloomPassSRTables2[5][2].UpdateDescriptorTable(Device, 0);
-
-		BloomPassSRTables3[0][0] = BloomTexturesSRVs[2][6]; BloomPassSRTables3[0].UpdateDescriptorTable(Device, 1); BloomPassSRTables3[0].UpdateDescriptorTable(Device, 0);
-		BloomPassSRTables3[1][0] = BloomTexturesSRVs[2][5]; BloomPassSRTables3[1].UpdateDescriptorTable(Device, 1); BloomPassSRTables3[1].UpdateDescriptorTable(Device, 0);
-		BloomPassSRTables3[2][0] = BloomTexturesSRVs[2][4]; BloomPassSRTables3[2].UpdateDescriptorTable(Device, 1); BloomPassSRTables3[2].UpdateDescriptorTable(Device, 0);
-		BloomPassSRTables3[3][0] = BloomTexturesSRVs[2][3]; BloomPassSRTables3[3].UpdateDescriptorTable(Device, 1); BloomPassSRTables3[3].UpdateDescriptorTable(Device, 0);
-		BloomPassSRTables3[4][0] = BloomTexturesSRVs[2][2]; BloomPassSRTables3[4].UpdateDescriptorTable(Device, 1); BloomPassSRTables3[4].UpdateDescriptorTable(Device, 0);
-		BloomPassSRTables3[5][0] = BloomTexturesSRVs[2][1]; BloomPassSRTables3[5].UpdateDescriptorTable(Device, 1); BloomPassSRTables3[5].UpdateDescriptorTable(Device, 0);
 	}
 
 	// ===============================================================================================================
@@ -2742,124 +2610,18 @@ void RenderSystem::InitSystem()
 
 		HDRToneMappingPassSRTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]);
 
-		HDRToneMappingPassSRTable[0] = HDRSceneColorTextureSRV;
-		HDRToneMappingPassSRTable[1] = BloomTexturesSRVs[2][0];
-		HDRToneMappingPassSRTable.SetTableSize(2);
-
-		HDRToneMappingPassSRTable.UpdateDescriptorTable(Device, 1);
-		HDRToneMappingPassSRTable.UpdateDescriptorTable(Device, 0);
 	}
-}
 
-void RenderSystem::PostLoad()
-{
-	D3D12_DESCRIPTOR_RANGE DescriptorRanges[4];
-	DescriptorRanges[0].BaseShaderRegister = 0;
-	DescriptorRanges[0].NumDescriptors = 1;
-	DescriptorRanges[0].OffsetInDescriptorsFromTableStart = 0;
-	DescriptorRanges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE::D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-	DescriptorRanges[0].RegisterSpace = 0;
-	DescriptorRanges[1].BaseShaderRegister = 0;
-	DescriptorRanges[1].NumDescriptors = 7;
-	DescriptorRanges[1].OffsetInDescriptorsFromTableStart = 0;
-	DescriptorRanges[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE::D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	DescriptorRanges[1].RegisterSpace = 0;
-	DescriptorRanges[2].BaseShaderRegister = 0;
-	DescriptorRanges[2].NumDescriptors = 1;
-	DescriptorRanges[2].OffsetInDescriptorsFromTableStart = 0;
-	DescriptorRanges[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE::D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-	DescriptorRanges[2].RegisterSpace = 0;
-	DescriptorRanges[3].BaseShaderRegister = 0;
-	DescriptorRanges[3].NumDescriptors = 1;
-	DescriptorRanges[3].OffsetInDescriptorsFromTableStart = 0;
-	DescriptorRanges[3].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE::D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
-	DescriptorRanges[3].RegisterSpace = 0;
-
-	D3D12_ROOT_PARAMETER GraphicsRootParameters[6];
-	GraphicsRootParameters[0].DescriptorTable.NumDescriptorRanges = 1;
-	GraphicsRootParameters[0].DescriptorTable.pDescriptorRanges = &DescriptorRanges[0];
-	GraphicsRootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	GraphicsRootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_VERTEX;
-	GraphicsRootParameters[1].DescriptorTable.NumDescriptorRanges = 1;
-	GraphicsRootParameters[1].DescriptorTable.pDescriptorRanges = &DescriptorRanges[1];
-	GraphicsRootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	GraphicsRootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_VERTEX;
-	GraphicsRootParameters[2].DescriptorTable.NumDescriptorRanges = 1;
-	GraphicsRootParameters[2].DescriptorTable.pDescriptorRanges = &DescriptorRanges[2];
-	GraphicsRootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	GraphicsRootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_VERTEX;
-	GraphicsRootParameters[3].DescriptorTable.NumDescriptorRanges = 1;
-	GraphicsRootParameters[3].DescriptorTable.pDescriptorRanges = &DescriptorRanges[0];
-	GraphicsRootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	GraphicsRootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_PIXEL;
-	GraphicsRootParameters[4].DescriptorTable.NumDescriptorRanges = 1;
-	GraphicsRootParameters[4].DescriptorTable.pDescriptorRanges = &DescriptorRanges[1];
-	GraphicsRootParameters[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	GraphicsRootParameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_PIXEL;
-	GraphicsRootParameters[5].DescriptorTable.NumDescriptorRanges = 1;
-	GraphicsRootParameters[5].DescriptorTable.pDescriptorRanges = &DescriptorRanges[2];
-	GraphicsRootParameters[5].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	GraphicsRootParameters[5].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_PIXEL;
+	// ===============================================================================================================================================
 
 	for (UINT i = 0; i < 100000; i++)
 	{
 		ConstantBufferTables[i] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[VERTEX_SHADER_CONSTANT_BUFFERS]);
-		ConstantBufferTables[i].SetTableSize(1);
 	}
 
 	for (UINT i = 0; i < 20000; i++)
-	{
-		ConstantBufferTables[i][0] = ConstantBufferCBVs[i];
-		ConstantBufferTables[i].UpdateDescriptorTable(Device, 1);
-		ConstantBufferTables[i].UpdateDescriptorTable(Device, 0);
-	}
-
-	for (UINT i = 0; i < 20000; i++)
-	{
-		ConstantBufferTables[20000 + i][0] = ConstantBufferCBVs2[0][i];
-		ConstantBufferTables[20000 + i].UpdateDescriptorTable(Device, 1);
-		ConstantBufferTables[20000 + i].UpdateDescriptorTable(Device, 0);
-	}
-
-	for (UINT i = 0; i < 20000; i++)
-	{
-		ConstantBufferTables[40000 + i][0] = ConstantBufferCBVs2[1][i];
-		ConstantBufferTables[40000 + i].UpdateDescriptorTable(Device, 1);
-		ConstantBufferTables[40000 + i].UpdateDescriptorTable(Device, 0);
-	}
-
-	for (UINT i = 0; i < 20000; i++)
-	{
-		ConstantBufferTables[60000 + i][0] = ConstantBufferCBVs2[2][i];
-		ConstantBufferTables[60000 + i].UpdateDescriptorTable(Device, 1);
-		ConstantBufferTables[60000 + i].UpdateDescriptorTable(Device, 0);
-	}
-
-	for (UINT i = 0; i < 20000; i++)
-	{
-		ConstantBufferTables[80000 + i][0] = ConstantBufferCBVs2[3][i];
-		ConstantBufferTables[80000 + i].UpdateDescriptorTable(Device, 1);
-		ConstantBufferTables[80000 + i].UpdateDescriptorTable(Device, 0);
-	}
-
-	for (UINT i = 0; i < 4000; i++)
 	{
 		ShaderResourcesTables[i] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]);
-		ShaderResourcesTables[i].SetTableSize(2);
-
-		char MaterialResourceName[255];
-
-		sprintf(MaterialResourceName, "Standart_%d", i);
-
-		MaterialResource *Material = Engine::GetEngine().GetResourceManager().GetResource<MaterialResource>(MaterialResourceName);
-		RenderTexture *renderTexture0 = Material->GetTexture(0)->GetRenderTexture();
-		RenderTexture *renderTexture1 = Material->GetTexture(1)->GetRenderTexture();
-
-		ShaderResourcesTables[i][0] = renderTexture0->TextureSRV;
-		ShaderResourcesTables[i][1] = renderTexture1->TextureSRV;
-
-		ShaderResourcesTables[i].UpdateDescriptorTable(Device, 1);
-		ShaderResourcesTables[i].UpdateDescriptorTable(Device, 0);
 	}
 }
 
@@ -2963,8 +2725,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 	SAFE_DX(CommandAllocators[CurrentFrameIndex]->Reset());
 	SAFE_DX(CommandList->Reset(CommandAllocators[CurrentFrameIndex], nullptr));
 
-	//ID3D12DescriptorHeap *DescriptorHeaps[2] = { FrameResourcesDescriptorHeap.GetDXDescriptorHeap(CurrentFrameIndex), FrameSamplersDescriptorHeap.GetDXDescriptorHeap(CurrentFrameIndex) };
-	ID3D12DescriptorHeap *DescriptorHeaps[2] = { FrameResourcesDescriptorHeap.GetDXDescriptorHeap(0), FrameSamplersDescriptorHeap.GetDXDescriptorHeap(0) };
+	ID3D12DescriptorHeap *DescriptorHeaps[2] = { FrameResourcesDescriptorHeap.GetDXDescriptorHeap(CurrentFrameIndex), FrameSamplersDescriptorHeap.GetDXDescriptorHeap(CurrentFrameIndex) };
+	//ID3D12DescriptorHeap *DescriptorHeaps[2] = { FrameResourcesDescriptorHeap.GetDXDescriptorHeap(0), FrameSamplersDescriptorHeap.GetDXDescriptorHeap(0) };
 
 	CommandList->SetDescriptorHeaps(2, DescriptorHeaps);
 	CommandList->SetGraphicsRootSignature(GraphicsRootSignature);
@@ -3069,6 +2831,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 		CommandList->ClearRenderTargetView(GBufferTexturesRTVs[1], ClearColor, 0, nullptr);
 		CommandList->ClearDepthStencilView(DepthBufferTextureDSV, D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_STENCIL, 0.0f, 0, 0, nullptr);
 
+		TextureSamplerTable[0] = TextureSampler;
+		TextureSamplerTable.UpdateDescriptorTable(Device, CurrentFrameIndex);
+
 		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SAMPLERS, TextureSamplerTable);
 		
 		for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
@@ -3096,10 +2861,17 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			CommandList->SetPipelineState(renderMaterial->GBufferOpaquePassPipelineState);
 
-			CommandList->SetGraphicsRootDescriptorTable(VERTEX_SHADER_CONSTANT_BUFFERS, ConstantBufferTables[k]);
-			CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, ShaderResourcesTables[k % 4000]);
+			ConstantBufferTables[k][0] = ConstantBufferCBVs[k];
+			ConstantBufferTables[k].SetTableSize(1);
+			ConstantBufferTables[k].UpdateDescriptorTable(Device, CurrentFrameIndex);
 
-			//ResourceGPUHandle.ptr += 3 * ResourceHandleSize;
+			ShaderResourcesTables[k][0] = renderTexture0->TextureSRV;
+			ShaderResourcesTables[k][1] = renderTexture1->TextureSRV;
+			ShaderResourcesTables[k].SetTableSize(2);
+			ShaderResourcesTables[k].UpdateDescriptorTable(Device, CurrentFrameIndex);
+
+			CommandList->SetGraphicsRootDescriptorTable(VERTEX_SHADER_CONSTANT_BUFFERS, ConstantBufferTables[k]);
+			CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, ShaderResourcesTables[k]);
 
 			CommandList->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
 		}
@@ -3157,9 +2929,17 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->DiscardResource(OcclusionBufferTexture, nullptr);
 
+		MinSamplerTable[0] = MinSampler;
+		MinSamplerTable.UpdateDescriptorTable(Device, CurrentFrameIndex);
+
 		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SAMPLERS, MinSamplerTable);
 		
 		CommandList->SetPipelineState(OcclusionBufferPipelineState);
+
+		OcclusionBufferPassSRTable[0] = ResolvedDepthBufferTextureSRV;
+		OcclusionBufferPassSRTable.SetTableSize(1);
+
+		OcclusionBufferPassSRTable.UpdateDescriptorTable(Device, CurrentFrameIndex);
 
 		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, OcclusionBufferPassSRTable);
 
@@ -3312,6 +3092,10 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 				CommandList->SetPipelineState(renderMaterial->ShadowMapPassPipelineState);
 
+				ConstantBufferTables[(i + 1) * 20000 + k][0] = ConstantBufferCBVs2[i][k];
+				ConstantBufferTables[(i + 1) * 20000 + k].SetTableSize(1);
+				ConstantBufferTables[(i + 1) * 20000 + k].UpdateDescriptorTable(Device, CurrentFrameIndex);
+
 				CommandList->SetGraphicsRootDescriptorTable(VERTEX_SHADER_CONSTANT_BUFFERS, ConstantBufferTables[(i + 1) * 20000 + k]);
 
 				CommandList->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
@@ -3390,9 +3174,26 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->DiscardResource(ShadowMaskTexture, nullptr);
 
+		ShadowMapSamplerTable[0] = ShadowMapSampler;
+		ShadowMapSamplerTable.UpdateDescriptorTable(Device, CurrentFrameIndex);
+
 		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SAMPLERS, ShadowMapSamplerTable);
 		
 		CommandList->SetPipelineState(ShadowResolvePipelineState);
+
+		ShadowResolveCBTable[0] = ShadowResolveConstantBufferCBV;
+		ShadowResolveCBTable.SetTableSize(1);
+
+		ShadowResolveCBTable.UpdateDescriptorTable(Device, CurrentFrameIndex);
+
+		ShadowResolveSRTable[0] = ResolvedDepthBufferTextureSRV;
+		ShadowResolveSRTable[1] = CascadedShadowMapTexturesSRVs[0];
+		ShadowResolveSRTable[2] = CascadedShadowMapTexturesSRVs[1];
+		ShadowResolveSRTable[3] = CascadedShadowMapTexturesSRVs[2];
+		ShadowResolveSRTable[4] = CascadedShadowMapTexturesSRVs[3];
+		ShadowResolveSRTable.SetTableSize(5);
+
+		ShadowResolveSRTable.UpdateDescriptorTable(Device, CurrentFrameIndex);
 
 		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_CONSTANT_BUFFERS, ShadowResolveCBTable);
 		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, ShadowResolveSRTable);
@@ -3504,6 +3305,22 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->SetPipelineState(DeferredLightingPipelineState);
 
+		DeferredLightingCBTable[0] = DeferredLightingConstantBufferCBV;
+		DeferredLightingCBTable.SetTableSize(1);
+
+		DeferredLightingCBTable.UpdateDescriptorTable(Device, CurrentFrameIndex);
+
+		DeferredLightingSRTable[0] = GBufferTexturesSRVs[0];
+		DeferredLightingSRTable[1] = GBufferTexturesSRVs[1];
+		DeferredLightingSRTable[2] = DepthBufferTextureSRV;
+		DeferredLightingSRTable[3] = ShadowMaskTextureSRV;
+		DeferredLightingSRTable[4] = LightClustersBufferSRV;
+		DeferredLightingSRTable[5] = LightIndicesBufferSRV;
+		DeferredLightingSRTable[6] = PointLightsBufferSRV;
+		DeferredLightingSRTable.SetTableSize(7);
+
+		DeferredLightingSRTable.UpdateDescriptorTable(Device, CurrentFrameIndex);
+
 		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_CONSTANT_BUFFERS, DeferredLightingCBTable);
 		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, DeferredLightingSRTable);
 
@@ -3585,6 +3402,11 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->SetPipelineState(FogPipelineState);
 
+		FogSRTable[0] = DepthBufferTextureSRV;
+		FogSRTable.SetTableSize(1);
+
+		FogSRTable.UpdateDescriptorTable(Device, CurrentFrameIndex);
+
 		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, FogSRTable);
 
 		CommandList->DrawInstanced(4, 1, 0, 0);
@@ -3630,6 +3452,14 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->SetPipelineState(SkyPipelineState);
 
+		SkyCBTable[0] = SkyConstantBufferCBV;
+		SkyCBTable.SetTableSize(1);
+		SkyCBTable.UpdateDescriptorTable(Device, CurrentFrameIndex);
+
+		SkySRTable[0] = SkyTextureSRV;
+		SkySRTable.SetTableSize(1);
+		SkySRTable.UpdateDescriptorTable(Device, CurrentFrameIndex);
+
 		CommandList->SetGraphicsRootDescriptorTable(VERTEX_SHADER_CONSTANT_BUFFERS, SkyCBTable);
 		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, SkySRTable);
 
@@ -3647,6 +3477,14 @@ void RenderSystem::TickSystem(float DeltaTime)
 		CommandList->IASetIndexBuffer(&IndexBufferView);
 
 		CommandList->SetPipelineState(SunPipelineState);
+
+		SunCBTable[0] = SunConstantBufferCBV;
+		SunCBTable.SetTableSize(1);
+		SunCBTable.UpdateDescriptorTable(Device, CurrentFrameIndex);
+
+		SunSRTable[0] = SunTextureSRV;
+		SunSRTable.SetTableSize(1);
+		SunSRTable.UpdateDescriptorTable(Device, CurrentFrameIndex);
 
 		CommandList->SetGraphicsRootDescriptorTable(VERTEX_SHADER_CONSTANT_BUFFERS, SunCBTable);
 		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, SunSRTable);
@@ -3679,6 +3517,14 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->SetPipelineState(LuminanceCalcPipelineState);
 
+		LuminancePassSRTables[0][0] = ResolvedHDRSceneColorTextureSRV;
+		LuminancePassSRTables[0].SetTableSize(1);
+		LuminancePassSRTables[0].UpdateDescriptorTable(Device, CurrentFrameIndex);
+
+		LuminancePassUATables[0][0] = SceneLuminanceTexturesUAVs[0]; 
+		LuminancePassUATables[0].SetTableSize(1);
+		LuminancePassUATables[0].UpdateDescriptorTable(Device, CurrentFrameIndex);
+		
 		CommandList->SetComputeRootDescriptorTable(COMPUTE_SHADER_SHADER_RESOURCES, LuminancePassSRTables[0]);
 		CommandList->SetComputeRootDescriptorTable(COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS, LuminancePassUATables[0]);
 
@@ -3693,6 +3539,14 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->SetPipelineState(LuminanceSumPipelineState);
 
+		LuminancePassSRTables[1][0] = SceneLuminanceTexturesSRVs[0];
+		LuminancePassSRTables[1].SetTableSize(1);
+		LuminancePassSRTables[1].UpdateDescriptorTable(Device, CurrentFrameIndex);
+
+		LuminancePassUATables[1][0] = SceneLuminanceTexturesUAVs[1];
+		LuminancePassUATables[1].SetTableSize(1);
+		LuminancePassUATables[1].UpdateDescriptorTable(Device, CurrentFrameIndex);
+
 		CommandList->SetComputeRootDescriptorTable(COMPUTE_SHADER_SHADER_RESOURCES, LuminancePassSRTables[1]);
 		CommandList->SetComputeRootDescriptorTable(COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS, LuminancePassUATables[1]);
 
@@ -3704,6 +3558,14 @@ void RenderSystem::TickSystem(float DeltaTime)
 		SwitchResourceState(SceneLuminanceTextures[2], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
 		ApplyPendingBarriers();
+
+		LuminancePassSRTables[2][0] = SceneLuminanceTexturesSRVs[1];
+		LuminancePassSRTables[2].SetTableSize(1);
+		LuminancePassSRTables[2].UpdateDescriptorTable(Device, CurrentFrameIndex);
+
+		LuminancePassUATables[2][0] = SceneLuminanceTexturesUAVs[2];
+		LuminancePassUATables[2].SetTableSize(1);
+		LuminancePassUATables[2].UpdateDescriptorTable(Device, CurrentFrameIndex);
 
 		CommandList->SetComputeRootDescriptorTable(COMPUTE_SHADER_SHADER_RESOURCES, LuminancePassSRTables[2]);
 		CommandList->SetComputeRootDescriptorTable(COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS, LuminancePassUATables[2]);
@@ -3717,6 +3579,14 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		ApplyPendingBarriers();
 
+		LuminancePassSRTables[3][0] = SceneLuminanceTexturesSRVs[2];
+		LuminancePassSRTables[3].SetTableSize(1);
+		LuminancePassSRTables[3].UpdateDescriptorTable(Device, CurrentFrameIndex);
+
+		LuminancePassUATables[3][0] = SceneLuminanceTexturesUAVs[3];
+		LuminancePassUATables[3].SetTableSize(1);
+		LuminancePassUATables[3].UpdateDescriptorTable(Device, CurrentFrameIndex);
+
 		CommandList->SetComputeRootDescriptorTable(COMPUTE_SHADER_SHADER_RESOURCES, LuminancePassSRTables[3]);
 		CommandList->SetComputeRootDescriptorTable(COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS, LuminancePassUATables[3]);
 
@@ -3729,6 +3599,14 @@ void RenderSystem::TickSystem(float DeltaTime)
 		ApplyPendingBarriers();
 
 		CommandList->SetPipelineState(LuminanceAvgPipelineState);
+
+		LuminancePassSRTables[4][0] = SceneLuminanceTexturesSRVs[3];
+		LuminancePassSRTables[4].SetTableSize(1);
+		LuminancePassSRTables[4].UpdateDescriptorTable(Device, CurrentFrameIndex);
+
+		LuminancePassUATables[4][0] = AverageLuminanceTextureUAV;
+		LuminancePassUATables[4].SetTableSize(1);
+		LuminancePassUATables[4].UpdateDescriptorTable(Device, CurrentFrameIndex);
 
 		CommandList->SetComputeRootDescriptorTable(COMPUTE_SHADER_SHADER_RESOURCES, LuminancePassSRTables[4]);
 		CommandList->SetComputeRootDescriptorTable(COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS, LuminancePassUATables[4]);
@@ -3767,11 +3645,19 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->RSSetScissorRects(1, &ScissorRect);
 
+		BiLinearSamplerTable[0] = BiLinearSampler;
+		BiLinearSamplerTable.UpdateDescriptorTable(Device, CurrentFrameIndex);
+
 		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SAMPLERS, BiLinearSamplerTable);
 		
 		CommandList->DiscardResource(BloomTextures[0][0], nullptr);
 
 		CommandList->SetPipelineState(BrightPassPipelineState);
+
+		BloomPassSRTables1[0][0] = ResolvedHDRSceneColorTextureSRV;
+		BloomPassSRTables1[0][1] = SceneLuminanceTexturesSRVs[0];
+		BloomPassSRTables1[0].SetTableSize(2);
+		BloomPassSRTables1[0].UpdateDescriptorTable(Device, CurrentFrameIndex);
 
 		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, BloomPassSRTables1[0]);
 
@@ -3806,6 +3692,10 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->SetPipelineState(HorizontalBlurPipelineState);
 
+		BloomPassSRTables1[1][0] = BloomTexturesSRVs[0][0];
+		BloomPassSRTables1[1].SetTableSize(1);
+		BloomPassSRTables1[1].UpdateDescriptorTable(Device, CurrentFrameIndex);
+
 		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, BloomPassSRTables1[1]);
 
 		CommandList->DrawInstanced(4, 1, 0, 0);
@@ -3838,6 +3728,10 @@ void RenderSystem::TickSystem(float DeltaTime)
 		CommandList->DiscardResource(BloomTextures[2][0], nullptr);
 
 		CommandList->SetPipelineState(VerticalBlurPipelineState);
+
+		BloomPassSRTables1[2][0] = BloomTexturesSRVs[1][0];
+		BloomPassSRTables1[2].SetTableSize(1);
+		BloomPassSRTables1[2].UpdateDescriptorTable(Device, CurrentFrameIndex);
 
 		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, BloomPassSRTables1[2]);
 
@@ -3873,6 +3767,10 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			CommandList->SetPipelineState(DownSamplePipelineState);
 
+			BloomPassSRTables2[i - 1][0][0] = BloomTexturesSRVs[0][i - 1]; 
+			BloomPassSRTables2[i - 1][0].SetTableSize(1);
+			BloomPassSRTables2[i - 1][0].UpdateDescriptorTable(Device, CurrentFrameIndex);			
+
 			CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, BloomPassSRTables2[i - 1][0]);
 
 			CommandList->DrawInstanced(4, 1, 0, 0);
@@ -3905,6 +3803,10 @@ void RenderSystem::TickSystem(float DeltaTime)
 			CommandList->DiscardResource(BloomTextures[1][i], nullptr);
 
 			CommandList->SetPipelineState(HorizontalBlurPipelineState);
+
+			BloomPassSRTables2[i - 1][1][0] = BloomTexturesSRVs[0][i];
+			BloomPassSRTables2[i - 1][1].SetTableSize(1);
+			BloomPassSRTables2[i - 1][1].UpdateDescriptorTable(Device, CurrentFrameIndex);
 
 			CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, BloomPassSRTables2[i - 1][1]);
 
@@ -3939,6 +3841,10 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			CommandList->SetPipelineState(VerticalBlurPipelineState);
 
+			BloomPassSRTables2[i - 1][2][0] = BloomTexturesSRVs[1][i];
+			BloomPassSRTables2[i - 1][2].SetTableSize(1);
+			BloomPassSRTables2[i - 1][2].UpdateDescriptorTable(Device, CurrentFrameIndex);
+
 			CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, BloomPassSRTables2[i - 1][2]);
 
 			CommandList->DrawInstanced(4, 1, 0, 0);
@@ -3971,6 +3877,10 @@ void RenderSystem::TickSystem(float DeltaTime)
 			CommandList->RSSetScissorRects(1, &ScissorRect);
 
 			CommandList->SetPipelineState(UpSampleWithAddBlendPipelineState);
+
+			BloomPassSRTables3[5 - i][0] = BloomTexturesSRVs[2][i + 1];
+			BloomPassSRTables3[5 - i].SetTableSize(1);
+			BloomPassSRTables3[5 - i].UpdateDescriptorTable(Device, CurrentFrameIndex);
 
 			CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, BloomPassSRTables3[5 - i]);
 
@@ -4013,6 +3923,12 @@ void RenderSystem::TickSystem(float DeltaTime)
 		CommandList->DiscardResource(ToneMappedImageTexture, nullptr);
 
 		CommandList->SetPipelineState(HDRToneMappingPipelineState);
+
+		HDRToneMappingPassSRTable[0] = HDRSceneColorTextureSRV;
+		HDRToneMappingPassSRTable[1] = BloomTexturesSRVs[2][0];
+		HDRToneMappingPassSRTable.SetTableSize(2);
+
+		HDRToneMappingPassSRTable.UpdateDescriptorTable(Device, CurrentFrameIndex);
 
 		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, HDRToneMappingPassSRTable);
 

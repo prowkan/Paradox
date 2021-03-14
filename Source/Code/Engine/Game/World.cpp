@@ -648,8 +648,6 @@ void World::LoadWorld()
 			pointLightEntity->GetPointLightComponent()->SetColor(XMFLOAT3((i + 51) / 100.0f, 0.1f, (j + 51) / 100.0f));
 		}
 	}
-
-	Engine::GetEngine().GetRenderSystem().PostLoad();
 }
 
 void World::UnLoadWorld()

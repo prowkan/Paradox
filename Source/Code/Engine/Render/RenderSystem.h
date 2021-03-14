@@ -352,8 +352,6 @@ class RenderSystem
 
 		CullingSubSystem& GetCullingSubSystem() { return cullingSubSystem; }
 
-		void PostLoad();
-
 	private:
 
 		COMRCPtr<ID3D12Device> Device;
@@ -371,20 +369,11 @@ class RenderSystem
 		COMRCPtr<ID3D12Fence> FrameSyncFences[2], CopySyncFence;
 		HANDLE FrameSyncEvent, CopySyncEvent;
 
-		/*COMRCPtr<ID3D12DescriptorHeap> RTDescriptorHeap, DSDescriptorHeap, CBSRUADescriptorHeap, SamplersDescriptorHeap;
-		COMRCPtr<ID3D12DescriptorHeap> ConstantBufferDescriptorHeap, TexturesDescriptorHeap;*/
-
 		DescriptorHeap RTDescriptorHeap, DSDescriptorHeap, CBSRUADescriptorHeap, SamplersDescriptorHeap;
 		DescriptorHeap ConstantBufferDescriptorHeap, TexturesDescriptorHeap;
 
-		//COMRCPtr<ID3D12DescriptorHeap> FrameResourcesDescriptorHeaps[2], FrameSamplersDescriptorHeaps[2];
-
 		FrameDescriptorHeap FrameResourcesDescriptorHeap, FrameSamplersDescriptorHeap;
 
-		/*UINT RTDescriptorsCount = 0, DSDescriptorsCount = 0, CBSRUADescriptorsCount = 0, SamplersDescriptorsCount = 0;
-		UINT ConstantBufferDescriptorsCount = 0, TexturesDescriptorsCount = 0;*/
-
-		//COMRCPtr<ID3D12RootSignature> GraphicsRootSignature, ComputeRootSignature;
 		RootSignature GraphicsRootSignature, ComputeRootSignature;
 
 		COMRCPtr<ID3D12Resource> BackBufferTextures[2];
