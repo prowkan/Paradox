@@ -2292,7 +2292,7 @@ void RenderSystem::InitSystem()
 		ResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
 		//ResourceDesc.Height = ResolutionHeight;
 		ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_UNKNOWN;
-		ResourceDesc.MipLevels = 1;
+		ResourceDesc.MipLevels = 7;
 		ResourceDesc.SampleDesc.Count = 1;
 		ResourceDesc.SampleDesc.Quality = 0;
 		//ResourceDesc.Width = ResolutionWidth;
@@ -2312,15 +2312,15 @@ void RenderSystem::InitSystem()
 		ClearValue.Color[3] = 0.0f;
 		ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
 
-		for (int i = 0; i < 7; i++)
-		{
-			ResourceDesc.Width = ResolutionWidth >> i;
-			ResourceDesc.Height = ResolutionHeight >> i;
+		/*for (int i = 0; i < 7; i++)
+		{*/
+			ResourceDesc.Width = ResolutionWidth;
+			ResourceDesc.Height = ResolutionHeight;
 
-			SAFE_DX(Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(BloomTextures[0][i])));
-			SAFE_DX(Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(BloomTextures[1][i])));
-			SAFE_DX(Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(BloomTextures[2][i])));
-		}
+			SAFE_DX(Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(BloomTextures[0])));
+			SAFE_DX(Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(BloomTextures[1])));
+			SAFE_DX(Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(BloomTextures[2])));
+		//}
 
 		D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
 		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
@@ -2330,33 +2330,36 @@ void RenderSystem::InitSystem()
 
 		for (int i = 0; i < 7; i++)
 		{
+			RTVDesc.Texture2D.MipSlice = i;
+
 			BloomTexturesRTVs[0][i] = RTDescriptorHeap.AllocateDescriptor();
 			BloomTexturesRTVs[1][i] = RTDescriptorHeap.AllocateDescriptor();
 			BloomTexturesRTVs[2][i] = RTDescriptorHeap.AllocateDescriptor();
 
-			Device->CreateRenderTargetView(BloomTextures[0][i], &RTVDesc, BloomTexturesRTVs[0][i]);
-			Device->CreateRenderTargetView(BloomTextures[1][i], &RTVDesc, BloomTexturesRTVs[1][i]);
-			Device->CreateRenderTargetView(BloomTextures[2][i], &RTVDesc, BloomTexturesRTVs[2][i]);
+			Device->CreateRenderTargetView(BloomTextures[0], &RTVDesc, BloomTexturesRTVs[0][i]);
+			Device->CreateRenderTargetView(BloomTextures[1], &RTVDesc, BloomTexturesRTVs[1][i]);
+			Device->CreateRenderTargetView(BloomTextures[2], &RTVDesc, BloomTexturesRTVs[2][i]);
 		}
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
 		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
 		SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		SRVDesc.Texture2D.MipLevels = 1;
-		SRVDesc.Texture2D.MostDetailedMip = 0;
 		SRVDesc.Texture2D.PlaneSlice = 0;
 		SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
 		for (int i = 0; i < 7; i++)
 		{
+			SRVDesc.Texture2D.MostDetailedMip = 0;
+
 			BloomTexturesSRVs[0][i] = CBSRUADescriptorHeap.AllocateDescriptor();
 			BloomTexturesSRVs[1][i] = CBSRUADescriptorHeap.AllocateDescriptor();
 			BloomTexturesSRVs[2][i] = CBSRUADescriptorHeap.AllocateDescriptor();
 
-			Device->CreateShaderResourceView(BloomTextures[0][i], &SRVDesc, BloomTexturesSRVs[0][i]);
-			Device->CreateShaderResourceView(BloomTextures[1][i], &SRVDesc, BloomTexturesSRVs[1][i]);
-			Device->CreateShaderResourceView(BloomTextures[2][i], &SRVDesc, BloomTexturesSRVs[2][i]);
+			Device->CreateShaderResourceView(BloomTextures[0], &SRVDesc, BloomTexturesSRVs[0][i]);
+			Device->CreateShaderResourceView(BloomTextures[1], &SRVDesc, BloomTexturesSRVs[1][i]);
+			Device->CreateShaderResourceView(BloomTextures[2], &SRVDesc, BloomTexturesSRVs[2][i]);
 		}
 
 		HANDLE BrightPassPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/BrightPass.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
@@ -3619,7 +3622,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 	// ===============================================================================================================
 
 	{
-		SwitchResourceState(BloomTextures[0][0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
+		SwitchResourceState(BloomTextures[0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 		ApplyPendingBarriers();
 
@@ -3650,7 +3653,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SAMPLERS, BiLinearSamplerTable);
 		
-		CommandList->DiscardResource(BloomTextures[0][0], nullptr);
+		//CommandList->DiscardResource(BloomTextures[0][0], nullptr);
 
 		CommandList->SetPipelineState(BrightPassPipelineState);
 
@@ -3663,8 +3666,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->DrawInstanced(4, 1, 0, 0);
 
-		SwitchResourceState(BloomTextures[0][0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		SwitchResourceState(BloomTextures[1][0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
+		SwitchResourceState(BloomTextures[0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		SwitchResourceState(BloomTextures[1], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 		ApplyPendingBarriers();
 
@@ -3688,7 +3691,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->RSSetScissorRects(1, &ScissorRect);
 
-		CommandList->DiscardResource(BloomTextures[1][0], nullptr);
+		//CommandList->DiscardResource(BloomTextures[1][0], nullptr);
 
 		CommandList->SetPipelineState(HorizontalBlurPipelineState);
 
@@ -3700,8 +3703,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->DrawInstanced(4, 1, 0, 0);
 
-		SwitchResourceState(BloomTextures[1][0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		SwitchResourceState(BloomTextures[2][0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
+		SwitchResourceState(BloomTextures[1], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		SwitchResourceState(BloomTextures[2], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 		ApplyPendingBarriers();
 
@@ -3725,7 +3728,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->RSSetScissorRects(1, &ScissorRect);
 
-		CommandList->DiscardResource(BloomTextures[2][0], nullptr);
+		//CommandList->DiscardResource(BloomTextures[2][0], nullptr);
 
 		CommandList->SetPipelineState(VerticalBlurPipelineState);
 
@@ -3739,7 +3742,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		for (int i = 1; i < 7; i++)
 		{
-			SwitchResourceState(BloomTextures[0][i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
+			SwitchResourceState(BloomTextures[0], i, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 			ApplyPendingBarriers();
 
@@ -3763,7 +3766,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			CommandList->RSSetScissorRects(1, &ScissorRect);
 
-			CommandList->DiscardResource(BloomTextures[0][i], nullptr);
+			//CommandList->DiscardResource(BloomTextures[0][i], nullptr);
 
 			CommandList->SetPipelineState(DownSamplePipelineState);
 
@@ -3775,8 +3778,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			CommandList->DrawInstanced(4, 1, 0, 0);
 
-			SwitchResourceState(BloomTextures[0][i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-			SwitchResourceState(BloomTextures[1][i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
+			SwitchResourceState(BloomTextures[0], i, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+			SwitchResourceState(BloomTextures[1], i, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 			ApplyPendingBarriers();
 
@@ -3800,7 +3803,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			CommandList->RSSetScissorRects(1, &ScissorRect);
 
-			CommandList->DiscardResource(BloomTextures[1][i], nullptr);
+			//CommandList->DiscardResource(BloomTextures[1][i], nullptr);
 
 			CommandList->SetPipelineState(HorizontalBlurPipelineState);
 
@@ -3812,8 +3815,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			CommandList->DrawInstanced(4, 1, 0, 0);
 
-			SwitchResourceState(BloomTextures[1][i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-			SwitchResourceState(BloomTextures[2][i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
+			SwitchResourceState(BloomTextures[1], i, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+			SwitchResourceState(BloomTextures[2], i, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 			ApplyPendingBarriers();
 
@@ -3837,7 +3840,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			CommandList->RSSetScissorRects(1, &ScissorRect);
 
-			CommandList->DiscardResource(BloomTextures[2][i], nullptr);
+			//CommandList->DiscardResource(BloomTextures[2][i], nullptr);
 
 			CommandList->SetPipelineState(VerticalBlurPipelineState);
 
@@ -3852,7 +3855,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		for (int i = 5; i >= 0; i--)
 		{
-			SwitchResourceState(BloomTextures[2][i + 1], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+			SwitchResourceState(BloomTextures[2], i + 1, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 			ApplyPendingBarriers();
 
@@ -3890,7 +3893,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	// ===============================================================================================================
 
-	SwitchResourceState(BloomTextures[2][0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	SwitchResourceState(BloomTextures[2], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	SwitchResourceState(ToneMappedImageTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	// ===============================================================================================================
