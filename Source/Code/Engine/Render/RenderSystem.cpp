@@ -85,12 +85,44 @@ RootSignature::RootSignature(ID3D12Device *DXDevice, const D3D12_ROOT_SIGNATURE_
 	// TODO: Сделать обработку ошибок
 	DXDevice->CreateRootSignature(0, RootSignatureBlob->GetBufferPointer(), RootSignatureBlob->GetBufferSize(), UUIDOF(DXRootSignature));
 
-	COMRCPtr<ID3D12RootSignatureDeserializer> RootSignatureDeserializer;
+	DXRootSignatureDesc = RootSignatureDesc;
 
-	// TODO: Сделать обработку ошибок
-	D3D12CreateRootSignatureDeserializer(RootSignatureBlob->GetBufferPointer(), RootSignatureBlob->GetBufferSize(), UUIDOF(RootSignatureDeserializer));
+	DXRootSignatureDesc.pParameters = new D3D12_ROOT_PARAMETER[DXRootSignatureDesc.NumParameters];
+	DXRootSignatureDesc.pStaticSamplers = new D3D12_STATIC_SAMPLER_DESC[DXRootSignatureDesc.NumStaticSamplers];
 
-	DXRootSignatureDesc = *RootSignatureDeserializer->GetRootSignatureDesc();
+	for (size_t i = 0; i < DXRootSignatureDesc.NumParameters; i++)
+	{
+		((D3D12_ROOT_PARAMETER*)DXRootSignatureDesc.pParameters)[i] = RootSignatureDesc.pParameters[i];
+
+		if (DXRootSignatureDesc.pParameters[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+		{
+			((D3D12_ROOT_PARAMETER*)DXRootSignatureDesc.pParameters)[i].DescriptorTable.pDescriptorRanges = new D3D12_DESCRIPTOR_RANGE[DXRootSignatureDesc.pParameters[i].DescriptorTable.NumDescriptorRanges];
+
+			for (size_t j = 0; j < DXRootSignatureDesc.pParameters[i].DescriptorTable.NumDescriptorRanges; j++)
+			{
+				((D3D12_DESCRIPTOR_RANGE*)((D3D12_ROOT_PARAMETER*)DXRootSignatureDesc.pParameters)[i].DescriptorTable.pDescriptorRanges)[j] = RootSignatureDesc.pParameters[i].DescriptorTable.pDescriptorRanges[j];
+			}
+		}
+	}
+
+	for (size_t i = 0; i < DXRootSignatureDesc.NumStaticSamplers; i++)
+	{
+		((D3D12_STATIC_SAMPLER_DESC*)DXRootSignatureDesc.pStaticSamplers)[i] = RootSignatureDesc.pStaticSamplers[i];
+	}
+}
+
+RootSignature::~RootSignature()
+{
+	for (size_t i = 0; i < DXRootSignatureDesc.NumParameters; i++)
+	{
+		if (DXRootSignatureDesc.pParameters[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+		{
+			delete[] DXRootSignatureDesc.pParameters[i].DescriptorTable.pDescriptorRanges;
+		}
+	}
+
+	delete[] DXRootSignatureDesc.pParameters;
+	delete[] DXRootSignatureDesc.pStaticSamplers;
 }
 
 FrameDescriptorHeap::FrameDescriptorHeap(ID3D12Device *DXDevice, const D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType, const UINT DescriptorsCount) : DescriptorHeapType(DescriptorHeapType)
@@ -410,10 +442,10 @@ void RenderSystem::InitSystem()
 
 		Device->CreateSampler(&SamplerDesc, MinSampler);
 
-		TextureSamplerTable = FrameSamplersDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SAMPLERS]);
-		ShadowMapSamplerTable = FrameSamplersDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SAMPLERS]);
-		BiLinearSamplerTable = FrameSamplersDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SAMPLERS]);
-		MinSamplerTable = FrameSamplersDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SAMPLERS]);
+		TextureSamplerTable = FrameSamplersDescriptorHeap.AllocateDescriptorTable(GraphicsRootSignature.GetRootSignatureDesc().pParameters[PIXEL_SHADER_SAMPLERS]);
+		ShadowMapSamplerTable = FrameSamplersDescriptorHeap.AllocateDescriptorTable(GraphicsRootSignature.GetRootSignatureDesc().pParameters[PIXEL_SHADER_SAMPLERS]);
+		BiLinearSamplerTable = FrameSamplersDescriptorHeap.AllocateDescriptorTable(GraphicsRootSignature.GetRootSignatureDesc().pParameters[PIXEL_SHADER_SAMPLERS]);
+		MinSamplerTable = FrameSamplersDescriptorHeap.AllocateDescriptorTable(GraphicsRootSignature.GetRootSignatureDesc().pParameters[PIXEL_SHADER_SAMPLERS]);
 	}
 
 	// ===============================================================================================================
@@ -773,7 +805,7 @@ void RenderSystem::InitSystem()
 
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(OcclusionBufferPipelineState)));
 
-		OcclusionBufferPassSRTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]);
+		OcclusionBufferPassSRTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootSignature.GetRootSignatureDesc().pParameters[PIXEL_SHADER_SHADER_RESOURCES]);
 	}
 
 	// ===============================================================================================================
@@ -1029,8 +1061,8 @@ void RenderSystem::InitSystem()
 
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(ShadowResolvePipelineState)));
 
-		ShadowResolveCBTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_CONSTANT_BUFFERS]);
-		ShadowResolveSRTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]);
+		ShadowResolveCBTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootSignature.GetRootSignatureDesc().pParameters[PIXEL_SHADER_CONSTANT_BUFFERS]);
+		ShadowResolveSRTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootSignature.GetRootSignatureDesc().pParameters[PIXEL_SHADER_SHADER_RESOURCES]);
 	}
 
 	// ===============================================================================================================
@@ -1286,8 +1318,8 @@ void RenderSystem::InitSystem()
 
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(DeferredLightingPipelineState)));
 
-		DeferredLightingCBTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_CONSTANT_BUFFERS]);
-		DeferredLightingSRTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]);
+		DeferredLightingCBTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootSignature.GetRootSignatureDesc().pParameters[PIXEL_SHADER_CONSTANT_BUFFERS]);
+		DeferredLightingSRTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootSignature.GetRootSignatureDesc().pParameters[PIXEL_SHADER_SHADER_RESOURCES]);
 	}
 
 	// ===============================================================================================================
@@ -2059,13 +2091,13 @@ void RenderSystem::InitSystem()
 
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(FogPipelineState)));
 
-		FogSRTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]);
+		FogSRTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootSignature.GetRootSignatureDesc().pParameters[PIXEL_SHADER_SHADER_RESOURCES]);
 
-		SkyCBTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[VERTEX_SHADER_CONSTANT_BUFFERS]);
-		SkySRTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]);
+		SkyCBTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootSignature.GetRootSignatureDesc().pParameters[VERTEX_SHADER_CONSTANT_BUFFERS]);
+		SkySRTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootSignature.GetRootSignatureDesc().pParameters[PIXEL_SHADER_SHADER_RESOURCES]);
 
-		SunCBTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[VERTEX_SHADER_CONSTANT_BUFFERS]);
-		SunSRTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]);
+		SunCBTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootSignature.GetRootSignatureDesc().pParameters[VERTEX_SHADER_CONSTANT_BUFFERS]);
+		SunSRTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootSignature.GetRootSignatureDesc().pParameters[PIXEL_SHADER_SHADER_RESOURCES]);
 	}
 
 	// ===============================================================================================================
@@ -2267,17 +2299,17 @@ void RenderSystem::InitSystem()
 
 		SAFE_DX(Device->CreateComputePipelineState(&ComputePipelineStateDesc, UUIDOF(LuminanceAvgPipelineState)));
 
-		LuminancePassSRTables[0] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_SHADER_RESOURCES]);
-		LuminancePassSRTables[1] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_SHADER_RESOURCES]);
-		LuminancePassSRTables[2] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_SHADER_RESOURCES]);
-		LuminancePassSRTables[3] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_SHADER_RESOURCES]);
-		LuminancePassSRTables[4] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_SHADER_RESOURCES]);
+		LuminancePassSRTables[0] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootSignature.GetRootSignatureDesc().pParameters[COMPUTE_SHADER_SHADER_RESOURCES]);
+		LuminancePassSRTables[1] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootSignature.GetRootSignatureDesc().pParameters[COMPUTE_SHADER_SHADER_RESOURCES]);
+		LuminancePassSRTables[2] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootSignature.GetRootSignatureDesc().pParameters[COMPUTE_SHADER_SHADER_RESOURCES]);
+		LuminancePassSRTables[3] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootSignature.GetRootSignatureDesc().pParameters[COMPUTE_SHADER_SHADER_RESOURCES]);
+		LuminancePassSRTables[4] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootSignature.GetRootSignatureDesc().pParameters[COMPUTE_SHADER_SHADER_RESOURCES]);
 
-		LuminancePassUATables[0] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]);
-		LuminancePassUATables[1] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]);
-		LuminancePassUATables[2] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]);
-		LuminancePassUATables[3] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]);
-		LuminancePassUATables[4] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootParameters[COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]);
+		LuminancePassUATables[0] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootSignature.GetRootSignatureDesc().pParameters[COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]);
+		LuminancePassUATables[1] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootSignature.GetRootSignatureDesc().pParameters[COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]);
+		LuminancePassUATables[2] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootSignature.GetRootSignatureDesc().pParameters[COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]);
+		LuminancePassUATables[3] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootSignature.GetRootSignatureDesc().pParameters[COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]);
+		LuminancePassUATables[4] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(ComputeRootSignature.GetRootSignatureDesc().pParameters[COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]);
 	}
 
 	// ===============================================================================================================
@@ -2505,35 +2537,15 @@ void RenderSystem::InitSystem()
 
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(VerticalBlurPipelineState)));
 
-		BloomPassSRTables1[0] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables1[0].SetTableSize(2);
-		BloomPassSRTables1[1] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables1[1].SetTableSize(1);
-		BloomPassSRTables1[2] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables1[2].SetTableSize(1);
+		for (int i = 0; i < 3; i++)
+			BloomPassSRTables1[i] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootSignature.GetRootSignatureDesc().pParameters[PIXEL_SHADER_SHADER_RESOURCES]);
+		
+		for (int i = 0; i < 6; i++)
+			for (int j = 0; j < 3; j++)
+				BloomPassSRTables2[i][j] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootSignature.GetRootSignatureDesc().pParameters[PIXEL_SHADER_SHADER_RESOURCES]);
 
-		BloomPassSRTables2[0][0] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[0][0].SetTableSize(1);
-		BloomPassSRTables2[0][1] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[0][1].SetTableSize(1);
-		BloomPassSRTables2[0][2] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[0][2].SetTableSize(1);
-		BloomPassSRTables2[1][0] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[1][0].SetTableSize(1);
-		BloomPassSRTables2[1][1] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[1][1].SetTableSize(1);
-		BloomPassSRTables2[1][2] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[1][2].SetTableSize(1);
-		BloomPassSRTables2[2][0] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[2][0].SetTableSize(1);
-		BloomPassSRTables2[2][1] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[2][1].SetTableSize(1);
-		BloomPassSRTables2[2][2] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[2][2].SetTableSize(1);
-		BloomPassSRTables2[3][0] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[3][0].SetTableSize(1);
-		BloomPassSRTables2[3][1] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[3][1].SetTableSize(1);
-		BloomPassSRTables2[3][2] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[3][2].SetTableSize(1);
-		BloomPassSRTables2[4][0] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[4][0].SetTableSize(1);
-		BloomPassSRTables2[4][1] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[4][1].SetTableSize(1);
-		BloomPassSRTables2[4][2] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[4][2].SetTableSize(1);
-		BloomPassSRTables2[5][0] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[5][0].SetTableSize(1);
-		BloomPassSRTables2[5][1] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[5][1].SetTableSize(1);
-		BloomPassSRTables2[5][2] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables2[5][2].SetTableSize(1);
-
-		BloomPassSRTables3[0] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables3[0].SetTableSize(1);
-		BloomPassSRTables3[1] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables3[1].SetTableSize(1);
-		BloomPassSRTables3[2] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables3[2].SetTableSize(1);
-		BloomPassSRTables3[3] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables3[3].SetTableSize(1);
-		BloomPassSRTables3[4] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables3[4].SetTableSize(1);
-		BloomPassSRTables3[5] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]); BloomPassSRTables3[5].SetTableSize(1);
+		for (int i = 0; i < 6; i++)
+			BloomPassSRTables3[i] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootSignature.GetRootSignatureDesc().pParameters[PIXEL_SHADER_SHADER_RESOURCES]);
 	}
 
 	// ===============================================================================================================
@@ -2608,7 +2620,7 @@ void RenderSystem::InitSystem()
 
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(HDRToneMappingPipelineState)));
 
-		HDRToneMappingPassSRTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]);
+		HDRToneMappingPassSRTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootSignature.GetRootSignatureDesc().pParameters[PIXEL_SHADER_SHADER_RESOURCES]);
 
 	}
 
@@ -2616,12 +2628,12 @@ void RenderSystem::InitSystem()
 
 	for (UINT i = 0; i < 100000; i++)
 	{
-		ConstantBufferTables[i] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[VERTEX_SHADER_CONSTANT_BUFFERS]);
+		ConstantBufferTables[i] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootSignature.GetRootSignatureDesc().pParameters[VERTEX_SHADER_CONSTANT_BUFFERS]);
 	}
 
 	for (UINT i = 0; i < 20000; i++)
 	{
-		ShaderResourcesTables[i] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootParameters[PIXEL_SHADER_SHADER_RESOURCES]);
+		ShaderResourcesTables[i] = FrameResourcesDescriptorHeap.AllocateDescriptorTable(GraphicsRootSignature.GetRootSignatureDesc().pParameters[PIXEL_SHADER_SHADER_RESOURCES]);
 	}
 }
 

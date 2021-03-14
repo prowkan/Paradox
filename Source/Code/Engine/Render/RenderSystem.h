@@ -173,6 +173,8 @@ class RootSignature
 
 		RootSignature(ID3D12Device *DXDevice, const D3D12_ROOT_SIGNATURE_DESC& RootSignatureDesc);
 
+		~RootSignature();
+
 		operator ID3D12RootSignature*()
 		{
 			return DXRootSignature;
