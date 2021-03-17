@@ -334,4 +334,5 @@ class RenderSystem
 
 		COMRCPtr<ID3D12Resource> BottomLevelRayTracingAccelerationStructures[4000];
 		COMRCPtr<ID3D12Resource> TopLevelRayTracingAccelerationStructure;
+		D3D12_CPU_DESCRIPTOR_HANDLE RayTracingAccelerationStructureSRV;
 };
