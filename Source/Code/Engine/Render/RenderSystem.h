@@ -152,9 +152,11 @@ class RenderSystem
 
 		CullingSubSystem& GetCullingSubSystem() { return cullingSubSystem; }
 
+		void PrepareRayTracingData();
+
 	private:
 
-		COMRCPtr<ID3D12Device> Device;
+		COMRCPtr<ID3D12Device5> Device;
 		COMRCPtr<IDXGISwapChain4> SwapChain;
 
 		int ResolutionWidth;
@@ -162,7 +164,7 @@ class RenderSystem
 
 		COMRCPtr<ID3D12CommandQueue> CommandQueue;
 		COMRCPtr<ID3D12CommandAllocator> CommandAllocators[2];
-		COMRCPtr<ID3D12GraphicsCommandList> CommandList;
+		COMRCPtr<ID3D12GraphicsCommandList4> CommandList;
 
 		UINT CurrentBackBufferIndex, CurrentFrameIndex;
 
@@ -327,4 +329,9 @@ class RenderSystem
 		inline const char16_t* GetDXErrorMessageFromHRESULT(HRESULT hr);
 
 		static const UINT MAX_MIP_LEVELS_IN_TEXTURE = 16;
+
+		// ===============================================================================================================
+
+		COMRCPtr<ID3D12Resource> BottomLevelRayTracingAccelerationStructures[4000];
+		COMRCPtr<ID3D12Resource> TopLevelRayTracingAccelerationStructure;
 };
