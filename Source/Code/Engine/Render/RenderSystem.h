@@ -235,7 +235,8 @@ class RenderSystem
 		// ===============================================================================================================
 
 		COMRCPtr<ID3D12Resource> ShadowMaskTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE ShadowMaskTextureRTV, ShadowMaskTextureSRV;
+		//D3D12_CPU_DESCRIPTOR_HANDLE ShadowMaskTextureRTV, ShadowMaskTextureSRV;
+		D3D12_CPU_DESCRIPTOR_HANDLE ShadowMaskTextureUAV, ShadowMaskTextureSRV;
 
 		COMRCPtr<ID3D12Resource> GPUShadowResolveConstantBuffer, CPUShadowResolveConstantBuffers[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE ShadowResolveConstantBufferCBV;
@@ -335,4 +336,8 @@ class RenderSystem
 		COMRCPtr<ID3D12Resource> BottomLevelRayTracingAccelerationStructures[4000];
 		COMRCPtr<ID3D12Resource> TopLevelRayTracingAccelerationStructure;
 		D3D12_CPU_DESCRIPTOR_HANDLE RayTracingAccelerationStructureSRV;
+
+		COMRCPtr<ID3D12StateObject> RayTracingPipelineState;
+
+		COMRCPtr<ID3D12Resource> ShaderBindingTableBuffer;
 };

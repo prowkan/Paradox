@@ -89,5 +89,7 @@ float4 PS(PSInput PixelShaderInput, uint SampleIndex : SV_SampleIndex) : SV_Targ
 		Color += BaseColor * max(0.0f, dot(Light, Normal)) * pointLight.Color * pointLight.Brightness * (length(pointLight.Position - PixelWorldPosition.xyz) < pointLight.Radius);
 	}
 
-	return float4(Color, 1.0f);
+	return float4(ShadowFactor.xxx, 1.0f);
+
+	//return float4(Color, 1.0f);
 }
