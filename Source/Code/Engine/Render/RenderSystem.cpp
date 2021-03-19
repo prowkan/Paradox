@@ -70,7 +70,7 @@ void RenderSystem::InitSystem()
 	COMRCPtr<ID3D12Debug3> Debug;
 	SAFE_DX(D3D12GetDebugInterface(UUIDOF(Debug)));
 	Debug->EnableDebugLayer();
-	Debug->SetEnableGPUBasedValidation(TRUE);
+	//Debug->SetEnableGPUBasedValidation(TRUE);
 	FactoryCreationFlags |= DXGI_CREATE_FACTORY_DEBUG;
 #endif
 
@@ -772,7 +772,7 @@ void RenderSystem::InitSystem()
 	// ===============================================================================================================
 
 	{
-		D3D12_RESOURCE_DESC ResourceDesc;
+		/*D3D12_RESOURCE_DESC ResourceDesc;
 		ZeroMemory(&ResourceDesc, sizeof(D3D12_RESOURCE_DESC));
 		ResourceDesc.Alignment = 0;
 		ResourceDesc.DepthOrArraySize = 1;
@@ -901,7 +901,7 @@ void RenderSystem::InitSystem()
 
 				Device->CreateConstantBufferView(&CBVDesc, ConstantBufferCBVs2[j][i]);
 			}
-		}
+		}*/
 	}
 
 	// ===============================================================================================================
@@ -3387,7 +3387,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	// ===============================================================================================================
 
-	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	/*ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarriers[0].Transition.pResource = CascadedShadowMapTextures[0];
 	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE;
 	ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
@@ -3413,12 +3413,12 @@ void RenderSystem::TickSystem(float DeltaTime)
 	ResourceBarriers[3].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE;
 	ResourceBarriers[3].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 	ResourceBarriers[3].Transition.Subresource = 0;
-	ResourceBarriers[3].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	ResourceBarriers[3].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;*/
 
 	// ===============================================================================================================
 
 	{
-		for (int i = 0; i < 4; i++)
+		/*for (int i = 0; i < 4; i++)
 		{
 			SIZE_T ConstantBufferOffset = 0;
 
@@ -3547,7 +3547,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 				CommandList->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
 			}
-		}
+		}*/
 	}
 
 	// ===============================================================================================================
@@ -3560,7 +3560,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 	ResourceBarriers[0].Transition.Subresource = 0;
 	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	/*ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarriers[1].Transition.pResource = CascadedShadowMapTextures[0];
 	ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 	ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE;
@@ -3586,7 +3586,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 	ResourceBarriers[4].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 	ResourceBarriers[4].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE;
 	ResourceBarriers[4].Transition.Subresource = 0;
-	ResourceBarriers[4].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	ResourceBarriers[4].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;*/
 
 	// ===============================================================================================================
 
@@ -3621,14 +3621,14 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CPUShadowResolveConstantBuffers[CurrentFrameIndex]->Unmap(0, &WrittenRange);
 
-		ResourceBarriers[5].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[5].Transition.pResource = GPUShadowResolveConstantBuffer;
-		ResourceBarriers[5].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-		ResourceBarriers[5].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-		ResourceBarriers[5].Transition.Subresource = 0;
-		ResourceBarriers[5].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		ResourceBarriers[1].Transition.pResource = GPUShadowResolveConstantBuffer;
+		ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
+		ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+		ResourceBarriers[1].Transition.Subresource = 0;
+		ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(6, ResourceBarriers);
+		CommandList->ResourceBarrier(2, ResourceBarriers);
 
 		CommandList->CopyBufferRegion(GPUShadowResolveConstantBuffer, 0, CPUShadowResolveConstantBuffers[CurrentFrameIndex], 0, 256);
 
@@ -3702,9 +3702,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 		//CommandList->DrawInstanced(4, 1, 0, 0);
 
 		D3D12_DISPATCH_RAYS_DESC DispatchRaysDesc;
-		DispatchRaysDesc.CallableShaderTable.SizeInBytes = 32;
+		DispatchRaysDesc.CallableShaderTable.SizeInBytes = 0;
 		DispatchRaysDesc.CallableShaderTable.StartAddress = 0;
-		DispatchRaysDesc.CallableShaderTable.StrideInBytes = 32;
+		DispatchRaysDesc.CallableShaderTable.StrideInBytes = 0;
 		DispatchRaysDesc.Depth = 1;
 		DispatchRaysDesc.Height = ResolutionHeight;
 		DispatchRaysDesc.HitGroupTable.SizeInBytes = 32;

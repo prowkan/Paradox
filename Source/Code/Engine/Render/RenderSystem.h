@@ -226,11 +226,11 @@ class RenderSystem
 
 		// ===============================================================================================================
 
-		COMRCPtr<ID3D12Resource> CascadedShadowMapTextures[4];
+		/*COMRCPtr<ID3D12Resource> CascadedShadowMapTextures[4];
 		D3D12_CPU_DESCRIPTOR_HANDLE CascadedShadowMapTexturesDSVs[4], CascadedShadowMapTexturesSRVs[4];
 
 		COMRCPtr<ID3D12Resource> GPUConstantBuffers2[4], CPUConstantBuffers2[4][2];
-		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs2[4][20000];
+		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs2[4][20000];*/
 
 		// ===============================================================================================================
 
