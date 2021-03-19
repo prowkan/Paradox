@@ -223,7 +223,7 @@ class RenderSystem
 		// ===============================================================================================================
 
 		VkImage ResolvedDepthBufferTexture;
-		VkImageView ResolvedDepthBufferTextureView;
+		VkImageView ResolvedDepthBufferTextureView, ResolvedDepthBufferTextureDepthOnlyView;
 		VkDeviceMemory ResolvedDepthBufferTextureMemoryHeap;
 
 		VkRenderPass MSAADepthBufferResolveRenderPass;
@@ -231,7 +231,19 @@ class RenderSystem
 
 		// ===============================================================================================================
 
+		VkImage OcclusionBufferTexture;
+		VkImageView  OcclusionBufferTextureView;
+		VkDeviceMemory OcclusionBufferTextureMemoryHeap;
+		VkBuffer OcclusionBufferReadbackBuffers[2];
+		VkDeviceMemory OcclusionBufferReadbackBuffersMemoryHeaps[2];
 
+		VkRenderPass OcclusionBufferRenderPass;
+		VkFramebuffer OcclusionBufferFrameBuffer;
+
+		VkPipeline OcclusionBufferPipeline;
+		VkPipelineLayout OcclusionBufferPipelineLayout;
+		VkDescriptorSetLayout OcclusionBufferSetLayout;
+		VkDescriptorSet OcclusionBufferSets[2];
 
 		// ===============================================================================================================
 

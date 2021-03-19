@@ -329,14 +329,14 @@ void RenderSystem::InitSystem()
 	VkDescriptorPoolSize DescriptorPoolSizes[3];
 	DescriptorPoolSizes[0].descriptorCount = 20000;
 	DescriptorPoolSizes[0].type = VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	DescriptorPoolSizes[1].descriptorCount = 40000;
+	DescriptorPoolSizes[1].descriptorCount = 40000 + 1;
 	DescriptorPoolSizes[1].type = VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-	DescriptorPoolSizes[2].descriptorCount = 1;
+	DescriptorPoolSizes[2].descriptorCount = 1 + 1;
 	DescriptorPoolSizes[2].type = VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLER;
 
 	VkDescriptorPoolCreateInfo DescriptorPoolCreateInfo;
 	DescriptorPoolCreateInfo.flags = 0;
-	DescriptorPoolCreateInfo.maxSets = 2 * 20000 + 1;
+	DescriptorPoolCreateInfo.maxSets = 2 * 20000 + 1 + 1;
 	DescriptorPoolCreateInfo.pNext = nullptr;
 	DescriptorPoolCreateInfo.poolSizeCount = 3;
 	DescriptorPoolCreateInfo.pPoolSizes = DescriptorPoolSizes;
@@ -428,6 +428,24 @@ void RenderSystem::InitSystem()
 		SAFE_VK(vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, &TexturesSets[1][i]));
 	}
 
+	HANDLE FullScreenQuadVertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/FullScreenQuad.spv", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+	LARGE_INTEGER FullScreenQuadVertexShaderByteCodeLength;
+	BOOL Result = GetFileSizeEx(FullScreenQuadVertexShaderFile, &FullScreenQuadVertexShaderByteCodeLength);
+	ScopedMemoryBlockArray<BYTE> FullScreenQuadVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(FullScreenQuadVertexShaderByteCodeLength.QuadPart);
+	Result = ReadFile(FullScreenQuadVertexShaderFile, FullScreenQuadVertexShaderByteCodeData, (DWORD)FullScreenQuadVertexShaderByteCodeLength.QuadPart, NULL, NULL);
+	Result = CloseHandle(FullScreenQuadVertexShaderFile);
+
+	VkShaderModule FullScreenQuadShaderModule;
+
+	VkShaderModuleCreateInfo ShaderModuleCreateInfo;
+	ShaderModuleCreateInfo.codeSize = FullScreenQuadVertexShaderByteCodeLength.QuadPart;
+	ShaderModuleCreateInfo.flags = 0;
+	ShaderModuleCreateInfo.pCode = FullScreenQuadVertexShaderByteCodeData;
+	ShaderModuleCreateInfo.pNext = nullptr;
+	ShaderModuleCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+
+	SAFE_VK(vkCreateShaderModule(Device, &ShaderModuleCreateInfo, nullptr, &FullScreenQuadShaderModule));
+
 	// ===============================================================================================================
 
 	{
@@ -482,6 +500,30 @@ void RenderSystem::InitSystem()
 		SamplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
 
 		SAFE_VK(vkCreateSampler(Device, &SamplerCreateInfo, nullptr, &TextureSampler));
+
+		VkSamplerReductionModeCreateInfo SamplerReductionModeCreateInfo;
+		SamplerReductionModeCreateInfo.pNext = nullptr;
+		SamplerReductionModeCreateInfo.reductionMode = VkSamplerReductionMode::VK_SAMPLER_REDUCTION_MODE_MIN;
+		SamplerReductionModeCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO;
+
+		SamplerCreateInfo.addressModeU = SamplerCreateInfo.addressModeV = SamplerCreateInfo.addressModeW = VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		SamplerCreateInfo.anisotropyEnable = VK_TRUE;
+		SamplerCreateInfo.borderColor = VkBorderColor::VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+		SamplerCreateInfo.compareEnable = VK_FALSE;
+		SamplerCreateInfo.compareOp = (VkCompareOp)0;
+		SamplerCreateInfo.flags = 0;
+		SamplerCreateInfo.magFilter = VkFilter::VK_FILTER_LINEAR;
+		SamplerCreateInfo.maxAnisotropy = 1.0f;
+		SamplerCreateInfo.maxLod = FLT_MAX;
+		SamplerCreateInfo.minFilter = VkFilter::VK_FILTER_LINEAR;
+		SamplerCreateInfo.minLod = 0.0f;
+		SamplerCreateInfo.mipLodBias = 0.0f;
+		SamplerCreateInfo.mipmapMode = VkSamplerMipmapMode::VK_SAMPLER_MIPMAP_MODE_NEAREST;
+		SamplerCreateInfo.pNext = &SamplerReductionModeCreateInfo;
+		SamplerCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		SamplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
+
+		SAFE_VK(vkCreateSampler(Device, &SamplerCreateInfo, nullptr, &MinSampler));
 	}
 
 	// ===============================================================================================================
@@ -969,6 +1011,24 @@ void RenderSystem::InitSystem()
 
 		SAFE_VK(vkCreateImageView(Device, &ImageViewCreateInfo, nullptr, &ResolvedDepthBufferTextureView));
 
+		ImageViewCreateInfo.components.a = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
+		ImageViewCreateInfo.components.b = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
+		ImageViewCreateInfo.components.g = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
+		ImageViewCreateInfo.components.r = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
+		ImageViewCreateInfo.flags = 0;
+		ImageViewCreateInfo.format = VkFormat::VK_FORMAT_D32_SFLOAT_S8_UINT;
+		ImageViewCreateInfo.image = ResolvedDepthBufferTexture;
+		ImageViewCreateInfo.pNext = nullptr;
+		ImageViewCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		ImageViewCreateInfo.subresourceRange.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_DEPTH_BIT;
+		ImageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+		ImageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+		ImageViewCreateInfo.subresourceRange.layerCount = 1;
+		ImageViewCreateInfo.subresourceRange.levelCount = 1;
+		ImageViewCreateInfo.viewType = VkImageViewType::VK_IMAGE_VIEW_TYPE_2D;
+
+		SAFE_VK(vkCreateImageView(Device, &ImageViewCreateInfo, nullptr, &ResolvedDepthBufferTextureDepthOnlyView));
+
 		VkAttachmentDescription2 AttachmentDescriptions[2];
 		AttachmentDescriptions[0].finalLayout = VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 		AttachmentDescriptions[0].flags = 0;
@@ -1065,6 +1125,356 @@ void RenderSystem::InitSystem()
 	}
 
 	// ===============================================================================================================	
+
+	{
+		VkImageCreateInfo ImageCreateInfo;
+		ImageCreateInfo.arrayLayers = 1;
+		ImageCreateInfo.extent.depth = 1;
+		ImageCreateInfo.extent.height = 144;
+		ImageCreateInfo.extent.width = 256;
+		ImageCreateInfo.flags = 0;
+		ImageCreateInfo.format = VkFormat::VK_FORMAT_R32_SFLOAT;
+		ImageCreateInfo.imageType = VkImageType::VK_IMAGE_TYPE_2D;
+		ImageCreateInfo.initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
+		ImageCreateInfo.mipLevels = 1;
+		ImageCreateInfo.pNext = nullptr;
+		ImageCreateInfo.pQueueFamilyIndices = nullptr;
+		ImageCreateInfo.queueFamilyIndexCount = 0;
+		ImageCreateInfo.samples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
+		ImageCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
+		ImageCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		ImageCreateInfo.tiling = VkImageTiling::VK_IMAGE_TILING_OPTIMAL;
+		ImageCreateInfo.usage = VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VkImageUsageFlagBits::VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+
+		SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &OcclusionBufferTexture));
+
+		VkMemoryRequirements MemoryRequirements;
+
+		vkGetImageMemoryRequirements(Device, OcclusionBufferTexture, &MemoryRequirements);
+
+		VkMemoryAllocateInfo MemoryAllocateInfo;
+		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
+		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
+
+			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
+			{
+				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
+					return i;
+			}
+
+			return -1;
+
+		} ();
+		MemoryAllocateInfo.pNext = nullptr;
+		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+
+		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &OcclusionBufferTextureMemoryHeap));
+
+		SAFE_VK(vkBindImageMemory(Device, OcclusionBufferTexture, OcclusionBufferTextureMemoryHeap, 0));
+
+		VkImageViewCreateInfo ImageViewCreateInfo;
+		ImageViewCreateInfo.components.a = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
+		ImageViewCreateInfo.components.b = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
+		ImageViewCreateInfo.components.g = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
+		ImageViewCreateInfo.components.r = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
+		ImageViewCreateInfo.flags = 0;
+		ImageViewCreateInfo.format = VkFormat::VK_FORMAT_R32_SFLOAT;
+		ImageViewCreateInfo.image = OcclusionBufferTexture;
+		ImageViewCreateInfo.pNext = nullptr;
+		ImageViewCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		ImageViewCreateInfo.subresourceRange.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT;
+		ImageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+		ImageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+		ImageViewCreateInfo.subresourceRange.layerCount = 1;
+		ImageViewCreateInfo.subresourceRange.levelCount = 1;
+		ImageViewCreateInfo.viewType = VkImageViewType::VK_IMAGE_VIEW_TYPE_2D;
+
+		SAFE_VK(vkCreateImageView(Device, &ImageViewCreateInfo, nullptr, &OcclusionBufferTextureView));
+
+		VkBufferCreateInfo BufferCreateInfo;
+		BufferCreateInfo.flags = 0;
+		BufferCreateInfo.pNext = nullptr;
+		BufferCreateInfo.pQueueFamilyIndices = nullptr;
+		BufferCreateInfo.queueFamilyIndexCount = 0;
+		BufferCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
+		BufferCreateInfo.size = 256 * 144 * 4;
+		BufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &OcclusionBufferReadbackBuffers[0]));
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &OcclusionBufferReadbackBuffers[1]));
+
+		vkGetBufferMemoryRequirements(Device, OcclusionBufferReadbackBuffers[0], &MemoryRequirements);
+
+		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
+		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
+
+			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
+			{
+				if (((1 << i) & MemoryRequirements.memoryTypeBits) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_CACHED_BIT))
+					return i;
+			}
+
+			return -1;
+
+		} ();
+		MemoryAllocateInfo.pNext = nullptr;
+		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+
+		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &OcclusionBufferReadbackBuffersMemoryHeaps[0]));
+
+		SAFE_VK(vkBindBufferMemory(Device, OcclusionBufferReadbackBuffers[0], OcclusionBufferReadbackBuffersMemoryHeaps[0], 0));
+
+		vkGetBufferMemoryRequirements(Device, OcclusionBufferReadbackBuffers[0], &MemoryRequirements);
+
+		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
+		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
+
+			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
+			{
+				if (((1 << i) & MemoryRequirements.memoryTypeBits) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_CACHED_BIT))
+					return i;
+			}
+
+			return -1;
+
+		} ();
+		MemoryAllocateInfo.pNext = nullptr;
+		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+
+		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &OcclusionBufferReadbackBuffersMemoryHeaps[1]));
+
+		SAFE_VK(vkBindBufferMemory(Device, OcclusionBufferReadbackBuffers[1], OcclusionBufferReadbackBuffersMemoryHeaps[1], 0));
+
+		VkAttachmentDescription AttachmentDescription;
+		AttachmentDescription.finalLayout = VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		AttachmentDescription.flags = 0;
+		AttachmentDescription.format = VkFormat::VK_FORMAT_R32_SFLOAT;
+		AttachmentDescription.initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		AttachmentDescription.loadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_LOAD;
+		AttachmentDescription.samples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
+		AttachmentDescription.stencilLoadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		AttachmentDescription.stencilStoreOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		AttachmentDescription.storeOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_STORE;
+
+		VkAttachmentReference AttachmentReference;
+		AttachmentReference.attachment = 0;
+		AttachmentReference.layout = VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		
+		VkSubpassDescription SubpassDescription;
+		SubpassDescription.colorAttachmentCount = 1;
+		SubpassDescription.flags = 0;
+		SubpassDescription.inputAttachmentCount = 0;
+		SubpassDescription.pColorAttachments = &AttachmentReference;
+		SubpassDescription.pDepthStencilAttachment = nullptr;
+		SubpassDescription.pInputAttachments = nullptr;
+		SubpassDescription.pipelineBindPoint = VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS;
+		SubpassDescription.pPreserveAttachments = nullptr;
+		SubpassDescription.preserveAttachmentCount = 0;
+		SubpassDescription.pResolveAttachments = nullptr;
+
+		VkRenderPassCreateInfo RenderPassCreateInfo;
+		RenderPassCreateInfo.attachmentCount = 1;
+		RenderPassCreateInfo.dependencyCount = 0;
+		RenderPassCreateInfo.flags = 0;
+		RenderPassCreateInfo.pAttachments = &AttachmentDescription;
+		RenderPassCreateInfo.pDependencies = nullptr;
+		RenderPassCreateInfo.pNext = nullptr;
+		RenderPassCreateInfo.pSubpasses = &SubpassDescription;
+		RenderPassCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+		RenderPassCreateInfo.subpassCount = 1;
+
+		SAFE_VK(vkCreateRenderPass(Device, &RenderPassCreateInfo, nullptr, &OcclusionBufferRenderPass));
+
+		VkFramebufferCreateInfo FramebufferCreateInfo;
+		FramebufferCreateInfo.attachmentCount = 1;
+		FramebufferCreateInfo.flags = 0;
+		FramebufferCreateInfo.height = 144;
+		FramebufferCreateInfo.layers = 1;
+		FramebufferCreateInfo.pAttachments = &OcclusionBufferTextureView;
+		FramebufferCreateInfo.pNext = nullptr;
+		FramebufferCreateInfo.renderPass = OcclusionBufferRenderPass;
+		FramebufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		FramebufferCreateInfo.width = 256;
+
+		SAFE_VK(vkCreateFramebuffer(Device, &FramebufferCreateInfo, nullptr, &OcclusionBufferFrameBuffer));
+
+		VkDescriptorSetLayoutBinding DescriptorSetLayoutBindings[2];
+		DescriptorSetLayoutBindings[0].binding = 0;
+		DescriptorSetLayoutBindings[0].descriptorCount = 1;
+		DescriptorSetLayoutBindings[0].descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+		DescriptorSetLayoutBindings[0].pImmutableSamplers = nullptr;
+		DescriptorSetLayoutBindings[0].stageFlags = VkShaderStageFlagBits::VK_SHADER_STAGE_FRAGMENT_BIT;
+		DescriptorSetLayoutBindings[1].binding = 1;
+		DescriptorSetLayoutBindings[1].descriptorCount = 1;
+		DescriptorSetLayoutBindings[1].descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLER;
+		DescriptorSetLayoutBindings[1].pImmutableSamplers = nullptr;
+		DescriptorSetLayoutBindings[1].stageFlags = VkShaderStageFlagBits::VK_SHADER_STAGE_FRAGMENT_BIT;
+
+		VkDescriptorSetLayoutCreateInfo DescriptorSetLayoutCreateInfo;
+		DescriptorSetLayoutCreateInfo.bindingCount = 2;
+		DescriptorSetLayoutCreateInfo.flags = 0;
+		DescriptorSetLayoutCreateInfo.pBindings = DescriptorSetLayoutBindings;
+		DescriptorSetLayoutCreateInfo.pNext = nullptr;
+		DescriptorSetLayoutCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+
+		SAFE_VK(vkCreateDescriptorSetLayout(Device, &DescriptorSetLayoutCreateInfo, nullptr, &OcclusionBufferSetLayout));
+
+		VkPipelineLayoutCreateInfo PipelineLayoutCreateInfo;
+		PipelineLayoutCreateInfo.flags = 0;
+		PipelineLayoutCreateInfo.pNext = nullptr;
+		PipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
+		PipelineLayoutCreateInfo.pSetLayouts = &OcclusionBufferSetLayout;
+		PipelineLayoutCreateInfo.pushConstantRangeCount = 0;
+		PipelineLayoutCreateInfo.setLayoutCount = 1;
+		PipelineLayoutCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+
+		SAFE_VK(vkCreatePipelineLayout(Device, &PipelineLayoutCreateInfo, nullptr, &OcclusionBufferPipelineLayout));
+
+		VkDescriptorSetAllocateInfo DescriptorSetAllocateInfo;
+		DescriptorSetAllocateInfo.descriptorSetCount = 1;
+		DescriptorSetAllocateInfo.pNext = nullptr;
+		DescriptorSetAllocateInfo.pSetLayouts = &OcclusionBufferSetLayout;
+		DescriptorSetAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		
+		DescriptorSetAllocateInfo.descriptorPool = DescriptorPools[0];
+		SAFE_VK(vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, &OcclusionBufferSets[0]));
+		DescriptorSetAllocateInfo.descriptorPool = DescriptorPools[1];
+		SAFE_VK(vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, &OcclusionBufferSets[1]));
+
+		VkShaderModule OcclusionBufferShaderModule;
+
+		HANDLE OcclusionBufferPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/OcclusionBuffer.spv", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+		LARGE_INTEGER OcclusionBufferPixelShaderByteCodeLength;
+		BOOL Result = GetFileSizeEx(OcclusionBufferPixelShaderFile, &OcclusionBufferPixelShaderByteCodeLength);
+		ScopedMemoryBlockArray<BYTE> OcclusionBufferPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(OcclusionBufferPixelShaderByteCodeLength.QuadPart);
+		Result = ReadFile(OcclusionBufferPixelShaderFile, OcclusionBufferPixelShaderByteCodeData, (DWORD)OcclusionBufferPixelShaderByteCodeLength.QuadPart, NULL, NULL);
+		Result = CloseHandle(OcclusionBufferPixelShaderFile);
+
+		VkShaderModuleCreateInfo ShaderModuleCreateInfo;
+		ShaderModuleCreateInfo.codeSize = OcclusionBufferPixelShaderByteCodeLength.QuadPart;
+		ShaderModuleCreateInfo.flags = 0;
+		ShaderModuleCreateInfo.pCode = OcclusionBufferPixelShaderByteCodeData;
+		ShaderModuleCreateInfo.pNext = nullptr;
+		ShaderModuleCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+
+		SAFE_VK(vkCreateShaderModule(Device, &ShaderModuleCreateInfo, nullptr, &OcclusionBufferShaderModule));
+
+		VkPipelineColorBlendAttachmentState PipelineColorBlendAttachmentState;
+		ZeroMemory(&PipelineColorBlendAttachmentState, sizeof(VkPipelineColorBlendAttachmentState));
+		PipelineColorBlendAttachmentState.blendEnable = VK_FALSE;
+		PipelineColorBlendAttachmentState.colorWriteMask = VkColorComponentFlagBits::VK_COLOR_COMPONENT_R_BIT | VkColorComponentFlagBits::VK_COLOR_COMPONENT_G_BIT | VkColorComponentFlagBits::VK_COLOR_COMPONENT_B_BIT | VkColorComponentFlagBits::VK_COLOR_COMPONENT_A_BIT;
+
+		VkPipelineColorBlendStateCreateInfo PipelineColorBlendStateCreateInfo;
+		ZeroMemory(&PipelineColorBlendStateCreateInfo, sizeof(VkPipelineColorBlendStateCreateInfo));
+		PipelineColorBlendStateCreateInfo.attachmentCount = 1;
+		PipelineColorBlendStateCreateInfo.flags = 0;
+		PipelineColorBlendStateCreateInfo.logicOp = (VkLogicOp)0;
+		PipelineColorBlendStateCreateInfo.logicOpEnable = VK_FALSE;
+		PipelineColorBlendStateCreateInfo.pAttachments = &PipelineColorBlendAttachmentState;
+		PipelineColorBlendStateCreateInfo.pNext = nullptr;
+		PipelineColorBlendStateCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+
+		VkPipelineDepthStencilStateCreateInfo PipelineDepthStencilStateCreateInfo;
+		ZeroMemory(&PipelineDepthStencilStateCreateInfo, sizeof(VkPipelineDepthStencilStateCreateInfo));
+		PipelineDepthStencilStateCreateInfo.depthTestEnable = VK_FALSE;
+		PipelineDepthStencilStateCreateInfo.pNext = nullptr;
+		PipelineDepthStencilStateCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+
+		VkDynamicState DynamicStates[4] =
+		{
+			VkDynamicState::VK_DYNAMIC_STATE_BLEND_CONSTANTS,
+			VkDynamicState::VK_DYNAMIC_STATE_STENCIL_REFERENCE,
+			VkDynamicState::VK_DYNAMIC_STATE_VIEWPORT,
+			VkDynamicState::VK_DYNAMIC_STATE_SCISSOR
+		};
+
+		VkPipelineDynamicStateCreateInfo PipelineDynamicStateCreateInfo;
+		PipelineDynamicStateCreateInfo.dynamicStateCount = 4;
+		PipelineDynamicStateCreateInfo.flags = 0;
+		PipelineDynamicStateCreateInfo.pDynamicStates = DynamicStates;
+		PipelineDynamicStateCreateInfo.pNext = nullptr;
+		PipelineDynamicStateCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+
+		VkPipelineInputAssemblyStateCreateInfo PipelineInputAssemblyStateCreateInfo;
+		PipelineInputAssemblyStateCreateInfo.flags = 0;
+		PipelineInputAssemblyStateCreateInfo.pNext = nullptr;
+		PipelineInputAssemblyStateCreateInfo.primitiveRestartEnable = VK_FALSE;
+		PipelineInputAssemblyStateCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+		PipelineInputAssemblyStateCreateInfo.topology = VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+
+		VkPipelineMultisampleStateCreateInfo PipelineMultisampleStateCreateInfo;
+		ZeroMemory(&PipelineMultisampleStateCreateInfo, sizeof(VkPipelineMultisampleStateCreateInfo));
+		PipelineMultisampleStateCreateInfo.pNext = nullptr;
+		PipelineMultisampleStateCreateInfo.rasterizationSamples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
+		PipelineMultisampleStateCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+
+		VkPipelineRasterizationStateCreateInfo PipelineRasterizationStateCreateInfo;
+		ZeroMemory(&PipelineRasterizationStateCreateInfo, sizeof(PipelineRasterizationStateCreateInfo));
+		PipelineRasterizationStateCreateInfo.cullMode = VkCullModeFlagBits::VK_CULL_MODE_BACK_BIT;
+		PipelineRasterizationStateCreateInfo.frontFace = VkFrontFace::VK_FRONT_FACE_CLOCKWISE;
+		PipelineRasterizationStateCreateInfo.lineWidth = 1.0f;
+		PipelineRasterizationStateCreateInfo.pNext = nullptr;
+		PipelineRasterizationStateCreateInfo.polygonMode = VkPolygonMode::VK_POLYGON_MODE_FILL;
+		PipelineRasterizationStateCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+
+		VkPipelineShaderStageCreateInfo PipelineShaderStageCreateInfos[2];
+		PipelineShaderStageCreateInfos[0].flags = 0;
+		PipelineShaderStageCreateInfos[0].module = FullScreenQuadShaderModule;
+		PipelineShaderStageCreateInfos[0].pName = "VS";
+		PipelineShaderStageCreateInfos[0].pNext = nullptr;
+		PipelineShaderStageCreateInfos[0].pSpecializationInfo = nullptr;
+		PipelineShaderStageCreateInfos[0].stage = VkShaderStageFlagBits::VK_SHADER_STAGE_VERTEX_BIT;
+		PipelineShaderStageCreateInfos[0].sType = VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		PipelineShaderStageCreateInfos[1].flags = 0;
+		PipelineShaderStageCreateInfos[1].module = OcclusionBufferShaderModule;
+		PipelineShaderStageCreateInfos[1].pName = "PS";
+		PipelineShaderStageCreateInfos[1].pNext = nullptr;
+		PipelineShaderStageCreateInfos[1].pSpecializationInfo = nullptr;
+		PipelineShaderStageCreateInfos[1].stage = VkShaderStageFlagBits::VK_SHADER_STAGE_FRAGMENT_BIT;
+		PipelineShaderStageCreateInfos[1].sType = VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+
+		VkPipelineVertexInputStateCreateInfo PipelineVertexInputStateCreateInfo;
+		PipelineVertexInputStateCreateInfo.flags = 0;
+		PipelineVertexInputStateCreateInfo.pNext = nullptr;
+		PipelineVertexInputStateCreateInfo.pVertexAttributeDescriptions = nullptr;
+		PipelineVertexInputStateCreateInfo.pVertexBindingDescriptions = nullptr;
+		PipelineVertexInputStateCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+		PipelineVertexInputStateCreateInfo.vertexAttributeDescriptionCount = 0;
+		PipelineVertexInputStateCreateInfo.vertexBindingDescriptionCount = 0;
+
+		VkPipelineViewportStateCreateInfo PipelineViewportStateCreateInfo;
+		PipelineViewportStateCreateInfo.flags = 0;
+		PipelineViewportStateCreateInfo.pNext = nullptr;
+		PipelineViewportStateCreateInfo.pScissors = nullptr;
+		PipelineViewportStateCreateInfo.pViewports = nullptr;
+		PipelineViewportStateCreateInfo.scissorCount = 1;
+		PipelineViewportStateCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+		PipelineViewportStateCreateInfo.viewportCount = 1;
+
+		VkGraphicsPipelineCreateInfo GraphicsPipelineCreateInfo;
+		GraphicsPipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
+		GraphicsPipelineCreateInfo.basePipelineIndex = -1;
+		GraphicsPipelineCreateInfo.flags = 0;
+		GraphicsPipelineCreateInfo.layout = OcclusionBufferPipelineLayout;
+		GraphicsPipelineCreateInfo.pColorBlendState = &PipelineColorBlendStateCreateInfo;
+		GraphicsPipelineCreateInfo.pDepthStencilState = &PipelineDepthStencilStateCreateInfo;
+		GraphicsPipelineCreateInfo.pDynamicState = &PipelineDynamicStateCreateInfo;
+		GraphicsPipelineCreateInfo.pInputAssemblyState = &PipelineInputAssemblyStateCreateInfo;
+		GraphicsPipelineCreateInfo.pMultisampleState = &PipelineMultisampleStateCreateInfo;
+		GraphicsPipelineCreateInfo.pNext = nullptr;
+		GraphicsPipelineCreateInfo.pRasterizationState = &PipelineRasterizationStateCreateInfo;
+		GraphicsPipelineCreateInfo.pStages = PipelineShaderStageCreateInfos;
+		GraphicsPipelineCreateInfo.pTessellationState = nullptr;
+		GraphicsPipelineCreateInfo.pVertexInputState = &PipelineVertexInputStateCreateInfo;
+		GraphicsPipelineCreateInfo.pViewportState = &PipelineViewportStateCreateInfo;
+		GraphicsPipelineCreateInfo.renderPass = OcclusionBufferRenderPass;
+		GraphicsPipelineCreateInfo.stageCount = 2;
+		GraphicsPipelineCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+		GraphicsPipelineCreateInfo.subpass = 0;
+
+		SAFE_VK(vkCreateGraphicsPipelines(Device, VK_NULL_HANDLE, 1, &GraphicsPipelineCreateInfo, nullptr, &OcclusionBufferPipeline));
+	}
 }
 
 void RenderSystem::ShutdownSystem()
@@ -1822,6 +2232,187 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		vkCmdBeginRenderPass(CommandBuffers[CurrentFrameIndex], &RenderPassBeginInfo, VkSubpassContents::VK_SUBPASS_CONTENTS_INLINE);
 		vkCmdEndRenderPass(CommandBuffers[CurrentFrameIndex]);
+	}
+
+	// ===============================================================================================================	
+
+
+
+	// ===============================================================================================================	
+
+	{
+		VkImageMemoryBarrier ImageMemoryBarriers[2];
+		ImageMemoryBarriers[0].dstAccessMask = VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT;
+		ImageMemoryBarriers[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[0].image = ResolvedDepthBufferTexture;
+		ImageMemoryBarriers[0].newLayout = VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		ImageMemoryBarriers[0].oldLayout = VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		ImageMemoryBarriers[0].pNext = nullptr;
+		ImageMemoryBarriers[0].srcAccessMask = VkAccessFlagBits::VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VkAccessFlagBits::VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		ImageMemoryBarriers[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[0].sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		ImageMemoryBarriers[0].subresourceRange.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_DEPTH_BIT | VkImageAspectFlagBits::VK_IMAGE_ASPECT_STENCIL_BIT;
+		ImageMemoryBarriers[0].subresourceRange.baseArrayLayer = 0;
+		ImageMemoryBarriers[0].subresourceRange.baseMipLevel = 0;
+		ImageMemoryBarriers[0].subresourceRange.layerCount = 1;
+		ImageMemoryBarriers[0].subresourceRange.levelCount = 1;
+
+		ImageMemoryBarriers[1].dstAccessMask = VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		ImageMemoryBarriers[1].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[1].image = OcclusionBufferTexture;
+		ImageMemoryBarriers[1].newLayout = VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		ImageMemoryBarriers[1].oldLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
+		ImageMemoryBarriers[1].pNext = nullptr;
+		ImageMemoryBarriers[1].srcAccessMask = 0;
+		ImageMemoryBarriers[1].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[1].sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		ImageMemoryBarriers[1].subresourceRange.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT;
+		ImageMemoryBarriers[1].subresourceRange.baseArrayLayer = 0;
+		ImageMemoryBarriers[1].subresourceRange.baseMipLevel = 0;
+		ImageMemoryBarriers[1].subresourceRange.layerCount = 1;
+		ImageMemoryBarriers[1].subresourceRange.levelCount = 1;
+
+		vkCmdPipelineBarrier(CommandBuffers[CurrentFrameIndex], VkPipelineStageFlagBits::VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VkPipelineStageFlagBits::VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VkPipelineStageFlagBits::VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 2, ImageMemoryBarriers);
+
+		VkRenderPassBeginInfo RenderPassBeginInfo;
+		RenderPassBeginInfo.clearValueCount = 0;
+		RenderPassBeginInfo.framebuffer = OcclusionBufferFrameBuffer;
+		RenderPassBeginInfo.pClearValues = nullptr;
+		RenderPassBeginInfo.pNext = nullptr;
+		RenderPassBeginInfo.renderArea.extent.height = 144;
+		RenderPassBeginInfo.renderArea.extent.width = 256;
+		RenderPassBeginInfo.renderArea.offset.x = 0;
+		RenderPassBeginInfo.renderArea.offset.y = 0;
+		RenderPassBeginInfo.renderPass = OcclusionBufferRenderPass;
+		RenderPassBeginInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+
+		vkCmdBeginRenderPass(CommandBuffers[CurrentFrameIndex], &RenderPassBeginInfo, VkSubpassContents::VK_SUBPASS_CONTENTS_INLINE);
+
+		VkViewport Viewport;
+		Viewport.height = 144.0f;
+		Viewport.maxDepth = 1.0f;
+		Viewport.minDepth = 0.0f;
+		Viewport.x = 0.0f;
+		Viewport.y = 0.0f;
+		Viewport.width = 256.0f;
+
+		vkCmdSetViewport(CommandBuffers[CurrentFrameIndex], 0, 1, &Viewport);
+
+		VkRect2D ScissorRect;
+		ScissorRect.extent.height = 144;
+		ScissorRect.offset.x = 0;
+		ScissorRect.extent.width = 256;
+		ScissorRect.offset.y = 0;
+
+		vkCmdSetScissor(CommandBuffers[CurrentFrameIndex], 0, 1, &ScissorRect);
+
+		VkDescriptorImageInfo DescriptorImageInfos[2];
+		DescriptorImageInfos[0].imageLayout = VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		DescriptorImageInfos[0].imageView = ResolvedDepthBufferTextureDepthOnlyView;
+		DescriptorImageInfos[0].sampler = VK_NULL_HANDLE;
+		DescriptorImageInfos[1].imageLayout = (VkImageLayout)0;
+		DescriptorImageInfos[1].imageView = VK_NULL_HANDLE;
+		DescriptorImageInfos[1].sampler = MinSampler;
+
+		VkWriteDescriptorSet WriteDescriptorSets[2];
+		WriteDescriptorSets[0].descriptorCount = 1;
+		WriteDescriptorSets[0].descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+		WriteDescriptorSets[0].dstArrayElement = 0;
+		WriteDescriptorSets[0].dstBinding = 0;
+		WriteDescriptorSets[0].dstSet = OcclusionBufferSets[CurrentFrameIndex];
+		WriteDescriptorSets[0].pBufferInfo = nullptr;
+		WriteDescriptorSets[0].pImageInfo = &DescriptorImageInfos[0];
+		WriteDescriptorSets[0].pNext = nullptr;
+		WriteDescriptorSets[0].pTexelBufferView = nullptr;
+		WriteDescriptorSets[0].sType = VkStructureType::VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		WriteDescriptorSets[1].descriptorCount = 1;
+		WriteDescriptorSets[1].descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLER;
+		WriteDescriptorSets[1].dstArrayElement = 0;
+		WriteDescriptorSets[1].dstBinding = 1;
+		WriteDescriptorSets[1].dstSet = OcclusionBufferSets[CurrentFrameIndex];
+		WriteDescriptorSets[1].pBufferInfo = nullptr;
+		WriteDescriptorSets[1].pImageInfo = &DescriptorImageInfos[1];
+		WriteDescriptorSets[1].pNext = nullptr;
+		WriteDescriptorSets[1].pTexelBufferView = nullptr;
+		WriteDescriptorSets[1].sType = VkStructureType::VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+
+		vkUpdateDescriptorSets(Device, 2, WriteDescriptorSets, 0, nullptr);
+
+		vkCmdBindPipeline(CommandBuffers[CurrentFrameIndex], VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS, OcclusionBufferPipeline);
+
+		vkCmdBindDescriptorSets(CommandBuffers[CurrentFrameIndex], VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS, OcclusionBufferPipelineLayout, 0, 1, &OcclusionBufferSets[CurrentFrameIndex], 0, nullptr);
+
+		vkCmdDraw(CommandBuffers[CurrentFrameIndex], 4, 1, 0, 0);
+
+		vkCmdEndRenderPass(CommandBuffers[CurrentFrameIndex]);
+
+		ImageMemoryBarriers[0].dstAccessMask = VkAccessFlagBits::VK_ACCESS_TRANSFER_READ_BIT;
+		ImageMemoryBarriers[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[0].image = OcclusionBufferTexture;
+		ImageMemoryBarriers[0].newLayout = VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+		ImageMemoryBarriers[0].oldLayout = VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		ImageMemoryBarriers[0].pNext = nullptr;
+		ImageMemoryBarriers[0].srcAccessMask = VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		ImageMemoryBarriers[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[0].sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		ImageMemoryBarriers[0].subresourceRange.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT;
+		ImageMemoryBarriers[0].subresourceRange.baseArrayLayer = 0;
+		ImageMemoryBarriers[0].subresourceRange.baseMipLevel = 0;
+		ImageMemoryBarriers[0].subresourceRange.layerCount = 1;
+		ImageMemoryBarriers[0].subresourceRange.levelCount = 1;
+
+		VkBufferMemoryBarrier BufferMemoryBarrier;
+		BufferMemoryBarrier.buffer = OcclusionBufferReadbackBuffers[CurrentFrameIndex];
+		BufferMemoryBarrier.dstAccessMask = VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT;
+		BufferMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		BufferMemoryBarrier.offset = 0;
+		BufferMemoryBarrier.pNext = nullptr;
+		BufferMemoryBarrier.size = VK_WHOLE_SIZE;
+		BufferMemoryBarrier.srcAccessMask = 0;
+		BufferMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		BufferMemoryBarrier.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+
+		vkCmdPipelineBarrier(CommandBuffers[CurrentFrameIndex], VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 1, &BufferMemoryBarrier, 1, ImageMemoryBarriers);
+
+		VkBufferImageCopy BufferImageCopy;
+		BufferImageCopy.bufferImageHeight = 144;
+		BufferImageCopy.bufferOffset = 0;
+		BufferImageCopy.bufferRowLength = 256;
+		BufferImageCopy.imageExtent.depth = 1;
+		BufferImageCopy.imageExtent.height = 144;
+		BufferImageCopy.imageExtent.width = 256;
+		BufferImageCopy.imageOffset.x = 0;
+		BufferImageCopy.imageOffset.y = 0;
+		BufferImageCopy.imageOffset.z = 0;
+		BufferImageCopy.imageSubresource.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT;
+		BufferImageCopy.imageSubresource.baseArrayLayer = 0;
+		BufferImageCopy.imageSubresource.layerCount = 1;
+		BufferImageCopy.imageSubresource.mipLevel = 0;
+
+		vkCmdCopyImageToBuffer(CommandBuffers[CurrentFrameIndex], OcclusionBufferTexture, VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, OcclusionBufferReadbackBuffers[CurrentFrameIndex], 1, &BufferImageCopy);
+
+		BufferMemoryBarrier.buffer = OcclusionBufferReadbackBuffers[CurrentFrameIndex];
+		BufferMemoryBarrier.dstAccessMask = VkAccessFlagBits::VK_ACCESS_HOST_READ_BIT;
+		BufferMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		BufferMemoryBarrier.offset = 0;
+		BufferMemoryBarrier.pNext = nullptr;
+		BufferMemoryBarrier.size = VK_WHOLE_SIZE;
+		BufferMemoryBarrier.srcAccessMask = VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT;
+		BufferMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		BufferMemoryBarrier.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+
+		vkCmdPipelineBarrier(CommandBuffers[CurrentFrameIndex], VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT, VkPipelineStageFlagBits::VK_PIPELINE_STAGE_HOST_BIT, 0, 0, nullptr, 1, &BufferMemoryBarrier, 0, nullptr);
+
+		float *MappedData;
+
+		SAFE_VK(vkMapMemory(Device, OcclusionBufferReadbackBuffersMemoryHeaps[CurrentFrameIndex], 0, VK_WHOLE_SIZE, 0, (void**)&MappedData));
+
+		for (int i = 0; i < 144; i++)
+		{
+			memcpy(cullingSubSystem.GetOcclusionBufferData() + i * 256, MappedData + i * 256, 256 * 4);
+		}
+
+		vkUnmapMemory(Device, OcclusionBufferReadbackBuffersMemoryHeaps[CurrentFrameIndex]);
 	}
 
 	VkImageMemoryBarrier ImageMemoryBarriers[1];
