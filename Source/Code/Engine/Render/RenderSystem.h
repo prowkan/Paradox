@@ -262,11 +262,18 @@ class RenderSystem
 
 		VkImage ShadowMaskTexture;
 		VkImageView ShadowMaskTextureView;
+		VkDeviceMemory ShadowMaskTextureMemoryHeap;
+
+		VkRenderPass ShadowMaskRenderPass;
 		VkFramebuffer ShadowMaskFrameBuffer;
 
-
+		VkBuffer GPUShadowResolveConstantBuffer, CPUShadowResolveConstantBuffers[2];
+		VkDeviceMemory GPUShadowResolveConstantBufferMemoryHeap, CPUShadowResolveConstantBuffersMemoryHeaps[2];
 
 		VkPipeline ShadowResolvePipeline;
+		VkPipelineLayout ShadowResolvePipelineLayout;
+		VkDescriptorSetLayout ShadowResolveSetLayout;
+		VkDescriptorSet ShadowResolveSets[2];
 
 		// ===============================================================================================================
 
@@ -381,37 +388,6 @@ class RenderSystem
 		COMRCPtr<ID3D12Heap> UploadHeap;
 		COMRCPtr<ID3D12Resource> UploadBuffer;
 		size_t UploadBufferOffset = 0;
-
-		// ===============================================================================================================
-
-		COMRCPtr<ID3D12Resource> GBufferTextures[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE GBufferTexturesRTVs[2], GBufferTexturesSRVs[2];
-
-		COMRCPtr<ID3D12Resource> DepthBufferTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE DepthBufferTextureDSV, DepthBufferTextureSRV;
-
-		COMRCPtr<ID3D12Resource> GPUConstantBuffer, CPUConstantBuffers[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs[20000];
-
-		// ===============================================================================================================
-
-		COMRCPtr<ID3D12Resource> ResolvedDepthBufferTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE ResolvedDepthBufferTextureSRV;
-
-		// ===============================================================================================================
-
-		COMRCPtr<ID3D12Resource> OcclusionBufferTexture, OcclusionBufferTextureReadback[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE OcclusionBufferTextureRTV;
-
-		COMRCPtr<ID3D12PipelineState> OcclusionBufferPipelineState;
-
-		// ===============================================================================================================
-
-		COMRCPtr<ID3D12Resource> CascadedShadowMapTextures[4];
-		D3D12_CPU_DESCRIPTOR_HANDLE CascadedShadowMapTexturesDSVs[4], CascadedShadowMapTexturesSRVs[4];
-
-		COMRCPtr<ID3D12Resource> GPUConstantBuffers2[4], CPUConstantBuffers2[4][2];
-		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs2[4][20000];
 
 		// ===============================================================================================================
 
