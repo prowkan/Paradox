@@ -249,8 +249,9 @@ class RenderSystem
 
 		VkImage CascadedShadowMapTextures[4];
 		VkImageView CascadedShadowMapTexturesViews[4];
+		VkDeviceMemory CascadedShadowMapTexturesMemoryHeaps[4];
 
-		VkRenderPass CascadedShadowMapClearPass, CascadedShadowMapDrawPass;
+		VkRenderPass ShadowMapClearRenderPass, ShadowMapDrawRenderPass;
 
 		VkFramebuffer CascadedShadowMapFrameBuffers[4];
 
