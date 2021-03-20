@@ -1,10 +1,10 @@
 struct PSInput
 {
 	float4 Position : SV_Position;
-	float2 TexCoord : TEXCOORD;
+	[[vk::location(0)]] float2 TexCoord : TEXCOORD;
 };
 
-Texture2D InputTexture : register(t0);
+[[vk::binding(0, 0)]] Texture2D InputTexture : register(t0);
 
 float4 PS(PSInput PixelShaderInput) : SV_Target
 {

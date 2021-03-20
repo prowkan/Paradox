@@ -183,7 +183,7 @@ class RenderSystem
 
 		uint32_t SwapChainImagesCount;
 
-		VkFramebuffer *BackBufferFrameBuffers;
+		//VkFramebuffer *BackBufferFrameBuffers;
 
 		// ===============================================================================================================
 
@@ -365,7 +365,15 @@ class RenderSystem
 		// ===============================================================================================================
 
 		VkImage BloomTextures[3][7];
+		VkDeviceMemory BloomTexturesMemoryHeaps[3][7];
 		VkImageView BloomTexturesViews[3][7];
+
+		VkRenderPass BloomRenderPass;
+		VkFramebuffer BloomTexturesFrameBuffers[3][7];
+
+		VkPipelineLayout BloomPassPipelineLayout;
+		VkDescriptorSetLayout BloomPassSetLayout;
+		VkDescriptorSet BloomPassSets1[3][2], BloomPassSets2[6][3][2], BloomPassSets3[6][2];
 
 		VkPipeline BrightPassPipeline;
 		VkPipeline DownSamplePipeline;
@@ -376,9 +384,22 @@ class RenderSystem
 		// ===============================================================================================================
 
 		VkImage ToneMappedImageTexture;
+		VkDeviceMemory ToneMappedImageTextureMemoryHeap;
 		VkImageView ToneMappedImageTextureView;
 
+		VkRenderPass HDRToneMappingRenderPass;
+		VkFramebuffer ToneMappedImageFrameBuffer;
+
+		VkPipelineLayout HDRToneMappingPipelineLayout;
+		VkDescriptorSetLayout HDRToneMappingSetLayout;
+		VkDescriptorSet HDRToneMappingSets[2];
+
 		VkPipeline HDRToneMappingPipeline;
+
+		// ===============================================================================================================
+
+		VkRenderPass BackBufferResolveRenderPass;
+		VkFramebuffer *BackBufferFrameBuffers;
 
 		// ===============================================================================================================
 
@@ -393,48 +414,4 @@ class RenderSystem
 		inline const char16_t* GetVulkanErrorMessageFromVkResult(VkResult Result);
 
 		static const UINT MAX_MIP_LEVELS_IN_TEXTURE = 16;
-
-		/*
-		
-		// ===============================================================================================================
-
-		COMRCPtr<ID3D12Resource> SkyVertexBuffer, SkyIndexBuffer;
-		D3D12_GPU_VIRTUAL_ADDRESS SkyVertexBufferAddress, SkyIndexBufferAddress;
-		COMRCPtr<ID3D12Resource> GPUSkyConstantBuffer, CPUSkyConstantBuffers[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE SkyConstantBufferCBV;
-		COMRCPtr<ID3D12PipelineState> SkyPipelineState;
-		COMRCPtr<ID3D12Resource> SkyTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE SkyTextureSRV;
-
-		COMRCPtr<ID3D12Resource> SunVertexBuffer, SunIndexBuffer;
-		D3D12_GPU_VIRTUAL_ADDRESS SunVertexBufferAddress, SunIndexBufferAddress;
-		COMRCPtr<ID3D12Resource> GPUSunConstantBuffer, CPUSunConstantBuffers[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE SunConstantBufferCBV;
-		COMRCPtr<ID3D12PipelineState> SunPipelineState;
-		COMRCPtr<ID3D12Resource> SunTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE SunTextureSRV;
-
-		COMRCPtr<ID3D12PipelineState> FogPipelineState;
-
-		// ===============================================================================================================
-
-		COMRCPtr<ID3D12Resource> BloomTextures[3][7];
-		D3D12_CPU_DESCRIPTOR_HANDLE BloomTexturesRTVs[3][7], BloomTexturesSRVs[3][7];
-
-		COMRCPtr<ID3D12PipelineState> BrightPassPipelineState;
-		COMRCPtr<ID3D12PipelineState> DownSamplePipelineState;
-		COMRCPtr<ID3D12PipelineState> HorizontalBlurPipelineState;
-		COMRCPtr<ID3D12PipelineState> VerticalBlurPipelineState;
-		COMRCPtr<ID3D12PipelineState> UpSampleWithAddBlendPipelineState;
-
-		// ===============================================================================================================
-
-		COMRCPtr<ID3D12Resource> ToneMappedImageTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE ToneMappedImageTextureRTV;
-
-		COMRCPtr<ID3D12PipelineState> HDRToneMappingPipelineState;
-
-		// ===============================================================================================================
-		
-		*/
 };

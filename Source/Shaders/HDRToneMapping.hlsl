@@ -1,11 +1,11 @@
 struct PSInput
 {
 	float4 Position : SV_Position;
-	float2 TexCoord : TEXCOORD;
+	[[vk::location(0)]] float2 TexCoord : TEXCOORD;
 };
 
-Texture2DMS<float4> HDRFrameBufferTexture : register(t0);
-Texture2D HDRBloomTexture : register(t1);
+[[vk::binding(0, 0)]] Texture2DMS<float4> HDRFrameBufferTexture : register(t0);
+[[vk::binding(1, 0)]] Texture2D HDRBloomTexture : register(t1);
 
 float3 ACESToneMappingOperator(float3 Color)
 {
