@@ -338,18 +338,25 @@ class RenderSystem
 		// ===============================================================================================================
 
 		VkImage ResolvedHDRSceneColorTexture;
+		VkDeviceMemory ResolvedHDRSceneColorTextureMemoryHeap;
 		VkImageView ResolvedHDRSceneColorTextureView;
-
+		
 		VkRenderPass HDRSceneColorResolveRenderPass;
 		VkFramebuffer HDRSceneColorResolveFrameBuffer;
 
 		// ===============================================================================================================
 
 		VkImage SceneLuminanceTextures[4];
+		VkDeviceMemory SceneLuminanceTexturesMemoryHeaps[4];
 		VkImageView SceneLuminanceTexturesViews[4];
 
 		VkImage AverageLuminanceTexture;
+		VkDeviceMemory AverageLuminanceTextureMemoryHeap;
 		VkImageView AverageLuminanceTextureView;
+
+		VkPipelineLayout LuminancePassPipelineLayout;
+		VkDescriptorSetLayout LuminancePassSetLayout;
+		VkDescriptorSet LuminancePassSets[5][2];
 
 		VkPipeline LuminanceCalcPipeline;
 		VkPipeline LuminanceSumPipeline;

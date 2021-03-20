@@ -375,10 +375,10 @@ void RenderSystem::InitSystem()
 
 	SAFE_VK(vkCreateFence(Device, &FenceCreateInfo, nullptr, &CopySyncFence));
 
-	VkDescriptorPoolSize DescriptorPoolSizes[5];
+	VkDescriptorPoolSize DescriptorPoolSizes[6];
 	DescriptorPoolSizes[0].descriptorCount = 100000 + 4 + 2;
 	DescriptorPoolSizes[0].type = VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	DescriptorPoolSizes[1].descriptorCount = 40000 + 1 + 5 + 4 + 1 + 2;
+	DescriptorPoolSizes[1].descriptorCount = 40000 + 1 + 5 + 4 + 1 + 2 + 5;
 	DescriptorPoolSizes[1].type = VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
 	DescriptorPoolSizes[2].descriptorCount = 1 + 1 + 1 + 2;
 	DescriptorPoolSizes[2].type = VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLER;
@@ -386,12 +386,14 @@ void RenderSystem::InitSystem()
 	DescriptorPoolSizes[3].type = VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
 	DescriptorPoolSizes[4].descriptorCount = 1;
 	DescriptorPoolSizes[4].type = VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	DescriptorPoolSizes[5].descriptorCount = 5;
+	DescriptorPoolSizes[5].type = VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 
 	VkDescriptorPoolCreateInfo DescriptorPoolCreateInfo;
 	DescriptorPoolCreateInfo.flags = 0;
-	DescriptorPoolCreateInfo.maxSets = 100000 + 20000 + 1 + 1 + 1 + 1 + 1 + 2;
+	DescriptorPoolCreateInfo.maxSets = 100000 + 20000 + 1 + 1 + 1 + 1 + 1 + 2 + 5;
 	DescriptorPoolCreateInfo.pNext = nullptr;
-	DescriptorPoolCreateInfo.poolSizeCount = 5;
+	DescriptorPoolCreateInfo.poolSizeCount = 6;
 	DescriptorPoolCreateInfo.pPoolSizes = DescriptorPoolSizes;
 	DescriptorPoolCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 
@@ -2782,6 +2784,8 @@ void RenderSystem::InitSystem()
 		PipelineMultisampleStateCreateInfo.pNext = nullptr;
 		PipelineMultisampleStateCreateInfo.rasterizationSamples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_8_BIT;
 		PipelineMultisampleStateCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+		PipelineMultisampleStateCreateInfo.sampleShadingEnable = VK_TRUE;
+		PipelineMultisampleStateCreateInfo.minSampleShading = 1.0f;
 
 		VkPipelineRasterizationStateCreateInfo PipelineRasterizationStateCreateInfo;
 		ZeroMemory(&PipelineRasterizationStateCreateInfo, sizeof(PipelineRasterizationStateCreateInfo));
@@ -4289,6 +4293,392 @@ void RenderSystem::InitSystem()
 
 	// ===============================================================================================================
 
+	{
+		VkImageCreateInfo ImageCreateInfo;
+		ImageCreateInfo.arrayLayers = 1;
+		ImageCreateInfo.extent.depth = 1;
+		ImageCreateInfo.extent.height = ResolutionHeight;
+		ImageCreateInfo.extent.width = ResolutionWidth;
+		ImageCreateInfo.flags = 0;
+		ImageCreateInfo.format = VkFormat::VK_FORMAT_R16G16B16A16_SFLOAT;
+		ImageCreateInfo.imageType = VkImageType::VK_IMAGE_TYPE_2D;
+		ImageCreateInfo.initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
+		ImageCreateInfo.mipLevels = 1;
+		ImageCreateInfo.pNext = nullptr;
+		ImageCreateInfo.pQueueFamilyIndices = nullptr;
+		ImageCreateInfo.queueFamilyIndexCount = 0;
+		ImageCreateInfo.samples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
+		ImageCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
+		ImageCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		ImageCreateInfo.tiling = VkImageTiling::VK_IMAGE_TILING_OPTIMAL;
+		ImageCreateInfo.usage = VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VkImageUsageFlagBits::VK_IMAGE_USAGE_SAMPLED_BIT;
+
+		SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &ResolvedHDRSceneColorTexture));
+
+		VkMemoryRequirements MemoryRequirements;
+
+		vkGetImageMemoryRequirements(Device, ResolvedHDRSceneColorTexture, &MemoryRequirements);
+
+		VkMemoryAllocateInfo MemoryAllocateInfo;
+		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
+		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
+
+			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
+			{
+				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
+					return i;
+			}
+
+			return -1;
+
+		} ();
+		MemoryAllocateInfo.pNext = nullptr;
+		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+
+		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &ResolvedHDRSceneColorTextureMemoryHeap));
+
+		SAFE_VK(vkBindImageMemory(Device, ResolvedHDRSceneColorTexture, ResolvedHDRSceneColorTextureMemoryHeap, 0));
+
+		VkImageViewCreateInfo ImageViewCreateInfo;
+		ImageViewCreateInfo.components.a = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
+		ImageViewCreateInfo.components.b = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
+		ImageViewCreateInfo.components.g = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
+		ImageViewCreateInfo.components.r = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
+		ImageViewCreateInfo.flags = 0;
+		ImageViewCreateInfo.format = VkFormat::VK_FORMAT_R16G16B16A16_SFLOAT;
+		ImageViewCreateInfo.image = ResolvedHDRSceneColorTexture;
+		ImageViewCreateInfo.pNext = nullptr;
+		ImageViewCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		ImageViewCreateInfo.subresourceRange.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT;
+		ImageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+		ImageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+		ImageViewCreateInfo.subresourceRange.layerCount = 1;
+		ImageViewCreateInfo.subresourceRange.levelCount = 1;
+		ImageViewCreateInfo.viewType = VkImageViewType::VK_IMAGE_VIEW_TYPE_2D;
+
+		SAFE_VK(vkCreateImageView(Device, &ImageViewCreateInfo, nullptr, &ResolvedHDRSceneColorTextureView));
+
+		VkAttachmentDescription AttachmentDescriptions[2];
+		AttachmentDescriptions[0].finalLayout = VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		AttachmentDescriptions[0].flags = 0;
+		AttachmentDescriptions[0].format = VkFormat::VK_FORMAT_R16G16B16A16_SFLOAT;
+		AttachmentDescriptions[0].initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		AttachmentDescriptions[0].loadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_LOAD;
+		AttachmentDescriptions[0].samples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_8_BIT;
+		AttachmentDescriptions[0].stencilLoadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		AttachmentDescriptions[0].stencilStoreOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		AttachmentDescriptions[0].storeOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_STORE;
+		AttachmentDescriptions[1].finalLayout = VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		AttachmentDescriptions[1].flags = 0;
+		AttachmentDescriptions[1].format = VkFormat::VK_FORMAT_R16G16B16A16_SFLOAT;
+		AttachmentDescriptions[1].initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		AttachmentDescriptions[1].loadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_LOAD;
+		AttachmentDescriptions[1].samples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
+		AttachmentDescriptions[1].stencilLoadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		AttachmentDescriptions[1].stencilStoreOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		AttachmentDescriptions[1].storeOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_STORE;
+
+		VkAttachmentReference AttachmentReferences[2];
+		AttachmentReferences[0].attachment = 0;
+		AttachmentReferences[0].layout = VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		AttachmentReferences[1].attachment = 1;
+		AttachmentReferences[1].layout = VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		VkSubpassDescription SubpassDescription;
+		SubpassDescription.colorAttachmentCount = 1;
+		SubpassDescription.flags = 0;
+		SubpassDescription.inputAttachmentCount = 0;
+		SubpassDescription.pColorAttachments = &AttachmentReferences[0];
+		SubpassDescription.pDepthStencilAttachment = nullptr;
+		SubpassDescription.pInputAttachments = nullptr;
+		SubpassDescription.pipelineBindPoint = VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS;
+		SubpassDescription.pPreserveAttachments = nullptr;
+		SubpassDescription.preserveAttachmentCount = 0;
+		SubpassDescription.pResolveAttachments = &AttachmentReferences[1];
+
+		VkRenderPassCreateInfo RenderPassCreateInfo;
+		RenderPassCreateInfo.attachmentCount = 2;
+		RenderPassCreateInfo.dependencyCount = 0;
+		RenderPassCreateInfo.flags = 0;
+		RenderPassCreateInfo.pAttachments = AttachmentDescriptions;
+		RenderPassCreateInfo.pDependencies = nullptr;
+		RenderPassCreateInfo.pNext = nullptr;
+		RenderPassCreateInfo.pSubpasses = &SubpassDescription;
+		RenderPassCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+		RenderPassCreateInfo.subpassCount = 1;
+
+		SAFE_VK(vkCreateRenderPass(Device, &RenderPassCreateInfo, nullptr, &HDRSceneColorResolveRenderPass));
+
+		VkImageView Attachments[2] = { HDRSceneColorTextureView, ResolvedHDRSceneColorTextureView };
+
+		VkFramebufferCreateInfo FramebufferCreateInfo;
+		FramebufferCreateInfo.attachmentCount = 2;
+		FramebufferCreateInfo.flags = 0;
+		FramebufferCreateInfo.height = ResolutionHeight;
+		FramebufferCreateInfo.layers = 1;
+		FramebufferCreateInfo.pAttachments = Attachments;
+		FramebufferCreateInfo.pNext = nullptr;
+		FramebufferCreateInfo.renderPass = HDRSceneColorResolveRenderPass;
+		FramebufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		FramebufferCreateInfo.width = ResolutionWidth;
+
+		SAFE_VK(vkCreateFramebuffer(Device, &FramebufferCreateInfo, nullptr, &HDRSceneColorResolveFrameBuffer));
+	}
+
+	// ===============================================================================================================
+	
+	{
+		VkImageCreateInfo ImageCreateInfo;
+		ImageCreateInfo.arrayLayers = 1;
+		ImageCreateInfo.extent.depth = 1;
+		//ImageCreateInfo.extent.height = ResolutionHeight;
+		//ImageCreateInfo.extent.width = ResolutionWidth;
+		ImageCreateInfo.flags = 0;
+		ImageCreateInfo.format = VkFormat::VK_FORMAT_R32_SFLOAT;
+		ImageCreateInfo.imageType = VkImageType::VK_IMAGE_TYPE_2D;
+		ImageCreateInfo.initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
+		ImageCreateInfo.mipLevels = 1;
+		ImageCreateInfo.pNext = nullptr;
+		ImageCreateInfo.pQueueFamilyIndices = nullptr;
+		ImageCreateInfo.queueFamilyIndexCount = 0;
+		ImageCreateInfo.samples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
+		ImageCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
+		ImageCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		ImageCreateInfo.tiling = VkImageTiling::VK_IMAGE_TILING_OPTIMAL;
+		ImageCreateInfo.usage = VkImageUsageFlagBits::VK_IMAGE_USAGE_STORAGE_BIT | VkImageUsageFlagBits::VK_IMAGE_USAGE_SAMPLED_BIT;
+
+		int Widths[4] = { 1280, 80, 5, 1 };
+		int Heights[4] = { 720, 45, 3, 1 };
+
+		for (int i = 0; i < 4; i++)
+		{
+			ImageCreateInfo.extent.height = Heights[i];
+			ImageCreateInfo.extent.width = Widths[i];
+
+			SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &SceneLuminanceTextures[i]));
+
+			VkMemoryRequirements MemoryRequirements;
+
+			vkGetImageMemoryRequirements(Device, SceneLuminanceTextures[i], &MemoryRequirements);
+
+			VkMemoryAllocateInfo MemoryAllocateInfo;
+			MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
+			MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
+
+				for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
+				{
+					if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
+						return i;
+				}
+
+				return -1;
+
+			} ();
+			MemoryAllocateInfo.pNext = nullptr;
+			MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+
+			SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &SceneLuminanceTexturesMemoryHeaps[i]));
+
+			SAFE_VK(vkBindImageMemory(Device, SceneLuminanceTextures[i], SceneLuminanceTexturesMemoryHeaps[i], 0));
+		}
+
+		ImageCreateInfo.arrayLayers = 1;
+		ImageCreateInfo.extent.depth = 1;
+		ImageCreateInfo.extent.height = 1;
+		ImageCreateInfo.extent.width = 1;
+		ImageCreateInfo.flags = 0;
+		ImageCreateInfo.format = VkFormat::VK_FORMAT_R32_SFLOAT;
+		ImageCreateInfo.imageType = VkImageType::VK_IMAGE_TYPE_2D;
+		ImageCreateInfo.initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
+		ImageCreateInfo.mipLevels = 1;
+		ImageCreateInfo.pNext = nullptr;
+		ImageCreateInfo.pQueueFamilyIndices = nullptr;
+		ImageCreateInfo.queueFamilyIndexCount = 0;
+		ImageCreateInfo.samples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
+		ImageCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
+		ImageCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		ImageCreateInfo.tiling = VkImageTiling::VK_IMAGE_TILING_OPTIMAL;
+		ImageCreateInfo.usage = VkImageUsageFlagBits::VK_IMAGE_USAGE_STORAGE_BIT | VkImageUsageFlagBits::VK_IMAGE_USAGE_SAMPLED_BIT;
+
+		SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &AverageLuminanceTexture));
+
+		VkMemoryRequirements MemoryRequirements;
+
+		vkGetImageMemoryRequirements(Device, AverageLuminanceTexture, &MemoryRequirements);
+
+		VkMemoryAllocateInfo MemoryAllocateInfo;
+		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
+		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
+
+			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
+			{
+				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
+					return i;
+			}
+
+			return -1;
+
+		} ();
+		MemoryAllocateInfo.pNext = nullptr;
+		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+
+		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &AverageLuminanceTextureMemoryHeap));
+
+		SAFE_VK(vkBindImageMemory(Device, AverageLuminanceTexture, AverageLuminanceTextureMemoryHeap, 0));
+
+		VkImageViewCreateInfo ImageViewCreateInfo;
+		ImageViewCreateInfo.components.a = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
+		ImageViewCreateInfo.components.b = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
+		ImageViewCreateInfo.components.g = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
+		ImageViewCreateInfo.components.r = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
+		ImageViewCreateInfo.flags = 0;
+		ImageViewCreateInfo.format = VkFormat::VK_FORMAT_R32_SFLOAT;
+		ImageViewCreateInfo.pNext = nullptr;
+		ImageViewCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		ImageViewCreateInfo.subresourceRange.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT;
+		ImageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+		ImageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+		ImageViewCreateInfo.subresourceRange.layerCount = 1;
+		ImageViewCreateInfo.subresourceRange.levelCount = 1;
+		ImageViewCreateInfo.viewType = VkImageViewType::VK_IMAGE_VIEW_TYPE_2D;
+
+		ImageViewCreateInfo.image = SceneLuminanceTextures[0];
+		SAFE_VK(vkCreateImageView(Device, &ImageViewCreateInfo, nullptr, &SceneLuminanceTexturesViews[0]));
+		ImageViewCreateInfo.image = SceneLuminanceTextures[1];
+		SAFE_VK(vkCreateImageView(Device, &ImageViewCreateInfo, nullptr, &SceneLuminanceTexturesViews[1]));
+		ImageViewCreateInfo.image = SceneLuminanceTextures[2];
+		SAFE_VK(vkCreateImageView(Device, &ImageViewCreateInfo, nullptr, &SceneLuminanceTexturesViews[2]));
+		ImageViewCreateInfo.image = SceneLuminanceTextures[3];
+		SAFE_VK(vkCreateImageView(Device, &ImageViewCreateInfo, nullptr, &SceneLuminanceTexturesViews[3]));
+
+
+		ImageViewCreateInfo.image = AverageLuminanceTexture;
+		SAFE_VK(vkCreateImageView(Device, &ImageViewCreateInfo, nullptr, &AverageLuminanceTextureView));
+
+		VkDescriptorSetLayoutBinding DescriptorSetLayoutBindings[2];
+		DescriptorSetLayoutBindings[0].binding = 0;
+		DescriptorSetLayoutBindings[0].descriptorCount = 1;
+		DescriptorSetLayoutBindings[0].descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+		DescriptorSetLayoutBindings[0].pImmutableSamplers = nullptr;
+		DescriptorSetLayoutBindings[0].stageFlags = VkShaderStageFlagBits::VK_SHADER_STAGE_COMPUTE_BIT;
+		DescriptorSetLayoutBindings[1].binding = 1;
+		DescriptorSetLayoutBindings[1].descriptorCount = 1;
+		DescriptorSetLayoutBindings[1].descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+		DescriptorSetLayoutBindings[1].pImmutableSamplers = nullptr;
+		DescriptorSetLayoutBindings[1].stageFlags = VkShaderStageFlagBits::VK_SHADER_STAGE_COMPUTE_BIT;
+
+		VkDescriptorSetLayoutCreateInfo DescriptorSetLayoutCreateInfo;
+		DescriptorSetLayoutCreateInfo.bindingCount = 2;
+		DescriptorSetLayoutCreateInfo.flags = 0;
+		DescriptorSetLayoutCreateInfo.pBindings = DescriptorSetLayoutBindings;
+		DescriptorSetLayoutCreateInfo.pNext = nullptr;
+		DescriptorSetLayoutCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+
+		SAFE_VK(vkCreateDescriptorSetLayout(Device, &DescriptorSetLayoutCreateInfo, nullptr, &LuminancePassSetLayout));
+
+		VkPipelineLayoutCreateInfo PipelineLayoutCreateInfo;
+		PipelineLayoutCreateInfo.flags = 0;
+		PipelineLayoutCreateInfo.pNext = nullptr;
+		PipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
+		PipelineLayoutCreateInfo.pSetLayouts = &LuminancePassSetLayout;
+		PipelineLayoutCreateInfo.pushConstantRangeCount = 0;
+		PipelineLayoutCreateInfo.setLayoutCount = 1;
+		PipelineLayoutCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+
+		SAFE_VK(vkCreatePipelineLayout(Device, &PipelineLayoutCreateInfo, nullptr, &LuminancePassPipelineLayout));
+
+		VkDescriptorSetAllocateInfo DescriptorSetAllocateInfo;
+		DescriptorSetAllocateInfo.descriptorSetCount = 1;
+		DescriptorSetAllocateInfo.pNext = nullptr;
+		DescriptorSetAllocateInfo.pSetLayouts = &LuminancePassSetLayout;
+		DescriptorSetAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+
+		DescriptorSetAllocateInfo.descriptorPool = DescriptorPools[0];
+		SAFE_VK(vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, &LuminancePassSets[0][0]));
+		SAFE_VK(vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, &LuminancePassSets[1][0]));
+		SAFE_VK(vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, &LuminancePassSets[2][0]));
+		SAFE_VK(vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, &LuminancePassSets[3][0]));
+		SAFE_VK(vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, &LuminancePassSets[4][0]));
+		DescriptorSetAllocateInfo.descriptorPool = DescriptorPools[1];
+		SAFE_VK(vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, &LuminancePassSets[0][1]));
+		SAFE_VK(vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, &LuminancePassSets[1][1]));
+		SAFE_VK(vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, &LuminancePassSets[2][1]));
+		SAFE_VK(vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, &LuminancePassSets[3][1]));
+		SAFE_VK(vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, &LuminancePassSets[4][1]));
+
+		HANDLE LuminanceCalcComputeShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/LuminanceCalc.spv", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+		LARGE_INTEGER LuminanceCalcComputeShaderByteCodeLength;
+		Result = GetFileSizeEx(LuminanceCalcComputeShaderFile, &LuminanceCalcComputeShaderByteCodeLength);
+		ScopedMemoryBlockArray<BYTE> LuminanceCalcComputeShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(LuminanceCalcComputeShaderByteCodeLength.QuadPart);
+		Result = ReadFile(LuminanceCalcComputeShaderFile, LuminanceCalcComputeShaderByteCodeData, (DWORD)LuminanceCalcComputeShaderByteCodeLength.QuadPart, NULL, NULL);
+		Result = CloseHandle(LuminanceCalcComputeShaderFile);
+
+		HANDLE LuminanceSumComputeShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/LuminanceSum.spv", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+		LARGE_INTEGER LuminanceSumComputeShaderByteCodeLength;
+		Result = GetFileSizeEx(LuminanceSumComputeShaderFile, &LuminanceSumComputeShaderByteCodeLength);
+		ScopedMemoryBlockArray<BYTE> LuminanceSumComputeShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(LuminanceSumComputeShaderByteCodeLength.QuadPart);
+		Result = ReadFile(LuminanceSumComputeShaderFile, LuminanceSumComputeShaderByteCodeData, (DWORD)LuminanceSumComputeShaderByteCodeLength.QuadPart, NULL, NULL);
+		Result = CloseHandle(LuminanceSumComputeShaderFile);
+
+		HANDLE LuminanceAvgComputeShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/LuminanceAvg.spv", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+		LARGE_INTEGER LuminanceAvgComputeShaderByteCodeLength;
+		Result = GetFileSizeEx(LuminanceAvgComputeShaderFile, &LuminanceAvgComputeShaderByteCodeLength);
+		ScopedMemoryBlockArray<BYTE> LuminanceAvgComputeShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(LuminanceAvgComputeShaderByteCodeLength.QuadPart);
+		Result = ReadFile(LuminanceAvgComputeShaderFile, LuminanceAvgComputeShaderByteCodeData, (DWORD)LuminanceAvgComputeShaderByteCodeLength.QuadPart, NULL, NULL);
+		Result = CloseHandle(LuminanceAvgComputeShaderFile);
+
+		VkShaderModule LuminanceCalcComputeShaderModule, LuminanceSumComputeShaderModule, LuminanceAvgComputeShaderModule;
+
+		VkShaderModuleCreateInfo ShaderModuleCreateInfo;
+		ShaderModuleCreateInfo.codeSize = LuminanceCalcComputeShaderByteCodeLength.QuadPart;
+		ShaderModuleCreateInfo.flags = 0;
+		ShaderModuleCreateInfo.pCode = LuminanceCalcComputeShaderByteCodeData;
+		ShaderModuleCreateInfo.pNext = nullptr;
+		ShaderModuleCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+
+		SAFE_VK(vkCreateShaderModule(Device, &ShaderModuleCreateInfo, nullptr, &LuminanceCalcComputeShaderModule));
+
+		ShaderModuleCreateInfo.codeSize = LuminanceSumComputeShaderByteCodeLength.QuadPart;
+		ShaderModuleCreateInfo.flags = 0;
+		ShaderModuleCreateInfo.pCode = LuminanceSumComputeShaderByteCodeData;
+		ShaderModuleCreateInfo.pNext = nullptr;
+		ShaderModuleCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+
+		SAFE_VK(vkCreateShaderModule(Device, &ShaderModuleCreateInfo, nullptr, &LuminanceSumComputeShaderModule));
+
+		ShaderModuleCreateInfo.codeSize = LuminanceAvgComputeShaderByteCodeLength.QuadPart;
+		ShaderModuleCreateInfo.flags = 0;
+		ShaderModuleCreateInfo.pCode = LuminanceAvgComputeShaderByteCodeData;
+		ShaderModuleCreateInfo.pNext = nullptr;
+		ShaderModuleCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+
+		SAFE_VK(vkCreateShaderModule(Device, &ShaderModuleCreateInfo, nullptr, &LuminanceAvgComputeShaderModule));
+
+		VkComputePipelineCreateInfo ComputePipelineCreateInfo;
+		ComputePipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
+		ComputePipelineCreateInfo.basePipelineIndex = -1;
+		ComputePipelineCreateInfo.flags = 0;
+		ComputePipelineCreateInfo.layout = LuminancePassPipelineLayout;
+		ComputePipelineCreateInfo.pNext = nullptr;
+		ComputePipelineCreateInfo.stage.flags = 0;
+		ComputePipelineCreateInfo.stage.pName = "CS";
+		ComputePipelineCreateInfo.stage.pNext = nullptr;
+		ComputePipelineCreateInfo.stage.pSpecializationInfo = nullptr;
+		ComputePipelineCreateInfo.stage.stage = VkShaderStageFlagBits::VK_SHADER_STAGE_COMPUTE_BIT;
+		ComputePipelineCreateInfo.stage.sType = VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		ComputePipelineCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+
+		ComputePipelineCreateInfo.stage.module = LuminanceCalcComputeShaderModule;
+		SAFE_VK(vkCreateComputePipelines(Device, VK_NULL_HANDLE, 1, &ComputePipelineCreateInfo, nullptr, &LuminanceCalcPipeline));
+		
+		ComputePipelineCreateInfo.stage.module = LuminanceSumComputeShaderModule;
+		SAFE_VK(vkCreateComputePipelines(Device, VK_NULL_HANDLE, 1, &ComputePipelineCreateInfo, nullptr, &LuminanceSumPipeline));
+		
+		ComputePipelineCreateInfo.stage.module = LuminanceAvgComputeShaderModule;
+		SAFE_VK(vkCreateComputePipelines(Device, VK_NULL_HANDLE, 1, &ComputePipelineCreateInfo, nullptr, &LuminanceAvgPipeline));
+	}
+	
+	// ===============================================================================================================
 
 }
 
@@ -6001,9 +6391,384 @@ void RenderSystem::TickSystem(float DeltaTime)
 	// ===============================================================================================================
 
 	{
+		VkImageMemoryBarrier ImageMemoryBarrier;
+		ImageMemoryBarrier.dstAccessMask = VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		ImageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarrier.image = ResolvedHDRSceneColorTexture;
+		ImageMemoryBarrier.newLayout = VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		ImageMemoryBarrier.oldLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
+		ImageMemoryBarrier.pNext = nullptr;
+		ImageMemoryBarrier.srcAccessMask = 0;
+		ImageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarrier.sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		ImageMemoryBarrier.subresourceRange.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT;
+		ImageMemoryBarrier.subresourceRange.baseArrayLayer = 0;
+		ImageMemoryBarrier.subresourceRange.baseMipLevel = 0;
+		ImageMemoryBarrier.subresourceRange.layerCount = 1;
+		ImageMemoryBarrier.subresourceRange.levelCount = 1;
 
+		vkCmdPipelineBarrier(CommandBuffers[CurrentFrameIndex], VkPipelineStageFlagBits::VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, nullptr, 1, &ImageMemoryBarrier);
+
+		VkRenderPassBeginInfo RenderPassBeginInfo;
+		RenderPassBeginInfo.clearValueCount = 0;
+		RenderPassBeginInfo.framebuffer = HDRSceneColorResolveFrameBuffer;
+		RenderPassBeginInfo.pClearValues = nullptr;
+		RenderPassBeginInfo.pNext = nullptr;
+		RenderPassBeginInfo.renderArea.extent.height = ResolutionHeight;
+		RenderPassBeginInfo.renderArea.extent.width = ResolutionWidth;
+		RenderPassBeginInfo.renderArea.offset.x = 0;
+		RenderPassBeginInfo.renderArea.offset.y = 0;
+		RenderPassBeginInfo.renderPass = HDRSceneColorResolveRenderPass;
+		RenderPassBeginInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+
+		vkCmdBeginRenderPass(CommandBuffers[CurrentFrameIndex], &RenderPassBeginInfo, VkSubpassContents::VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdEndRenderPass(CommandBuffers[CurrentFrameIndex]);
 	}
 
+	// ===============================================================================================================
+	 
+	// ===============================================================================================================
+	
+	{
+		VkImageMemoryBarrier ImageMemoryBarriers[2];
+		ImageMemoryBarriers[0].dstAccessMask = VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT;
+		ImageMemoryBarriers[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[0].image = ResolvedHDRSceneColorTexture;
+		ImageMemoryBarriers[0].newLayout = VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		ImageMemoryBarriers[0].oldLayout = VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		ImageMemoryBarriers[0].pNext = nullptr;
+		ImageMemoryBarriers[0].srcAccessMask = VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		ImageMemoryBarriers[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[0].sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		ImageMemoryBarriers[0].subresourceRange.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT;
+		ImageMemoryBarriers[0].subresourceRange.baseArrayLayer = 0;
+		ImageMemoryBarriers[0].subresourceRange.baseMipLevel = 0;
+		ImageMemoryBarriers[0].subresourceRange.layerCount = 1;
+		ImageMemoryBarriers[0].subresourceRange.levelCount = 1;
+		ImageMemoryBarriers[1].dstAccessMask = VkAccessFlagBits::VK_ACCESS_SHADER_WRITE_BIT;
+		ImageMemoryBarriers[1].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[1].image = SceneLuminanceTextures[0];
+		ImageMemoryBarriers[1].newLayout = VkImageLayout::VK_IMAGE_LAYOUT_GENERAL;
+		ImageMemoryBarriers[1].oldLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
+		ImageMemoryBarriers[1].pNext = nullptr;
+		ImageMemoryBarriers[1].srcAccessMask = 0;
+		ImageMemoryBarriers[1].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[1].sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		ImageMemoryBarriers[1].subresourceRange.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT;
+		ImageMemoryBarriers[1].subresourceRange.baseArrayLayer = 0;
+		ImageMemoryBarriers[1].subresourceRange.baseMipLevel = 0;
+		ImageMemoryBarriers[1].subresourceRange.layerCount = 1;
+		ImageMemoryBarriers[1].subresourceRange.levelCount = 1;
+
+		vkCmdPipelineBarrier(CommandBuffers[CurrentFrameIndex], VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 2, ImageMemoryBarriers);
+
+		VkDescriptorImageInfo DescriptorImageInfos[2];
+		DescriptorImageInfos[0].imageLayout = VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		DescriptorImageInfos[0].imageView = ResolvedHDRSceneColorTextureView;
+		DescriptorImageInfos[0].sampler = VK_NULL_HANDLE;
+		DescriptorImageInfos[1].imageLayout = VkImageLayout::VK_IMAGE_LAYOUT_GENERAL;
+		DescriptorImageInfos[1].imageView = SceneLuminanceTexturesViews[0];
+		DescriptorImageInfos[1].sampler = VK_NULL_HANDLE;
+
+		VkWriteDescriptorSet WriteDescriptorSets[2];
+		WriteDescriptorSets[0].descriptorCount = 1;
+		WriteDescriptorSets[0].descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+		WriteDescriptorSets[0].dstArrayElement = 0;
+		WriteDescriptorSets[0].dstBinding = 0;
+		WriteDescriptorSets[0].dstSet = LuminancePassSets[0][CurrentFrameIndex];
+		WriteDescriptorSets[0].pBufferInfo = nullptr;
+		WriteDescriptorSets[0].pImageInfo = &DescriptorImageInfos[0];
+		WriteDescriptorSets[0].pNext = nullptr;
+		WriteDescriptorSets[0].pTexelBufferView = nullptr;
+		WriteDescriptorSets[0].sType = VkStructureType::VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		WriteDescriptorSets[1].descriptorCount = 1;
+		WriteDescriptorSets[1].descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+		WriteDescriptorSets[1].dstArrayElement = 0;
+		WriteDescriptorSets[1].dstBinding = 1;
+		WriteDescriptorSets[1].dstSet = LuminancePassSets[0][CurrentFrameIndex];
+		WriteDescriptorSets[1].pBufferInfo = nullptr;
+		WriteDescriptorSets[1].pImageInfo = &DescriptorImageInfos[1];
+		WriteDescriptorSets[1].pNext = nullptr;
+		WriteDescriptorSets[1].pTexelBufferView = nullptr;
+		WriteDescriptorSets[1].sType = VkStructureType::VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+
+		vkUpdateDescriptorSets(Device, 2, WriteDescriptorSets, 0, nullptr);
+
+		vkCmdBindPipeline(CommandBuffers[CurrentFrameIndex], VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE, LuminanceCalcPipeline);
+
+		vkCmdBindDescriptorSets(CommandBuffers[CurrentFrameIndex], VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE, LuminancePassPipelineLayout, 0, 1, &LuminancePassSets[0][CurrentFrameIndex], 0, nullptr);
+
+		vkCmdDispatch(CommandBuffers[CurrentFrameIndex], 80, 45, 1);
+
+		ImageMemoryBarriers[0].dstAccessMask = VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT;
+		ImageMemoryBarriers[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[0].image = SceneLuminanceTextures[0];
+		ImageMemoryBarriers[0].newLayout = VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		ImageMemoryBarriers[0].oldLayout = VkImageLayout::VK_IMAGE_LAYOUT_GENERAL;
+		ImageMemoryBarriers[0].pNext = nullptr;
+		ImageMemoryBarriers[0].srcAccessMask = VkAccessFlagBits::VK_ACCESS_SHADER_WRITE_BIT;
+		ImageMemoryBarriers[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[0].sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		ImageMemoryBarriers[0].subresourceRange.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT;
+		ImageMemoryBarriers[0].subresourceRange.baseArrayLayer = 0;
+		ImageMemoryBarriers[0].subresourceRange.baseMipLevel = 0;
+		ImageMemoryBarriers[0].subresourceRange.layerCount = 1;
+		ImageMemoryBarriers[0].subresourceRange.levelCount = 1;
+		ImageMemoryBarriers[1].dstAccessMask = VkAccessFlagBits::VK_ACCESS_SHADER_WRITE_BIT;
+		ImageMemoryBarriers[1].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[1].image = SceneLuminanceTextures[1];
+		ImageMemoryBarriers[1].newLayout = VkImageLayout::VK_IMAGE_LAYOUT_GENERAL;
+		ImageMemoryBarriers[1].oldLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
+		ImageMemoryBarriers[1].pNext = nullptr;
+		ImageMemoryBarriers[1].srcAccessMask = 0;
+		ImageMemoryBarriers[1].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[1].sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		ImageMemoryBarriers[1].subresourceRange.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT;
+		ImageMemoryBarriers[1].subresourceRange.baseArrayLayer = 0;
+		ImageMemoryBarriers[1].subresourceRange.baseMipLevel = 0;
+		ImageMemoryBarriers[1].subresourceRange.layerCount = 1;
+		ImageMemoryBarriers[1].subresourceRange.levelCount = 1;
+
+		vkCmdPipelineBarrier(CommandBuffers[CurrentFrameIndex], VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 2, ImageMemoryBarriers);
+
+		DescriptorImageInfos[0].imageLayout = VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		DescriptorImageInfos[0].imageView = SceneLuminanceTexturesViews[0];
+		DescriptorImageInfos[0].sampler = VK_NULL_HANDLE;
+		DescriptorImageInfos[1].imageLayout = VkImageLayout::VK_IMAGE_LAYOUT_GENERAL;
+		DescriptorImageInfos[1].imageView = SceneLuminanceTexturesViews[1];
+		DescriptorImageInfos[1].sampler = VK_NULL_HANDLE;
+
+		WriteDescriptorSets[0].descriptorCount = 1;
+		WriteDescriptorSets[0].descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+		WriteDescriptorSets[0].dstArrayElement = 0;
+		WriteDescriptorSets[0].dstBinding = 0;
+		WriteDescriptorSets[0].dstSet = LuminancePassSets[1][CurrentFrameIndex];
+		WriteDescriptorSets[0].pBufferInfo = nullptr;
+		WriteDescriptorSets[0].pImageInfo = &DescriptorImageInfos[0];
+		WriteDescriptorSets[0].pNext = nullptr;
+		WriteDescriptorSets[0].pTexelBufferView = nullptr;
+		WriteDescriptorSets[0].sType = VkStructureType::VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		WriteDescriptorSets[1].descriptorCount = 1;
+		WriteDescriptorSets[1].descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+		WriteDescriptorSets[1].dstArrayElement = 0;
+		WriteDescriptorSets[1].dstBinding = 1;
+		WriteDescriptorSets[1].dstSet = LuminancePassSets[1][CurrentFrameIndex];
+		WriteDescriptorSets[1].pBufferInfo = nullptr;
+		WriteDescriptorSets[1].pImageInfo = &DescriptorImageInfos[1];
+		WriteDescriptorSets[1].pNext = nullptr;
+		WriteDescriptorSets[1].pTexelBufferView = nullptr;
+		WriteDescriptorSets[1].sType = VkStructureType::VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+
+		vkUpdateDescriptorSets(Device, 2, WriteDescriptorSets, 0, nullptr);
+
+		vkCmdBindPipeline(CommandBuffers[CurrentFrameIndex], VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE, LuminanceSumPipeline);
+
+		vkCmdBindDescriptorSets(CommandBuffers[CurrentFrameIndex], VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE, LuminancePassPipelineLayout, 0, 1, &LuminancePassSets[1][CurrentFrameIndex], 0, nullptr);
+
+		vkCmdDispatch(CommandBuffers[CurrentFrameIndex], 80, 45, 1);
+
+		ImageMemoryBarriers[0].dstAccessMask = VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT;
+		ImageMemoryBarriers[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[0].image = SceneLuminanceTextures[1];
+		ImageMemoryBarriers[0].newLayout = VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		ImageMemoryBarriers[0].oldLayout = VkImageLayout::VK_IMAGE_LAYOUT_GENERAL;
+		ImageMemoryBarriers[0].pNext = nullptr;
+		ImageMemoryBarriers[0].srcAccessMask = VkAccessFlagBits::VK_ACCESS_SHADER_WRITE_BIT;
+		ImageMemoryBarriers[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[0].sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		ImageMemoryBarriers[0].subresourceRange.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT;
+		ImageMemoryBarriers[0].subresourceRange.baseArrayLayer = 0;
+		ImageMemoryBarriers[0].subresourceRange.baseMipLevel = 0;
+		ImageMemoryBarriers[0].subresourceRange.layerCount = 1;
+		ImageMemoryBarriers[0].subresourceRange.levelCount = 1;
+		ImageMemoryBarriers[1].dstAccessMask = VkAccessFlagBits::VK_ACCESS_SHADER_WRITE_BIT;
+		ImageMemoryBarriers[1].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[1].image = SceneLuminanceTextures[2];
+		ImageMemoryBarriers[1].newLayout = VkImageLayout::VK_IMAGE_LAYOUT_GENERAL;
+		ImageMemoryBarriers[1].oldLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
+		ImageMemoryBarriers[1].pNext = nullptr;
+		ImageMemoryBarriers[1].srcAccessMask = 0;
+		ImageMemoryBarriers[1].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[1].sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		ImageMemoryBarriers[1].subresourceRange.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT;
+		ImageMemoryBarriers[1].subresourceRange.baseArrayLayer = 0;
+		ImageMemoryBarriers[1].subresourceRange.baseMipLevel = 0;
+		ImageMemoryBarriers[1].subresourceRange.layerCount = 1;
+		ImageMemoryBarriers[1].subresourceRange.levelCount = 1;
+
+		vkCmdPipelineBarrier(CommandBuffers[CurrentFrameIndex], VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 2, ImageMemoryBarriers);
+
+		DescriptorImageInfos[0].imageLayout = VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		DescriptorImageInfos[0].imageView = SceneLuminanceTexturesViews[1];
+		DescriptorImageInfos[0].sampler = VK_NULL_HANDLE;
+		DescriptorImageInfos[1].imageLayout = VkImageLayout::VK_IMAGE_LAYOUT_GENERAL;
+		DescriptorImageInfos[1].imageView = SceneLuminanceTexturesViews[2];
+		DescriptorImageInfos[1].sampler = VK_NULL_HANDLE;
+
+		WriteDescriptorSets[0].descriptorCount = 1;
+		WriteDescriptorSets[0].descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+		WriteDescriptorSets[0].dstArrayElement = 0;
+		WriteDescriptorSets[0].dstBinding = 0;
+		WriteDescriptorSets[0].dstSet = LuminancePassSets[2][CurrentFrameIndex];
+		WriteDescriptorSets[0].pBufferInfo = nullptr;
+		WriteDescriptorSets[0].pImageInfo = &DescriptorImageInfos[0];
+		WriteDescriptorSets[0].pNext = nullptr;
+		WriteDescriptorSets[0].pTexelBufferView = nullptr;
+		WriteDescriptorSets[0].sType = VkStructureType::VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		WriteDescriptorSets[1].descriptorCount = 1;
+		WriteDescriptorSets[1].descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+		WriteDescriptorSets[1].dstArrayElement = 0;
+		WriteDescriptorSets[1].dstBinding = 1;
+		WriteDescriptorSets[1].dstSet = LuminancePassSets[2][CurrentFrameIndex];
+		WriteDescriptorSets[1].pBufferInfo = nullptr;
+		WriteDescriptorSets[1].pImageInfo = &DescriptorImageInfos[1];
+		WriteDescriptorSets[1].pNext = nullptr;
+		WriteDescriptorSets[1].pTexelBufferView = nullptr;
+		WriteDescriptorSets[1].sType = VkStructureType::VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+
+		vkUpdateDescriptorSets(Device, 2, WriteDescriptorSets, 0, nullptr);
+
+		vkCmdBindPipeline(CommandBuffers[CurrentFrameIndex], VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE, LuminanceSumPipeline);
+
+		vkCmdBindDescriptorSets(CommandBuffers[CurrentFrameIndex], VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE, LuminancePassPipelineLayout, 0, 1, &LuminancePassSets[2][CurrentFrameIndex], 0, nullptr);
+
+		vkCmdDispatch(CommandBuffers[CurrentFrameIndex], 5, 3, 1);
+
+		ImageMemoryBarriers[0].dstAccessMask = VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT;
+		ImageMemoryBarriers[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[0].image = SceneLuminanceTextures[2];
+		ImageMemoryBarriers[0].newLayout = VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		ImageMemoryBarriers[0].oldLayout = VkImageLayout::VK_IMAGE_LAYOUT_GENERAL;
+		ImageMemoryBarriers[0].pNext = nullptr;
+		ImageMemoryBarriers[0].srcAccessMask = VkAccessFlagBits::VK_ACCESS_SHADER_WRITE_BIT;
+		ImageMemoryBarriers[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[0].sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		ImageMemoryBarriers[0].subresourceRange.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT;
+		ImageMemoryBarriers[0].subresourceRange.baseArrayLayer = 0;
+		ImageMemoryBarriers[0].subresourceRange.baseMipLevel = 0;
+		ImageMemoryBarriers[0].subresourceRange.layerCount = 1;
+		ImageMemoryBarriers[0].subresourceRange.levelCount = 1;
+		ImageMemoryBarriers[1].dstAccessMask = VkAccessFlagBits::VK_ACCESS_SHADER_WRITE_BIT;
+		ImageMemoryBarriers[1].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[1].image = SceneLuminanceTextures[3];
+		ImageMemoryBarriers[1].newLayout = VkImageLayout::VK_IMAGE_LAYOUT_GENERAL;
+		ImageMemoryBarriers[1].oldLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
+		ImageMemoryBarriers[1].pNext = nullptr;
+		ImageMemoryBarriers[1].srcAccessMask = 0;
+		ImageMemoryBarriers[1].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[1].sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		ImageMemoryBarriers[1].subresourceRange.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT;
+		ImageMemoryBarriers[1].subresourceRange.baseArrayLayer = 0;
+		ImageMemoryBarriers[1].subresourceRange.baseMipLevel = 0;
+		ImageMemoryBarriers[1].subresourceRange.layerCount = 1;
+		ImageMemoryBarriers[1].subresourceRange.levelCount = 1;
+
+		vkCmdPipelineBarrier(CommandBuffers[CurrentFrameIndex], VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 2, ImageMemoryBarriers);
+
+		DescriptorImageInfos[0].imageLayout = VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		DescriptorImageInfos[0].imageView = SceneLuminanceTexturesViews[2];
+		DescriptorImageInfos[0].sampler = VK_NULL_HANDLE;
+		DescriptorImageInfos[1].imageLayout = VkImageLayout::VK_IMAGE_LAYOUT_GENERAL;
+		DescriptorImageInfos[1].imageView = SceneLuminanceTexturesViews[3];
+		DescriptorImageInfos[1].sampler = VK_NULL_HANDLE;
+
+		WriteDescriptorSets[0].descriptorCount = 1;
+		WriteDescriptorSets[0].descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+		WriteDescriptorSets[0].dstArrayElement = 0;
+		WriteDescriptorSets[0].dstBinding = 0;
+		WriteDescriptorSets[0].dstSet = LuminancePassSets[3][CurrentFrameIndex];
+		WriteDescriptorSets[0].pBufferInfo = nullptr;
+		WriteDescriptorSets[0].pImageInfo = &DescriptorImageInfos[0];
+		WriteDescriptorSets[0].pNext = nullptr;
+		WriteDescriptorSets[0].pTexelBufferView = nullptr;
+		WriteDescriptorSets[0].sType = VkStructureType::VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		WriteDescriptorSets[1].descriptorCount = 1;
+		WriteDescriptorSets[1].descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+		WriteDescriptorSets[1].dstArrayElement = 0;
+		WriteDescriptorSets[1].dstBinding = 1;
+		WriteDescriptorSets[1].dstSet = LuminancePassSets[3][CurrentFrameIndex];
+		WriteDescriptorSets[1].pBufferInfo = nullptr;
+		WriteDescriptorSets[1].pImageInfo = &DescriptorImageInfos[1];
+		WriteDescriptorSets[1].pNext = nullptr;
+		WriteDescriptorSets[1].pTexelBufferView = nullptr;
+		WriteDescriptorSets[1].sType = VkStructureType::VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+
+		vkUpdateDescriptorSets(Device, 2, WriteDescriptorSets, 0, nullptr);
+
+		vkCmdBindPipeline(CommandBuffers[CurrentFrameIndex], VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE, LuminanceSumPipeline);
+
+		vkCmdBindDescriptorSets(CommandBuffers[CurrentFrameIndex], VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE, LuminancePassPipelineLayout, 0, 1, &LuminancePassSets[3][CurrentFrameIndex], 0, nullptr);
+
+		vkCmdDispatch(CommandBuffers[CurrentFrameIndex], 1, 1, 1);
+
+		ImageMemoryBarriers[0].dstAccessMask = VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT;
+		ImageMemoryBarriers[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[0].image = SceneLuminanceTextures[3];
+		ImageMemoryBarriers[0].newLayout = VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		ImageMemoryBarriers[0].oldLayout = VkImageLayout::VK_IMAGE_LAYOUT_GENERAL;
+		ImageMemoryBarriers[0].pNext = nullptr;
+		ImageMemoryBarriers[0].srcAccessMask = VkAccessFlagBits::VK_ACCESS_SHADER_WRITE_BIT;
+		ImageMemoryBarriers[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[0].sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		ImageMemoryBarriers[0].subresourceRange.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT;
+		ImageMemoryBarriers[0].subresourceRange.baseArrayLayer = 0;
+		ImageMemoryBarriers[0].subresourceRange.baseMipLevel = 0;
+		ImageMemoryBarriers[0].subresourceRange.layerCount = 1;
+		ImageMemoryBarriers[0].subresourceRange.levelCount = 1;
+		ImageMemoryBarriers[1].dstAccessMask = VkAccessFlagBits::VK_ACCESS_SHADER_WRITE_BIT;
+		ImageMemoryBarriers[1].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[1].image = AverageLuminanceTexture;
+		ImageMemoryBarriers[1].newLayout = VkImageLayout::VK_IMAGE_LAYOUT_GENERAL;
+		ImageMemoryBarriers[1].oldLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
+		ImageMemoryBarriers[1].pNext = nullptr;
+		ImageMemoryBarriers[1].srcAccessMask = 0;
+		ImageMemoryBarriers[1].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		ImageMemoryBarriers[1].sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		ImageMemoryBarriers[1].subresourceRange.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT;
+		ImageMemoryBarriers[1].subresourceRange.baseArrayLayer = 0;
+		ImageMemoryBarriers[1].subresourceRange.baseMipLevel = 0;
+		ImageMemoryBarriers[1].subresourceRange.layerCount = 1;
+		ImageMemoryBarriers[1].subresourceRange.levelCount = 1;
+
+		vkCmdPipelineBarrier(CommandBuffers[CurrentFrameIndex], VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 2, ImageMemoryBarriers);
+
+		DescriptorImageInfos[0].imageLayout = VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		DescriptorImageInfos[0].imageView = SceneLuminanceTexturesViews[3];
+		DescriptorImageInfos[0].sampler = VK_NULL_HANDLE;
+		DescriptorImageInfos[1].imageLayout = VkImageLayout::VK_IMAGE_LAYOUT_GENERAL;
+		DescriptorImageInfos[1].imageView = AverageLuminanceTextureView;
+		DescriptorImageInfos[1].sampler = VK_NULL_HANDLE;
+
+		WriteDescriptorSets[0].descriptorCount = 1;
+		WriteDescriptorSets[0].descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+		WriteDescriptorSets[0].dstArrayElement = 0;
+		WriteDescriptorSets[0].dstBinding = 0;
+		WriteDescriptorSets[0].dstSet = LuminancePassSets[4][CurrentFrameIndex];
+		WriteDescriptorSets[0].pBufferInfo = nullptr;
+		WriteDescriptorSets[0].pImageInfo = &DescriptorImageInfos[0];
+		WriteDescriptorSets[0].pNext = nullptr;
+		WriteDescriptorSets[0].pTexelBufferView = nullptr;
+		WriteDescriptorSets[0].sType = VkStructureType::VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		WriteDescriptorSets[1].descriptorCount = 1;
+		WriteDescriptorSets[1].descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+		WriteDescriptorSets[1].dstArrayElement = 0;
+		WriteDescriptorSets[1].dstBinding = 1;
+		WriteDescriptorSets[1].dstSet = LuminancePassSets[4][CurrentFrameIndex];
+		WriteDescriptorSets[1].pBufferInfo = nullptr;
+		WriteDescriptorSets[1].pImageInfo = &DescriptorImageInfos[1];
+		WriteDescriptorSets[1].pNext = nullptr;
+		WriteDescriptorSets[1].pTexelBufferView = nullptr;
+		WriteDescriptorSets[1].sType = VkStructureType::VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+
+		vkUpdateDescriptorSets(Device, 2, WriteDescriptorSets, 0, nullptr);
+
+		vkCmdBindPipeline(CommandBuffers[CurrentFrameIndex], VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE, LuminanceAvgPipeline);
+
+		vkCmdBindDescriptorSets(CommandBuffers[CurrentFrameIndex], VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE, LuminancePassPipelineLayout, 0, 1, &LuminancePassSets[4][CurrentFrameIndex], 0, nullptr);
+
+		vkCmdDispatch(CommandBuffers[CurrentFrameIndex], 1, 1, 1);
+	}
+	
 	// ===============================================================================================================
 
 	VkImageMemoryBarrier ImageMemoryBarriers[1];

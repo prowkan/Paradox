@@ -1,5 +1,5 @@
-Texture2D HDRColorTexture : register(t0);
-RWTexture2D<float> OutputTexture : register(u0);
+[[vk::binding(0, 0)]] Texture2D HDRColorTexture : register(t0);
+[[vk::binding(1, 0)]] RWTexture2D<float> OutputTexture : register(u0);
 
 [numthreads(16, 16, 1)]
 void CS(uint3 DispatchThreadID : SV_DispatchThreadID)
