@@ -279,16 +279,29 @@ class RenderSystem
 
 		VkImage HDRSceneColorTexture;
 		VkImageView HDRSceneColorTextureView;
+		VkDeviceMemory HDRSceneColorTextureMemoryHeap;
 
-		VkBuffer GPULightClusterBuffer, CPULightClusterBuffers[2];
-		VkBufferView LightClusterBufferView;
+		VkRenderPass DeferredLightingRenderPass;
+		VkFramebuffer HDRSceneColorFrameBuffer;
+
+		VkBuffer GPUDeferredLightingConstantBuffer, CPUDeferredLightingConstantBuffers[2];
+		VkDeviceMemory GPUDeferredLightingConstantBufferMemoryHeap, CPUDeferredLightingConstantBuffersMemoryHeaps[2];
+
+		VkBuffer GPULightClustersBuffer, CPULightClustersBuffers[2];
+		VkDeviceMemory GPULightClustersBufferMemoryHeap, CPULightClustersBuffersMemoryHeaps[2];
+		VkBufferView LightClustersBufferView;
 
 		VkBuffer GPULightIndicesBuffer, CPULightIndicesBuffers[2];
+		VkDeviceMemory GPULightIndicesBufferMemoryHeap, CPULightIndicesBuffersMemoryHeaps[2];
 		VkBufferView LightIndicesBufferView;
 
 		VkBuffer GPUPointLightsBuffer, CPUPointLightsBuffers[2];
+		VkDeviceMemory GPUPointLightsBufferMemoryHeap, CPUPointLightsBuffersMemoryHeaps[2];
 
 		VkPipeline DeferredLightingPipeline;
+		VkPipelineLayout DeferredLightingPipelineLayout;
+		VkDescriptorSetLayout DeferredLightingSetLayout;
+		VkDescriptorSet DeferredLightingSets[2];
 
 		// ===============================================================================================================
 

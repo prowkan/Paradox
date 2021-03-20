@@ -1,7 +1,7 @@
 struct PSInput
 {
 	float4 Position : SV_Position;
-	float2 TexCoord : TEXCOORD;
+	[[vk::location(0)]] float2 TexCoord : TEXCOORD;
 };
 
 struct PSConstants
@@ -18,15 +18,15 @@ struct PointLight
 	float Brightness;
 };
 
-ConstantBuffer<PSConstants> PixelShaderConstants : register(b0);
+[[vk::binding(0, 0)]] ConstantBuffer<PSConstants> PixelShaderConstants : register(b0);
 
-Texture2DMS<float4> GBufferTexture0 : register(t0);
-Texture2DMS<float4> GBufferTexture1 : register(t1);
-Texture2DMS<float> DepthBufferTexture : register(t2);
-Texture2D<float> ShadowMaskTexture : register(t3);
-Buffer<uint2> LightClustersBuffer : register(t4);
-Buffer<uint> LightIndicesBuffer : register(t5);
-StructuredBuffer<PointLight> PointLightsBuffer : register(t6);
+[[vk::binding(1, 0)]] Texture2DMS<float4> GBufferTexture0 : register(t0);
+[[vk::binding(2, 0)]] Texture2DMS<float4> GBufferTexture1 : register(t1);
+[[vk::binding(3, 0)]] Texture2DMS<float> DepthBufferTexture : register(t2);
+[[vk::binding(4, 0)]] Texture2D<float> ShadowMaskTexture : register(t3);
+[[vk::binding(5, 0)]] Buffer<uint2> LightClustersBuffer : register(t4);
+[[vk::binding(6, 0)]] Buffer<uint> LightIndicesBuffer : register(t5);
+[[vk::binding(7, 0)]] StructuredBuffer<PointLight> PointLightsBuffer : register(t6);
 
 float4 PS(PSInput PixelShaderInput, uint SampleIndex : SV_SampleIndex) : SV_Target
 {
