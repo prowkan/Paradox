@@ -8,7 +8,7 @@ struct PSInput
 
 float4 PS(PSInput PixelShaderInput, uint SampleIndex : SV_SampleIndex) : SV_Target
 {
-	int2 Coords = PixelShaderInput.Position.xy - 0.5f;
+	int2 Coords = PixelShaderInput.Position.xy/* - 0.5f*/;
 
 	float Depth = DepthBufferTexture.Load(Coords, SampleIndex).x;
 

@@ -30,7 +30,7 @@ struct PointLight
 
 float4 PS(PSInput PixelShaderInput, uint SampleIndex : SV_SampleIndex) : SV_Target
 {
-	int2 Coords = PixelShaderInput.Position.xy - 0.5f;
+	int2 Coords = PixelShaderInput.Position.xy /*- 0.5f*/;
 
 	float4 GBufferData0 = GBufferTexture0.Load(Coords, SampleIndex);
 	float4 GBufferData1 = GBufferTexture1.Load(Coords, SampleIndex);
@@ -90,4 +90,5 @@ float4 PS(PSInput PixelShaderInput, uint SampleIndex : SV_SampleIndex) : SV_Targ
 	}
 
 	return float4(Color, 1.0f);
+	//return float4(PixelShaderInput.Position.x, PixelShaderInput.Position.y, SampleIndex, 1.0f);
 }
