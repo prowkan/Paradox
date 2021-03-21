@@ -1575,6 +1575,8 @@ void RenderSystem::InitSystem()
 		GraphicsPipelineCreateInfo.subpass = 0;
 
 		SAFE_VK(vkCreateGraphicsPipelines(Device, VK_NULL_HANDLE, 1, &GraphicsPipelineCreateInfo, nullptr, &OcclusionBufferPipeline));
+
+		vkDestroyShaderModule(Device, OcclusionBufferShaderModule, nullptr);
 	}
 
 	// ===============================================================================================================	
@@ -1791,8 +1793,6 @@ void RenderSystem::InitSystem()
 			SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUConstantBufferMemoryHeaps2[k][0]));
 
 			SAFE_VK(vkBindBufferMemory(Device, CPUConstantBuffers2[k][0], CPUConstantBufferMemoryHeaps2[k][0], 0));
-
-			SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUConstantBuffers2[k][1]));
 
 			vkGetBufferMemoryRequirements(Device, GPUConstantBuffers2[k], &MemoryRequirements);
 
@@ -2203,6 +2203,8 @@ void RenderSystem::InitSystem()
 		GraphicsPipelineCreateInfo.subpass = 0;
 
 		SAFE_VK(vkCreateGraphicsPipelines(Device, VK_NULL_HANDLE, 1, &GraphicsPipelineCreateInfo, nullptr, &ShadowResolvePipeline));
+
+		vkDestroyShaderModule(Device, ShadowResolveShaderModule, nullptr);
 	}
 
 	// ===============================================================================================================	
@@ -2869,6 +2871,8 @@ void RenderSystem::InitSystem()
 		GraphicsPipelineCreateInfo.subpass = 0;
 
 		SAFE_VK(vkCreateGraphicsPipelines(Device, VK_NULL_HANDLE, 1, &GraphicsPipelineCreateInfo, nullptr, &DeferredLightingPipeline));
+
+		vkDestroyShaderModule(Device, DeferredLightingShaderModule, nullptr);
 	}
 
 	// ===============================================================================================================	
@@ -4294,6 +4298,11 @@ void RenderSystem::InitSystem()
 
 		SAFE_VK(vkCreateGraphicsPipelines(Device, VK_NULL_HANDLE, 1, &GraphicsPipelineCreateInfo, nullptr, &FogPipeline));
 
+		vkDestroyShaderModule(Device, SkyVertexShaderModule, nullptr);
+		vkDestroyShaderModule(Device, SkyPixelShaderModule, nullptr);
+		vkDestroyShaderModule(Device, SunVertexShaderModule, nullptr);
+		vkDestroyShaderModule(Device, SunPixelShaderModule, nullptr);
+		vkDestroyShaderModule(Device, FogShaderModule, nullptr);
 	}
 
 	// ===============================================================================================================
@@ -4681,6 +4690,10 @@ void RenderSystem::InitSystem()
 		
 		ComputePipelineCreateInfo.stage.module = LuminanceAvgComputeShaderModule;
 		SAFE_VK(vkCreateComputePipelines(Device, VK_NULL_HANDLE, 1, &ComputePipelineCreateInfo, nullptr, &LuminanceAvgPipeline));
+
+		vkDestroyShaderModule(Device, LuminanceCalcComputeShaderModule, nullptr);
+		vkDestroyShaderModule(Device, LuminanceSumComputeShaderModule, nullptr);
+		vkDestroyShaderModule(Device, LuminanceAvgComputeShaderModule, nullptr);
 	}
 	
 	// ===============================================================================================================
@@ -5160,6 +5173,11 @@ void RenderSystem::InitSystem()
 		PipelineColorBlendAttachmentState.srcColorBlendFactor = VkBlendFactor::VK_BLEND_FACTOR_ONE;
 
 		SAFE_VK(vkCreateGraphicsPipelines(Device, VK_NULL_HANDLE, 1, &GraphicsPipelineCreateInfo, nullptr, &UpSampleWithAddBlendPipeline));
+
+		vkDestroyShaderModule(Device, BrightPassPixelShaderModule, nullptr);
+		vkDestroyShaderModule(Device, ImageResamplePixelShaderModule, nullptr);
+		vkDestroyShaderModule(Device, HorizontalBlurPixelShaderModule, nullptr);
+		vkDestroyShaderModule(Device, VerticalBlurPixelShaderModule, nullptr);
 	}
 	 
 	// ===============================================================================================================
@@ -5456,6 +5474,8 @@ void RenderSystem::InitSystem()
 		GraphicsPipelineCreateInfo.subpass = 0;
 
 		SAFE_VK(vkCreateGraphicsPipelines(Device, VK_NULL_HANDLE, 1, &GraphicsPipelineCreateInfo, nullptr, &HDRToneMappingPipeline));
+
+		vkDestroyShaderModule(Device, HDRToneMappingPixelShaderModule, nullptr);
 	}
 	
 	// ===============================================================================================================
@@ -5538,6 +5558,8 @@ void RenderSystem::InitSystem()
 	}
 	
 	// ===============================================================================================================
+
+	vkDestroyShaderModule(Device, FullScreenQuadShaderModule, nullptr);
 }
 
 void RenderSystem::ShutdownSystem()
@@ -5590,24 +5612,11 @@ void RenderSystem::ShutdownSystem()
 		vkDestroyImageView(Device, BackBufferTexturesViews[i], nullptr);
 	}
 	
-	vkDestroyImageView(Device, DepthBufferTextureView, nullptr);
-	vkDestroyImage(Device, DepthBufferTexture, nullptr);
-	vkFreeMemory(Device, DepthBufferTextureMemoryHeap, nullptr);
-
 	vkDestroyFence(Device, FrameSyncFences[0], nullptr);
 	vkDestroyFence(Device, FrameSyncFences[1], nullptr);
 	vkDestroyFence(Device, CopySyncFence, nullptr);
 	vkDestroySemaphore(Device, ImageAvailabilitySemaphore, nullptr);
 	vkDestroySemaphore(Device, ImagePresentationSemaphore, nullptr);
-
-	vkDestroySampler(Device, TextureSampler, nullptr);
-
-	vkDestroyBuffer(Device, GPUConstantBuffer, nullptr);
-	vkFreeMemory(Device, GPUConstantBufferMemoryHeap, nullptr);
-	vkDestroyBuffer(Device, CPUConstantBuffers[0], nullptr);
-	vkFreeMemory(Device, CPUConstantBufferMemoryHeaps[0], nullptr);
-	vkDestroyBuffer(Device, CPUConstantBuffers[1], nullptr);
-	vkFreeMemory(Device, CPUConstantBufferMemoryHeaps[1], nullptr);
 
 	vkDestroyPipelineLayout(Device, PipelineLayout, nullptr);
 
@@ -5630,16 +5639,316 @@ void RenderSystem::ShutdownSystem()
 
 	for (uint32_t i = 0; i < SwapChainImagesCount; i++)
 	{
-		//vkDestroyFramebuffer(Device, FrameBuffers[i], nullptr);
+		vkDestroyFramebuffer(Device, BackBufferFrameBuffers[i], nullptr);
 	}
 
-	//vkDestroyRenderPass(Device, RenderPass, nullptr);
+	vkDestroyRenderPass(Device, BackBufferResolveRenderPass, nullptr);
 
 #ifdef _DEBUG
 	PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(Instance, "vkDestroyDebugUtilsMessengerEXT");
 
 	vkDestroyDebugUtilsMessengerEXT(Instance, DebugUtilsMessenger, nullptr);
 #endif
+
+	vkDestroySampler(Device, TextureSampler, nullptr);
+	vkDestroySampler(Device, ShadowMapSampler, nullptr);
+	vkDestroySampler(Device, BiLinearSampler, nullptr);
+	vkDestroySampler(Device, MinSampler, nullptr);
+
+	vkDestroyImageView(Device, GBufferTexturesViews[0], nullptr);
+	vkDestroyImageView(Device, GBufferTexturesViews[1], nullptr);
+
+	vkDestroyImage(Device, GBufferTextures[0], nullptr);
+	vkDestroyImage(Device, GBufferTextures[1], nullptr);
+
+	vkFreeMemory(Device, GBufferTexturesMemoryHeaps[0], nullptr);
+	vkFreeMemory(Device, GBufferTexturesMemoryHeaps[1], nullptr);
+
+	vkDestroyImageView(Device, DepthBufferTextureView, nullptr);
+	vkDestroyImageView(Device, DepthBufferTextureDepthReadView, nullptr);
+	
+	vkDestroyImage(Device, DepthBufferTexture, nullptr);
+
+	vkFreeMemory(Device, DepthBufferTextureMemoryHeap, nullptr);
+
+	vkDestroyRenderPass(Device, GBufferClearRenderPass, nullptr);
+	vkDestroyRenderPass(Device, GBufferDrawRenderPass, nullptr);
+
+	vkDestroyFramebuffer(Device, GBufferFrameBuffer, nullptr);
+
+	vkDestroyBuffer(Device, GPUConstantBuffer, nullptr);
+	vkDestroyBuffer(Device, CPUConstantBuffers[0], nullptr);
+	vkDestroyBuffer(Device, CPUConstantBuffers[1], nullptr);
+
+	vkFreeMemory(Device, GPUConstantBufferMemoryHeap, nullptr);
+	vkFreeMemory(Device, CPUConstantBufferMemoryHeaps[0], nullptr);
+	vkFreeMemory(Device, CPUConstantBufferMemoryHeaps[1], nullptr);
+
+	// ===============================================================================================================
+
+	vkDestroyImageView(Device, ResolvedDepthBufferTextureView, nullptr);
+	vkDestroyImageView(Device, ResolvedDepthBufferTextureDepthOnlyView, nullptr);
+	
+	vkDestroyImage(Device, ResolvedDepthBufferTexture, nullptr);
+	
+	vkFreeMemory(Device, ResolvedDepthBufferTextureMemoryHeap, nullptr);
+
+	vkDestroyRenderPass(Device, MSAADepthBufferResolveRenderPass, nullptr);
+
+	vkDestroyFramebuffer(Device, ResolvedDepthFrameBuffer, nullptr);
+
+	// ===============================================================================================================
+
+	vkDestroyImage(Device, OcclusionBufferTexture, nullptr);
+	vkDestroyImageView(Device, OcclusionBufferTextureView, nullptr);
+	vkFreeMemory(Device, OcclusionBufferTextureMemoryHeap, nullptr);
+	vkDestroyBuffer(Device, OcclusionBufferReadbackBuffers[0], nullptr);
+	vkDestroyBuffer(Device, OcclusionBufferReadbackBuffers[1], nullptr);
+	vkFreeMemory(Device, OcclusionBufferReadbackBuffersMemoryHeaps[0], nullptr);
+	vkFreeMemory(Device, OcclusionBufferReadbackBuffersMemoryHeaps[1], nullptr);
+
+	vkDestroyRenderPass(Device, OcclusionBufferRenderPass, nullptr);
+	vkDestroyFramebuffer(Device, OcclusionBufferFrameBuffer, nullptr);
+
+	vkDestroyPipeline(Device, OcclusionBufferPipeline, nullptr);
+	vkDestroyPipelineLayout(Device, OcclusionBufferPipelineLayout, nullptr);
+	vkDestroyDescriptorSetLayout(Device, OcclusionBufferSetLayout, nullptr);
+	
+	// ===============================================================================================================
+
+	vkDestroyImage(Device, CascadedShadowMapTextures[0], nullptr);
+	vkDestroyImage(Device, CascadedShadowMapTextures[1], nullptr);
+	vkDestroyImage(Device, CascadedShadowMapTextures[2], nullptr);
+	vkDestroyImage(Device, CascadedShadowMapTextures[3], nullptr);
+
+	vkDestroyImageView(Device, CascadedShadowMapTexturesViews[0], nullptr);
+	vkDestroyImageView(Device, CascadedShadowMapTexturesViews[1], nullptr);
+	vkDestroyImageView(Device, CascadedShadowMapTexturesViews[2], nullptr);
+	vkDestroyImageView(Device, CascadedShadowMapTexturesViews[3], nullptr);
+
+	vkFreeMemory(Device, CascadedShadowMapTexturesMemoryHeaps[0], nullptr);
+	vkFreeMemory(Device, CascadedShadowMapTexturesMemoryHeaps[1], nullptr);
+	vkFreeMemory(Device, CascadedShadowMapTexturesMemoryHeaps[2], nullptr);
+	vkFreeMemory(Device, CascadedShadowMapTexturesMemoryHeaps[3], nullptr);
+
+	vkDestroyRenderPass(Device, ShadowMapClearRenderPass, nullptr);
+	vkDestroyRenderPass(Device, ShadowMapDrawRenderPass, nullptr);
+
+	vkDestroyFramebuffer(Device, CascadedShadowMapFrameBuffers[0], nullptr);
+	vkDestroyFramebuffer(Device, CascadedShadowMapFrameBuffers[1], nullptr);
+	vkDestroyFramebuffer(Device, CascadedShadowMapFrameBuffers[2], nullptr);
+	vkDestroyFramebuffer(Device, CascadedShadowMapFrameBuffers[3], nullptr);
+
+	vkDestroyBuffer(Device, GPUConstantBuffers2[0], nullptr);
+	vkDestroyBuffer(Device, GPUConstantBuffers2[1], nullptr);
+	vkDestroyBuffer(Device, GPUConstantBuffers2[2], nullptr);
+	vkDestroyBuffer(Device, GPUConstantBuffers2[3], nullptr);
+	vkDestroyBuffer(Device, CPUConstantBuffers2[0][0], nullptr);
+	vkDestroyBuffer(Device, CPUConstantBuffers2[0][1], nullptr);
+	vkDestroyBuffer(Device, CPUConstantBuffers2[1][0], nullptr);
+	vkDestroyBuffer(Device, CPUConstantBuffers2[1][1], nullptr);
+	vkDestroyBuffer(Device, CPUConstantBuffers2[2][0], nullptr);
+	vkDestroyBuffer(Device, CPUConstantBuffers2[2][1], nullptr);
+	vkDestroyBuffer(Device, CPUConstantBuffers2[3][0], nullptr);
+	vkDestroyBuffer(Device, CPUConstantBuffers2[3][1], nullptr);
+	vkFreeMemory(Device, GPUConstantBufferMemoryHeaps2[0], nullptr);
+	vkFreeMemory(Device, GPUConstantBufferMemoryHeaps2[1], nullptr);
+	vkFreeMemory(Device, GPUConstantBufferMemoryHeaps2[2], nullptr);
+	vkFreeMemory(Device, GPUConstantBufferMemoryHeaps2[3], nullptr);
+	vkFreeMemory(Device, CPUConstantBufferMemoryHeaps2[0][0], nullptr);
+	vkFreeMemory(Device, CPUConstantBufferMemoryHeaps2[0][1], nullptr);
+	vkFreeMemory(Device, CPUConstantBufferMemoryHeaps2[1][0], nullptr);
+	vkFreeMemory(Device, CPUConstantBufferMemoryHeaps2[1][1], nullptr);
+	vkFreeMemory(Device, CPUConstantBufferMemoryHeaps2[2][0], nullptr);
+	vkFreeMemory(Device, CPUConstantBufferMemoryHeaps2[2][1], nullptr);
+	vkFreeMemory(Device, CPUConstantBufferMemoryHeaps2[3][0], nullptr);
+	vkFreeMemory(Device, CPUConstantBufferMemoryHeaps2[3][1], nullptr);
+
+	// ===============================================================================================================
+
+	vkDestroyImage(Device, ShadowMaskTexture, nullptr);
+	vkDestroyImageView(Device, ShadowMaskTextureView, nullptr);
+	vkFreeMemory(Device, ShadowMaskTextureMemoryHeap, nullptr);
+
+	vkDestroyRenderPass(Device, ShadowMaskRenderPass, nullptr);
+	vkDestroyFramebuffer(Device, ShadowMaskFrameBuffer, nullptr);
+
+	vkDestroyBuffer(Device, GPUShadowResolveConstantBuffer, nullptr);
+	vkDestroyBuffer(Device, CPUShadowResolveConstantBuffers[0], nullptr);
+	vkDestroyBuffer(Device, CPUShadowResolveConstantBuffers[1], nullptr);
+	vkFreeMemory(Device, GPUShadowResolveConstantBufferMemoryHeap, nullptr);
+	vkFreeMemory(Device, CPUShadowResolveConstantBuffersMemoryHeaps[0], nullptr);
+	vkFreeMemory(Device, CPUShadowResolveConstantBuffersMemoryHeaps[1], nullptr);
+
+	vkDestroyPipeline(Device, ShadowResolvePipeline, nullptr);
+	vkDestroyPipelineLayout(Device, ShadowResolvePipelineLayout, nullptr);
+	vkDestroyDescriptorSetLayout(Device, ShadowResolveSetLayout, nullptr);
+	
+	// ===============================================================================================================
+
+	vkDestroyImage(Device, HDRSceneColorTexture, nullptr);
+	vkDestroyImageView(Device, HDRSceneColorTextureView, nullptr);
+	vkFreeMemory(Device, HDRSceneColorTextureMemoryHeap, nullptr);
+
+	vkDestroyRenderPass(Device, DeferredLightingRenderPass, nullptr);
+	vkDestroyFramebuffer(Device, HDRSceneColorFrameBuffer, nullptr);
+
+	vkDestroyBuffer(Device, GPUDeferredLightingConstantBuffer, nullptr);
+	vkDestroyBuffer(Device, CPUDeferredLightingConstantBuffers[0], nullptr);
+	vkDestroyBuffer(Device, CPUDeferredLightingConstantBuffers[1], nullptr);
+	vkFreeMemory(Device, GPUDeferredLightingConstantBufferMemoryHeap, nullptr);
+	vkFreeMemory(Device, CPUDeferredLightingConstantBuffersMemoryHeaps[0], nullptr);
+	vkFreeMemory(Device, CPUDeferredLightingConstantBuffersMemoryHeaps[1], nullptr);
+
+	vkDestroyBufferView(Device, LightClustersBufferView, nullptr);
+	vkDestroyBuffer(Device, GPULightClustersBuffer, nullptr);
+	vkDestroyBuffer(Device, CPULightClustersBuffers[0], nullptr);
+	vkDestroyBuffer(Device, CPULightClustersBuffers[1], nullptr);
+	vkFreeMemory(Device, GPULightClustersBufferMemoryHeap, nullptr);
+	vkFreeMemory(Device, CPULightClustersBuffersMemoryHeaps[0], nullptr);
+	vkFreeMemory(Device, CPULightClustersBuffersMemoryHeaps[1], nullptr);
+
+	vkDestroyBufferView(Device, LightIndicesBufferView, nullptr);
+	vkDestroyBuffer(Device, GPULightIndicesBuffer, nullptr);
+	vkDestroyBuffer(Device, CPULightIndicesBuffers[0], nullptr);
+	vkDestroyBuffer(Device, CPULightIndicesBuffers[1], nullptr);
+	vkFreeMemory(Device, GPULightIndicesBufferMemoryHeap, nullptr);
+	vkFreeMemory(Device, CPULightIndicesBuffersMemoryHeaps[0], nullptr);
+	vkFreeMemory(Device, CPULightIndicesBuffersMemoryHeaps[1], nullptr);
+
+	vkDestroyBuffer(Device, GPUPointLightsBuffer, nullptr);
+	vkDestroyBuffer(Device, CPUPointLightsBuffers[0], nullptr);
+	vkDestroyBuffer(Device, CPUPointLightsBuffers[1], nullptr);
+	vkFreeMemory(Device, GPUPointLightsBufferMemoryHeap, nullptr);
+	vkFreeMemory(Device, CPUPointLightsBuffersMemoryHeaps[0], nullptr);
+	vkFreeMemory(Device, CPUPointLightsBuffersMemoryHeaps[1], nullptr);
+
+	vkDestroyPipeline(Device, DeferredLightingPipeline, nullptr);
+	vkDestroyPipelineLayout(Device, DeferredLightingPipelineLayout, nullptr);
+	vkDestroyDescriptorSetLayout(Device, DeferredLightingSetLayout, nullptr);
+	
+	// ===============================================================================================================
+
+	vkDestroyPipelineLayout(Device, SkyAndSunPipelineLayout, nullptr);
+	vkDestroyDescriptorSetLayout(Device, SkyAndSunSetLayout, nullptr);
+	
+	vkDestroyRenderPass(Device, SkyAndSunRenderPass, nullptr);
+	vkDestroyFramebuffer(Device, HDRSceneColorAndDepthFrameBuffer, nullptr);
+
+	vkDestroyBuffer(Device, SkyVertexBuffer, nullptr);
+	vkDestroyBuffer(Device, SkyIndexBuffer, nullptr);
+	vkFreeMemory(Device, SkyVertexBufferMemoryHeap, nullptr);
+	vkFreeMemory(Device, SkyIndexBufferMemoryHeap, nullptr);
+	vkDestroyBuffer(Device, GPUSkyConstantBuffer, nullptr);
+	vkDestroyBuffer(Device, CPUSkyConstantBuffers[0], nullptr);
+	vkDestroyBuffer(Device, CPUSkyConstantBuffers[1], nullptr);
+	vkFreeMemory(Device, GPUSkyConstantBufferMemoryHeap, nullptr);
+	vkFreeMemory(Device, CPUSkyConstantBuffersMemoryHeaps[0], nullptr);
+	vkFreeMemory(Device, CPUSkyConstantBuffersMemoryHeaps[1], nullptr);
+	vkDestroyPipeline(Device, SkyPipeline, nullptr);
+	vkDestroyImage(Device, SkyTexture, nullptr);
+	vkFreeMemory(Device, SkyTextureMemoryHeap, nullptr);
+	vkDestroyImageView(Device, SkyTextureView, nullptr);
+
+	vkDestroyBuffer(Device, SunVertexBuffer, nullptr);
+	vkDestroyBuffer(Device, SunIndexBuffer, nullptr);
+	vkFreeMemory(Device, SunVertexBufferMemoryHeap, nullptr);
+	vkFreeMemory(Device, SunIndexBufferMemoryHeap, nullptr);
+	vkDestroyBuffer(Device, GPUSunConstantBuffer, nullptr);
+	vkDestroyBuffer(Device, CPUSunConstantBuffers[0], nullptr);
+	vkDestroyBuffer(Device, CPUSunConstantBuffers[1], nullptr);
+	vkFreeMemory(Device, GPUSunConstantBufferMemoryHeap, nullptr);
+	vkFreeMemory(Device, CPUSunConstantBuffersMemoryHeaps[0], nullptr);
+	vkFreeMemory(Device, CPUSunConstantBuffersMemoryHeaps[1], nullptr);
+	vkDestroyPipeline(Device, SunPipeline, nullptr);
+	vkDestroyImage(Device, SunTexture, nullptr);
+	vkFreeMemory(Device, SunTextureMemoryHeap, nullptr);
+	vkDestroyImageView(Device, SunTextureView, nullptr);
+
+	vkDestroyPipeline(Device, FogPipeline, nullptr);
+	vkDestroyPipelineLayout(Device, FogPipelineLayout, nullptr);
+	vkDestroyDescriptorSetLayout(Device, FogSetLayout, nullptr);
+	
+	// ===============================================================================================================
+
+	vkDestroyImage(Device, ResolvedHDRSceneColorTexture, nullptr);
+	vkFreeMemory(Device, ResolvedHDRSceneColorTextureMemoryHeap, nullptr);
+	vkDestroyImageView(Device, ResolvedHDRSceneColorTextureView, nullptr);
+
+	vkDestroyRenderPass(Device, HDRSceneColorResolveRenderPass, nullptr);
+	vkDestroyFramebuffer(Device, HDRSceneColorResolveFrameBuffer, nullptr);
+
+	// ===============================================================================================================
+
+	vkDestroyImage(Device, SceneLuminanceTextures[0], nullptr);
+	vkDestroyImage(Device, SceneLuminanceTextures[1], nullptr);
+	vkDestroyImage(Device, SceneLuminanceTextures[2], nullptr);
+	vkDestroyImage(Device, SceneLuminanceTextures[3], nullptr);
+	vkFreeMemory(Device, SceneLuminanceTexturesMemoryHeaps[0], nullptr);
+	vkFreeMemory(Device, SceneLuminanceTexturesMemoryHeaps[1], nullptr);
+	vkFreeMemory(Device, SceneLuminanceTexturesMemoryHeaps[2], nullptr);
+	vkFreeMemory(Device, SceneLuminanceTexturesMemoryHeaps[3], nullptr);
+	vkDestroyImageView(Device, SceneLuminanceTexturesViews[0], nullptr);
+	vkDestroyImageView(Device, SceneLuminanceTexturesViews[1], nullptr);
+	vkDestroyImageView(Device, SceneLuminanceTexturesViews[2], nullptr);
+	vkDestroyImageView(Device, SceneLuminanceTexturesViews[3], nullptr);
+
+	vkDestroyImage(Device, AverageLuminanceTexture, nullptr);
+	vkFreeMemory(Device, AverageLuminanceTextureMemoryHeap, nullptr);
+	vkDestroyImageView(Device, AverageLuminanceTextureView, nullptr);
+
+	vkDestroyPipelineLayout(Device, LuminancePassPipelineLayout, nullptr);
+	vkDestroyDescriptorSetLayout(Device, LuminancePassSetLayout, nullptr);
+	
+	vkDestroyPipeline(Device, LuminanceCalcPipeline, nullptr);
+	vkDestroyPipeline(Device, LuminanceSumPipeline, nullptr);
+	vkDestroyPipeline(Device, LuminanceAvgPipeline, nullptr);
+
+	// ===============================================================================================================
+
+	for (int i = 0; i < 7; i++)
+	{
+		vkDestroyFramebuffer(Device, BloomTexturesFrameBuffers[0][i], nullptr);
+		vkDestroyFramebuffer(Device, BloomTexturesFrameBuffers[1][i], nullptr);
+		vkDestroyFramebuffer(Device, BloomTexturesFrameBuffers[2][i], nullptr);
+		
+		vkDestroyImageView(Device, BloomTexturesViews[0][i], nullptr);
+		vkDestroyImageView(Device, BloomTexturesViews[1][i], nullptr);
+		vkDestroyImageView(Device, BloomTexturesViews[2][i], nullptr);
+		
+		vkDestroyImage(Device, BloomTextures[0][i], nullptr);
+		vkDestroyImage(Device, BloomTextures[1][i], nullptr);
+		vkDestroyImage(Device, BloomTextures[2][i], nullptr);
+		
+		vkFreeMemory(Device, BloomTexturesMemoryHeaps[0][i], nullptr);
+		vkFreeMemory(Device, BloomTexturesMemoryHeaps[1][i], nullptr);
+		vkFreeMemory(Device, BloomTexturesMemoryHeaps[2][i], nullptr);
+	}
+
+	vkDestroyRenderPass(Device, BloomRenderPass, nullptr);
+
+	vkDestroyPipelineLayout(Device, BloomPassPipelineLayout, nullptr);
+	vkDestroyDescriptorSetLayout(Device, BloomPassSetLayout, nullptr);
+	
+	vkDestroyPipeline(Device, BrightPassPipeline, nullptr);
+	vkDestroyPipeline(Device, DownSamplePipeline, nullptr);
+	vkDestroyPipeline(Device, HorizontalBlurPipeline, nullptr);
+	vkDestroyPipeline(Device, VerticalBlurPipeline, nullptr);
+	vkDestroyPipeline(Device, UpSampleWithAddBlendPipeline, nullptr);
+
+	// ===============================================================================================================
+
+	vkDestroyImageView(Device, ToneMappedImageTextureView, nullptr);
+	vkDestroyImage(Device, ToneMappedImageTexture, nullptr);
+	vkFreeMemory(Device, ToneMappedImageTextureMemoryHeap, nullptr);
+
+	vkDestroyRenderPass(Device, HDRToneMappingRenderPass, nullptr);
+	vkDestroyFramebuffer(Device, ToneMappedImageFrameBuffer, nullptr);
+
+	vkDestroyPipelineLayout(Device, HDRToneMappingPipelineLayout, nullptr);
+	vkDestroyDescriptorSetLayout(Device, HDRToneMappingSetLayout, nullptr);
+	
+	vkDestroyPipeline(Device, HDRToneMappingPipeline, nullptr);
 
 	vkDestroyDevice(Device, nullptr);
 	vkDestroyInstance(Instance, nullptr);
@@ -9197,6 +9506,7 @@ RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInf
 
 	vkDestroyShaderModule(Device, GBufferOpaquePassVertexShaderModule, nullptr);
 	vkDestroyShaderModule(Device, GBufferOpaquePassPixelShaderModule, nullptr);
+	vkDestroyShaderModule(Device, ShadowMapPassVertexShaderModule, nullptr);
 
 	return renderMaterial;
 }

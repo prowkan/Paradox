@@ -183,8 +183,6 @@ class RenderSystem
 
 		uint32_t SwapChainImagesCount;
 
-		//VkFramebuffer *BackBufferFrameBuffers;
-
 		// ===============================================================================================================
 
 		VkSampler TextureSampler, ShadowMapSampler, BiLinearSampler, MinSampler;
