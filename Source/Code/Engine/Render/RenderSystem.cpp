@@ -282,6 +282,34 @@ void RenderSystem::InitSystem()
 
 	vkGetPhysicalDeviceMemoryProperties(PhysicalDevice, &PhysicalDeviceMemoryProperties);
 
+	/*VkMemoryPropertyFlags DefaultHeapFlags = VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+	VkMemoryPropertyFlags UploadHeapFlags = VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+	VkMemoryPropertyFlags ReadbackHeapFlags = VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+
+	for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
+	{
+		if ((PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & DefaultHeapFlags) == DefaultHeapFlags) DefaultMemoryHeapIndex = i;
+		if ((PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & UploadHeapFlags) == UploadHeapFlags) UploadMemoryHeapIndex = i;
+		if ((PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & ReadbackHeapFlags) == ReadbackHeapFlags) ReadbackMemoryHeapIndex = i;
+	}*/
+
+	for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
+	{
+		if ((PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) &&
+			!(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
+			DefaultMemoryHeapIndex = i;
+
+		if (!(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) &&
+			(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) &&
+			!(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_CACHED_BIT))
+			UploadMemoryHeapIndex = i;
+
+		if (!(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) &&
+			(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) &&
+			(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_CACHED_BIT))
+			ReadbackMemoryHeapIndex = i;
+	}
+
 	VkWin32SurfaceCreateInfoKHR Win32SurfaceCreateInfo;
 	Win32SurfaceCreateInfo.flags = 0;
 	Win32SurfaceCreateInfo.hinstance = GetModuleHandle(NULL);
@@ -632,34 +660,14 @@ void RenderSystem::InitSystem()
 	{
 		VkMemoryAllocateInfo MemoryAllocateInfo;
 		MemoryAllocateInfo.allocationSize = BUFFER_MEMORY_HEAP_SIZE;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if ((PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
+		MemoryAllocateInfo.memoryTypeIndex = DefaultMemoryHeapIndex;
 		MemoryAllocateInfo.pNext = nullptr;
 		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 
 		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &BufferMemoryHeaps[CurrentBufferMemoryHeapIndex]));
 
 		MemoryAllocateInfo.allocationSize = TEXTURE_MEMORY_HEAP_SIZE;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if ((PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
+		MemoryAllocateInfo.memoryTypeIndex = DefaultMemoryHeapIndex;
 		MemoryAllocateInfo.pNext = nullptr;
 		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 
@@ -682,17 +690,7 @@ void RenderSystem::InitSystem()
 		vkGetBufferMemoryRequirements(Device, UploadBuffer, &MemoryRequirements);
 
 		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
+		MemoryAllocateInfo.memoryTypeIndex = UploadMemoryHeapIndex;
 		MemoryAllocateInfo.pNext = nullptr;
 		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 
@@ -728,50 +726,100 @@ void RenderSystem::InitSystem()
 		ImageCreateInfo.format = VkFormat::VK_FORMAT_A2R10G10B10_UNORM_PACK32;
 		SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &GBufferTextures[1]));
 
+		ImageCreateInfo.arrayLayers = 1;
+		ImageCreateInfo.extent.depth = 1;
+		ImageCreateInfo.extent.height = ResolutionHeight;
+		ImageCreateInfo.extent.width = ResolutionWidth;
+		ImageCreateInfo.flags = 0;
+		ImageCreateInfo.format = VkFormat::VK_FORMAT_D32_SFLOAT_S8_UINT;
+		ImageCreateInfo.imageType = VkImageType::VK_IMAGE_TYPE_2D;
+		ImageCreateInfo.initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
+		ImageCreateInfo.mipLevels = 1;
+		ImageCreateInfo.pNext = nullptr;
+		ImageCreateInfo.pQueueFamilyIndices = nullptr;
+		ImageCreateInfo.queueFamilyIndexCount = 0;
+		ImageCreateInfo.samples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_8_BIT;
+		ImageCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
+		ImageCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		ImageCreateInfo.tiling = VkImageTiling::VK_IMAGE_TILING_OPTIMAL;
+		ImageCreateInfo.usage = VkImageUsageFlagBits::VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VkImageUsageFlagBits::VK_IMAGE_USAGE_SAMPLED_BIT;
+
+		SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &DepthBufferTexture));
+
+		VkBufferCreateInfo BufferCreateInfo;
+		BufferCreateInfo.flags = 0;
+		BufferCreateInfo.pNext = nullptr;
+		BufferCreateInfo.pQueueFamilyIndices = nullptr;
+		BufferCreateInfo.queueFamilyIndexCount = 0;
+		BufferCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
+		BufferCreateInfo.size = 256 * 20000;
+		BufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &GPUConstantBuffer));
+
+		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUConstantBuffers[0]));
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUConstantBuffers[1]));
+
+		VkMemoryAllocateInfo MemoryAllocateInfo;
+		MemoryAllocateInfo.allocationSize = 0;
+		MemoryAllocateInfo.memoryTypeIndex = DefaultMemoryHeapIndex;
+		MemoryAllocateInfo.pNext = nullptr;
+		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+
 		VkMemoryRequirements MemoryRequirements;
 
 		vkGetImageMemoryRequirements(Device, GBufferTextures[0], &MemoryRequirements);
 
-		VkMemoryAllocateInfo MemoryAllocateInfo;
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GBufferTexturesMemoryHeaps[0]));
-
-		SAFE_VK(vkBindImageMemory(Device, GBufferTextures[0], GBufferTexturesMemoryHeaps[0], 0));
+		VkDeviceSize GBufferTexture0Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = GBufferTexture0Offset + MemoryRequirements.size;
 
 		vkGetImageMemoryRequirements(Device, GBufferTextures[1], &MemoryRequirements);
 
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
+		VkDeviceSize GBufferTexture1Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = GBufferTexture1Offset + MemoryRequirements.size;
 
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
+		vkGetImageMemoryRequirements(Device, DepthBufferTexture, &MemoryRequirements);
 
-			return -1;
+		VkDeviceSize DepthBufferTextureOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = DepthBufferTextureOffset + MemoryRequirements.size;
 
-		} ();
+		vkGetBufferMemoryRequirements(Device, GPUConstantBuffer, &MemoryRequirements);
+		
+		VkDeviceSize GPUConstantBufferOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = GPUConstantBufferOffset + MemoryRequirements.size;
+
+		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPUMemory1));
+
+		SAFE_VK(vkBindImageMemory(Device, GBufferTextures[0], GPUMemory1, GBufferTexture0Offset));
+		SAFE_VK(vkBindImageMemory(Device, GBufferTextures[1], GPUMemory1, GBufferTexture1Offset));
+		SAFE_VK(vkBindImageMemory(Device, DepthBufferTexture, GPUMemory1, DepthBufferTextureOffset));
+		SAFE_VK(vkBindBufferMemory(Device, GPUConstantBuffer, GPUMemory1, GPUConstantBufferOffset));
+
+		MemoryAllocateInfo.allocationSize = 0;
+		MemoryAllocateInfo.memoryTypeIndex = UploadMemoryHeapIndex;
 		MemoryAllocateInfo.pNext = nullptr;
 		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GBufferTexturesMemoryHeaps[1]));
+		vkGetBufferMemoryRequirements(Device, CPUConstantBuffers[0], &MemoryRequirements);
+		
+		VkDeviceSize CPUConstantBuffer0Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = CPUConstantBuffer0Offset + MemoryRequirements.size;
+		
+		vkGetBufferMemoryRequirements(Device, CPUConstantBuffers[1], &MemoryRequirements);
 
-		SAFE_VK(vkBindImageMemory(Device, GBufferTextures[1], GBufferTexturesMemoryHeaps[1], 0));
+		VkDeviceSize CPUConstantBuffer1Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = CPUConstantBuffer1Offset + MemoryRequirements.size;
+
+		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUMemory1));
+
+		SAFE_VK(vkBindBufferMemory(Device, CPUConstantBuffers[0], CPUMemory1, CPUConstantBuffer0Offset));
+		SAFE_VK(vkBindBufferMemory(Device, CPUConstantBuffers[1], CPUMemory1, CPUConstantBuffer1Offset));
+
+		ConstantBuffersOffets1[0] = CPUConstantBuffer0Offset;
+		ConstantBuffersOffets1[1] = CPUConstantBuffer1Offset;
 
 		VkImageViewCreateInfo ImageViewCreateInfo;
 		ImageViewCreateInfo.components.a = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -796,47 +844,6 @@ void RenderSystem::InitSystem()
 		ImageViewCreateInfo.format = VkFormat::VK_FORMAT_A2R10G10B10_UNORM_PACK32;
 		ImageViewCreateInfo.image = GBufferTextures[1];
 		SAFE_VK(vkCreateImageView(Device, &ImageViewCreateInfo, nullptr, &GBufferTexturesViews[1]));
-
-		ImageCreateInfo.arrayLayers = 1;
-		ImageCreateInfo.extent.depth = 1;
-		ImageCreateInfo.extent.height = ResolutionHeight;
-		ImageCreateInfo.extent.width = ResolutionWidth;
-		ImageCreateInfo.flags = 0;
-		ImageCreateInfo.format = VkFormat::VK_FORMAT_D32_SFLOAT_S8_UINT;
-		ImageCreateInfo.imageType = VkImageType::VK_IMAGE_TYPE_2D;
-		ImageCreateInfo.initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
-		ImageCreateInfo.mipLevels = 1;
-		ImageCreateInfo.pNext = nullptr;
-		ImageCreateInfo.pQueueFamilyIndices = nullptr;
-		ImageCreateInfo.queueFamilyIndexCount = 0;
-		ImageCreateInfo.samples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_8_BIT;
-		ImageCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
-		ImageCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-		ImageCreateInfo.tiling = VkImageTiling::VK_IMAGE_TILING_OPTIMAL;
-		ImageCreateInfo.usage = VkImageUsageFlagBits::VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VkImageUsageFlagBits::VK_IMAGE_USAGE_SAMPLED_BIT;
-
-		SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &DepthBufferTexture));
-
-		vkGetImageMemoryRequirements(Device, DepthBufferTexture, &MemoryRequirements);
-
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &DepthBufferTextureMemoryHeap));
-
-		SAFE_VK(vkBindImageMemory(Device, DepthBufferTexture, DepthBufferTextureMemoryHeap, 0));
 
 		ImageViewCreateInfo.components.a = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
 		ImageViewCreateInfo.components.b = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -962,87 +969,6 @@ void RenderSystem::InitSystem()
 		FramebufferCreateInfo.width = ResolutionWidth;
 
 		SAFE_VK(vkCreateFramebuffer(Device, &FramebufferCreateInfo, nullptr, &GBufferFrameBuffer));
-
-		VkBufferCreateInfo BufferCreateInfo;
-		BufferCreateInfo.flags = 0;
-		BufferCreateInfo.pNext = nullptr;
-		BufferCreateInfo.pQueueFamilyIndices = nullptr;
-		BufferCreateInfo.queueFamilyIndexCount = 0;
-		BufferCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
-		BufferCreateInfo.size = 256 * 20000;
-		BufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &GPUConstantBuffer));
-
-		vkGetBufferMemoryRequirements(Device, GPUConstantBuffer, &MemoryRequirements);
-
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPUConstantBufferMemoryHeap));
-
-		SAFE_VK(vkBindBufferMemory(Device, GPUConstantBuffer, GPUConstantBufferMemoryHeap, 0));
-
-		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUConstantBuffers[0]));
-
-		vkGetBufferMemoryRequirements(Device, CPUConstantBuffers[0], &MemoryRequirements);
-
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUConstantBufferMemoryHeaps[0]));
-
-		SAFE_VK(vkBindBufferMemory(Device, CPUConstantBuffers[0], CPUConstantBufferMemoryHeaps[0], 0));
-
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUConstantBuffers[1]));
-
-		vkGetBufferMemoryRequirements(Device, CPUConstantBuffers[1], &MemoryRequirements);
-
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUConstantBufferMemoryHeaps[1]));
-
-		SAFE_VK(vkBindBufferMemory(Device, CPUConstantBuffers[1], CPUConstantBufferMemoryHeaps[1], 0));
 	}
 
 	// ===============================================================================================================	
@@ -1069,29 +995,22 @@ void RenderSystem::InitSystem()
 
 		SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &ResolvedDepthBufferTexture));
 
-		VkMemoryRequirements MemoryRequirements;
-
-		vkGetImageMemoryRequirements(Device, DepthBufferTexture, &MemoryRequirements);
-
 		VkMemoryAllocateInfo MemoryAllocateInfo;
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
+		MemoryAllocateInfo.allocationSize = 0;
+		MemoryAllocateInfo.memoryTypeIndex = DefaultMemoryHeapIndex;
 		MemoryAllocateInfo.pNext = nullptr;
 		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &ResolvedDepthBufferTextureMemoryHeap));
+		VkMemoryRequirements MemoryRequirements;
 
-		SAFE_VK(vkBindImageMemory(Device, ResolvedDepthBufferTexture, ResolvedDepthBufferTextureMemoryHeap, 0));
+		vkGetImageMemoryRequirements(Device, ResolvedDepthBufferTexture, &MemoryRequirements);
+
+		VkDeviceSize ResolvedDepthBufferTextureOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = ResolvedDepthBufferTextureOffset + MemoryRequirements.size;
+
+		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPUMemory2));
+
+		SAFE_VK(vkBindImageMemory(Device, ResolvedDepthBufferTexture, GPUMemory2, ResolvedDepthBufferTextureOffset));
 
 		VkImageViewCreateInfo ImageViewCreateInfo;
 		ImageViewCreateInfo.components.a = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -1249,29 +1168,58 @@ void RenderSystem::InitSystem()
 
 		SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &OcclusionBufferTexture));
 
+		VkBufferCreateInfo BufferCreateInfo;
+		BufferCreateInfo.flags = 0;
+		BufferCreateInfo.pNext = nullptr;
+		BufferCreateInfo.pQueueFamilyIndices = nullptr;
+		BufferCreateInfo.queueFamilyIndexCount = 0;
+		BufferCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
+		BufferCreateInfo.size = 256 * 144 * 4;
+		BufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &OcclusionBufferReadbackBuffers[0]));
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &OcclusionBufferReadbackBuffers[1]));
+
+		VkMemoryAllocateInfo MemoryAllocateInfo;
+		MemoryAllocateInfo.allocationSize = 0;
+		MemoryAllocateInfo.memoryTypeIndex = DefaultMemoryHeapIndex;
+		MemoryAllocateInfo.pNext = nullptr;
+		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+
 		VkMemoryRequirements MemoryRequirements;
 
 		vkGetImageMemoryRequirements(Device, OcclusionBufferTexture, &MemoryRequirements);
 
-		VkMemoryAllocateInfo MemoryAllocateInfo;
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
+		VkDeviceSize OcclusionBufferTextureOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = OcclusionBufferTextureOffset + MemoryRequirements.size;
 
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
+		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPUMemory3));
 
-			return -1;
+		SAFE_VK(vkBindImageMemory(Device, OcclusionBufferTexture, GPUMemory3, OcclusionBufferTextureOffset));
 
-		} ();
+		MemoryAllocateInfo.allocationSize = 0;
+		MemoryAllocateInfo.memoryTypeIndex = ReadbackMemoryHeapIndex;
 		MemoryAllocateInfo.pNext = nullptr;
 		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &OcclusionBufferTextureMemoryHeap));
+		vkGetBufferMemoryRequirements(Device, OcclusionBufferReadbackBuffers[0], &MemoryRequirements);
 
-		SAFE_VK(vkBindImageMemory(Device, OcclusionBufferTexture, OcclusionBufferTextureMemoryHeap, 0));
+		VkDeviceSize OcclusionBufferReadbackBuffer0Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = OcclusionBufferReadbackBuffer0Offset + MemoryRequirements.size;
+
+		vkGetBufferMemoryRequirements(Device, OcclusionBufferReadbackBuffers[1], &MemoryRequirements);
+
+		VkDeviceSize OcclusionBufferReadbackBuffer1Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = OcclusionBufferReadbackBuffer1Offset + MemoryRequirements.size;
+
+		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUMemory3));
+
+		SAFE_VK(vkBindBufferMemory(Device, OcclusionBufferReadbackBuffers[0], CPUMemory3, OcclusionBufferReadbackBuffer0Offset));
+		SAFE_VK(vkBindBufferMemory(Device, OcclusionBufferReadbackBuffers[1], CPUMemory3, OcclusionBufferReadbackBuffer1Offset));
+
+		OcclusionBuffersOffsets[0] = OcclusionBufferReadbackBuffer0Offset;
+		OcclusionBuffersOffsets[1] = OcclusionBufferReadbackBuffer1Offset;
 
 		VkImageViewCreateInfo ImageViewCreateInfo;
 		ImageViewCreateInfo.components.a = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -1291,61 +1239,6 @@ void RenderSystem::InitSystem()
 		ImageViewCreateInfo.viewType = VkImageViewType::VK_IMAGE_VIEW_TYPE_2D;
 
 		SAFE_VK(vkCreateImageView(Device, &ImageViewCreateInfo, nullptr, &OcclusionBufferTextureView));
-
-		VkBufferCreateInfo BufferCreateInfo;
-		BufferCreateInfo.flags = 0;
-		BufferCreateInfo.pNext = nullptr;
-		BufferCreateInfo.pQueueFamilyIndices = nullptr;
-		BufferCreateInfo.queueFamilyIndexCount = 0;
-		BufferCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
-		BufferCreateInfo.size = 256 * 144 * 4;
-		BufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &OcclusionBufferReadbackBuffers[0]));
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &OcclusionBufferReadbackBuffers[1]));
-
-		vkGetBufferMemoryRequirements(Device, OcclusionBufferReadbackBuffers[0], &MemoryRequirements);
-
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_CACHED_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &OcclusionBufferReadbackBuffersMemoryHeaps[0]));
-
-		SAFE_VK(vkBindBufferMemory(Device, OcclusionBufferReadbackBuffers[0], OcclusionBufferReadbackBuffersMemoryHeaps[0], 0));
-
-		vkGetBufferMemoryRequirements(Device, OcclusionBufferReadbackBuffers[0], &MemoryRequirements);
-
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_CACHED_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &OcclusionBufferReadbackBuffersMemoryHeaps[1]));
-
-		SAFE_VK(vkBindBufferMemory(Device, OcclusionBufferReadbackBuffers[1], OcclusionBufferReadbackBuffersMemoryHeaps[1], 0));
 
 		VkAttachmentDescription AttachmentDescription;
 		AttachmentDescription.finalLayout = VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -1606,32 +1499,155 @@ void RenderSystem::InitSystem()
 		SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &CascadedShadowMapTextures[2]));
 		SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &CascadedShadowMapTextures[3]));
 		
-		VkMemoryRequirements MemoryRequirements;
+		VkBufferCreateInfo BufferCreateInfo;
+		BufferCreateInfo.flags = 0;
+		BufferCreateInfo.pNext = nullptr;
+		BufferCreateInfo.pQueueFamilyIndices = nullptr;
+		BufferCreateInfo.queueFamilyIndexCount = 0;
+		BufferCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
+		BufferCreateInfo.size = 256 * 20000;
+		BufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &GPUConstantBuffers2[0]));
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &GPUConstantBuffers2[1]));
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &GPUConstantBuffers2[2]));
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &GPUConstantBuffers2[3]));
+
+		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUConstantBuffers2[0][0]));
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUConstantBuffers2[0][1]));
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUConstantBuffers2[1][0]));
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUConstantBuffers2[1][1]));
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUConstantBuffers2[2][0]));
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUConstantBuffers2[2][1]));
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUConstantBuffers2[3][0]));
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUConstantBuffers2[3][1]));
+
 		VkMemoryAllocateInfo MemoryAllocateInfo;
+		MemoryAllocateInfo.allocationSize = 0;
+		MemoryAllocateInfo.memoryTypeIndex = DefaultMemoryHeapIndex;
+		MemoryAllocateInfo.pNext = nullptr;
+		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 
-		for (int k = 0; k < 4; k++)
-		{
-			vkGetImageMemoryRequirements(Device, CascadedShadowMapTextures[k], &MemoryRequirements);
+		VkMemoryRequirements MemoryRequirements;
 
-			MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-			MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
+		vkGetImageMemoryRequirements(Device, CascadedShadowMapTextures[0], &MemoryRequirements);
 
-				for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-				{
-					if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-						return i;
-				}
+		VkDeviceSize CascadedShadowMapTexture0Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = CascadedShadowMapTexture0Offset + MemoryRequirements.size;
 
-				return -1;
+		vkGetImageMemoryRequirements(Device, CascadedShadowMapTextures[1], &MemoryRequirements);
 
-			} ();
-			MemoryAllocateInfo.pNext = nullptr;
-			MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+		VkDeviceSize CascadedShadowMapTexture1Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = CascadedShadowMapTexture1Offset + MemoryRequirements.size;
 
-			SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CascadedShadowMapTexturesMemoryHeaps[k]));
+		vkGetImageMemoryRequirements(Device, CascadedShadowMapTextures[2], &MemoryRequirements);
 
-			SAFE_VK(vkBindImageMemory(Device, CascadedShadowMapTextures[k], CascadedShadowMapTexturesMemoryHeaps[k], 0));
-		}
+		VkDeviceSize CascadedShadowMapTexture2Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = CascadedShadowMapTexture2Offset + MemoryRequirements.size;
+
+		vkGetImageMemoryRequirements(Device, CascadedShadowMapTextures[3], &MemoryRequirements);
+
+		VkDeviceSize CascadedShadowMapTexture3Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = CascadedShadowMapTexture3Offset + MemoryRequirements.size;
+
+		vkGetBufferMemoryRequirements(Device, GPUConstantBuffers2[0], &MemoryRequirements);
+
+		VkDeviceSize ConstantBuffer0Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = ConstantBuffer0Offset + MemoryRequirements.size;
+
+		vkGetBufferMemoryRequirements(Device, GPUConstantBuffers2[1], &MemoryRequirements);
+
+		VkDeviceSize ConstantBuffer1Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = ConstantBuffer0Offset + MemoryRequirements.size;
+
+		vkGetBufferMemoryRequirements(Device, GPUConstantBuffers2[2], &MemoryRequirements);
+
+		VkDeviceSize ConstantBuffer2Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = ConstantBuffer0Offset + MemoryRequirements.size;
+
+		vkGetBufferMemoryRequirements(Device, GPUConstantBuffers2[3], &MemoryRequirements);
+
+		VkDeviceSize ConstantBuffer3Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = ConstantBuffer3Offset + MemoryRequirements.size;
+
+		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPUMemory4));
+
+		SAFE_VK(vkBindImageMemory(Device, CascadedShadowMapTextures[0], GPUMemory4, CascadedShadowMapTexture0Offset));
+		SAFE_VK(vkBindImageMemory(Device, CascadedShadowMapTextures[1], GPUMemory4, CascadedShadowMapTexture1Offset));
+		SAFE_VK(vkBindImageMemory(Device, CascadedShadowMapTextures[2], GPUMemory4, CascadedShadowMapTexture2Offset));
+		SAFE_VK(vkBindImageMemory(Device, CascadedShadowMapTextures[3], GPUMemory4, CascadedShadowMapTexture3Offset));
+		SAFE_VK(vkBindBufferMemory(Device, GPUConstantBuffers2[0], GPUMemory4, ConstantBuffer0Offset));
+		SAFE_VK(vkBindBufferMemory(Device, GPUConstantBuffers2[1], GPUMemory4, ConstantBuffer1Offset));
+		SAFE_VK(vkBindBufferMemory(Device, GPUConstantBuffers2[2], GPUMemory4, ConstantBuffer2Offset));
+		SAFE_VK(vkBindBufferMemory(Device, GPUConstantBuffers2[3], GPUMemory4, ConstantBuffer3Offset));
+
+		MemoryAllocateInfo.allocationSize = 0;
+		MemoryAllocateInfo.memoryTypeIndex = UploadMemoryHeapIndex;
+		MemoryAllocateInfo.pNext = nullptr;
+		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+
+		vkGetBufferMemoryRequirements(Device, CPUConstantBuffers2[0][0], &MemoryRequirements);
+
+		VkDeviceSize ConstantBuffer00Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = ConstantBuffer00Offset + MemoryRequirements.size;
+
+		vkGetBufferMemoryRequirements(Device, CPUConstantBuffers2[0][1], &MemoryRequirements);
+
+		VkDeviceSize ConstantBuffer01Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = ConstantBuffer01Offset + MemoryRequirements.size;
+
+		vkGetBufferMemoryRequirements(Device, CPUConstantBuffers2[1][0], &MemoryRequirements);
+
+		VkDeviceSize ConstantBuffer10Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = ConstantBuffer10Offset + MemoryRequirements.size;
+
+		vkGetBufferMemoryRequirements(Device, CPUConstantBuffers2[1][1], &MemoryRequirements);
+
+		VkDeviceSize ConstantBuffer11Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = ConstantBuffer11Offset + MemoryRequirements.size;
+
+		vkGetBufferMemoryRequirements(Device, CPUConstantBuffers2[2][0], &MemoryRequirements);
+
+		VkDeviceSize ConstantBuffer20Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = ConstantBuffer20Offset + MemoryRequirements.size;
+
+		vkGetBufferMemoryRequirements(Device, CPUConstantBuffers2[2][1], &MemoryRequirements);
+
+		VkDeviceSize ConstantBuffer21Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = ConstantBuffer21Offset + MemoryRequirements.size;
+
+		vkGetBufferMemoryRequirements(Device, CPUConstantBuffers2[3][0], &MemoryRequirements);
+
+		VkDeviceSize ConstantBuffer30Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = ConstantBuffer30Offset + MemoryRequirements.size;
+
+		vkGetBufferMemoryRequirements(Device, CPUConstantBuffers2[3][1], &MemoryRequirements);
+
+		VkDeviceSize ConstantBuffer31Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = ConstantBuffer31Offset + MemoryRequirements.size;
+
+		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUMemory4));
+
+		SAFE_VK(vkBindBufferMemory(Device, CPUConstantBuffers2[0][0], CPUMemory4, ConstantBuffer00Offset));
+		SAFE_VK(vkBindBufferMemory(Device, CPUConstantBuffers2[0][1], CPUMemory4, ConstantBuffer01Offset));
+		SAFE_VK(vkBindBufferMemory(Device, CPUConstantBuffers2[1][0], CPUMemory4, ConstantBuffer10Offset));
+		SAFE_VK(vkBindBufferMemory(Device, CPUConstantBuffers2[1][1], CPUMemory4, ConstantBuffer11Offset));
+		SAFE_VK(vkBindBufferMemory(Device, CPUConstantBuffers2[2][0], CPUMemory4, ConstantBuffer20Offset));
+		SAFE_VK(vkBindBufferMemory(Device, CPUConstantBuffers2[2][1], CPUMemory4, ConstantBuffer21Offset));
+		SAFE_VK(vkBindBufferMemory(Device, CPUConstantBuffers2[3][0], CPUMemory4, ConstantBuffer30Offset));
+		SAFE_VK(vkBindBufferMemory(Device, CPUConstantBuffers2[3][1], CPUMemory4, ConstantBuffer31Offset));
+
+		ConstantBuffersOffets2[0][0] = ConstantBuffer00Offset;
+		ConstantBuffersOffets2[0][1] = ConstantBuffer01Offset;
+		ConstantBuffersOffets2[1][0] = ConstantBuffer10Offset;
+		ConstantBuffersOffets2[1][1] = ConstantBuffer11Offset;
+		ConstantBuffersOffets2[2][0] = ConstantBuffer20Offset;
+		ConstantBuffersOffets2[2][1] = ConstantBuffer21Offset;
+		ConstantBuffersOffets2[3][0] = ConstantBuffer30Offset;
+		ConstantBuffersOffets2[3][1] = ConstantBuffer31Offset;
 
 		VkImageViewCreateInfo ImageViewCreateInfo;
 		ImageViewCreateInfo.components.a = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -1721,100 +1737,6 @@ void RenderSystem::InitSystem()
 		FramebufferCreateInfo.pAttachments = &CascadedShadowMapTexturesViews[3];
 		SAFE_VK(vkCreateFramebuffer(Device, &FramebufferCreateInfo, nullptr, &CascadedShadowMapFrameBuffers[3]));
 
-		VkBufferCreateInfo BufferCreateInfo;
-		BufferCreateInfo.flags = 0;
-		BufferCreateInfo.pNext = nullptr;
-		BufferCreateInfo.pQueueFamilyIndices = nullptr;
-		BufferCreateInfo.queueFamilyIndexCount = 0;
-		BufferCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
-		BufferCreateInfo.size = 256 * 20000;
-		BufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &GPUConstantBuffers2[0]));
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &GPUConstantBuffers2[1]));
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &GPUConstantBuffers2[2]));
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &GPUConstantBuffers2[3]));
-
-		for (int k = 0; k < 4; k++)
-		{
-			vkGetBufferMemoryRequirements(Device, GPUConstantBuffers2[k], &MemoryRequirements);
-
-			MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-			MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-				for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-				{
-					if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-						return i;
-				}
-
-				return -1;
-
-			} ();
-			MemoryAllocateInfo.pNext = nullptr;
-			MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-			SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPUConstantBufferMemoryHeaps2[k]));
-
-			SAFE_VK(vkBindBufferMemory(Device, GPUConstantBuffers2[k], GPUConstantBufferMemoryHeaps2[k], 0));
-		}
-
-		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUConstantBuffers2[0][0]));
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUConstantBuffers2[0][1]));
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUConstantBuffers2[1][0]));
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUConstantBuffers2[1][1]));
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUConstantBuffers2[2][0]));
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUConstantBuffers2[2][1]));
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUConstantBuffers2[3][0]));
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUConstantBuffers2[3][1]));
-
-		for (int k = 0; k < 4; k++)
-		{
-			vkGetBufferMemoryRequirements(Device, GPUConstantBuffers2[k], &MemoryRequirements);
-
-			MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-			MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-				for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-				{
-					if (((1 << i) & MemoryRequirements.memoryTypeBits) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-						return i;
-				}
-
-				return -1;
-
-			} ();
-			MemoryAllocateInfo.pNext = nullptr;
-			MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-			SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUConstantBufferMemoryHeaps2[k][0]));
-
-			SAFE_VK(vkBindBufferMemory(Device, CPUConstantBuffers2[k][0], CPUConstantBufferMemoryHeaps2[k][0], 0));
-
-			vkGetBufferMemoryRequirements(Device, GPUConstantBuffers2[k], &MemoryRequirements);
-
-			MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-			MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-				for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-				{
-					if (((1 << i) & MemoryRequirements.memoryTypeBits) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-						return i;
-				}
-
-				return -1;
-
-			} ();
-			MemoryAllocateInfo.pNext = nullptr;
-			MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-			SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUConstantBufferMemoryHeaps2[k][1]));
-
-			SAFE_VK(vkBindBufferMemory(Device, CPUConstantBuffers2[k][1], CPUConstantBufferMemoryHeaps2[k][1], 0));
-		}
 	}
 
 	// ===============================================================================================================	
@@ -1841,30 +1763,69 @@ void RenderSystem::InitSystem()
 
 		SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &ShadowMaskTexture));
 
+		VkBufferCreateInfo BufferCreateInfo;
+		BufferCreateInfo.flags = 0;
+		BufferCreateInfo.pNext = nullptr;
+		BufferCreateInfo.pQueueFamilyIndices = nullptr;
+		BufferCreateInfo.queueFamilyIndexCount = 0;
+		BufferCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
+		BufferCreateInfo.size = 256;
+		BufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &GPUShadowResolveConstantBuffer));
+
+		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUShadowResolveConstantBuffers[0]));
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUShadowResolveConstantBuffers[1]));
+
+		VkMemoryAllocateInfo MemoryAllocateInfo;
+		MemoryAllocateInfo.allocationSize = 0;
+		MemoryAllocateInfo.memoryTypeIndex = DefaultMemoryHeapIndex;
+		MemoryAllocateInfo.pNext = nullptr;
+		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO; 
+		
 		VkMemoryRequirements MemoryRequirements;
 
 		vkGetImageMemoryRequirements(Device, ShadowMaskTexture, &MemoryRequirements);
 
-		VkMemoryAllocateInfo MemoryAllocateInfo;
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
+		VkDeviceSize ShadowMaskTextureOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = ShadowMaskTextureOffset + MemoryRequirements.size;
 
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
+		vkGetBufferMemoryRequirements(Device, GPUShadowResolveConstantBuffer, &MemoryRequirements);
 
-			return -1;
+		VkDeviceSize GPUConstantBufferOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = GPUConstantBufferOffset + MemoryRequirements.size;
 
-		} ();
+		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPUMemory5));
+
+		SAFE_VK(vkBindImageMemory(Device, ShadowMaskTexture, GPUMemory5, ShadowMaskTextureOffset));
+		SAFE_VK(vkBindBufferMemory(Device, GPUShadowResolveConstantBuffer, GPUMemory5, GPUConstantBufferOffset));
+
+		MemoryAllocateInfo.allocationSize = 0;
+		MemoryAllocateInfo.memoryTypeIndex = UploadMemoryHeapIndex;
 		MemoryAllocateInfo.pNext = nullptr;
 		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &ShadowMaskTextureMemoryHeap));
+		vkGetBufferMemoryRequirements(Device, CPUShadowResolveConstantBuffers[0], &MemoryRequirements);
 
-		SAFE_VK(vkBindImageMemory(Device, ShadowMaskTexture, ShadowMaskTextureMemoryHeap, 0));
+		VkDeviceSize CPUConstantBuffer0Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = CPUConstantBuffer0Offset + MemoryRequirements.size;
 
+		vkGetBufferMemoryRequirements(Device, CPUShadowResolveConstantBuffers[1], &MemoryRequirements);
+
+		VkDeviceSize CPUConstantBuffer1Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = CPUConstantBuffer1Offset + MemoryRequirements.size;
+
+		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUMemory5));
+
+		SAFE_VK(vkBindBufferMemory(Device, CPUShadowResolveConstantBuffers[0], CPUMemory5, CPUConstantBuffer0Offset));
+		SAFE_VK(vkBindBufferMemory(Device, CPUShadowResolveConstantBuffers[1], CPUMemory5, CPUConstantBuffer1Offset));
+
+		ConstantBuffersOffets3[0] = CPUConstantBuffer0Offset;
+		ConstantBuffersOffets3[1] = CPUConstantBuffer1Offset;
+		
 		VkImageViewCreateInfo ImageViewCreateInfo;
 		ImageViewCreateInfo.components.a = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
 		ImageViewCreateInfo.components.b = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -1936,87 +1897,6 @@ void RenderSystem::InitSystem()
 		FramebufferCreateInfo.width = ResolutionWidth;
 
 		SAFE_VK(vkCreateFramebuffer(Device, &FramebufferCreateInfo, nullptr, &ShadowMaskFrameBuffer));
-
-		VkBufferCreateInfo BufferCreateInfo;
-		BufferCreateInfo.flags = 0;
-		BufferCreateInfo.pNext = nullptr;
-		BufferCreateInfo.pQueueFamilyIndices = nullptr;
-		BufferCreateInfo.queueFamilyIndexCount = 0;
-		BufferCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
-		BufferCreateInfo.size = 256;
-		BufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &GPUShadowResolveConstantBuffer));
-
-		vkGetBufferMemoryRequirements(Device, GPUShadowResolveConstantBuffer, &MemoryRequirements);
-
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPUShadowResolveConstantBufferMemoryHeap));
-
-		SAFE_VK(vkBindBufferMemory(Device, GPUShadowResolveConstantBuffer, GPUShadowResolveConstantBufferMemoryHeap, 0));
-
-		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUShadowResolveConstantBuffers[0]));
-
-		vkGetBufferMemoryRequirements(Device, CPUShadowResolveConstantBuffers[0], &MemoryRequirements);
-
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUShadowResolveConstantBuffersMemoryHeaps[0]));
-
-		SAFE_VK(vkBindBufferMemory(Device, CPUShadowResolveConstantBuffers[0], CPUShadowResolveConstantBuffersMemoryHeaps[0], 0));
-
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUShadowResolveConstantBuffers[1]));
-
-		vkGetBufferMemoryRequirements(Device, CPUShadowResolveConstantBuffers[1], &MemoryRequirements);
-
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUShadowResolveConstantBuffersMemoryHeaps[1]));
-
-		SAFE_VK(vkBindBufferMemory(Device, CPUShadowResolveConstantBuffers[1], CPUShadowResolveConstantBuffersMemoryHeaps[1], 0));
 
 		VkDescriptorSetLayoutBinding DescriptorSetLayoutBindings[4];
 		DescriptorSetLayoutBindings[0].binding = 0;
@@ -2231,29 +2111,177 @@ void RenderSystem::InitSystem()
 
 		SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &HDRSceneColorTexture));
 
+		VkBufferCreateInfo BufferCreateInfo;
+		BufferCreateInfo.flags = 0;
+		BufferCreateInfo.pNext = nullptr;
+		BufferCreateInfo.pQueueFamilyIndices = nullptr;
+		BufferCreateInfo.queueFamilyIndexCount = 0;
+		BufferCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
+		BufferCreateInfo.size = 256;
+		BufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &GPUDeferredLightingConstantBuffer));
+
+		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUDeferredLightingConstantBuffers[0]));
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUDeferredLightingConstantBuffers[1]));
+
+		BufferCreateInfo.flags = 0;
+		BufferCreateInfo.pNext = nullptr;
+		BufferCreateInfo.pQueueFamilyIndices = nullptr;
+		BufferCreateInfo.queueFamilyIndexCount = 0;
+		BufferCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
+		BufferCreateInfo.size = ClusterizationSubSystem::CLUSTERS_COUNT_X * ClusterizationSubSystem::CLUSTERS_COUNT_Y * ClusterizationSubSystem::CLUSTERS_COUNT_Z * 2 * sizeof(uint32_t);
+		BufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT | VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &GPULightClustersBuffer));
+
+		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPULightClustersBuffers[0]));
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPULightClustersBuffers[1]));
+
+		BufferCreateInfo.flags = 0;
+		BufferCreateInfo.pNext = nullptr;
+		BufferCreateInfo.pQueueFamilyIndices = nullptr;
+		BufferCreateInfo.queueFamilyIndexCount = 0;
+		BufferCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
+		BufferCreateInfo.size = ClusterizationSubSystem::CLUSTERS_COUNT_X * ClusterizationSubSystem::CLUSTERS_COUNT_Y * ClusterizationSubSystem::CLUSTERS_COUNT_Z * ClusterizationSubSystem::MAX_LIGHTS_PER_CLUSTER * sizeof(uint16_t);
+		BufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT | VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &GPULightIndicesBuffer));
+
+		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPULightIndicesBuffers[0]));
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPULightIndicesBuffers[1]));
+
+		BufferCreateInfo.flags = 0;
+		BufferCreateInfo.pNext = nullptr;
+		BufferCreateInfo.pQueueFamilyIndices = nullptr;
+		BufferCreateInfo.queueFamilyIndexCount = 0;
+		BufferCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
+		BufferCreateInfo.size = 10000 * 2 * 4 * sizeof(float);
+		BufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &GPUPointLightsBuffer));
+
+		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUPointLightsBuffers[0]));
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUPointLightsBuffers[1]));
+
+		VkMemoryAllocateInfo MemoryAllocateInfo;
+		MemoryAllocateInfo.allocationSize = 0;
+		MemoryAllocateInfo.memoryTypeIndex = DefaultMemoryHeapIndex;
+		MemoryAllocateInfo.pNext = nullptr;
+		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+
 		VkMemoryRequirements MemoryRequirements;
 
 		vkGetImageMemoryRequirements(Device, HDRSceneColorTexture, &MemoryRequirements);
 
-		VkMemoryAllocateInfo MemoryAllocateInfo;
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
+		VkDeviceSize HDRSceneColorTextureOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = HDRSceneColorTextureOffset + MemoryRequirements.size;
 
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
+		vkGetBufferMemoryRequirements(Device, GPUDeferredLightingConstantBuffer, &MemoryRequirements);
 
-			return -1;
+		VkDeviceSize GPUConstantBufferOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = GPUConstantBufferOffset + MemoryRequirements.size;
 
-		} ();
+		vkGetBufferMemoryRequirements(Device, GPULightClustersBuffer, &MemoryRequirements);
+
+		VkDeviceSize GPULightClustersBufferOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = GPULightClustersBufferOffset + MemoryRequirements.size;
+
+		vkGetBufferMemoryRequirements(Device, GPULightIndicesBuffer, &MemoryRequirements);
+
+		VkDeviceSize GPULightIndicesBufferOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = GPULightIndicesBufferOffset + MemoryRequirements.size;
+
+		vkGetBufferMemoryRequirements(Device, GPUPointLightsBuffer, &MemoryRequirements);
+
+		VkDeviceSize GPUPointLightsBufferOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = GPUPointLightsBufferOffset + MemoryRequirements.size;
+
+		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPUMemory6));
+
+		SAFE_VK(vkBindImageMemory(Device, HDRSceneColorTexture, GPUMemory6, HDRSceneColorTextureOffset));
+		SAFE_VK(vkBindBufferMemory(Device, GPUDeferredLightingConstantBuffer, GPUMemory6, GPUConstantBufferOffset));
+		SAFE_VK(vkBindBufferMemory(Device, GPULightClustersBuffer, GPUMemory6, GPULightClustersBufferOffset));
+		SAFE_VK(vkBindBufferMemory(Device, GPULightIndicesBuffer, GPUMemory6, GPULightIndicesBufferOffset));
+		SAFE_VK(vkBindBufferMemory(Device, GPUPointLightsBuffer, GPUMemory6, GPUPointLightsBufferOffset));
+
+		MemoryAllocateInfo.allocationSize = 0;
+		MemoryAllocateInfo.memoryTypeIndex = UploadMemoryHeapIndex;
 		MemoryAllocateInfo.pNext = nullptr;
 		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &HDRSceneColorTextureMemoryHeap));
+		vkGetBufferMemoryRequirements(Device, CPUDeferredLightingConstantBuffers[0], &MemoryRequirements);
 
-		SAFE_VK(vkBindImageMemory(Device, HDRSceneColorTexture, HDRSceneColorTextureMemoryHeap, 0));
+		VkDeviceSize CPUConstantBuffer0Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = CPUConstantBuffer0Offset + MemoryRequirements.size;
+
+		vkGetBufferMemoryRequirements(Device, CPUDeferredLightingConstantBuffers[1], &MemoryRequirements);
+
+		VkDeviceSize CPUConstantBuffer1Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = CPUConstantBuffer1Offset + MemoryRequirements.size;
+
+		vkGetBufferMemoryRequirements(Device, CPULightClustersBuffers[0], &MemoryRequirements);
+
+		VkDeviceSize CPULightClustersBufferOffset0 = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = CPULightClustersBufferOffset0 + MemoryRequirements.size;
+
+		vkGetBufferMemoryRequirements(Device, CPULightClustersBuffers[1], &MemoryRequirements);
+
+		VkDeviceSize CPULightClustersBufferOffset1 = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = CPULightClustersBufferOffset1 + MemoryRequirements.size;
+
+		vkGetBufferMemoryRequirements(Device, CPULightIndicesBuffers[0], &MemoryRequirements);
+
+		VkDeviceSize CPULightIndicesBufferOffset0 = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = CPULightIndicesBufferOffset0 + MemoryRequirements.size;
+		
+		vkGetBufferMemoryRequirements(Device, CPULightIndicesBuffers[1], &MemoryRequirements);
+
+		VkDeviceSize CPULightIndicesBufferOffset1 = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = CPULightIndicesBufferOffset1 + MemoryRequirements.size;
+
+		vkGetBufferMemoryRequirements(Device, CPUPointLightsBuffers[0], &MemoryRequirements);
+
+		VkDeviceSize CPUPointLightsBufferOffset0 = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = CPUPointLightsBufferOffset0 + MemoryRequirements.size;
+
+		vkGetBufferMemoryRequirements(Device, CPUPointLightsBuffers[1], &MemoryRequirements);
+
+		VkDeviceSize CPUPointLightsBufferOffset1 = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = CPUPointLightsBufferOffset1 + MemoryRequirements.size;
+
+		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUMemory6));
+
+		SAFE_VK(vkBindBufferMemory(Device, CPUDeferredLightingConstantBuffers[0], CPUMemory6, CPUConstantBuffer0Offset));
+		SAFE_VK(vkBindBufferMemory(Device, CPUDeferredLightingConstantBuffers[1], CPUMemory6, CPUConstantBuffer1Offset));
+		SAFE_VK(vkBindBufferMemory(Device, CPULightClustersBuffers[0], CPUMemory6, CPULightClustersBufferOffset0));
+		SAFE_VK(vkBindBufferMemory(Device, CPULightClustersBuffers[1], CPUMemory6, CPULightClustersBufferOffset1));
+		SAFE_VK(vkBindBufferMemory(Device, CPULightIndicesBuffers[0], CPUMemory6, CPULightIndicesBufferOffset0));
+		SAFE_VK(vkBindBufferMemory(Device, CPULightIndicesBuffers[1], CPUMemory6, CPULightIndicesBufferOffset1));
+		SAFE_VK(vkBindBufferMemory(Device, CPUPointLightsBuffers[0], CPUMemory6, CPUPointLightsBufferOffset0));
+		SAFE_VK(vkBindBufferMemory(Device, CPUPointLightsBuffers[1], CPUMemory6, CPUPointLightsBufferOffset1));
+
+		ConstantBuffersOffets4[0] = CPUConstantBuffer0Offset;
+		ConstantBuffersOffets4[1] = CPUConstantBuffer1Offset;
+
+		DynamicBuffersOffsets[0][0] = CPULightClustersBufferOffset0;
+		DynamicBuffersOffsets[0][1] = CPULightClustersBufferOffset1;
+		DynamicBuffersOffsets[1][0] = CPULightIndicesBufferOffset0;
+		DynamicBuffersOffsets[1][1] = CPULightIndicesBufferOffset1;
+		DynamicBuffersOffsets[2][0] = CPUPointLightsBufferOffset0;
+		DynamicBuffersOffsets[2][1] = CPUPointLightsBufferOffset1;
 
 		VkImageViewCreateInfo ImageViewCreateInfo;
 		ImageViewCreateInfo.components.a = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -2326,324 +2354,6 @@ void RenderSystem::InitSystem()
 		FramebufferCreateInfo.width = ResolutionWidth;
 
 		SAFE_VK(vkCreateFramebuffer(Device, &FramebufferCreateInfo, nullptr, &HDRSceneColorFrameBuffer));
-
-		VkBufferCreateInfo BufferCreateInfo;
-		BufferCreateInfo.flags = 0;
-		BufferCreateInfo.pNext = nullptr;
-		BufferCreateInfo.pQueueFamilyIndices = nullptr;
-		BufferCreateInfo.queueFamilyIndexCount = 0;
-		BufferCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
-		BufferCreateInfo.size = 256;
-		BufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &GPUDeferredLightingConstantBuffer));
-
-		vkGetBufferMemoryRequirements(Device, GPUDeferredLightingConstantBuffer, &MemoryRequirements);
-
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPUDeferredLightingConstantBufferMemoryHeap));
-
-		SAFE_VK(vkBindBufferMemory(Device, GPUDeferredLightingConstantBuffer, GPUDeferredLightingConstantBufferMemoryHeap, 0));
-
-		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUDeferredLightingConstantBuffers[0]));
-
-		vkGetBufferMemoryRequirements(Device, CPUDeferredLightingConstantBuffers[0], &MemoryRequirements);
-
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUDeferredLightingConstantBuffersMemoryHeaps[0]));
-
-		SAFE_VK(vkBindBufferMemory(Device, CPUDeferredLightingConstantBuffers[0], CPUDeferredLightingConstantBuffersMemoryHeaps[0], 0));
-
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUDeferredLightingConstantBuffers[1]));
-
-		vkGetBufferMemoryRequirements(Device, CPUDeferredLightingConstantBuffers[1], &MemoryRequirements);
-
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUDeferredLightingConstantBuffersMemoryHeaps[1]));
-
-		SAFE_VK(vkBindBufferMemory(Device, CPUDeferredLightingConstantBuffers[1], CPUDeferredLightingConstantBuffersMemoryHeaps[1], 0));
-		
-		BufferCreateInfo.flags = 0;
-		BufferCreateInfo.pNext = nullptr;
-		BufferCreateInfo.pQueueFamilyIndices = nullptr;
-		BufferCreateInfo.queueFamilyIndexCount = 0;
-		BufferCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
-		BufferCreateInfo.size = ClusterizationSubSystem::CLUSTERS_COUNT_X * ClusterizationSubSystem::CLUSTERS_COUNT_Y * ClusterizationSubSystem::CLUSTERS_COUNT_Z * 2 * sizeof(uint32_t);
-		BufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT | VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &GPULightClustersBuffer));
-
-		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPULightClustersBuffers[0]));
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPULightClustersBuffers[1]));
-
-		vkGetBufferMemoryRequirements(Device, GPULightClustersBuffer, &MemoryRequirements);
-
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPULightClustersBufferMemoryHeap));
-
-		SAFE_VK(vkBindBufferMemory(Device, GPULightClustersBuffer, GPULightClustersBufferMemoryHeap, 0));
-
-		vkGetBufferMemoryRequirements(Device, CPULightClustersBuffers[0], &MemoryRequirements);
-
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPULightClustersBuffersMemoryHeaps[0]));
-
-		SAFE_VK(vkBindBufferMemory(Device, CPULightClustersBuffers[0], CPULightClustersBuffersMemoryHeaps[0], 0));
-
-		vkGetBufferMemoryRequirements(Device, CPULightClustersBuffers[1], &MemoryRequirements);
-
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPULightClustersBuffersMemoryHeaps[1]));
-
-		SAFE_VK(vkBindBufferMemory(Device, CPULightClustersBuffers[1], CPULightClustersBuffersMemoryHeaps[1], 0));
-
-		BufferCreateInfo.flags = 0;
-		BufferCreateInfo.pNext = nullptr;
-		BufferCreateInfo.pQueueFamilyIndices = nullptr;
-		BufferCreateInfo.queueFamilyIndexCount = 0;
-		BufferCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
-		BufferCreateInfo.size = ClusterizationSubSystem::CLUSTERS_COUNT_X * ClusterizationSubSystem::CLUSTERS_COUNT_Y * ClusterizationSubSystem::CLUSTERS_COUNT_Z * ClusterizationSubSystem::MAX_LIGHTS_PER_CLUSTER * sizeof(uint16_t);
-		BufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT | VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &GPULightIndicesBuffer));
-
-		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPULightIndicesBuffers[0]));
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPULightIndicesBuffers[1]));
-
-		vkGetBufferMemoryRequirements(Device, GPULightIndicesBuffer, &MemoryRequirements);
-
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPULightIndicesBufferMemoryHeap));
-
-		SAFE_VK(vkBindBufferMemory(Device, GPULightIndicesBuffer, GPULightIndicesBufferMemoryHeap, 0));
-
-		vkGetBufferMemoryRequirements(Device, CPULightIndicesBuffers[0], &MemoryRequirements);
-
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPULightIndicesBuffersMemoryHeaps[0]));
-
-		SAFE_VK(vkBindBufferMemory(Device, CPULightIndicesBuffers[0], CPULightIndicesBuffersMemoryHeaps[0], 0));
-
-		vkGetBufferMemoryRequirements(Device, CPULightIndicesBuffers[1], &MemoryRequirements);
-
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPULightIndicesBuffersMemoryHeaps[1]));
-
-		SAFE_VK(vkBindBufferMemory(Device, CPULightIndicesBuffers[1], CPULightIndicesBuffersMemoryHeaps[1], 0));
-
-		BufferCreateInfo.flags = 0;
-		BufferCreateInfo.pNext = nullptr;
-		BufferCreateInfo.pQueueFamilyIndices = nullptr;
-		BufferCreateInfo.queueFamilyIndexCount = 0;
-		BufferCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
-		BufferCreateInfo.size = 10000 * 2 * 4 * sizeof(float);
-		BufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &GPUPointLightsBuffer));
-
-		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUPointLightsBuffers[0]));
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUPointLightsBuffers[1]));
-
-		vkGetBufferMemoryRequirements(Device, GPUPointLightsBuffer, &MemoryRequirements);
-
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPUPointLightsBufferMemoryHeap));
-
-		SAFE_VK(vkBindBufferMemory(Device, GPUPointLightsBuffer, GPUPointLightsBufferMemoryHeap, 0));
-
-		vkGetBufferMemoryRequirements(Device, CPUPointLightsBuffers[0], &MemoryRequirements);
-
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUPointLightsBuffersMemoryHeaps[0]));
-
-		SAFE_VK(vkBindBufferMemory(Device, CPUPointLightsBuffers[0], CPUPointLightsBuffersMemoryHeaps[0], 0));
-
-		vkGetBufferMemoryRequirements(Device, CPUPointLightsBuffers[1], &MemoryRequirements);
-
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUPointLightsBuffersMemoryHeaps[1]));
-
-		SAFE_VK(vkBindBufferMemory(Device, CPUPointLightsBuffers[1], CPUPointLightsBuffersMemoryHeaps[1], 0));
 
 		VkBufferViewCreateInfo BufferViewCreateInfo;
 		BufferViewCreateInfo.buffer = GPULightClustersBuffer;
@@ -3122,50 +2832,168 @@ void RenderSystem::InitSystem()
 
 		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &SkyIndexBuffer));
 
+		BufferCreateInfo.flags = 0;
+		BufferCreateInfo.pNext = nullptr;
+		BufferCreateInfo.pQueueFamilyIndices = nullptr;
+		BufferCreateInfo.queueFamilyIndexCount = 0;
+		BufferCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
+		BufferCreateInfo.size = sizeof(Vertex) * SunMeshVertexCount;
+		BufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &SunVertexBuffer));
+
+		BufferCreateInfo.flags = 0;
+		BufferCreateInfo.pNext = nullptr;
+		BufferCreateInfo.pQueueFamilyIndices = nullptr;
+		BufferCreateInfo.queueFamilyIndexCount = 0;
+		BufferCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
+		BufferCreateInfo.size = sizeof(WORD) * SunMeshIndexCount;
+		BufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &SunIndexBuffer));
+
+		VkImageCreateInfo ImageCreateInfo;
+		ImageCreateInfo.arrayLayers = 1;
+		ImageCreateInfo.extent.depth = 1;
+		ImageCreateInfo.extent.height = 2048;
+		ImageCreateInfo.extent.width = 2048;
+		ImageCreateInfo.flags = 0;
+		ImageCreateInfo.format = VkFormat::VK_FORMAT_R8G8B8A8_SRGB;
+		ImageCreateInfo.imageType = VkImageType::VK_IMAGE_TYPE_2D;
+		ImageCreateInfo.initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
+		ImageCreateInfo.mipLevels = 1;
+		ImageCreateInfo.pNext = nullptr;
+		ImageCreateInfo.pQueueFamilyIndices = nullptr;
+		ImageCreateInfo.queueFamilyIndexCount = 0;
+		ImageCreateInfo.samples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
+		ImageCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
+		ImageCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		ImageCreateInfo.tiling = VkImageTiling::VK_IMAGE_TILING_OPTIMAL;
+		ImageCreateInfo.usage = VkImageUsageFlagBits::VK_IMAGE_USAGE_SAMPLED_BIT | VkImageUsageFlagBits::VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+		SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &SkyTexture));
+
+		ImageCreateInfo.extent.height = 512;
+		ImageCreateInfo.extent.width = 512;
+
+		SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &SunTexture));
+
+		BufferCreateInfo.flags = 0;
+		BufferCreateInfo.pNext = nullptr;
+		BufferCreateInfo.pQueueFamilyIndices = nullptr;
+		BufferCreateInfo.queueFamilyIndexCount = 0;
+		BufferCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
+		BufferCreateInfo.size = 256;
+		BufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &GPUSkyConstantBuffer));
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &GPUSunConstantBuffer));
+
+		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUSkyConstantBuffers[0]));
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUSkyConstantBuffers[1]));
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUSunConstantBuffers[0]));
+		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUSunConstantBuffers[1]));
+
+		VkMemoryAllocateInfo MemoryAllocateInfo;
+		MemoryAllocateInfo.allocationSize = 0;
+		MemoryAllocateInfo.memoryTypeIndex = DefaultMemoryHeapIndex;
+		MemoryAllocateInfo.pNext = nullptr;
+		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+
 		VkMemoryRequirements MemoryRequirements;
 
 		vkGetBufferMemoryRequirements(Device, SkyVertexBuffer, &MemoryRequirements);
 
-		VkMemoryAllocateInfo MemoryAllocateInfo;
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &SkyVertexBufferMemoryHeap));
-
-		SAFE_VK(vkBindBufferMemory(Device, SkyVertexBuffer, SkyVertexBufferMemoryHeap, 0));
+		VkDeviceSize SkyVertexBufferOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = SkyVertexBufferOffset + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, SkyIndexBuffer, &MemoryRequirements);
 
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
+		VkDeviceSize SkyIndexBufferOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = SkyIndexBufferOffset + MemoryRequirements.size;
 
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
+		vkGetBufferMemoryRequirements(Device, SunVertexBuffer, &MemoryRequirements);
 
-			return -1;
+		VkDeviceSize SunVertexBufferOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = SunVertexBufferOffset + MemoryRequirements.size;
 
-		} ();
+		vkGetBufferMemoryRequirements(Device, SunIndexBuffer, &MemoryRequirements);
+
+		VkDeviceSize SunIndexBufferOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = SunIndexBufferOffset + MemoryRequirements.size;
+
+		vkGetImageMemoryRequirements(Device, SkyTexture, &MemoryRequirements);
+
+		VkDeviceSize SkyTextureOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = SkyTextureOffset + MemoryRequirements.size;
+
+		vkGetImageMemoryRequirements(Device, SunTexture, &MemoryRequirements);
+
+		VkDeviceSize SunTextureOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = SunTextureOffset + MemoryRequirements.size;
+
+		vkGetBufferMemoryRequirements(Device, GPUSkyConstantBuffer, &MemoryRequirements);
+
+		VkDeviceSize GPUSkyConstantBufferOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = GPUSkyConstantBufferOffset + MemoryRequirements.size;
+
+		vkGetBufferMemoryRequirements(Device, GPUSunConstantBuffer, &MemoryRequirements);
+
+		VkDeviceSize GPUSunConstantBufferOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = GPUSunConstantBufferOffset + MemoryRequirements.size;
+
+		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPUMemory7));
+
+		SAFE_VK(vkBindBufferMemory(Device, SkyVertexBuffer, GPUMemory7, SkyVertexBufferOffset));
+		SAFE_VK(vkBindBufferMemory(Device, SkyIndexBuffer, GPUMemory7, SkyIndexBufferOffset));
+		SAFE_VK(vkBindBufferMemory(Device, SunVertexBuffer, GPUMemory7, SunVertexBufferOffset));
+		SAFE_VK(vkBindBufferMemory(Device, SunIndexBuffer, GPUMemory7, SunIndexBufferOffset));
+		SAFE_VK(vkBindImageMemory(Device, SkyTexture, GPUMemory7, SkyTextureOffset));
+		SAFE_VK(vkBindImageMemory(Device, SunTexture, GPUMemory7, SunTextureOffset));
+		SAFE_VK(vkBindBufferMemory(Device, GPUSkyConstantBuffer, GPUMemory7, GPUSkyConstantBufferOffset));
+		SAFE_VK(vkBindBufferMemory(Device, GPUSunConstantBuffer, GPUMemory7, GPUSunConstantBufferOffset));
+
+		MemoryAllocateInfo.allocationSize = 0;
+		MemoryAllocateInfo.memoryTypeIndex = UploadMemoryHeapIndex;
 		MemoryAllocateInfo.pNext = nullptr;
 		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &SkyIndexBufferMemoryHeap));
+		vkGetBufferMemoryRequirements(Device, CPUSkyConstantBuffers[0], &MemoryRequirements);
 
-		SAFE_VK(vkBindBufferMemory(Device, SkyIndexBuffer, SkyIndexBufferMemoryHeap, 0));
+		VkDeviceSize CPUSkyConstantBufferOffset0 = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = CPUSkyConstantBufferOffset0 + MemoryRequirements.size;
+
+		vkGetBufferMemoryRequirements(Device, CPUSkyConstantBuffers[1], &MemoryRequirements);
+
+		VkDeviceSize CPUSkyConstantBufferOffset1 = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = CPUSkyConstantBufferOffset1 + MemoryRequirements.size;
+
+		vkGetBufferMemoryRequirements(Device, CPUSunConstantBuffers[0], &MemoryRequirements);
+
+		VkDeviceSize CPUSunConstantBufferOffset0 = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = CPUSunConstantBufferOffset0 + MemoryRequirements.size;
+
+		vkGetBufferMemoryRequirements(Device, CPUSunConstantBuffers[1], &MemoryRequirements);
+
+		VkDeviceSize CPUSunConstantBufferOffset1 = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = CPUSunConstantBufferOffset1 + MemoryRequirements.size;
+
+		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUMemory7));
+
+		SAFE_VK(vkBindBufferMemory(Device, CPUSkyConstantBuffers[0], CPUMemory7, CPUSkyConstantBufferOffset0));
+		SAFE_VK(vkBindBufferMemory(Device, CPUSkyConstantBuffers[1], CPUMemory7, CPUSkyConstantBufferOffset1));
+		SAFE_VK(vkBindBufferMemory(Device, CPUSunConstantBuffers[0], CPUMemory7, CPUSunConstantBufferOffset0));
+		SAFE_VK(vkBindBufferMemory(Device, CPUSunConstantBuffers[1], CPUMemory7, CPUSunConstantBufferOffset1));
+
+		ConstantBuffersOffets5[0][0] = CPUSkyConstantBufferOffset0;
+		ConstantBuffersOffets5[0][1] = CPUSkyConstantBufferOffset1;
+		ConstantBuffersOffets5[1][0] = CPUSunConstantBufferOffset0;
+		ConstantBuffersOffets5[1][1] = CPUSunConstantBufferOffset1;
 
 		void *MappedData;
 
@@ -3247,72 +3075,8 @@ void RenderSystem::InitSystem()
 
 		SAFE_VK(vkWaitForFences(Device, 1, &CopySyncFence, VK_FALSE, UINT64_MAX));
 
-		SAFE_VK(vkResetFences(Device, 1, &CopySyncFence));
-
-		BufferCreateInfo.flags = 0;
-		BufferCreateInfo.pNext = nullptr;
-		BufferCreateInfo.pQueueFamilyIndices = nullptr;
-		BufferCreateInfo.queueFamilyIndexCount = 0;
-		BufferCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
-		BufferCreateInfo.size = sizeof(Vertex) * SunMeshVertexCount;
-		BufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &SunVertexBuffer));
-
-		BufferCreateInfo.flags = 0;
-		BufferCreateInfo.pNext = nullptr;
-		BufferCreateInfo.pQueueFamilyIndices = nullptr;
-		BufferCreateInfo.queueFamilyIndexCount = 0;
-		BufferCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
-		BufferCreateInfo.size = sizeof(WORD) * SunMeshIndexCount;
-		BufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &SunIndexBuffer));
-
-		vkGetBufferMemoryRequirements(Device, SunVertexBuffer, &MemoryRequirements);
-
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &SunVertexBufferMemoryHeap));
-
-		SAFE_VK(vkBindBufferMemory(Device, SunVertexBuffer, SunVertexBufferMemoryHeap, 0));
-
-		vkGetBufferMemoryRequirements(Device, SunIndexBuffer, &MemoryRequirements);
-
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &SunIndexBufferMemoryHeap));
-
-		SAFE_VK(vkBindBufferMemory(Device, SunIndexBuffer, SunIndexBufferMemoryHeap, 0));
-
+		SAFE_VK(vkResetFences(Device, 1, &CopySyncFence));		
+		
 		SAFE_VK(vkMapMemory(Device, UploadHeap, 0, VK_WHOLE_SIZE, 0, &MappedData));
 		memcpy((BYTE*)MappedData, SunMeshVertices, sizeof(Vertex) * SunMeshVertexCount);
 		memcpy((BYTE*)MappedData + sizeof(Vertex) * SunMeshVertexCount, SunMeshIndices, sizeof(WORD) * SunMeshIndexCount);
@@ -3388,74 +3152,6 @@ void RenderSystem::InitSystem()
 
 		SAFE_VK(vkResetFences(Device, 1, &CopySyncFence));
 		
-		VkImageCreateInfo ImageCreateInfo;
-		ImageCreateInfo.arrayLayers = 1;
-		ImageCreateInfo.extent.depth = 1;
-		ImageCreateInfo.extent.height = 2048;
-		ImageCreateInfo.extent.width = 2048;
-		ImageCreateInfo.flags = 0;
-		ImageCreateInfo.format = VkFormat::VK_FORMAT_R8G8B8A8_SRGB;
-		ImageCreateInfo.imageType = VkImageType::VK_IMAGE_TYPE_2D;
-		ImageCreateInfo.initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
-		ImageCreateInfo.mipLevels = 1;
-		ImageCreateInfo.pNext = nullptr;
-		ImageCreateInfo.pQueueFamilyIndices = nullptr;
-		ImageCreateInfo.queueFamilyIndexCount = 0;
-		ImageCreateInfo.samples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
-		ImageCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
-		ImageCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-		ImageCreateInfo.tiling = VkImageTiling::VK_IMAGE_TILING_OPTIMAL;
-		ImageCreateInfo.usage = VkImageUsageFlagBits::VK_IMAGE_USAGE_SAMPLED_BIT | VkImageUsageFlagBits::VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-
-		SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &SkyTexture));
-
-		ImageCreateInfo.extent.height = 512;
-		ImageCreateInfo.extent.width = 512;
-
-		SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &SunTexture));
-
-		vkGetImageMemoryRequirements(Device, SkyTexture, &MemoryRequirements);
-
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &SkyTextureMemoryHeap));
-
-		SAFE_VK(vkBindImageMemory(Device, SkyTexture, SkyTextureMemoryHeap, 0));
-
-		vkGetImageMemoryRequirements(Device, SunTexture, &MemoryRequirements);
-
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &SunTextureMemoryHeap));
-
-		SAFE_VK(vkBindImageMemory(Device, SunTexture, SunTextureMemoryHeap, 0));
-
 		VkImageViewCreateInfo ImageViewCreateInfo;
 		ImageViewCreateInfo.components.a = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
 		ImageViewCreateInfo.components.b = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -3669,152 +3365,7 @@ void RenderSystem::InitSystem()
 		SAFE_VK(vkWaitForFences(Device, 1, &CopySyncFence, VK_FALSE, UINT64_MAX));
 
 		SAFE_VK(vkResetFences(Device, 1, &CopySyncFence));
-
-		BufferCreateInfo.flags = 0;
-		BufferCreateInfo.pNext = nullptr;
-		BufferCreateInfo.pQueueFamilyIndices = nullptr;
-		BufferCreateInfo.queueFamilyIndexCount = 0;
-		BufferCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
-		BufferCreateInfo.size = 256;
-		BufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &GPUSkyConstantBuffer));
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &GPUSunConstantBuffer));
-
-		BufferCreateInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUSkyConstantBuffers[0]));
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUSkyConstantBuffers[1]));
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUSunConstantBuffers[0]));
-		SAFE_VK(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &CPUSunConstantBuffers[1]));
-
-		vkGetBufferMemoryRequirements(Device, GPUSkyConstantBuffer, &MemoryRequirements);
-
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPUSkyConstantBufferMemoryHeap));
-
-		SAFE_VK(vkBindBufferMemory(Device, GPUSkyConstantBuffer, GPUSkyConstantBufferMemoryHeap, 0));
-
-		vkGetBufferMemoryRequirements(Device, CPUSkyConstantBuffers[0], &MemoryRequirements);
-
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUSkyConstantBuffersMemoryHeaps[0]));
-
-		SAFE_VK(vkBindBufferMemory(Device, CPUSkyConstantBuffers[0], CPUSkyConstantBuffersMemoryHeaps[0], 0));
-
-		vkGetBufferMemoryRequirements(Device, CPUSkyConstantBuffers[1], &MemoryRequirements);
-
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUSkyConstantBuffersMemoryHeaps[1]));
-
-		SAFE_VK(vkBindBufferMemory(Device, CPUSkyConstantBuffers[1], CPUSkyConstantBuffersMemoryHeaps[1], 0));
-
-		vkGetBufferMemoryRequirements(Device, GPUSunConstantBuffer, &MemoryRequirements);
-
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPUSunConstantBufferMemoryHeap));
-
-		SAFE_VK(vkBindBufferMemory(Device, GPUSunConstantBuffer, GPUSunConstantBufferMemoryHeap, 0));
-
-		vkGetBufferMemoryRequirements(Device, CPUSunConstantBuffers[0], &MemoryRequirements);
-
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUSunConstantBuffersMemoryHeaps[0]));
-
-		SAFE_VK(vkBindBufferMemory(Device, CPUSunConstantBuffers[0], CPUSunConstantBuffersMemoryHeaps[0], 0));
-
-		vkGetBufferMemoryRequirements(Device, CPUSunConstantBuffers[1], &MemoryRequirements);
-
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUSunConstantBuffersMemoryHeaps[1]));
-
-		SAFE_VK(vkBindBufferMemory(Device, CPUSunConstantBuffers[1], CPUSunConstantBuffersMemoryHeaps[1], 0));
-
+				
 		HANDLE SkyVertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SkyVertexShader.spv", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 		LARGE_INTEGER SkyVertexShaderByteCodeLength;
 		Result = GetFileSizeEx(SkyVertexShaderFile, &SkyVertexShaderByteCodeLength);
@@ -4329,29 +3880,22 @@ void RenderSystem::InitSystem()
 
 		SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &ResolvedHDRSceneColorTexture));
 
+		VkMemoryAllocateInfo MemoryAllocateInfo;
+		MemoryAllocateInfo.allocationSize = 0;
+		MemoryAllocateInfo.memoryTypeIndex = DefaultMemoryHeapIndex;
+		MemoryAllocateInfo.pNext = nullptr;
+		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+
 		VkMemoryRequirements MemoryRequirements;
 
 		vkGetImageMemoryRequirements(Device, ResolvedHDRSceneColorTexture, &MemoryRequirements);
 
-		VkMemoryAllocateInfo MemoryAllocateInfo;
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
+		VkDeviceSize ResolvedHDRSceneColorTextureOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = ResolvedHDRSceneColorTextureOffset + MemoryRequirements.size;
 
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
+		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPUMemory8));
 
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &ResolvedHDRSceneColorTextureMemoryHeap));
-
-		SAFE_VK(vkBindImageMemory(Device, ResolvedHDRSceneColorTexture, ResolvedHDRSceneColorTextureMemoryHeap, 0));
+		SAFE_VK(vkBindImageMemory(Device, ResolvedHDRSceneColorTexture, GPUMemory8, ResolvedHDRSceneColorTextureOffset));
 
 		VkImageViewCreateInfo ImageViewCreateInfo;
 		ImageViewCreateInfo.components.a = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -4470,30 +4014,6 @@ void RenderSystem::InitSystem()
 			ImageCreateInfo.extent.width = Widths[i];
 
 			SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &SceneLuminanceTextures[i]));
-
-			VkMemoryRequirements MemoryRequirements;
-
-			vkGetImageMemoryRequirements(Device, SceneLuminanceTextures[i], &MemoryRequirements);
-
-			VkMemoryAllocateInfo MemoryAllocateInfo;
-			MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-			MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-				for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-				{
-					if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-						return i;
-				}
-
-				return -1;
-
-			} ();
-			MemoryAllocateInfo.pNext = nullptr;
-			MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-			SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &SceneLuminanceTexturesMemoryHeaps[i]));
-
-			SAFE_VK(vkBindImageMemory(Device, SceneLuminanceTextures[i], SceneLuminanceTexturesMemoryHeaps[i], 0));
 		}
 
 		ImageCreateInfo.arrayLayers = 1;
@@ -4516,29 +4036,46 @@ void RenderSystem::InitSystem()
 
 		SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &AverageLuminanceTexture));
 
-		VkMemoryRequirements MemoryRequirements;
-
-		vkGetImageMemoryRequirements(Device, AverageLuminanceTexture, &MemoryRequirements);
-
 		VkMemoryAllocateInfo MemoryAllocateInfo;
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
+		MemoryAllocateInfo.allocationSize = 0;
+		MemoryAllocateInfo.memoryTypeIndex = DefaultMemoryHeapIndex;
 		MemoryAllocateInfo.pNext = nullptr;
 		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &AverageLuminanceTextureMemoryHeap));
+		VkMemoryRequirements MemoryRequirements;
 
-		SAFE_VK(vkBindImageMemory(Device, AverageLuminanceTexture, AverageLuminanceTextureMemoryHeap, 0));
+		vkGetImageMemoryRequirements(Device, SceneLuminanceTextures[0], &MemoryRequirements);
+
+		VkDeviceSize SceneLuminanceTexture0Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = SceneLuminanceTexture0Offset + MemoryRequirements.size;
+
+		vkGetImageMemoryRequirements(Device, SceneLuminanceTextures[1], &MemoryRequirements);
+
+		VkDeviceSize SceneLuminanceTexture1Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = SceneLuminanceTexture1Offset + MemoryRequirements.size;
+
+		vkGetImageMemoryRequirements(Device, SceneLuminanceTextures[2], &MemoryRequirements);
+
+		VkDeviceSize SceneLuminanceTexture2Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = SceneLuminanceTexture2Offset + MemoryRequirements.size;
+
+		vkGetImageMemoryRequirements(Device, SceneLuminanceTextures[3], &MemoryRequirements);
+
+		VkDeviceSize SceneLuminanceTexture3Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = SceneLuminanceTexture3Offset + MemoryRequirements.size;
+
+		vkGetImageMemoryRequirements(Device, AverageLuminanceTexture, &MemoryRequirements);
+
+		VkDeviceSize AverageLuminanceTextureOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = AverageLuminanceTextureOffset + MemoryRequirements.size;
+
+		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPUMemory9));
+
+		SAFE_VK(vkBindImageMemory(Device, SceneLuminanceTextures[0], GPUMemory9, SceneLuminanceTexture0Offset));
+		SAFE_VK(vkBindImageMemory(Device, SceneLuminanceTextures[1], GPUMemory9, SceneLuminanceTexture1Offset));
+		SAFE_VK(vkBindImageMemory(Device, SceneLuminanceTextures[2], GPUMemory9, SceneLuminanceTexture2Offset));
+		SAFE_VK(vkBindImageMemory(Device, SceneLuminanceTextures[3], GPUMemory9, SceneLuminanceTexture3Offset));
+		SAFE_VK(vkBindImageMemory(Device, AverageLuminanceTexture, GPUMemory9, AverageLuminanceTextureOffset));
 
 		VkImageViewCreateInfo ImageViewCreateInfo;
 		ImageViewCreateInfo.components.a = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -4739,14 +4276,6 @@ void RenderSystem::InitSystem()
 
 		SAFE_VK(vkCreateRenderPass(Device, &RenderPassCreateInfo, nullptr, &BloomRenderPass));
 
-		VkFramebufferCreateInfo FramebufferCreateInfo;
-		FramebufferCreateInfo.attachmentCount = 1;
-		FramebufferCreateInfo.flags = 0;
-		FramebufferCreateInfo.layers = 1;
-		FramebufferCreateInfo.pNext = nullptr;
-		FramebufferCreateInfo.renderPass = BloomRenderPass;
-		FramebufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		
 		VkImageCreateInfo ImageCreateInfo;
 		ImageCreateInfo.arrayLayers = 1;
 		ImageCreateInfo.extent.depth = 1;
@@ -4766,6 +4295,53 @@ void RenderSystem::InitSystem()
 		ImageCreateInfo.tiling = VkImageTiling::VK_IMAGE_TILING_OPTIMAL;
 		ImageCreateInfo.usage = VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VkImageUsageFlagBits::VK_IMAGE_USAGE_SAMPLED_BIT;
 
+		for (int i = 0; i < 7; i++)
+		{
+			ImageCreateInfo.extent.height = ResolutionHeight >> i;
+			ImageCreateInfo.extent.width = ResolutionWidth >> i;
+
+			SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &BloomTextures[0][i]));
+			SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &BloomTextures[1][i]));
+			SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &BloomTextures[2][i]));			
+		}
+
+		VkMemoryAllocateInfo MemoryAllocateInfo;
+		MemoryAllocateInfo.allocationSize = 0;
+		MemoryAllocateInfo.memoryTypeIndex = DefaultMemoryHeapIndex;
+		MemoryAllocateInfo.pNext = nullptr;
+		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+
+		VkDeviceSize BloomTexturesOffsets[3][7];
+
+		for (int i = 0; i < 7; i++)
+		{
+			VkMemoryRequirements MemoryRequirements;
+
+			vkGetImageMemoryRequirements(Device, BloomTextures[0][i], &MemoryRequirements);
+
+			BloomTexturesOffsets[0][i] = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+			MemoryAllocateInfo.allocationSize = BloomTexturesOffsets[0][i] + MemoryRequirements.size;
+
+			vkGetImageMemoryRequirements(Device, BloomTextures[1][i], &MemoryRequirements);
+
+			BloomTexturesOffsets[1][i] = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+			MemoryAllocateInfo.allocationSize = BloomTexturesOffsets[1][i] + MemoryRequirements.size;
+
+			vkGetImageMemoryRequirements(Device, BloomTextures[2][i], &MemoryRequirements);
+
+			BloomTexturesOffsets[2][i] = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+			MemoryAllocateInfo.allocationSize = BloomTexturesOffsets[2][i] + MemoryRequirements.size;
+		}
+
+		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPUMemory10));
+
+		for (int i = 0; i < 7; i++)
+		{
+			SAFE_VK(vkBindImageMemory(Device, BloomTextures[0][i], GPUMemory10, BloomTexturesOffsets[0][i]));
+			SAFE_VK(vkBindImageMemory(Device, BloomTextures[1][i], GPUMemory10, BloomTexturesOffsets[1][i]));
+			SAFE_VK(vkBindImageMemory(Device, BloomTextures[2][i], GPUMemory10, BloomTexturesOffsets[2][i]));
+		}
+
 		VkImageViewCreateInfo ImageViewCreateInfo;
 		ImageViewCreateInfo.components.a = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
 		ImageViewCreateInfo.components.b = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -4782,81 +4358,16 @@ void RenderSystem::InitSystem()
 		ImageViewCreateInfo.subresourceRange.levelCount = 1;
 		ImageViewCreateInfo.viewType = VkImageViewType::VK_IMAGE_VIEW_TYPE_2D;
 
+		VkFramebufferCreateInfo FramebufferCreateInfo;
+		FramebufferCreateInfo.attachmentCount = 1;
+		FramebufferCreateInfo.flags = 0;
+		FramebufferCreateInfo.layers = 1;
+		FramebufferCreateInfo.pNext = nullptr;
+		FramebufferCreateInfo.renderPass = BloomRenderPass;
+		FramebufferCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+
 		for (int i = 0; i < 7; i++)
 		{
-			ImageCreateInfo.extent.height = ResolutionHeight >> i;
-			ImageCreateInfo.extent.width = ResolutionWidth >> i;
-
-			SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &BloomTextures[0][i]));
-			SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &BloomTextures[1][i]));
-			SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &BloomTextures[2][i]));
-
-			VkMemoryRequirements MemoryRequirements;
-
-			vkGetImageMemoryRequirements(Device, BloomTextures[0][i], &MemoryRequirements);
-
-			VkMemoryAllocateInfo MemoryAllocateInfo;
-			MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-			MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-				for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-				{
-					if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-						return i;
-				}
-
-				return -1;
-
-			} ();
-			MemoryAllocateInfo.pNext = nullptr;
-			MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-			SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &BloomTexturesMemoryHeaps[0][i]));
-
-			SAFE_VK(vkBindImageMemory(Device, BloomTextures[0][i], BloomTexturesMemoryHeaps[0][i], 0));
-
-			vkGetImageMemoryRequirements(Device, BloomTextures[1][i], &MemoryRequirements);
-
-			MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-			MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-				for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-				{
-					if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-						return i;
-				}
-
-				return -1;
-
-			} ();
-			MemoryAllocateInfo.pNext = nullptr;
-			MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-			SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &BloomTexturesMemoryHeaps[1][i]));
-
-			SAFE_VK(vkBindImageMemory(Device, BloomTextures[1][i], BloomTexturesMemoryHeaps[1][i], 0));
-
-			vkGetImageMemoryRequirements(Device, BloomTextures[2][i], &MemoryRequirements);
-
-			MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-			MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-				for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-				{
-					if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-						return i;
-				}
-
-				return -1;
-
-			} ();
-			MemoryAllocateInfo.pNext = nullptr;
-			MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-			SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &BloomTexturesMemoryHeaps[2][i]));
-
-			SAFE_VK(vkBindImageMemory(Device, BloomTextures[2][i], BloomTexturesMemoryHeaps[2][i], 0));
-
 			ImageViewCreateInfo.image = BloomTextures[0][i];
 			SAFE_VK(vkCreateImageView(Device, &ImageViewCreateInfo, nullptr, &BloomTexturesViews[0][i]));
 			ImageViewCreateInfo.image = BloomTextures[1][i];
@@ -5204,29 +4715,22 @@ void RenderSystem::InitSystem()
 
 		SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &ToneMappedImageTexture));
 
+		VkMemoryAllocateInfo MemoryAllocateInfo;
+		MemoryAllocateInfo.allocationSize = 0;
+		MemoryAllocateInfo.memoryTypeIndex = DefaultMemoryHeapIndex;
+		MemoryAllocateInfo.pNext = nullptr;
+		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+
 		VkMemoryRequirements MemoryRequirements;
 
 		vkGetImageMemoryRequirements(Device, ToneMappedImageTexture, &MemoryRequirements);
 
-		VkMemoryAllocateInfo MemoryAllocateInfo;
-		MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
+		VkDeviceSize ToneMappedImageTextureOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = ToneMappedImageTextureOffset + MemoryRequirements.size;
 
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
+		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPUMemory11));
 
-			return -1;
-
-		} ();
-		MemoryAllocateInfo.pNext = nullptr;
-		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &ToneMappedImageTextureMemoryHeap));
-
-		SAFE_VK(vkBindImageMemory(Device, ToneMappedImageTexture, ToneMappedImageTextureMemoryHeap, 0));
+		SAFE_VK(vkBindImageMemory(Device, ToneMappedImageTexture, GPUMemory11, ToneMappedImageTextureOffset));
 
 		VkImageViewCreateInfo ImageViewCreateInfo;
 		ImageViewCreateInfo.components.a = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -5661,15 +5165,10 @@ void RenderSystem::ShutdownSystem()
 	vkDestroyImage(Device, GBufferTextures[0], nullptr);
 	vkDestroyImage(Device, GBufferTextures[1], nullptr);
 
-	vkFreeMemory(Device, GBufferTexturesMemoryHeaps[0], nullptr);
-	vkFreeMemory(Device, GBufferTexturesMemoryHeaps[1], nullptr);
-
 	vkDestroyImageView(Device, DepthBufferTextureView, nullptr);
 	vkDestroyImageView(Device, DepthBufferTextureDepthReadView, nullptr);
 	
 	vkDestroyImage(Device, DepthBufferTexture, nullptr);
-
-	vkFreeMemory(Device, DepthBufferTextureMemoryHeap, nullptr);
 
 	vkDestroyRenderPass(Device, GBufferClearRenderPass, nullptr);
 	vkDestroyRenderPass(Device, GBufferDrawRenderPass, nullptr);
@@ -5680,9 +5179,8 @@ void RenderSystem::ShutdownSystem()
 	vkDestroyBuffer(Device, CPUConstantBuffers[0], nullptr);
 	vkDestroyBuffer(Device, CPUConstantBuffers[1], nullptr);
 
-	vkFreeMemory(Device, GPUConstantBufferMemoryHeap, nullptr);
-	vkFreeMemory(Device, CPUConstantBufferMemoryHeaps[0], nullptr);
-	vkFreeMemory(Device, CPUConstantBufferMemoryHeaps[1], nullptr);
+	vkFreeMemory(Device, GPUMemory1, nullptr);
+	vkFreeMemory(Device, CPUMemory1, nullptr);
 
 	// ===============================================================================================================
 
@@ -5691,7 +5189,7 @@ void RenderSystem::ShutdownSystem()
 	
 	vkDestroyImage(Device, ResolvedDepthBufferTexture, nullptr);
 	
-	vkFreeMemory(Device, ResolvedDepthBufferTextureMemoryHeap, nullptr);
+	vkFreeMemory(Device, GPUMemory2, nullptr);
 
 	vkDestroyRenderPass(Device, MSAADepthBufferResolveRenderPass, nullptr);
 
@@ -5701,11 +5199,11 @@ void RenderSystem::ShutdownSystem()
 
 	vkDestroyImage(Device, OcclusionBufferTexture, nullptr);
 	vkDestroyImageView(Device, OcclusionBufferTextureView, nullptr);
-	vkFreeMemory(Device, OcclusionBufferTextureMemoryHeap, nullptr);
 	vkDestroyBuffer(Device, OcclusionBufferReadbackBuffers[0], nullptr);
 	vkDestroyBuffer(Device, OcclusionBufferReadbackBuffers[1], nullptr);
-	vkFreeMemory(Device, OcclusionBufferReadbackBuffersMemoryHeaps[0], nullptr);
-	vkFreeMemory(Device, OcclusionBufferReadbackBuffersMemoryHeaps[1], nullptr);
+	
+	vkFreeMemory(Device, GPUMemory3, nullptr);
+	vkFreeMemory(Device, CPUMemory3, nullptr);
 
 	vkDestroyRenderPass(Device, OcclusionBufferRenderPass, nullptr);
 	vkDestroyFramebuffer(Device, OcclusionBufferFrameBuffer, nullptr);
@@ -5725,11 +5223,6 @@ void RenderSystem::ShutdownSystem()
 	vkDestroyImageView(Device, CascadedShadowMapTexturesViews[1], nullptr);
 	vkDestroyImageView(Device, CascadedShadowMapTexturesViews[2], nullptr);
 	vkDestroyImageView(Device, CascadedShadowMapTexturesViews[3], nullptr);
-
-	vkFreeMemory(Device, CascadedShadowMapTexturesMemoryHeaps[0], nullptr);
-	vkFreeMemory(Device, CascadedShadowMapTexturesMemoryHeaps[1], nullptr);
-	vkFreeMemory(Device, CascadedShadowMapTexturesMemoryHeaps[2], nullptr);
-	vkFreeMemory(Device, CascadedShadowMapTexturesMemoryHeaps[3], nullptr);
 
 	vkDestroyRenderPass(Device, ShadowMapClearRenderPass, nullptr);
 	vkDestroyRenderPass(Device, ShadowMapDrawRenderPass, nullptr);
@@ -5751,35 +5244,25 @@ void RenderSystem::ShutdownSystem()
 	vkDestroyBuffer(Device, CPUConstantBuffers2[2][1], nullptr);
 	vkDestroyBuffer(Device, CPUConstantBuffers2[3][0], nullptr);
 	vkDestroyBuffer(Device, CPUConstantBuffers2[3][1], nullptr);
-	vkFreeMemory(Device, GPUConstantBufferMemoryHeaps2[0], nullptr);
-	vkFreeMemory(Device, GPUConstantBufferMemoryHeaps2[1], nullptr);
-	vkFreeMemory(Device, GPUConstantBufferMemoryHeaps2[2], nullptr);
-	vkFreeMemory(Device, GPUConstantBufferMemoryHeaps2[3], nullptr);
-	vkFreeMemory(Device, CPUConstantBufferMemoryHeaps2[0][0], nullptr);
-	vkFreeMemory(Device, CPUConstantBufferMemoryHeaps2[0][1], nullptr);
-	vkFreeMemory(Device, CPUConstantBufferMemoryHeaps2[1][0], nullptr);
-	vkFreeMemory(Device, CPUConstantBufferMemoryHeaps2[1][1], nullptr);
-	vkFreeMemory(Device, CPUConstantBufferMemoryHeaps2[2][0], nullptr);
-	vkFreeMemory(Device, CPUConstantBufferMemoryHeaps2[2][1], nullptr);
-	vkFreeMemory(Device, CPUConstantBufferMemoryHeaps2[3][0], nullptr);
-	vkFreeMemory(Device, CPUConstantBufferMemoryHeaps2[3][1], nullptr);
+
+	vkFreeMemory(Device, GPUMemory4, nullptr);
+	vkFreeMemory(Device, CPUMemory4, nullptr);
 
 	// ===============================================================================================================
 
 	vkDestroyImage(Device, ShadowMaskTexture, nullptr);
 	vkDestroyImageView(Device, ShadowMaskTextureView, nullptr);
-	vkFreeMemory(Device, ShadowMaskTextureMemoryHeap, nullptr);
-
+	
 	vkDestroyRenderPass(Device, ShadowMaskRenderPass, nullptr);
 	vkDestroyFramebuffer(Device, ShadowMaskFrameBuffer, nullptr);
 
 	vkDestroyBuffer(Device, GPUShadowResolveConstantBuffer, nullptr);
 	vkDestroyBuffer(Device, CPUShadowResolveConstantBuffers[0], nullptr);
 	vkDestroyBuffer(Device, CPUShadowResolveConstantBuffers[1], nullptr);
-	vkFreeMemory(Device, GPUShadowResolveConstantBufferMemoryHeap, nullptr);
-	vkFreeMemory(Device, CPUShadowResolveConstantBuffersMemoryHeaps[0], nullptr);
-	vkFreeMemory(Device, CPUShadowResolveConstantBuffersMemoryHeaps[1], nullptr);
-
+	
+	vkFreeMemory(Device, GPUMemory5, nullptr);
+	vkFreeMemory(Device, CPUMemory5, nullptr);
+	
 	vkDestroyPipeline(Device, ShadowResolvePipeline, nullptr);
 	vkDestroyPipelineLayout(Device, ShadowResolvePipelineLayout, nullptr);
 	vkDestroyDescriptorSetLayout(Device, ShadowResolveSetLayout, nullptr);
@@ -5788,41 +5271,31 @@ void RenderSystem::ShutdownSystem()
 
 	vkDestroyImage(Device, HDRSceneColorTexture, nullptr);
 	vkDestroyImageView(Device, HDRSceneColorTextureView, nullptr);
-	vkFreeMemory(Device, HDRSceneColorTextureMemoryHeap, nullptr);
-
+	
 	vkDestroyRenderPass(Device, DeferredLightingRenderPass, nullptr);
 	vkDestroyFramebuffer(Device, HDRSceneColorFrameBuffer, nullptr);
 
 	vkDestroyBuffer(Device, GPUDeferredLightingConstantBuffer, nullptr);
 	vkDestroyBuffer(Device, CPUDeferredLightingConstantBuffers[0], nullptr);
 	vkDestroyBuffer(Device, CPUDeferredLightingConstantBuffers[1], nullptr);
-	vkFreeMemory(Device, GPUDeferredLightingConstantBufferMemoryHeap, nullptr);
-	vkFreeMemory(Device, CPUDeferredLightingConstantBuffersMemoryHeaps[0], nullptr);
-	vkFreeMemory(Device, CPUDeferredLightingConstantBuffersMemoryHeaps[1], nullptr);
-
+	
 	vkDestroyBufferView(Device, LightClustersBufferView, nullptr);
 	vkDestroyBuffer(Device, GPULightClustersBuffer, nullptr);
 	vkDestroyBuffer(Device, CPULightClustersBuffers[0], nullptr);
 	vkDestroyBuffer(Device, CPULightClustersBuffers[1], nullptr);
-	vkFreeMemory(Device, GPULightClustersBufferMemoryHeap, nullptr);
-	vkFreeMemory(Device, CPULightClustersBuffersMemoryHeaps[0], nullptr);
-	vkFreeMemory(Device, CPULightClustersBuffersMemoryHeaps[1], nullptr);
-
+	
 	vkDestroyBufferView(Device, LightIndicesBufferView, nullptr);
 	vkDestroyBuffer(Device, GPULightIndicesBuffer, nullptr);
 	vkDestroyBuffer(Device, CPULightIndicesBuffers[0], nullptr);
 	vkDestroyBuffer(Device, CPULightIndicesBuffers[1], nullptr);
-	vkFreeMemory(Device, GPULightIndicesBufferMemoryHeap, nullptr);
-	vkFreeMemory(Device, CPULightIndicesBuffersMemoryHeaps[0], nullptr);
-	vkFreeMemory(Device, CPULightIndicesBuffersMemoryHeaps[1], nullptr);
-
+	
 	vkDestroyBuffer(Device, GPUPointLightsBuffer, nullptr);
 	vkDestroyBuffer(Device, CPUPointLightsBuffers[0], nullptr);
 	vkDestroyBuffer(Device, CPUPointLightsBuffers[1], nullptr);
-	vkFreeMemory(Device, GPUPointLightsBufferMemoryHeap, nullptr);
-	vkFreeMemory(Device, CPUPointLightsBuffersMemoryHeaps[0], nullptr);
-	vkFreeMemory(Device, CPUPointLightsBuffersMemoryHeaps[1], nullptr);
-
+	
+	vkFreeMemory(Device, GPUMemory6, nullptr);
+	vkFreeMemory(Device, CPUMemory6, nullptr);
+	
 	vkDestroyPipeline(Device, DeferredLightingPipeline, nullptr);
 	vkDestroyPipelineLayout(Device, DeferredLightingPipelineLayout, nullptr);
 	vkDestroyDescriptorSetLayout(Device, DeferredLightingSetLayout, nullptr);
@@ -5837,33 +5310,24 @@ void RenderSystem::ShutdownSystem()
 
 	vkDestroyBuffer(Device, SkyVertexBuffer, nullptr);
 	vkDestroyBuffer(Device, SkyIndexBuffer, nullptr);
-	vkFreeMemory(Device, SkyVertexBufferMemoryHeap, nullptr);
-	vkFreeMemory(Device, SkyIndexBufferMemoryHeap, nullptr);
 	vkDestroyBuffer(Device, GPUSkyConstantBuffer, nullptr);
 	vkDestroyBuffer(Device, CPUSkyConstantBuffers[0], nullptr);
 	vkDestroyBuffer(Device, CPUSkyConstantBuffers[1], nullptr);
-	vkFreeMemory(Device, GPUSkyConstantBufferMemoryHeap, nullptr);
-	vkFreeMemory(Device, CPUSkyConstantBuffersMemoryHeaps[0], nullptr);
-	vkFreeMemory(Device, CPUSkyConstantBuffersMemoryHeaps[1], nullptr);
 	vkDestroyPipeline(Device, SkyPipeline, nullptr);
 	vkDestroyImage(Device, SkyTexture, nullptr);
-	vkFreeMemory(Device, SkyTextureMemoryHeap, nullptr);
 	vkDestroyImageView(Device, SkyTextureView, nullptr);
 
 	vkDestroyBuffer(Device, SunVertexBuffer, nullptr);
 	vkDestroyBuffer(Device, SunIndexBuffer, nullptr);
-	vkFreeMemory(Device, SunVertexBufferMemoryHeap, nullptr);
-	vkFreeMemory(Device, SunIndexBufferMemoryHeap, nullptr);
 	vkDestroyBuffer(Device, GPUSunConstantBuffer, nullptr);
 	vkDestroyBuffer(Device, CPUSunConstantBuffers[0], nullptr);
 	vkDestroyBuffer(Device, CPUSunConstantBuffers[1], nullptr);
-	vkFreeMemory(Device, GPUSunConstantBufferMemoryHeap, nullptr);
-	vkFreeMemory(Device, CPUSunConstantBuffersMemoryHeaps[0], nullptr);
-	vkFreeMemory(Device, CPUSunConstantBuffersMemoryHeaps[1], nullptr);
 	vkDestroyPipeline(Device, SunPipeline, nullptr);
 	vkDestroyImage(Device, SunTexture, nullptr);
-	vkFreeMemory(Device, SunTextureMemoryHeap, nullptr);
 	vkDestroyImageView(Device, SunTextureView, nullptr);
+
+	vkFreeMemory(Device, GPUMemory7, nullptr);
+	vkFreeMemory(Device, CPUMemory7, nullptr);
 
 	vkDestroyPipeline(Device, FogPipeline, nullptr);
 	vkDestroyPipelineLayout(Device, FogPipelineLayout, nullptr);
@@ -5872,8 +5336,8 @@ void RenderSystem::ShutdownSystem()
 	// ===============================================================================================================
 
 	vkDestroyImage(Device, ResolvedHDRSceneColorTexture, nullptr);
-	vkFreeMemory(Device, ResolvedHDRSceneColorTextureMemoryHeap, nullptr);
 	vkDestroyImageView(Device, ResolvedHDRSceneColorTextureView, nullptr);
+	vkFreeMemory(Device, GPUMemory8, nullptr);
 
 	vkDestroyRenderPass(Device, HDRSceneColorResolveRenderPass, nullptr);
 	vkDestroyFramebuffer(Device, HDRSceneColorResolveFrameBuffer, nullptr);
@@ -5884,18 +5348,15 @@ void RenderSystem::ShutdownSystem()
 	vkDestroyImage(Device, SceneLuminanceTextures[1], nullptr);
 	vkDestroyImage(Device, SceneLuminanceTextures[2], nullptr);
 	vkDestroyImage(Device, SceneLuminanceTextures[3], nullptr);
-	vkFreeMemory(Device, SceneLuminanceTexturesMemoryHeaps[0], nullptr);
-	vkFreeMemory(Device, SceneLuminanceTexturesMemoryHeaps[1], nullptr);
-	vkFreeMemory(Device, SceneLuminanceTexturesMemoryHeaps[2], nullptr);
-	vkFreeMemory(Device, SceneLuminanceTexturesMemoryHeaps[3], nullptr);
 	vkDestroyImageView(Device, SceneLuminanceTexturesViews[0], nullptr);
 	vkDestroyImageView(Device, SceneLuminanceTexturesViews[1], nullptr);
 	vkDestroyImageView(Device, SceneLuminanceTexturesViews[2], nullptr);
 	vkDestroyImageView(Device, SceneLuminanceTexturesViews[3], nullptr);
 
 	vkDestroyImage(Device, AverageLuminanceTexture, nullptr);
-	vkFreeMemory(Device, AverageLuminanceTextureMemoryHeap, nullptr);
 	vkDestroyImageView(Device, AverageLuminanceTextureView, nullptr);
+
+	vkFreeMemory(Device, GPUMemory9, nullptr);
 
 	vkDestroyPipelineLayout(Device, LuminancePassPipelineLayout, nullptr);
 	vkDestroyDescriptorSetLayout(Device, LuminancePassSetLayout, nullptr);
@@ -5919,11 +5380,9 @@ void RenderSystem::ShutdownSystem()
 		vkDestroyImage(Device, BloomTextures[0][i], nullptr);
 		vkDestroyImage(Device, BloomTextures[1][i], nullptr);
 		vkDestroyImage(Device, BloomTextures[2][i], nullptr);
-		
-		vkFreeMemory(Device, BloomTexturesMemoryHeaps[0][i], nullptr);
-		vkFreeMemory(Device, BloomTexturesMemoryHeaps[1][i], nullptr);
-		vkFreeMemory(Device, BloomTexturesMemoryHeaps[2][i], nullptr);
 	}
+
+	vkFreeMemory(Device, GPUMemory10, nullptr);
 
 	vkDestroyRenderPass(Device, BloomRenderPass, nullptr);
 
@@ -5940,7 +5399,7 @@ void RenderSystem::ShutdownSystem()
 
 	vkDestroyImageView(Device, ToneMappedImageTextureView, nullptr);
 	vkDestroyImage(Device, ToneMappedImageTexture, nullptr);
-	vkFreeMemory(Device, ToneMappedImageTextureMemoryHeap, nullptr);
+	vkFreeMemory(Device, GPUMemory11, nullptr);
 
 	vkDestroyRenderPass(Device, HDRToneMappingRenderPass, nullptr);
 	vkDestroyFramebuffer(Device, ToneMappedImageFrameBuffer, nullptr);
@@ -6025,7 +5484,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		void *ConstantBufferData;
 		size_t ConstantBufferOffset = 0;
 
-		SAFE_VK(vkMapMemory(Device, CPUConstantBufferMemoryHeaps[CurrentFrameIndex], 0, VK_WHOLE_SIZE, 0, &ConstantBufferData));
+		SAFE_VK(vkMapMemory(Device, CPUMemory1, ConstantBuffersOffets1[CurrentFrameIndex], VK_WHOLE_SIZE, 0, &ConstantBufferData));
 
 		for (int k = 0; k < VisbleStaticMeshComponentsCount; k++)
 		{
@@ -6062,7 +5521,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 			ConstantBufferOffset += 256;
 		}
 
-		vkUnmapMemory(Device, CPUConstantBufferMemoryHeaps[CurrentFrameIndex]);
+		vkUnmapMemory(Device, CPUMemory1);
 
 		VkBufferMemoryBarrier BufferMemoryBarrier;
 		BufferMemoryBarrier.buffer = CPUConstantBuffers[CurrentFrameIndex];
@@ -6497,14 +5956,14 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		float *MappedData;
 
-		SAFE_VK(vkMapMemory(Device, OcclusionBufferReadbackBuffersMemoryHeaps[CurrentFrameIndex], 0, VK_WHOLE_SIZE, 0, (void**)&MappedData));
+		SAFE_VK(vkMapMemory(Device, CPUMemory3, OcclusionBuffersOffsets[CurrentFrameIndex], VK_WHOLE_SIZE, 0, (void**)&MappedData));
 
 		for (int i = 0; i < 144; i++)
 		{
 			memcpy(cullingSubSystem.GetOcclusionBufferData() + i * 256, MappedData + i * 256, 256 * 4);
 		}
 
-		vkUnmapMemory(Device, OcclusionBufferReadbackBuffersMemoryHeaps[CurrentFrameIndex]);
+		vkUnmapMemory(Device, CPUMemory3);
 	}
 
 	// ===============================================================================================================	
@@ -6581,7 +6040,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 			void *ConstantBufferData;
 			size_t ConstantBufferOffset = 0;
 
-			SAFE_VK(vkMapMemory(Device, CPUConstantBufferMemoryHeaps2[i][CurrentFrameIndex], 0, VK_WHOLE_SIZE, 0, &ConstantBufferData));
+			SAFE_VK(vkMapMemory(Device, CPUMemory4, ConstantBuffersOffets2[i][CurrentFrameIndex], VK_WHOLE_SIZE, 0, &ConstantBufferData));
 
 			for (int k = 0; k < VisbleStaticMeshComponentsCount; k++)
 			{
@@ -6593,7 +6052,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 				ConstantBufferOffset += 256;
 			}
 
-			vkUnmapMemory(Device, CPUConstantBufferMemoryHeaps2[i][CurrentFrameIndex]);
+			vkUnmapMemory(Device, CPUMemory4);
 
 			VkBufferMemoryBarrier BufferMemoryBarrier;
 			BufferMemoryBarrier.buffer = CPUConstantBuffers2[i][CurrentFrameIndex];
@@ -6812,7 +6271,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		void *ConstantBufferData;
 		size_t ConstantBufferOffset = 0;
 
-		SAFE_VK(vkMapMemory(Device, CPUShadowResolveConstantBuffersMemoryHeaps[CurrentFrameIndex], 0, VK_WHOLE_SIZE, 0, &ConstantBufferData));
+		SAFE_VK(vkMapMemory(Device, CPUMemory5, ConstantBuffersOffets3[CurrentFrameIndex], VK_WHOLE_SIZE, 0, &ConstantBufferData));
 
 		ShadowResolveConstantBuffer& ConstantBuffer = *((ShadowResolveConstantBuffer*)((BYTE*)ConstantBufferData));
 
@@ -6823,7 +6282,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		ConstantBufferOffset += 256;
 
-		vkUnmapMemory(Device, CPUShadowResolveConstantBuffersMemoryHeaps[CurrentFrameIndex]);
+		vkUnmapMemory(Device, CPUMemory5);
 
 		VkBufferMemoryBarrier BufferMemoryBarrier;
 		BufferMemoryBarrier.buffer = CPUShadowResolveConstantBuffers[CurrentFrameIndex];
@@ -7037,7 +6496,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		void *ConstantBufferData;
 
-		SAFE_VK(vkMapMemory(Device, CPUDeferredLightingConstantBuffersMemoryHeaps[CurrentFrameIndex], 0, VK_WHOLE_SIZE, 0, &ConstantBufferData));
+		SAFE_VK(vkMapMemory(Device, CPUMemory6, ConstantBuffersOffets4[CurrentFrameIndex], VK_WHOLE_SIZE, 0, &ConstantBufferData));
 
 		XMMATRIX InvViewProjMatrix = XMMatrixInverse(nullptr, ViewProjMatrix);
 
@@ -7046,27 +6505,27 @@ void RenderSystem::TickSystem(float DeltaTime)
 		ConstantBuffer.InvViewProjMatrix = InvViewProjMatrix;
 		ConstantBuffer.CameraWorldPosition = CameraLocation;
 
-		vkUnmapMemory(Device, CPUDeferredLightingConstantBuffersMemoryHeaps[CurrentFrameIndex]);
+		vkUnmapMemory(Device, CPUMemory6);
 
 		void *DynamicBufferData;
 
-		SAFE_VK(vkMapMemory(Device, CPULightClustersBuffersMemoryHeaps[CurrentFrameIndex], 0, VK_WHOLE_SIZE, 0, &DynamicBufferData));
+		SAFE_VK(vkMapMemory(Device, CPUMemory6, DynamicBuffersOffsets[0][CurrentFrameIndex], VK_WHOLE_SIZE, 0, &DynamicBufferData));
 
 		memcpy(DynamicBufferData, clusterizationSubSystem.GetLightClustersData(), 32 * 18 * 24 * 2 * sizeof(uint32_t));
 
-		vkUnmapMemory(Device, CPULightClustersBuffersMemoryHeaps[CurrentFrameIndex]);
+		vkUnmapMemory(Device, CPUMemory6);
 
-		SAFE_VK(vkMapMemory(Device, CPULightIndicesBuffersMemoryHeaps[CurrentFrameIndex], 0, VK_WHOLE_SIZE, 0, &DynamicBufferData));
+		SAFE_VK(vkMapMemory(Device, CPUMemory6, DynamicBuffersOffsets[1][CurrentFrameIndex], VK_WHOLE_SIZE, 0, &DynamicBufferData));
 
 		memcpy(DynamicBufferData, clusterizationSubSystem.GetLightIndicesData(), clusterizationSubSystem.GetTotalIndexCount() * sizeof(uint16_t));
 
-		vkUnmapMemory(Device, CPULightIndicesBuffersMemoryHeaps[CurrentFrameIndex]);
+		vkUnmapMemory(Device, CPUMemory6);
 
-		SAFE_VK(vkMapMemory(Device, CPUPointLightsBuffersMemoryHeaps[CurrentFrameIndex], 0, VK_WHOLE_SIZE, 0, &DynamicBufferData));
+		SAFE_VK(vkMapMemory(Device, CPUMemory6, DynamicBuffersOffsets[2][CurrentFrameIndex], VK_WHOLE_SIZE, 0, &DynamicBufferData));
 
 		memcpy(DynamicBufferData, PointLights.data(), PointLights.size() * sizeof(PointLight));
 
-		vkUnmapMemory(Device, CPUPointLightsBuffersMemoryHeaps[CurrentFrameIndex]);
+		vkUnmapMemory(Device, CPUMemory6);
 
 		VkBufferMemoryBarrier BufferMemoryBarriers[4];
 
@@ -7278,17 +6737,17 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		void *ConstantBufferData;
 
-		SAFE_VK(vkMapMemory(Device, CPUSkyConstantBuffersMemoryHeaps[CurrentFrameIndex], 0, VK_WHOLE_SIZE, 0, &ConstantBufferData));
+		SAFE_VK(vkMapMemory(Device, CPUMemory7, ConstantBuffersOffets5[0][CurrentFrameIndex], VK_WHOLE_SIZE, 0, &ConstantBufferData));
 
 		SkyConstantBuffer& skyConstantBuffer = *((SkyConstantBuffer*)((BYTE*)ConstantBufferData));
 
 		skyConstantBuffer.WVPMatrix = SkyWVPMatrix;
 
-		vkUnmapMemory(Device, CPUSkyConstantBuffersMemoryHeaps[CurrentFrameIndex]);
+		vkUnmapMemory(Device, CPUMemory7);
 
 		XMFLOAT3 SunPosition(-500.0f + CameraLocation.x, 500.0f + CameraLocation.y, -500.f + CameraLocation.z);
 
-		SAFE_VK(vkMapMemory(Device, CPUSunConstantBuffersMemoryHeaps[CurrentFrameIndex], 0, VK_WHOLE_SIZE, 0, &ConstantBufferData));
+		SAFE_VK(vkMapMemory(Device, CPUMemory7, ConstantBuffersOffets5[1][CurrentFrameIndex], VK_WHOLE_SIZE, 0, &ConstantBufferData));
 
 		SunConstantBuffer& sunConstantBuffer = *((SunConstantBuffer*)((BYTE*)ConstantBufferData));
 
@@ -7296,7 +6755,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		sunConstantBuffer.ProjMatrix = ProjMatrix;
 		sunConstantBuffer.SunPosition = SunPosition;
 
-		vkUnmapMemory(Device, CPUSunConstantBuffersMemoryHeaps[CurrentFrameIndex]);
+		vkUnmapMemory(Device, CPUMemory7);
 
 		VkBufferMemoryBarrier BufferMemoryBarriers[2];
 		BufferMemoryBarriers[0].buffer = CPUSkyConstantBuffers[CurrentFrameIndex];
@@ -8772,10 +8231,6 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 {
 	RenderMesh *renderMesh = new RenderMesh();
 
-	VkPhysicalDeviceMemoryProperties PhysicalDeviceMemoryProperties;
-
-	vkGetPhysicalDeviceMemoryProperties(PhysicalDevice, &PhysicalDeviceMemoryProperties);
-
 	VkBufferCreateInfo BufferCreateInfo;
 	BufferCreateInfo.flags = 0;
 	BufferCreateInfo.pNext = nullptr;
@@ -8800,17 +8255,7 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 
 		VkMemoryAllocateInfo MemoryAllocateInfo;
 		MemoryAllocateInfo.allocationSize = BUFFER_MEMORY_HEAP_SIZE;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
+		MemoryAllocateInfo.memoryTypeIndex = DefaultMemoryHeapIndex;
 		MemoryAllocateInfo.pNext = nullptr;
 		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 
@@ -8844,17 +8289,7 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 
 		VkMemoryAllocateInfo MemoryAllocateInfo;
 		MemoryAllocateInfo.allocationSize = BUFFER_MEMORY_HEAP_SIZE;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
+		MemoryAllocateInfo.memoryTypeIndex = DefaultMemoryHeapIndex;
 		MemoryAllocateInfo.pNext = nullptr;
 		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 
@@ -9014,10 +8449,6 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 		}
 	}
 
-	VkPhysicalDeviceMemoryProperties PhysicalDeviceMemoryProperties;
-
-	vkGetPhysicalDeviceMemoryProperties(PhysicalDevice, &PhysicalDeviceMemoryProperties);
-
 	VkImageCreateInfo ImageCreateInfo;
 	ImageCreateInfo.arrayLayers = 1;
 	ImageCreateInfo.extent.depth = 1;
@@ -9051,17 +8482,7 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 
 		VkMemoryAllocateInfo MemoryAllocateInfo;
 		MemoryAllocateInfo.allocationSize = TEXTURE_MEMORY_HEAP_SIZE;
-		MemoryAllocateInfo.memoryTypeIndex = [&] () -> uint32_t {
-
-			for (uint32_t i = 0; i < PhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-			{
-				if (((1 << i) & MemoryRequirements.memoryTypeBits) && (PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !(PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-					return i;
-			}
-
-			return -1;
-
-		} ();
+		MemoryAllocateInfo.memoryTypeIndex = DefaultMemoryHeapIndex;
 		MemoryAllocateInfo.pNext = nullptr;
 		MemoryAllocateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 

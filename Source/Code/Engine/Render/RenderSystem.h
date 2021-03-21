@@ -201,28 +201,31 @@ class RenderSystem
 		VkBuffer UploadBuffer;
 		size_t UploadBufferOffset = 0;
 
+		uint32_t DefaultMemoryHeapIndex, UploadMemoryHeapIndex, ReadbackMemoryHeapIndex;
+
 		// ===============================================================================================================
 
 		VkImage GBufferTextures[2];
 		VkImageView GBufferTexturesViews[2];
-		VkDeviceMemory GBufferTexturesMemoryHeaps[2];
-
+		
 		VkImage DepthBufferTexture;
 		VkImageView DepthBufferTextureView, DepthBufferTextureDepthReadView;
-		VkDeviceMemory DepthBufferTextureMemoryHeap;
-
+		
 		VkRenderPass GBufferClearRenderPass, GBufferDrawRenderPass;
 
 		VkFramebuffer GBufferFrameBuffer;
 
 		VkBuffer GPUConstantBuffer, CPUConstantBuffers[2];
-		VkDeviceMemory GPUConstantBufferMemoryHeap, CPUConstantBufferMemoryHeaps[2];
+		
+		VkDeviceMemory GPUMemory1, CPUMemory1;
+		VkDeviceSize ConstantBuffersOffets1[2];
 
 		// ===============================================================================================================
 
 		VkImage ResolvedDepthBufferTexture;
 		VkImageView ResolvedDepthBufferTextureView, ResolvedDepthBufferTextureDepthOnlyView;
-		VkDeviceMemory ResolvedDepthBufferTextureMemoryHeap;
+		
+		VkDeviceMemory GPUMemory2;
 
 		VkRenderPass MSAADepthBufferResolveRenderPass;
 		VkFramebuffer ResolvedDepthFrameBuffer;
@@ -231,10 +234,8 @@ class RenderSystem
 
 		VkImage OcclusionBufferTexture;
 		VkImageView  OcclusionBufferTextureView;
-		VkDeviceMemory OcclusionBufferTextureMemoryHeap;
 		VkBuffer OcclusionBufferReadbackBuffers[2];
-		VkDeviceMemory OcclusionBufferReadbackBuffersMemoryHeaps[2];
-
+		
 		VkRenderPass OcclusionBufferRenderPass;
 		VkFramebuffer OcclusionBufferFrameBuffer;
 
@@ -243,63 +244,67 @@ class RenderSystem
 		VkDescriptorSetLayout OcclusionBufferSetLayout;
 		VkDescriptorSet OcclusionBufferSets[2];
 
+		VkDeviceMemory GPUMemory3, CPUMemory3;
+		VkDeviceSize OcclusionBuffersOffsets[2];
+
 		// ===============================================================================================================
 
 		VkImage CascadedShadowMapTextures[4];
 		VkImageView CascadedShadowMapTexturesViews[4];
-		VkDeviceMemory CascadedShadowMapTexturesMemoryHeaps[4];
 
 		VkRenderPass ShadowMapClearRenderPass, ShadowMapDrawRenderPass;
 
 		VkFramebuffer CascadedShadowMapFrameBuffers[4];
 
 		VkBuffer GPUConstantBuffers2[4], CPUConstantBuffers2[4][2];
-		VkDeviceMemory GPUConstantBufferMemoryHeaps2[4], CPUConstantBufferMemoryHeaps2[4][2];
+
+		VkDeviceMemory GPUMemory4, CPUMemory4;
+		VkDeviceSize ConstantBuffersOffets2[4][2];
 
 		// ===============================================================================================================
 
 		VkImage ShadowMaskTexture;
 		VkImageView ShadowMaskTextureView;
-		VkDeviceMemory ShadowMaskTextureMemoryHeap;
-
+		
 		VkRenderPass ShadowMaskRenderPass;
 		VkFramebuffer ShadowMaskFrameBuffer;
 
 		VkBuffer GPUShadowResolveConstantBuffer, CPUShadowResolveConstantBuffers[2];
-		VkDeviceMemory GPUShadowResolveConstantBufferMemoryHeap, CPUShadowResolveConstantBuffersMemoryHeaps[2];
-
+		
 		VkPipeline ShadowResolvePipeline;
 		VkPipelineLayout ShadowResolvePipelineLayout;
 		VkDescriptorSetLayout ShadowResolveSetLayout;
 		VkDescriptorSet ShadowResolveSets[2];
 
+		VkDeviceMemory GPUMemory5, CPUMemory5;
+		VkDeviceSize ConstantBuffersOffets3[2];
+
 		// ===============================================================================================================
 
 		VkImage HDRSceneColorTexture;
 		VkImageView HDRSceneColorTextureView;
-		VkDeviceMemory HDRSceneColorTextureMemoryHeap;
-
+		
 		VkRenderPass DeferredLightingRenderPass;
 		VkFramebuffer HDRSceneColorFrameBuffer;
 
 		VkBuffer GPUDeferredLightingConstantBuffer, CPUDeferredLightingConstantBuffers[2];
-		VkDeviceMemory GPUDeferredLightingConstantBufferMemoryHeap, CPUDeferredLightingConstantBuffersMemoryHeaps[2];
-
+		
 		VkBuffer GPULightClustersBuffer, CPULightClustersBuffers[2];
-		VkDeviceMemory GPULightClustersBufferMemoryHeap, CPULightClustersBuffersMemoryHeaps[2];
 		VkBufferView LightClustersBufferView;
 
 		VkBuffer GPULightIndicesBuffer, CPULightIndicesBuffers[2];
-		VkDeviceMemory GPULightIndicesBufferMemoryHeap, CPULightIndicesBuffersMemoryHeaps[2];
 		VkBufferView LightIndicesBufferView;
 
 		VkBuffer GPUPointLightsBuffer, CPUPointLightsBuffers[2];
-		VkDeviceMemory GPUPointLightsBufferMemoryHeap, CPUPointLightsBuffersMemoryHeaps[2];
-
+		
 		VkPipeline DeferredLightingPipeline;
 		VkPipelineLayout DeferredLightingPipelineLayout;
 		VkDescriptorSetLayout DeferredLightingSetLayout;
 		VkDescriptorSet DeferredLightingSets[2];
+
+		VkDeviceMemory GPUMemory6, CPUMemory6;
+		VkDeviceSize ConstantBuffersOffets4[2];
+		VkDeviceSize DynamicBuffersOffsets[3][2];
 
 		// ===============================================================================================================
 
@@ -311,21 +316,15 @@ class RenderSystem
 		VkFramebuffer HDRSceneColorAndDepthFrameBuffer;
 
 		VkBuffer SkyVertexBuffer, SkyIndexBuffer;
-		VkDeviceMemory SkyVertexBufferMemoryHeap, SkyIndexBufferMemoryHeap;
 		VkBuffer GPUSkyConstantBuffer, CPUSkyConstantBuffers[2];
-		VkDeviceMemory GPUSkyConstantBufferMemoryHeap, CPUSkyConstantBuffersMemoryHeaps[2];
 		VkPipeline SkyPipeline;
 		VkImage SkyTexture;
-		VkDeviceMemory SkyTextureMemoryHeap;
 		VkImageView SkyTextureView;
 
 		VkBuffer SunVertexBuffer, SunIndexBuffer;
-		VkDeviceMemory SunVertexBufferMemoryHeap, SunIndexBufferMemoryHeap;
 		VkBuffer GPUSunConstantBuffer, CPUSunConstantBuffers[2];
-		VkDeviceMemory GPUSunConstantBufferMemoryHeap, CPUSunConstantBuffersMemoryHeaps[2];
 		VkPipeline SunPipeline;
 		VkImage SunTexture;
-		VkDeviceMemory SunTextureMemoryHeap;
 		VkImageView SunTextureView;
 
 		VkPipeline FogPipeline;
@@ -333,23 +332,25 @@ class RenderSystem
 		VkDescriptorSetLayout FogSetLayout;
 		VkDescriptorSet FogSets[2];
 
+		VkDeviceMemory GPUMemory7, CPUMemory7;
+		VkDeviceSize ConstantBuffersOffets5[2][2];
+
 		// ===============================================================================================================
 
 		VkImage ResolvedHDRSceneColorTexture;
-		VkDeviceMemory ResolvedHDRSceneColorTextureMemoryHeap;
 		VkImageView ResolvedHDRSceneColorTextureView;
 		
 		VkRenderPass HDRSceneColorResolveRenderPass;
 		VkFramebuffer HDRSceneColorResolveFrameBuffer;
 
+		VkDeviceMemory GPUMemory8;
+
 		// ===============================================================================================================
 
 		VkImage SceneLuminanceTextures[4];
-		VkDeviceMemory SceneLuminanceTexturesMemoryHeaps[4];
 		VkImageView SceneLuminanceTexturesViews[4];
 
 		VkImage AverageLuminanceTexture;
-		VkDeviceMemory AverageLuminanceTextureMemoryHeap;
 		VkImageView AverageLuminanceTextureView;
 
 		VkPipelineLayout LuminancePassPipelineLayout;
@@ -360,10 +361,11 @@ class RenderSystem
 		VkPipeline LuminanceSumPipeline;
 		VkPipeline LuminanceAvgPipeline;
 
+		VkDeviceMemory GPUMemory9;
+
 		// ===============================================================================================================
 
 		VkImage BloomTextures[3][7];
-		VkDeviceMemory BloomTexturesMemoryHeaps[3][7];
 		VkImageView BloomTexturesViews[3][7];
 
 		VkRenderPass BloomRenderPass;
@@ -379,10 +381,11 @@ class RenderSystem
 		VkPipeline VerticalBlurPipeline;
 		VkPipeline UpSampleWithAddBlendPipeline;
 
+		VkDeviceMemory GPUMemory10;
+
 		// ===============================================================================================================
 
 		VkImage ToneMappedImageTexture;
-		VkDeviceMemory ToneMappedImageTextureMemoryHeap;
 		VkImageView ToneMappedImageTextureView;
 
 		VkRenderPass HDRToneMappingRenderPass;
@@ -393,6 +396,8 @@ class RenderSystem
 		VkDescriptorSet HDRToneMappingSets[2];
 
 		VkPipeline HDRToneMappingPipeline;
+
+		VkDeviceMemory GPUMemory11;
 
 		// ===============================================================================================================
 
