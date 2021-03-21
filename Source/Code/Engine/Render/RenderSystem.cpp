@@ -2803,9 +2803,7 @@ void RenderSystem::InitSystem()
 		PipelineMultisampleStateCreateInfo.pNext = nullptr;
 		PipelineMultisampleStateCreateInfo.rasterizationSamples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_8_BIT;
 		PipelineMultisampleStateCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-		PipelineMultisampleStateCreateInfo.sampleShadingEnable = VK_TRUE;
-		PipelineMultisampleStateCreateInfo.minSampleShading = 1.0f;
-
+		
 		VkPipelineRasterizationStateCreateInfo PipelineRasterizationStateCreateInfo;
 		ZeroMemory(&PipelineRasterizationStateCreateInfo, sizeof(PipelineRasterizationStateCreateInfo));
 		PipelineRasterizationStateCreateInfo.cullMode = VkCullModeFlagBits::VK_CULL_MODE_BACK_BIT;
@@ -3917,17 +3915,10 @@ void RenderSystem::InitSystem()
 		PipelineInputAssemblyStateCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 		PipelineInputAssemblyStateCreateInfo.topology = VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
-		VkSampleMask SampleMask[2] = { 0xFFFFFFFF, 0xFFFFFFFF };
-
 		VkPipelineMultisampleStateCreateInfo PipelineMultisampleStateCreateInfo;
-		PipelineMultisampleStateCreateInfo.alphaToCoverageEnable = VK_FALSE;
-		PipelineMultisampleStateCreateInfo.alphaToOneEnable = VK_FALSE;
-		PipelineMultisampleStateCreateInfo.flags = 0;
-		PipelineMultisampleStateCreateInfo.minSampleShading = 0.0f;
+		ZeroMemory(&PipelineMultisampleStateCreateInfo, sizeof(VkPipelineMultisampleStateCreateInfo)); 
 		PipelineMultisampleStateCreateInfo.pNext = nullptr;
-		PipelineMultisampleStateCreateInfo.pSampleMask = SampleMask;
 		PipelineMultisampleStateCreateInfo.rasterizationSamples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_8_BIT;
-		PipelineMultisampleStateCreateInfo.sampleShadingEnable = VK_FALSE;
 		PipelineMultisampleStateCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 
 		VkPipelineRasterizationStateCreateInfo PipelineRasterizationStateCreateInfo;
@@ -4058,14 +4049,9 @@ void RenderSystem::InitSystem()
 		PipelineInputAssemblyStateCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 		PipelineInputAssemblyStateCreateInfo.topology = VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
-		PipelineMultisampleStateCreateInfo.alphaToCoverageEnable = VK_FALSE;
-		PipelineMultisampleStateCreateInfo.alphaToOneEnable = VK_FALSE;
-		PipelineMultisampleStateCreateInfo.flags = 0;
-		PipelineMultisampleStateCreateInfo.minSampleShading = 0.0f;
+		ZeroMemory(&PipelineMultisampleStateCreateInfo, sizeof(VkPipelineMultisampleStateCreateInfo)); 
 		PipelineMultisampleStateCreateInfo.pNext = nullptr;
-		PipelineMultisampleStateCreateInfo.pSampleMask = SampleMask;
 		PipelineMultisampleStateCreateInfo.rasterizationSamples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_8_BIT;
-		PipelineMultisampleStateCreateInfo.sampleShadingEnable = VK_FALSE;
 		PipelineMultisampleStateCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 
 		ZeroMemory(&PipelineRasterizationStateCreateInfo, sizeof(VkPipelineRasterizationStateCreateInfo));
@@ -9042,17 +9028,10 @@ RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInf
 	PipelineInputAssemblyStateCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 	PipelineInputAssemblyStateCreateInfo.topology = VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
-	VkSampleMask SampleMask[2] = { 0xFFFFFFFF, 0xFFFFFFFF };
-
 	VkPipelineMultisampleStateCreateInfo PipelineMultisampleStateCreateInfo;
-	PipelineMultisampleStateCreateInfo.alphaToCoverageEnable = VK_FALSE;
-	PipelineMultisampleStateCreateInfo.alphaToOneEnable = VK_FALSE;
-	PipelineMultisampleStateCreateInfo.flags = 0;
-	PipelineMultisampleStateCreateInfo.minSampleShading = 0.0f;
+	ZeroMemory(&PipelineMultisampleStateCreateInfo, sizeof(VkPipelineMultisampleStateCreateInfo));
 	PipelineMultisampleStateCreateInfo.pNext = nullptr;
-	PipelineMultisampleStateCreateInfo.pSampleMask = SampleMask;
 	PipelineMultisampleStateCreateInfo.rasterizationSamples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_8_BIT;
-	PipelineMultisampleStateCreateInfo.sampleShadingEnable = VK_FALSE;
 	PipelineMultisampleStateCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 
 	VkPipelineRasterizationStateCreateInfo PipelineRasterizationStateCreateInfo;
@@ -9173,14 +9152,9 @@ RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInf
 	PipelineInputAssemblyStateCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 	PipelineInputAssemblyStateCreateInfo.topology = VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
-	PipelineMultisampleStateCreateInfo.alphaToCoverageEnable = VK_FALSE;
-	PipelineMultisampleStateCreateInfo.alphaToOneEnable = VK_FALSE;
-	PipelineMultisampleStateCreateInfo.flags = 0;
-	PipelineMultisampleStateCreateInfo.minSampleShading = 0.0f;
+	ZeroMemory(&PipelineMultisampleStateCreateInfo, sizeof(VkPipelineMultisampleStateCreateInfo));
 	PipelineMultisampleStateCreateInfo.pNext = nullptr;
-	PipelineMultisampleStateCreateInfo.pSampleMask = SampleMask;
 	PipelineMultisampleStateCreateInfo.rasterizationSamples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
-	PipelineMultisampleStateCreateInfo.sampleShadingEnable = VK_FALSE;
 	PipelineMultisampleStateCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 
 	ZeroMemory(&PipelineRasterizationStateCreateInfo, sizeof(VkPipelineRasterizationStateCreateInfo));
