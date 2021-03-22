@@ -21,8 +21,6 @@
     <None Include="CompileShaders.bat">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="MaterialBase_PixelShader.hlsl" />
-    <None Include="MaterialBase_VertexShader.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="DeferredLighting.hlsl" />
