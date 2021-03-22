@@ -3,8 +3,6 @@
 
 #include "StaticMeshEntity.h"
 
-#include "../../../MetaClass.h"
-
 #include "../../../Components/Common/TransformComponent.h"
 #include "../../../Components/Common/BoundingBoxComponent.h"
 #include "../../../Components/Render/Meshes/StaticMeshComponent.h"

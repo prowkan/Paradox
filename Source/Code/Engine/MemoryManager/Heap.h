@@ -11,6 +11,6 @@ class Heap
 
 	private:
 
-		void *HeapData;
-		size_t HeapOffset;
+		void *HeapData = nullptr;;
+		size_t HeapOffset = 0;
 };

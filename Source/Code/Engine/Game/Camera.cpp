@@ -7,6 +7,9 @@ void Camera::InitCamera()
 {
 	CameraLocation = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	CameraRotation = XMFLOAT3(0.0f, 0.0f, 0.0f);
+
+	FOV = 3.14f / 2.0f;
+	AspectRatio = 16.0f / 9.0f;
 }
 
 void Camera::ShutdownCamera()
@@ -24,5 +27,7 @@ void Camera::TickCamera(float DeltaTime)
 	ForwardVector = XMVector4Transform(ForwardVector, RotationMatrix);
 	UpVector = XMVector4Transform(UpVector, RotationMatrix);
 
-	ViewProjMatrix = XMMatrixLookToLH(XMVectorSet(CameraLocation.x, CameraLocation.y, CameraLocation.z, 1.0f), ForwardVector, UpVector) * XMMatrixPerspectiveFovLH(3.14f / 2.0f, 16.0f / 9.0f, 0.01f, 1000.0f);
+	ViewMatrix = XMMatrixLookToLH(XMVectorSet(CameraLocation.x, CameraLocation.y, CameraLocation.z, 1.0f), ForwardVector, UpVector);
+	ProjMatrix = XMMatrixPerspectiveFovLH(FOV, AspectRatio, 1000.0f, 0.01f);
+	ViewProjMatrix = ViewMatrix * ProjMatrix;
 }

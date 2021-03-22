@@ -4,7 +4,8 @@ struct PSInput
 	float2 TexCoord : TEXCOORD;
 };
 
-Texture2D HDRFrameBufferTexture : register(t0);
+Texture2DMS<float4> HDRFrameBufferTexture : register(t0);
+Texture2D HDRBloomTexture : register(t1);
 
 float3 ACESToneMappingOperator(float3 Color)
 {
@@ -17,12 +18,13 @@ float3 ACESToneMappingOperator(float3 Color)
 	return saturate((Color * (A * Color + B)) / (Color * (C * Color + D) + E));
 }
 
-float4 PS(PSInput PixelShaderInput) : SV_Target
+float4 PS(PSInput PixelShaderInput, uint SampleIndex : SV_SampleIndex) : SV_Target
 {
 	int2 Coords = PixelShaderInput.Position.xy - 0.5f;
 
-	float3 HDRColor = HDRFrameBufferTexture.Load(int3(Coords, 0)).rgb;
-	float3 ToneMappedColor = ACESToneMappingOperator(HDRColor);
+	float3 HDRColor = HDRFrameBufferTexture.Load(Coords, SampleIndex).rgb;
+	float3 BloomColor = HDRBloomTexture.Load(int3(Coords, 0)).rgb;
+	float3 ToneMappedColor = ACESToneMappingOperator(HDRColor + BloomColor);
 
 	return float4(ToneMappedColor, 1.0f);
 }

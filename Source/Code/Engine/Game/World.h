@@ -15,6 +15,9 @@ class World
 
 		Entity* SpawnEntity(MetaClass* metaClass);
 
+		template<typename T>
+		T* SpawnEntity();
+
 		vector<Entity*>& GetEntities() { return Entities; }
 
 		RenderScene& GetRenderScene() { return renderScene; }
@@ -25,3 +28,9 @@ class World
 
 		RenderScene renderScene;
 };
+
+template<typename T>
+inline T* World::SpawnEntity()
+{
+	return Entity::DynamicCast<T>(SpawnEntity(T::GetMetaClassStatic()));
+}
