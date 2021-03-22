@@ -209,8 +209,11 @@
     <ClInclude Include="Render\ClusterizationSubSystem.h" />
     <ClInclude Include="Render\CullingSubSystem.h" />
     <ClInclude Include="Render\RenderPass.h" />
+    <ClInclude Include="Render\RenderPasses\BackBufferResolvePass.h" />
     <ClInclude Include="Render\RenderPasses\DeferredLightingPass.h" />
     <ClInclude Include="Render\RenderPasses\GBufferOpaquePass.h" />
+    <ClInclude Include="Render\RenderPasses\HDRSceneColorResolvePass.h" />
+    <ClInclude Include="Render\RenderPasses\MSAADepthBufferResolvePass.h" />
     <ClInclude Include="Render\RenderPasses\OcclusionBufferPass.h" />
     <ClInclude Include="Render\RenderPasses\PostProcessBloomPass.h" />
     <ClInclude Include="Render\RenderPasses\PostProcessHDRToneMappingPass.h" />
@@ -257,8 +260,11 @@
     <ClCompile Include="Render\ClusterizationSubSystem.cpp" />
     <ClCompile Include="Render\CullingSubSystem.cpp" />
     <ClCompile Include="Render\RenderPass.cpp" />
+    <ClCompile Include="Render\RenderPasses\BackBufferResolvePass.cpp" />
     <ClCompile Include="Render\RenderPasses\DeferredLightingPass.cpp" />
     <ClCompile Include="Render\RenderPasses\GBufferOpaquePass.cpp" />
+    <ClCompile Include="Render\RenderPasses\HDRSceneColorResolvePass.cpp" />
+    <ClCompile Include="Render\RenderPasses\MSAADepthBufferResolvePass.cpp" />
     <ClCompile Include="Render\RenderPasses\OcclusionBufferPass.cpp" />
     <ClCompile Include="Render\RenderPasses\PostProcessBloomPass.cpp" />
     <ClCompile Include="Render\RenderPasses\PostProcessHDRToneMappingPass.cpp" />
