@@ -4,14 +4,17 @@
 #include "RenderSystem.h"
 
 #include "RenderPasses/GBufferOpaquePass.h"
+#include "RenderPasses/MSAADepthBufferResolvePass.h"
 #include "RenderPasses/OcclusionBufferPass.h"
 #include "RenderPasses/ShadowMapPass.h"
 #include "RenderPasses/ShadowResolvePass.h"
 #include "RenderPasses/DeferredLightingPass.h"
 #include "RenderPasses/SkyAndFogPass.h"
+#include "RenderPasses/HDRSceneColorResolvePass.h"
 #include "RenderPasses/PostProcessLuminancePass.h"
 #include "RenderPasses/PostProcessBloomPass.h"
 #include "RenderPasses/PostProcessHDRToneMappingPass.h"
+#include "RenderPasses/BackBufferResolvePass.h"
 
 #include <Core/Application.h>
 
@@ -463,14 +466,17 @@ void RenderSystem::InitSystem()
 	}
 
 	RenderPasses.push_back(new GBufferOpaquePass);
+	RenderPasses.push_back(new MSAADepthBufferResolvePass);
 	RenderPasses.push_back(new OcclusionBufferPass);
 	RenderPasses.push_back(new ShadowMapPass);
 	RenderPasses.push_back(new ShadowResolvePass);
 	RenderPasses.push_back(new DeferredLightingPass);
 	RenderPasses.push_back(new SkyAndFogPass);
+	RenderPasses.push_back(new HDRSceneColorResolvePass);
 	RenderPasses.push_back(new PostProcessLuminancePass);
 	RenderPasses.push_back(new PostProcessBloomPass);
 	RenderPasses.push_back(new PostProcessHDRToneMappingPass);
+	RenderPasses.push_back(new BackBufferResolvePass);
 
 	for (RenderPass* renderPass : RenderPasses)
 	{
