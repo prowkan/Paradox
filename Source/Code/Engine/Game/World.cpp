@@ -42,15 +42,11 @@ void World::LoadWorld()
 
 	for (int k = 0; k < 4000; k++)
 	{
-		char16_t StaticMeshFileName[255];
-		wsprintf((wchar_t*)StaticMeshFileName, (const wchar_t*)u"GameContent/Objects/SM_Cube_%d.dasset", k);
+		char StaticMeshFileName[255];
+		sprintf(StaticMeshFileName, "SM_Cube_%d", k);
 
-		HANDLE StaticMeshFile = CreateFile((const wchar_t*)StaticMeshFileName, GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-		LARGE_INTEGER StaticMeshDataLength;
-		BOOL Result = GetFileSizeEx(StaticMeshFile, &StaticMeshDataLength);
-		ScopedMemoryBlockArray<BYTE> StaticMeshData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(StaticMeshDataLength.QuadPart);
-		Result = ReadFile(StaticMeshFile, StaticMeshData, (DWORD)StaticMeshDataLength.QuadPart, NULL, NULL);
-		Result = CloseHandle(StaticMeshFile);
+		ScopedMemoryBlockArray<BYTE> StaticMeshData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(Engine::GetEngine().GetFileSystem().GetFileSize(StaticMeshFileName));
+		Engine::GetEngine().GetFileSystem().LoadFile(StaticMeshFileName, StaticMeshData);
 
 		StaticMeshFileHeader *staticMeshFileHeader = StaticMeshData;
 
@@ -69,15 +65,11 @@ void World::LoadWorld()
 
 	for (int k = 0; k < 4000; k++)
 	{
-		char16_t Texture2DFileName[255];
-		wsprintf((wchar_t*)Texture2DFileName, (const wchar_t*)u"GameContent/Textures/T_Default_%d_D.dasset", k);
+		char Texture2DFileName[255];
+		sprintf(Texture2DFileName, "T_Default_%d_D", k);
 
-		HANDLE TextureFile = CreateFile((const wchar_t*)Texture2DFileName, GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-		LARGE_INTEGER TextureDataLength;
-		BOOL Result = GetFileSizeEx(TextureFile, &TextureDataLength);
-		ScopedMemoryBlockArray<BYTE> TextureData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(TextureDataLength.QuadPart);
-		Result = ReadFile(TextureFile, TextureData, (DWORD)TextureDataLength.QuadPart, NULL, NULL);
-		Result = CloseHandle(TextureFile);
+		ScopedMemoryBlockArray<BYTE> TextureData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(Engine::GetEngine().GetFileSystem().GetFileSize(Texture2DFileName));
+		Engine::GetEngine().GetFileSystem().LoadFile(Texture2DFileName, TextureData);
 
 		TextureFileHeader *textureFileHeader = TextureData;
 
@@ -99,15 +91,11 @@ void World::LoadWorld()
 
 	for (int k = 0; k < 4000; k++)
 	{
-		char16_t Texture2DFileName[255];
-		wsprintf((wchar_t*)Texture2DFileName, (const wchar_t*)u"GameContent/Textures/T_Default_%d_N.dasset", k);
+		char Texture2DFileName[255];
+		sprintf(Texture2DFileName, "T_Default_%d_N", k);
 
-		HANDLE TextureFile = CreateFile((const wchar_t*)Texture2DFileName, GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-		LARGE_INTEGER TextureDataLength;
-		BOOL Result = GetFileSizeEx(TextureFile, &TextureDataLength);
-		ScopedMemoryBlockArray<BYTE> TextureData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(TextureDataLength.QuadPart);
-		Result = ReadFile(TextureFile, TextureData, (DWORD)TextureDataLength.QuadPart, NULL, NULL);
-		Result = CloseHandle(TextureFile);
+		ScopedMemoryBlockArray<BYTE> TextureData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(Engine::GetEngine().GetFileSystem().GetFileSize(Texture2DFileName));
+		Engine::GetEngine().GetFileSystem().LoadFile(Texture2DFileName, TextureData);
 
 		TextureFileHeader *textureFileHeader = TextureData;
 
@@ -129,36 +117,27 @@ void World::LoadWorld()
 
 	for (int k = 0; k < 4000; k++)
 	{
-		HANDLE GBufferOpaquePassVertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/MaterialBase_VertexShader_GBufferOpaquePass.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-		LARGE_INTEGER GBufferOpaquePassVertexShaderByteCodeLength;
-		BOOL Result = GetFileSizeEx(GBufferOpaquePassVertexShaderFile, &GBufferOpaquePassVertexShaderByteCodeLength);
-		ScopedMemoryBlockArray<BYTE> GBufferOpaquePassVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(GBufferOpaquePassVertexShaderByteCodeLength.QuadPart);
-		Result = ReadFile(GBufferOpaquePassVertexShaderFile, GBufferOpaquePassVertexShaderByteCodeData, (DWORD)GBufferOpaquePassVertexShaderByteCodeLength.QuadPart, NULL, NULL);
-		Result = CloseHandle(GBufferOpaquePassVertexShaderFile);
+		SIZE_T GBufferOpaquePassVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("MaterialBase_VertexShader_GBufferOpaquePass");
+		ScopedMemoryBlockArray<BYTE> GBufferOpaquePassVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(GBufferOpaquePassVertexShaderByteCodeLength);
+		Engine::GetEngine().GetFileSystem().LoadFile("MaterialBase_VertexShader_GBufferOpaquePass", GBufferOpaquePassVertexShaderByteCodeData);
 
-		HANDLE GBufferOpaquePassPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/MaterialBase_PixelShader_GBufferOpaquePass.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-		LARGE_INTEGER GBufferOpaquePassPixelShaderByteCodeLength;
-		Result = GetFileSizeEx(GBufferOpaquePassPixelShaderFile, &GBufferOpaquePassPixelShaderByteCodeLength);
-		ScopedMemoryBlockArray<BYTE> GBufferOpaquePassPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(GBufferOpaquePassPixelShaderByteCodeLength.QuadPart);
-		Result = ReadFile(GBufferOpaquePassPixelShaderFile, GBufferOpaquePassPixelShaderByteCodeData, (DWORD)GBufferOpaquePassPixelShaderByteCodeLength.QuadPart, NULL, NULL);
-		Result = CloseHandle(GBufferOpaquePassPixelShaderFile);
+		SIZE_T GBufferOpaquePassPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("MaterialBase_PixelShader_GBufferOpaquePass");
+		ScopedMemoryBlockArray<BYTE> GBufferOpaquePassPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(GBufferOpaquePassPixelShaderByteCodeLength);
+		Engine::GetEngine().GetFileSystem().LoadFile("MaterialBase_PixelShader_GBufferOpaquePass", GBufferOpaquePassPixelShaderByteCodeData);
 
-		HANDLE ShadowMapPassVertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/MaterialBase_VertexShader_ShadowMapPass.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-		LARGE_INTEGER ShadowMapPassVertexShaderByteCodeLength;
-		Result = GetFileSizeEx(ShadowMapPassVertexShaderFile, &ShadowMapPassVertexShaderByteCodeLength);
-		ScopedMemoryBlockArray<BYTE> ShadowMapPassVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(ShadowMapPassVertexShaderByteCodeLength.QuadPart);
-		Result = ReadFile(ShadowMapPassVertexShaderFile, ShadowMapPassVertexShaderByteCodeData, (DWORD)ShadowMapPassVertexShaderByteCodeLength.QuadPart, NULL, NULL);
-		Result = CloseHandle(ShadowMapPassVertexShaderFile);
+		SIZE_T ShadowMapPassVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("MaterialBase_VertexShader_ShadowMapPass");
+		ScopedMemoryBlockArray<BYTE> ShadowMapPassVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(ShadowMapPassVertexShaderByteCodeLength);
+		Engine::GetEngine().GetFileSystem().LoadFile("MaterialBase_VertexShader_ShadowMapPass", ShadowMapPassVertexShaderByteCodeData);
 
 		MaterialResourceCreateInfo materialResourceCreateInfo;
 		materialResourceCreateInfo.GBufferOpaquePassPixelShaderByteCodeData = GBufferOpaquePassPixelShaderByteCodeData;
-		materialResourceCreateInfo.GBufferOpaquePassPixelShaderByteCodeLength = GBufferOpaquePassPixelShaderByteCodeLength.QuadPart;
+		materialResourceCreateInfo.GBufferOpaquePassPixelShaderByteCodeLength = GBufferOpaquePassPixelShaderByteCodeLength;
 		materialResourceCreateInfo.GBufferOpaquePassVertexShaderByteCodeData = GBufferOpaquePassVertexShaderByteCodeData;
-		materialResourceCreateInfo.GBufferOpaquePassVertexShaderByteCodeLength = GBufferOpaquePassVertexShaderByteCodeLength.QuadPart;
+		materialResourceCreateInfo.GBufferOpaquePassVertexShaderByteCodeLength = GBufferOpaquePassVertexShaderByteCodeLength;
 		materialResourceCreateInfo.ShadowMapPassPixelShaderByteCodeData = nullptr;
 		materialResourceCreateInfo.ShadowMapPassPixelShaderByteCodeLength = 0;
 		materialResourceCreateInfo.ShadowMapPassVertexShaderByteCodeData = ShadowMapPassVertexShaderByteCodeData;
-		materialResourceCreateInfo.ShadowMapPassVertexShaderByteCodeLength = ShadowMapPassVertexShaderByteCodeLength.QuadPart;
+		materialResourceCreateInfo.ShadowMapPassVertexShaderByteCodeLength = ShadowMapPassVertexShaderByteCodeLength;
 		materialResourceCreateInfo.Textures.resize(2);
 
 		char MaterialResourceName[255];
