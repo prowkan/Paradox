@@ -47,8 +47,11 @@ void RenderSystem::InitSystem()
 	/*ResolutionWidth = DisplayModes[(size_t)DisplayModesCount - 1].Width;
 	ResolutionHeight = DisplayModes[(size_t)DisplayModesCount - 1].Height;*/
 
-	ResolutionWidth = 1280;
-	ResolutionHeight = 720;
+	/*ResolutionWidth = 1280;
+	ResolutionHeight = 720;*/
+
+	ResolutionWidth = Engine::GetEngine().GetConfigSystem().GetRenderConfigValueInt("Screen", "ResolutionWidth");
+	ResolutionHeight = Engine::GetEngine().GetConfigSystem().GetRenderConfigValueInt("Screen", "ResolutionHeight");
 
 	SAFE_DX(D3D12CreateDevice(Adapter, D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_11_0, UUIDOF(Device)));
 

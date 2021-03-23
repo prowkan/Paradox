@@ -24,6 +24,7 @@ class Engine
 		MultiThreadingSystem& GetMultiThreadingSystem() { return multiThreadingSystem; }
 		MemoryManager& GetMemoryManager() { return memoryManager; }
 
+		ConfigSystem& GetConfigSystem() { return configSystem; }
 		InputSystem& GetInputSystem() { return inputSystem; }
 		RenderSystem& GetRenderSystem() { return renderSystem; }
 

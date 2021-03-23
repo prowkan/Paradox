@@ -103,3 +103,22 @@ void ConfigSystem::ShutdownSystem()
 {
 
 }
+
+string ConfigSystem::GetRenderConfigValueString(const string& Section, const string& Param)
+{
+	return RenderConfig[Section][Param];
+}
+
+int ConfigSystem::GetRenderConfigValueInt(const string& Section, const string& Param)
+{
+	string StrValue = RenderConfig[Section][Param];
+
+	int Value = 0;
+
+	for (int i = 0; i < StrValue.length(); i++)
+	{
+		Value = Value * 10 + (StrValue[i] - '0');
+	}
+
+	return Value;
+}
