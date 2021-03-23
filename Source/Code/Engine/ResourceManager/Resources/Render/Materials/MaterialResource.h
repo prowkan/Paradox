@@ -8,10 +8,14 @@ class Texture2DResource;
 
 struct MaterialResourceCreateInfo
 {
-	void *VertexShaderByteCodeData;
-	void *PixelShaderByteCodeData;
-	size_t VertexShaderByteCodeLength;
-	size_t PixelShaderByteCodeLength;
+	void *GBufferOpaquePassVertexShaderByteCodeData;
+	void *GBufferOpaquePassPixelShaderByteCodeData;
+	size_t GBufferOpaquePassVertexShaderByteCodeLength;
+	size_t GBufferOpaquePassPixelShaderByteCodeLength;
+	void *ShadowMapPassVertexShaderByteCodeData;
+	void *ShadowMapPassPixelShaderByteCodeData;
+	size_t ShadowMapPassVertexShaderByteCodeLength;
+	size_t ShadowMapPassPixelShaderByteCodeLength;
 	vector<Texture2DResource*> Textures;
 };
 

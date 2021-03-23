@@ -207,6 +207,7 @@
     <ClInclude Include="MultiThreading\Tasks\FrustumCullingTask.h" />
     <ClInclude Include="MultiThreading\ThreadSafeQueue.h" />
     <ClInclude Include="MultiThreading\WorkerThread.h" />
+    <ClInclude Include="Render\ClusterizationSubSystem.h" />
     <ClInclude Include="Render\CullingSubSystem.h" />
     <ClInclude Include="Render\RenderScene.h" />
     <ClInclude Include="Render\RenderSystem.h" />
@@ -245,6 +246,7 @@
     <ClCompile Include="MultiThreading\Tasks\FrustumCullingTask.cpp" />
     <ClCompile Include="MultiThreading\ThreadSafeQueue.cpp" />
     <ClCompile Include="MultiThreading\WorkerThread.cpp" />
+    <ClCompile Include="Render\ClusterizationSubSystem.cpp" />
     <ClCompile Include="Render\CullingSubSystem.cpp" />
     <ClCompile Include="Render\RenderScene.cpp" />
     <ClCompile Include="Render\RenderSystem.cpp" />
