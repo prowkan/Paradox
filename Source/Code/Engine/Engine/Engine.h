@@ -3,6 +3,7 @@
 #include <MultiThreading/MultiThreadingSystem.h>
 #include <MemoryManager/MemoryManager.h>
 
+#include <Config/ConfigSystem.h>
 #include <Input/InputSystem.h>
 #include <Render/RenderSystem.h>
 
@@ -37,6 +38,7 @@ class Engine
 		MultiThreadingSystem multiThreadingSystem;
 		MemoryManager memoryManager;
 
+		ConfigSystem configSystem;
 		InputSystem inputSystem;
 		RenderSystem renderSystem;
 

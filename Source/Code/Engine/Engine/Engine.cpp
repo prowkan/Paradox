@@ -7,6 +7,7 @@ Engine Engine::engine;
 
 void Engine::InitEngine()
 {
+	configSystem.InitSystem();
 	multiThreadingSystem.InitSystem();
 	memoryManager.InitManager();
 	inputSystem.InitSystem();
@@ -21,6 +22,7 @@ void Engine::ShutdownEngine()
 	renderSystem.ShutdownSystem();
 	multiThreadingSystem.ShutdownSystem();
 	memoryManager.ShutdownManager();
+	configSystem.ShutdownSystem();
 }
 
 void Engine::TickEngine(float DeltaTime)
