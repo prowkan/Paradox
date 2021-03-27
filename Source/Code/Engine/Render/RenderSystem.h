@@ -346,6 +346,7 @@ struct Texture
 {
 	COMRCPtr<ID3D12Resource> DXTexture;
 	D3D12_RESOURCE_STATES *DXTextureSubResourceStates;
+	UINT SubResourcesCount;
 };
 
 class RenderSystem

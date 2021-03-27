@@ -2889,12 +2889,12 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	// ===============================================================================================================
 
-	//SwitchResourceState(DepthBufferTexture, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE);
-	SwitchResourceState(DepthBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE);
-	SwitchResourceState(DepthBufferTexture, 1, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE);
-	//SwitchResourceState(ResolvedDepthBufferTexture, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST);
-	SwitchResourceState(ResolvedDepthBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST);
-	SwitchResourceState(ResolvedDepthBufferTexture, 1, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST);
+	SwitchResourceState(DepthBufferTexture, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE);
+	//SwitchResourceState(DepthBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE);
+	//SwitchResourceState(DepthBufferTexture, 1, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE);
+	SwitchResourceState(ResolvedDepthBufferTexture, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST);
+	//SwitchResourceState(ResolvedDepthBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST);
+	//SwitchResourceState(ResolvedDepthBufferTexture, 1, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST);
 
 	// ===============================================================================================================
 
@@ -2910,9 +2910,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	// ===============================================================================================================
 
-	//SwitchResourceState(ResolvedDepthBufferTexture, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	SwitchResourceState(ResolvedDepthBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	SwitchResourceState(ResolvedDepthBufferTexture, 1, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	SwitchResourceState(ResolvedDepthBufferTexture, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	//SwitchResourceState(ResolvedDepthBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	//SwitchResourceState(ResolvedDepthBufferTexture, 1, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 	// ===============================================================================================================
 
@@ -3427,9 +3427,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->DrawInstanced(4, 1, 0, 0);
 
-		//SwitchResourceState(DepthBufferTexture, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE);
-		SwitchResourceState(DepthBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE);
-		SwitchResourceState(DepthBufferTexture, 1, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE);
+		SwitchResourceState(DepthBufferTexture, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE);
+		//SwitchResourceState(DepthBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE);
+		//SwitchResourceState(DepthBufferTexture, 1, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
 		ApplyPendingBarriers();
 
@@ -4017,18 +4017,68 @@ void RenderSystem::SwitchResourceState(Buffer& buffer, const D3D12_RESOURCE_STAT
 
 void RenderSystem::SwitchResourceState(Texture& texture, const UINT SubResource, const D3D12_RESOURCE_STATES NewState)
 {
-	if (texture.DXTextureSubResourceStates[SubResource] != NewState)
+	if (SubResource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES)
 	{
-		PendingResourceBarriers[PendingBarriersCount].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		PendingResourceBarriers[PendingBarriersCount].Transition.pResource = texture.DXTexture;
-		PendingResourceBarriers[PendingBarriersCount].Transition.StateAfter = NewState;
-		PendingResourceBarriers[PendingBarriersCount].Transition.StateBefore = texture.DXTextureSubResourceStates[SubResource];
-		PendingResourceBarriers[PendingBarriersCount].Transition.Subresource = SubResource;
-		PendingResourceBarriers[PendingBarriersCount].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		bool AreAllSubResourcesInSameState = true;
 
-		++PendingBarriersCount;
+		for (UINT i = 1; i < texture.SubResourcesCount; i++)
+		{
+			if (texture.DXTextureSubResourceStates[i] != texture.DXTextureSubResourceStates[0])
+			{
+				AreAllSubResourcesInSameState = false;
+				break;
+			}
+		}
 
-		texture.DXTextureSubResourceStates[SubResource] = NewState;
+		if (AreAllSubResourcesInSameState)
+		{
+			PendingResourceBarriers[PendingBarriersCount].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
+			PendingResourceBarriers[PendingBarriersCount].Transition.pResource = texture.DXTexture;
+			PendingResourceBarriers[PendingBarriersCount].Transition.StateAfter = NewState;
+			PendingResourceBarriers[PendingBarriersCount].Transition.StateBefore = texture.DXTextureSubResourceStates[0];
+			PendingResourceBarriers[PendingBarriersCount].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+			PendingResourceBarriers[PendingBarriersCount].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+
+			++PendingBarriersCount;
+		}
+		else
+		{
+			for (UINT i = 0; i < texture.SubResourcesCount; i++)
+			{
+				if (texture.DXTextureSubResourceStates[i] != NewState)
+				{
+					PendingResourceBarriers[PendingBarriersCount].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
+					PendingResourceBarriers[PendingBarriersCount].Transition.pResource = texture.DXTexture;
+					PendingResourceBarriers[PendingBarriersCount].Transition.StateAfter = NewState;
+					PendingResourceBarriers[PendingBarriersCount].Transition.StateBefore = texture.DXTextureSubResourceStates[i];
+					PendingResourceBarriers[PendingBarriersCount].Transition.Subresource = i;
+					PendingResourceBarriers[PendingBarriersCount].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+
+					++PendingBarriersCount;
+				}
+			}
+		}
+
+		for (UINT i = 0; i < texture.SubResourcesCount; i++)
+		{
+			texture.DXTextureSubResourceStates[i] = NewState;
+		}
+	}
+	else
+	{
+		if (texture.DXTextureSubResourceStates[SubResource] != NewState)
+		{
+			PendingResourceBarriers[PendingBarriersCount].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
+			PendingResourceBarriers[PendingBarriersCount].Transition.pResource = texture.DXTexture;
+			PendingResourceBarriers[PendingBarriersCount].Transition.StateAfter = NewState;
+			PendingResourceBarriers[PendingBarriersCount].Transition.StateBefore = texture.DXTextureSubResourceStates[SubResource];
+			PendingResourceBarriers[PendingBarriersCount].Transition.Subresource = SubResource;
+			PendingResourceBarriers[PendingBarriersCount].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+
+			++PendingBarriersCount;
+
+			texture.DXTextureSubResourceStates[SubResource] = NewState;
+		}
 	}
 }
 
@@ -4535,6 +4585,7 @@ Texture RenderSystem::CreateTexture(const D3D12_HEAP_PROPERTIES& HeapProperties,
 	{
 		texture.DXTextureSubResourceStates[i] = InitialState;
 	}
+	texture.SubResourcesCount = SubResourcesCount;
 	return texture;
 }
 
@@ -4559,6 +4610,7 @@ Texture RenderSystem::CreateTexture(ID3D12Heap* Heap, UINT64 HeapOffset, const D
 	{
 		texture.DXTextureSubResourceStates[i] = InitialState;
 	}
+	texture.SubResourcesCount = SubResourcesCount;
 	return texture;
 }
 
