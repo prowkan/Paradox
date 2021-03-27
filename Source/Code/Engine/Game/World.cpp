@@ -154,43 +154,31 @@ void World::LoadWorld()
 		resourceManager.AddResource<MaterialResource>(MaterialResourceName, &materialResourceCreateInfo);
 	}
 
-	UINT ResourceCounter = 0;
+	HANDLE LevelFile = CreateFile((const wchar_t*)u"GameContent/WorldChunks/000.worldchunk", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+	LARGE_INTEGER LevelFileSize;
+	
+	UINT EntitiesCount;
+	BOOL Result = ReadFile(LevelFile, &EntitiesCount, sizeof(UINT), NULL, NULL);
 
-	for (int i = -50; i < 50; i++)
+	for (UINT i = 0; i < EntitiesCount; i++)
 	{
-		for (int j = -50; j < 50; j++)
-		{
-			char StaticMeshResourceName[255];
-			char MaterialResourceName[255];
+		char EntityClassName[128];
 
-			sprintf(StaticMeshResourceName, "Cube_%u", ResourceCounter);
-			sprintf(MaterialResourceName, "Standart_%u", ResourceCounter);
+		Result = ReadFile(LevelFile, EntityClassName, 128, NULL, NULL);
 
-			StaticMeshEntity *staticMeshEntity = SpawnEntity<StaticMeshEntity>();
-			staticMeshEntity->GetTransformComponent()->SetLocation(XMFLOAT3(i * 5.0f + 2.5f, -0.0f, j * 5.0f + 2.5f));
-			staticMeshEntity->GetStaticMeshComponent()->SetStaticMesh(resourceManager.GetResource<StaticMeshResource>(StaticMeshResourceName));
-			staticMeshEntity->GetStaticMeshComponent()->SetMaterial(resourceManager.GetResource<MaterialResource>(MaterialResourceName));
+		MetaClass *metaClass = Engine::GetEngine().GetGameFramework().GetMetaClassesTable()[EntityClassName];
 
-			ResourceCounter = (ResourceCounter + 1) % 4000;
+		void *entityPtr = Engine::GetEngine().GetMemoryManager().AllocateEntity(metaClass);
+		metaClass->ObjectConstructorFunc(entityPtr);
+		Entity *entity = (Entity*)entityPtr;
+		entity->SetMetaClass(metaClass);
+		entity->SetWorld(this);
+		entity->LoadFromFile(LevelFile);
 
-			sprintf(StaticMeshResourceName, "Cube_%d", ResourceCounter);
-			sprintf(MaterialResourceName, "Standart_%d", ResourceCounter);
-
-			staticMeshEntity = SpawnEntity<StaticMeshEntity>();
-			staticMeshEntity->GetTransformComponent()->SetLocation(XMFLOAT3(i * 10.0f + 5.0f, -2.0f, j * 10.0f + 5.0f));
-			staticMeshEntity->GetTransformComponent()->SetScale(XMFLOAT3(5.0f, 1.0f, 5.0f));
-			staticMeshEntity->GetStaticMeshComponent()->SetStaticMesh(resourceManager.GetResource<StaticMeshResource>(StaticMeshResourceName));
-			staticMeshEntity->GetStaticMeshComponent()->SetMaterial(resourceManager.GetResource<MaterialResource>(MaterialResourceName));
-
-			ResourceCounter = (ResourceCounter + 1) % 4000;
-
-			PointLightEntity *pointLightEntity = SpawnEntity<PointLightEntity>();
-			pointLightEntity->GetTransformComponent()->SetLocation(XMFLOAT3(i * 10.0f + 5.0f, 1.5f, j * 10.0f + 5.0f));
-			pointLightEntity->GetPointLightComponent()->SetBrightness(10.0f);
-			pointLightEntity->GetPointLightComponent()->SetRadius(5.0f);
-			pointLightEntity->GetPointLightComponent()->SetColor(XMFLOAT3((i + 51) / 100.0f, 0.1f, (j + 51) / 100.0f));
-		}
+		Entities.push_back(entity);
 	}
+
+	Result = CloseHandle(LevelFile);
 }
 
 void World::UnLoadWorld()

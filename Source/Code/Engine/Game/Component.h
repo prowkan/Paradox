@@ -29,6 +29,8 @@ class Component
 			return nullptr;
 		}
 
+		virtual void LoadFromFile(HANDLE File) {}
+
 	protected:
 
 		MetaClass *metaClass;

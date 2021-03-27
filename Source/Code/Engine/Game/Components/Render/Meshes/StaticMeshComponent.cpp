@@ -26,3 +26,20 @@ void StaticMeshComponent::RegisterComponent()
 void StaticMeshComponent::UnRegisterComponent()
 {
 }
+
+void StaticMeshComponent::LoadFromFile(HANDLE File)
+{
+	BOOL Result;
+	
+	char StaticMeshResourceName[128];
+	char MaterialResourceName[128];
+
+	Result = ReadFile(File, StaticMeshResourceName, 128, NULL, NULL);
+	Result = ReadFile(File, MaterialResourceName, 128, NULL, NULL);
+
+	StaticMesh = Engine::GetEngine().GetResourceManager().GetResource<StaticMeshResource>(StaticMeshResourceName);
+	Material = Engine::GetEngine().GetResourceManager().GetResource<MaterialResource>(MaterialResourceName);
+
+	transformComponent = Owner->GetComponent<TransformComponent>();
+	boundingBoxComponent = Owner->GetComponent<BoundingBoxComponent>();
+}

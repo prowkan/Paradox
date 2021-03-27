@@ -14,6 +14,8 @@ class GameFramework
 		Camera& GetCamera() { return camera; }
 		World& GetWorld() { return world; }
 
+		map<string, MetaClass*>& GetMetaClassesTable() { return MetaClassesTable; }
+
 	private:
 
 		Camera camera;
