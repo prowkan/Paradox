@@ -18,4 +18,6 @@ class GameFramework
 
 		Camera camera;
 		World world;
+
+		map<string, MetaClass*> MetaClassesTable;
 };
