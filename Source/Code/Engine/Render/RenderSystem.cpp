@@ -29,49 +29,6 @@
 #include <ResourceManager/Resources/Render/Materials/MaterialResource.h>
 #include <ResourceManager/Resources/Render/Textures/Texture2DResource.h>
 
-struct PointLight
-{
-	XMFLOAT3 Position;
-	float Radius;
-	XMFLOAT3 Color;
-	float Brightness;
-};
-
-struct GBufferOpaquePassConstantBuffer
-{
-	XMMATRIX WVPMatrix;
-	XMMATRIX WorldMatrix;
-	XMFLOAT3X4 VectorTransformMatrix;
-};
-
-struct ShadowMapPassConstantBuffer
-{
-	XMMATRIX WVPMatrix;
-};
-
-struct ShadowResolveConstantBuffer
-{
-	XMMATRIX ReProjMatrices[4];
-};
-
-struct DeferredLightingConstantBuffer
-{
-	XMMATRIX InvViewProjMatrix;
-	XMFLOAT3 CameraWorldPosition;
-};
-
-struct SkyConstantBuffer
-{
-	XMMATRIX WVPMatrix;
-};
-
-struct SunConstantBuffer
-{
-	XMMATRIX ViewMatrix;
-	XMMATRIX ProjMatrix;
-	XMFLOAT3 SunPosition;
-};
-
 void RenderSystem::InitSystem()
 {
 	clusterizationSubSystem.PreComputeClustersPlanes();
@@ -480,7 +437,7 @@ void RenderSystem::InitSystem()
 
 	for (RenderPass* renderPass : RenderPasses)
 	{
-		renderPass->Init();
+		renderPass->Init(*this);
 	}
 }
 
@@ -524,7 +481,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 {
 	for (RenderPass* renderPass : RenderPasses)
 	{
-		renderPass->Execute();
+		renderPass->Execute(*this);
 	}
 
 	GameFramework& gameFramework = Engine::GetEngine().GetGameFramework();
@@ -560,24 +517,6 @@ void RenderSystem::TickSystem(float DeltaTime)
 	vector<StaticMeshComponent*> VisbleStaticMeshComponents = cullingSubSystem.GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ViewProjMatrix, true);
 	size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.size();
 
-	vector<PointLightComponent*> AllPointLightComponents = renderScene.GetPointLightComponents();
-	vector<PointLightComponent*> VisblePointLightComponents = cullingSubSystem.GetVisiblePointLightsInFrustum(AllPointLightComponents, ViewProjMatrix);
-
-	clusterizationSubSystem.ClusterizeLights(VisblePointLightComponents, ViewMatrix);
-
-	vector<PointLight> PointLights;
-
-	for (PointLightComponent *pointLightComponent : VisblePointLightComponents)
-	{
-		PointLight pointLight;
-		pointLight.Brightness = pointLightComponent->GetBrightness();
-		pointLight.Color = pointLightComponent->GetColor();
-		pointLight.Position = pointLightComponent->GetTransformComponent()->GetLocation();
-		pointLight.Radius = pointLightComponent->GetRadius();
-
-		PointLights.push_back(pointLight);
-	}
-
 	if (FrameSyncFences[CurrentFrameIndex]->GetCompletedValue() != 1)
 	{
 		SAFE_DX(FrameSyncFences[CurrentFrameIndex]->SetEventOnCompletion(1, FrameSyncEvent));
@@ -604,14 +543,16 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	OPTICK_EVENT("Draw Calls")
 
-	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[0].Transition.pResource = BackBufferTextures[CurrentBackBufferIndex];
-	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PRESENT;
-	ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST;
-	ResourceBarriers[0].Transition.Subresource = 0;
-	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	D3D12_RESOURCE_BARRIER ResourceBarrier;
 
-	CommandList->ResourceBarrier(1, ResourceBarriers);
+	ResourceBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	ResourceBarrier.Transition.pResource = BackBufferTextures[CurrentBackBufferIndex];
+	ResourceBarrier.Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PRESENT;
+	ResourceBarrier.Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST;
+	ResourceBarrier.Transition.Subresource = 0;
+	ResourceBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+
+	CommandList->ResourceBarrier(1, &ResourceBarrier);
 
 	SAFE_DX(CommandList->Close());
 

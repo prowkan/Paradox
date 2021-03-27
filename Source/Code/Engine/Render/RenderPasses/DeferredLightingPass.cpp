@@ -3,7 +3,34 @@
 
 #include "DeferredLightingPass.h"
 
-void DeferredLightingPass::Init()
+#include "../ClusterizationSubSystem.h"
+
+#include <Engine/Engine.h>
+
+#include <Game/Components/Common/TransformComponent.h>
+#include <Game/Components/Common/BoundingBoxComponent.h>
+#include <Game/Components/Render/Meshes/StaticMeshComponent.h>
+#include <Game/Components/Render/Lights/PointLightComponent.h>
+
+#include <ResourceManager/Resources/Render/Meshes/StaticMeshResource.h>
+#include <ResourceManager/Resources/Render/Materials/MaterialResource.h>
+#include <ResourceManager/Resources/Render/Textures/Texture2DResource.h>
+
+struct PointLight
+{
+	XMFLOAT3 Position;
+	float Radius;
+	XMFLOAT3 Color;
+	float Brightness;
+};
+
+struct DeferredLightingConstantBuffer
+{
+	XMMATRIX InvViewProjMatrix;
+	XMFLOAT3 CameraWorldPosition;
+};
+
+void DeferredLightingPass::Init(RenderSystem& renderSystem)
 {
 	D3D12_RESOURCE_DESC ResourceDesc;
 	ZeroMemory(&ResourceDesc, sizeof(D3D12_RESOURCE_DESC));
@@ -233,7 +260,7 @@ void DeferredLightingPass::Init()
 
 	HANDLE DeferredLightingPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/DeferredLighting.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER DeferredLightingPixelShaderByteCodeLength;
-	Result = GetFileSizeEx(DeferredLightingPixelShaderFile, &DeferredLightingPixelShaderByteCodeLength);
+	BOOL Result = GetFileSizeEx(DeferredLightingPixelShaderFile, &DeferredLightingPixelShaderByteCodeLength);
 	ScopedMemoryBlockArray<BYTE> DeferredLightingPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(DeferredLightingPixelShaderByteCodeLength.QuadPart);
 	Result = ReadFile(DeferredLightingPixelShaderFile, DeferredLightingPixelShaderByteCodeData, (DWORD)DeferredLightingPixelShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(DeferredLightingPixelShaderFile);
@@ -262,8 +289,40 @@ void DeferredLightingPass::Init()
 	SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(DeferredLightingPipelineState)));
 }
 
-void DeferredLightingPass::Execute()
+void DeferredLightingPass::Execute(RenderSystem& renderSystem)
 {
+	GameFramework& gameFramework = Engine::GetEngine().GetGameFramework();
+
+	RenderScene& renderScene = gameFramework.GetWorld().GetRenderScene();
+
+	Camera& camera = gameFramework.GetCamera();
+
+	XMMATRIX ViewMatrix = camera.GetViewMatrix();
+	XMMATRIX ProjMatrix = camera.GetProjMatrix();
+	XMMATRIX ViewProjMatrix = camera.GetViewProjMatrix();
+
+	XMFLOAT3 CameraLocation = camera.GetCameraLocation();
+
+	vector<PointLightComponent*> AllPointLightComponents = renderScene.GetPointLightComponents();
+	vector<PointLightComponent*> VisblePointLightComponents = cullingSubSystem.GetVisiblePointLightsInFrustum(AllPointLightComponents, ViewProjMatrix);
+
+	clusterizationSubSystem.ClusterizeLights(VisblePointLightComponents, ViewMatrix);
+
+	vector<PointLight> PointLights;
+
+	for (PointLightComponent *pointLightComponent : VisblePointLightComponents)
+	{
+		PointLight pointLight;
+		pointLight.Brightness = pointLightComponent->GetBrightness();
+		pointLight.Color = pointLightComponent->GetColor();
+		pointLight.Position = pointLightComponent->GetTransformComponent()->GetLocation();
+		pointLight.Radius = pointLightComponent->GetRadius();
+
+		PointLights.push_back(pointLight);
+	}
+
+	D3D12_RESOURCE_BARRIER ResourceBarriers[4];
+
 	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarriers[0].Transition.pResource = GBufferTextures[0];
 	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
@@ -369,12 +428,12 @@ void DeferredLightingPass::Execute()
 	ResourceBarriers[7].Transition.Subresource = 0;
 	ResourceBarriers[7].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(8, ResourceBarriers);
+	renderSystem.GetCommandList()->ResourceBarrier(8, ResourceBarriers);
 
-	CommandList->CopyBufferRegion(GPUDeferredLightingConstantBuffer, 0, CPUDeferredLightingConstantBuffers[CurrentFrameIndex], 0, 256);
-	CommandList->CopyBufferRegion(GPULightClustersBuffer, 0, CPULightClustersBuffers[CurrentFrameIndex], 0, ClusterizationSubSystem::CLUSTERS_COUNT_X * ClusterizationSubSystem::CLUSTERS_COUNT_Y * ClusterizationSubSystem::CLUSTERS_COUNT_Z * sizeof(LightCluster));
-	CommandList->CopyBufferRegion(GPULightIndicesBuffer, 0, CPULightIndicesBuffers[CurrentFrameIndex], 0, clusterizationSubSystem.GetTotalIndexCount() * sizeof(uint16_t));
-	CommandList->CopyBufferRegion(GPUPointLightsBuffer, 0, CPUPointLightsBuffers[CurrentFrameIndex], 0, PointLights.size() * sizeof(PointLight));
+	renderSystem.GetCommandList()->CopyBufferRegion(GPUDeferredLightingConstantBuffer, 0, CPUDeferredLightingConstantBuffers[CurrentFrameIndex], 0, 256);
+	renderSystem.GetCommandList()->CopyBufferRegion(GPULightClustersBuffer, 0, CPULightClustersBuffers[CurrentFrameIndex], 0, ClusterizationSubSystem::CLUSTERS_COUNT_X * ClusterizationSubSystem::CLUSTERS_COUNT_Y * ClusterizationSubSystem::CLUSTERS_COUNT_Z * sizeof(LightCluster));
+	renderSystem.GetCommandList()->CopyBufferRegion(GPULightIndicesBuffer, 0, CPULightIndicesBuffers[CurrentFrameIndex], 0, clusterizationSubSystem.GetTotalIndexCount() * sizeof(uint16_t));
+	renderSystem.GetCommandList()->CopyBufferRegion(GPUPointLightsBuffer, 0, CPUPointLightsBuffers[CurrentFrameIndex], 0, PointLights.size() * sizeof(PointLight));
 
 	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarriers[0].Transition.pResource = GPUDeferredLightingConstantBuffer;
@@ -404,11 +463,11 @@ void DeferredLightingPass::Execute()
 	ResourceBarriers[3].Transition.Subresource = 0;
 	ResourceBarriers[3].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(4, ResourceBarriers);
+	renderSystem.GetCommandList()->ResourceBarrier(4, ResourceBarriers);
 
-	CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	renderSystem.GetCommandList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-	CommandList->OMSetRenderTargets(1, &HDRSceneColorTextureRTV, TRUE, nullptr);
+	renderSystem.GetCommandList()->OMSetRenderTargets(1, &HDRSceneColorTextureRTV, TRUE, nullptr);
 
 	D3D12_VIEWPORT Viewport;
 	Viewport.Height = float(ResolutionHeight);
@@ -418,7 +477,7 @@ void DeferredLightingPass::Execute()
 	Viewport.TopLeftY = 0.0f;
 	Viewport.Width = float(ResolutionWidth);
 
-	CommandList->RSSetViewports(1, &Viewport);
+	renderSystem.GetCommandList()->RSSetViewports(1, &Viewport);
 
 	D3D12_RECT ScissorRect;
 	ScissorRect.bottom = ResolutionHeight;
@@ -426,9 +485,9 @@ void DeferredLightingPass::Execute()
 	ScissorRect.right = ResolutionWidth;
 	ScissorRect.top = 0;
 
-	CommandList->RSSetScissorRects(1, &ScissorRect);
+	renderSystem.GetCommandList()->RSSetScissorRects(1, &ScissorRect);
 
-	CommandList->DiscardResource(HDRSceneColorTexture, nullptr);
+	renderSystem.GetCommandList()->DiscardResource(HDRSceneColorTexture, nullptr);
 
 	UINT DestRangeSize = 8;
 	UINT SourceRangeSizes[7] = { 1, 2, 1, 1, 1, 1, 1 };
@@ -438,12 +497,12 @@ void DeferredLightingPass::Execute()
 
 	ResourceCPUHandle.ptr += 8 * ResourceHandleSize;
 
-	CommandList->SetPipelineState(DeferredLightingPipelineState);
+	renderSystem.GetCommandList()->SetPipelineState(DeferredLightingPipelineState);
 
-	CommandList->SetGraphicsRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-	CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
 
 	ResourceGPUHandle.ptr += 8 * ResourceHandleSize;
 
-	CommandList->DrawInstanced(4, 1, 0, 0);
+	renderSystem.GetCommandList()->DrawInstanced(4, 1, 0, 0);
 }

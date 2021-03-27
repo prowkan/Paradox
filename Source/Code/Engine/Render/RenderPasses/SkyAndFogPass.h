@@ -2,14 +2,21 @@
 
 #include "../RenderPass.h"
 
+#include <Containers/COMRCPtr.h>
+
 class SkyAndFogPass : public RenderPass
 {
 	public:
 
-		virtual void Init() override;
-		virtual void Execute() override;
+		virtual void Init(RenderSystem& renderSystem) override;
+		virtual void Execute(RenderSystem& renderSystem) override;
 
 	private:
+
+		COMRCPtr<ID3D12Resource> DepthBufferTexture;
+		D3D12_CPU_DESCRIPTOR_HANDLE DepthBufferTextureSRV, DepthBufferTextureDSV;
+
+		D3D12_CPU_DESCRIPTOR_HANDLE HDRSceneColorTextureRTV;
 
 		COMRCPtr<ID3D12Resource> SkyVertexBuffer, SkyIndexBuffer;
 		D3D12_GPU_VIRTUAL_ADDRESS SkyVertexBufferAddress, SkyIndexBufferAddress;

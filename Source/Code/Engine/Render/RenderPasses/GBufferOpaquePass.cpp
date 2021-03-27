@@ -3,7 +3,27 @@
 
 #include "GBufferOpaquePass.h"
 
-void GBufferOpaquePass::Init()
+#include "../RenderSystem.h"
+
+#include <Engine/Engine.h>
+
+#include <Game/Components/Common/TransformComponent.h>
+#include <Game/Components/Common/BoundingBoxComponent.h>
+#include <Game/Components/Render/Meshes/StaticMeshComponent.h>
+#include <Game/Components/Render/Lights/PointLightComponent.h>
+
+#include <ResourceManager/Resources/Render/Meshes/StaticMeshResource.h>
+#include <ResourceManager/Resources/Render/Materials/MaterialResource.h>
+#include <ResourceManager/Resources/Render/Textures/Texture2DResource.h>
+
+struct GBufferOpaquePassConstantBuffer
+{
+	XMMATRIX WVPMatrix;
+	XMMATRIX WorldMatrix;
+	XMFLOAT3X4 VectorTransformMatrix;
+};
+
+void GBufferOpaquePass::Init(RenderSystem& renderSystem)
 {
 	D3D12_RESOURCE_DESC ResourceDesc;
 	ZeroMemory(&ResourceDesc, sizeof(D3D12_RESOURCE_DESC));
@@ -35,12 +55,12 @@ void GBufferOpaquePass::Init()
 	ResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 	ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 
-	SAFE_DX(Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(GBufferTextures[0])));
+	SAFE_DX(renderSystem.GetDevice()->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(GBufferTextures[0])));
 
 	ResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R10G10B10A2_UNORM;
 	ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_R10G10B10A2_UNORM;
 
-	SAFE_DX(Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(GBufferTextures[1])));
+	SAFE_DX(renderSystem.GetDevice()->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(GBufferTextures[1])));
 
 	D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
 	RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2DMS;
@@ -51,10 +71,10 @@ void GBufferOpaquePass::Init()
 	RTDescriptorsCount++;
 
 	RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-	Device->CreateRenderTargetView(GBufferTextures[0], &RTVDesc, GBufferTexturesRTVs[0]);
+	renderSystem.GetDevice()->CreateRenderTargetView(GBufferTextures[0], &RTVDesc, GBufferTexturesRTVs[0]);
 
 	RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R10G10B10A2_UNORM;
-	Device->CreateRenderTargetView(GBufferTextures[1], &RTVDesc, GBufferTexturesRTVs[1]);
+	renderSystem.GetDevice()->CreateRenderTargetView(GBufferTextures[1], &RTVDesc, GBufferTexturesRTVs[1]);
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
 	SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -66,10 +86,10 @@ void GBufferOpaquePass::Init()
 	CBSRUADescriptorsCount++;
 
 	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-	Device->CreateShaderResourceView(GBufferTextures[0], &SRVDesc, GBufferTexturesSRVs[0]);
+	renderSystem.GetDevice()->CreateShaderResourceView(GBufferTextures[0], &SRVDesc, GBufferTexturesSRVs[0]);
 
 	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R10G10B10A2_UNORM;
-	Device->CreateShaderResourceView(GBufferTextures[1], &SRVDesc, GBufferTexturesSRVs[1]);
+	renderSystem.GetDevice()->CreateShaderResourceView(GBufferTextures[1], &SRVDesc, GBufferTexturesSRVs[1]);
 
 	ZeroMemory(&ResourceDesc, sizeof(D3D12_RESOURCE_DESC));
 	ResourceDesc.Alignment = 0;
@@ -95,7 +115,7 @@ void GBufferOpaquePass::Init()
 	ClearValue.DepthStencil.Stencil = 0;
 	ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 
-	SAFE_DX(Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE, &ClearValue, UUIDOF(DepthBufferTexture)));
+	SAFE_DX(renderSystem.GetDevice()->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE, &ClearValue, UUIDOF(DepthBufferTexture)));
 
 	D3D12_DEPTH_STENCIL_VIEW_DESC DSVDesc;
 	DSVDesc.Flags = D3D12_DSV_FLAGS::D3D12_DSV_FLAG_NONE;
@@ -105,7 +125,7 @@ void GBufferOpaquePass::Init()
 	DepthBufferTextureDSV.ptr = DSDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + DSDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 	DSDescriptorsCount++;
 
-	Device->CreateDepthStencilView(DepthBufferTexture, &DSVDesc, DepthBufferTextureDSV);
+	renderSystem.GetDevice()->CreateDepthStencilView(DepthBufferTexture, &DSVDesc, DepthBufferTextureDSV);
 
 	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
 	SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -114,7 +134,7 @@ void GBufferOpaquePass::Init()
 	DepthBufferTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	CBSRUADescriptorsCount++;
 
-	Device->CreateShaderResourceView(DepthBufferTexture, &SRVDesc, DepthBufferTextureSRV);
+	renderSystem.GetDevice()->CreateShaderResourceView(DepthBufferTexture, &SRVDesc, DepthBufferTextureSRV);
 
 	ZeroMemory(&ResourceDesc, sizeof(D3D12_RESOURCE_DESC));
 	ResourceDesc.Alignment = 0;
@@ -136,7 +156,7 @@ void GBufferOpaquePass::Init()
 	HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT;
 	HeapProperties.VisibleNodeMask = 0;
 
-	SAFE_DX(Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUConstantBuffer)));
+	SAFE_DX(renderSystem.GetDevice()->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUConstantBuffer)));
 
 	ZeroMemory(&HeapProperties, sizeof(D3D12_HEAP_PROPERTIES));
 	HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
@@ -145,8 +165,8 @@ void GBufferOpaquePass::Init()
 	HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD;
 	HeapProperties.VisibleNodeMask = 0;
 
-	SAFE_DX(Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUConstantBuffers[0])));
-	SAFE_DX(Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUConstantBuffers[1])));
+	SAFE_DX(renderSystem.GetDevice()->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUConstantBuffers[0])));
+	SAFE_DX(renderSystem.GetDevice()->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUConstantBuffers[1])));
 
 	for (int i = 0; i < 20000; i++)
 	{
@@ -157,12 +177,26 @@ void GBufferOpaquePass::Init()
 		ConstantBufferCBVs[i].ptr = ConstantBufferDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + ConstantBufferDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		ConstantBufferDescriptorsCount++;
 
-		Device->CreateConstantBufferView(&CBVDesc, ConstantBufferCBVs[i]);
+		renderSystem.GetDevice()->CreateConstantBufferView(&CBVDesc, ConstantBufferCBVs[i]);
 	}
 }
 
-void GBufferOpaquePass::Execute()
+void GBufferOpaquePass::Execute(RenderSystem& renderSystem)
 {
+	GameFramework& gameFramework = Engine::GetEngine().GetGameFramework();
+
+	RenderScene& renderScene = gameFramework.GetWorld().GetRenderScene();
+
+	Camera& camera = gameFramework.GetCamera();
+
+	XMMATRIX ViewMatrix = camera.GetViewMatrix();
+	XMMATRIX ProjMatrix = camera.GetProjMatrix();
+	XMMATRIX ViewProjMatrix = camera.GetViewProjMatrix();
+
+	vector<StaticMeshComponent*> AllStaticMeshComponents = renderScene.GetStaticMeshComponents();
+	vector<StaticMeshComponent*> VisbleStaticMeshComponents = cullingSubSystem.GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ViewProjMatrix, true);
+	size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.size();
+
 	D3D12_RESOURCE_BARRIER ResourceBarriers[8];
 	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarriers[0].Transition.pResource = GBufferTextures[0];
@@ -236,9 +270,9 @@ void GBufferOpaquePass::Execute()
 	ResourceBarriers[2].Transition.Subresource = 0;
 	ResourceBarriers[2].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(3, ResourceBarriers);
+	renderSystem.GetCommandList()->ResourceBarrier(3, ResourceBarriers);
 
-	CommandList->CopyBufferRegion(GPUConstantBuffer, 0, CPUConstantBuffers[CurrentFrameIndex], 0, ConstantBufferOffset);
+	renderSystem.GetCommandList()->CopyBufferRegion(GPUConstantBuffer, 0, CPUConstantBuffers[CurrentFrameIndex], 0, ConstantBufferOffset);
 
 	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarriers[0].Transition.pResource = GPUConstantBuffer;
@@ -247,11 +281,11 @@ void GBufferOpaquePass::Execute()
 	ResourceBarriers[0].Transition.Subresource = 0;
 	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(1, ResourceBarriers);
+	renderSystem.GetCommandList()->ResourceBarrier(1, ResourceBarriers);
 
-	CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	renderSystem.GetCommandList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	CommandList->OMSetRenderTargets(2, GBufferTexturesRTVs, TRUE, &DepthBufferTextureDSV);
+	renderSystem.GetCommandList()->OMSetRenderTargets(2, GBufferTexturesRTVs, TRUE, &DepthBufferTextureDSV);
 
 	D3D12_VIEWPORT Viewport;
 	Viewport.Height = float(ResolutionHeight);
@@ -261,7 +295,7 @@ void GBufferOpaquePass::Execute()
 	Viewport.TopLeftY = 0.0f;
 	Viewport.Width = float(ResolutionWidth);
 
-	CommandList->RSSetViewports(1, &Viewport);
+	renderSystem.GetCommandList()->RSSetViewports(1, &Viewport);
 
 	D3D12_RECT ScissorRect;
 	ScissorRect.bottom = ResolutionHeight;
@@ -269,18 +303,18 @@ void GBufferOpaquePass::Execute()
 	ScissorRect.right = ResolutionWidth;
 	ScissorRect.top = 0;
 
-	CommandList->RSSetScissorRects(1, &ScissorRect);
+	renderSystem.GetCommandList()->RSSetScissorRects(1, &ScissorRect);
 
 	float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
-	CommandList->ClearRenderTargetView(GBufferTexturesRTVs[0], ClearColor, 0, nullptr);
-	CommandList->ClearRenderTargetView(GBufferTexturesRTVs[1], ClearColor, 0, nullptr);
-	CommandList->ClearDepthStencilView(DepthBufferTextureDSV, D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_STENCIL, 0.0f, 0, 0, nullptr);
+	renderSystem.GetCommandList()->ClearRenderTargetView(GBufferTexturesRTVs[0], ClearColor, 0, nullptr);
+	renderSystem.GetCommandList()->ClearRenderTargetView(GBufferTexturesRTVs[1], ClearColor, 0, nullptr);
+	renderSystem.GetCommandList()->ClearDepthStencilView(DepthBufferTextureDSV, D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_STENCIL, 0.0f, 0, 0, nullptr);
 
 	Device->CopyDescriptorsSimple(1, SamplerCPUHandle, TextureSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 	SamplerCPUHandle.ptr += SamplerHandleSize;
 
-	CommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
+	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
 	SamplerGPUHandle.ptr += SamplerHandleSize;
 
 	for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
@@ -311,16 +345,16 @@ void GBufferOpaquePass::Execute()
 		IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
 		IndexBufferView.SizeInBytes = sizeof(WORD) * 8 * 8 * 6 * 6;
 
-		CommandList->IASetVertexBuffers(0, 1, &VertexBufferView);
-		CommandList->IASetIndexBuffer(&IndexBufferView);
+		renderSystem.GetCommandList()->IASetVertexBuffers(0, 1, &VertexBufferView);
+		renderSystem.GetCommandList()->IASetIndexBuffer(&IndexBufferView);
 
-		CommandList->SetPipelineState(renderMaterial->GBufferOpaquePassPipelineState);
+		renderSystem.GetCommandList()->SetPipelineState(renderMaterial->GBufferOpaquePassPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+		renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
 
 		ResourceGPUHandle.ptr += 3 * ResourceHandleSize;
 
-		CommandList->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
+		renderSystem.GetCommandList()->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
 	}
 }

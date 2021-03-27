@@ -3,7 +3,9 @@
 
 #include "HDRSceneColorResolvePass.h"
 
-void HDRSceneColorResolvePass::Init()
+#include "../RenderSystem.h"
+
+void HDRSceneColorResolvePass::Init(RenderSystem& renderSystem)
 {
 	D3D12_RESOURCE_DESC ResourceDesc;
 	ZeroMemory(&ResourceDesc, sizeof(D3D12_RESOURCE_DESC));
@@ -51,8 +53,10 @@ void HDRSceneColorResolvePass::Init()
 	Device->CreateShaderResourceView(ResolvedHDRSceneColorTexture, &SRVDesc, ResolvedHDRSceneColorTextureSRV);
 }
 
-void HDRSceneColorResolvePass::Execute()
+void HDRSceneColorResolvePass::Execute(RenderSystem& renderSystem)
 {
+	D3D12_RESOURCE_BARRIER ResourceBarriers[2];
+
 	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarriers[0].Transition.pResource = HDRSceneColorTexture;
 	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
@@ -67,7 +71,7 @@ void HDRSceneColorResolvePass::Execute()
 	ResourceBarriers[1].Transition.Subresource = 0;
 	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(2, ResourceBarriers);
+	renderSystem.GetCommandList()->ResourceBarrier(2, ResourceBarriers);
 
-	CommandList->ResolveSubresource(ResolvedHDRSceneColorTexture, 0, HDRSceneColorTexture, 0, DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT);
+	renderSystem.GetCommandList()->ResolveSubresource(ResolvedHDRSceneColorTexture, 0, HDRSceneColorTexture, 0, DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT);
 }

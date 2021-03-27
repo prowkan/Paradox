@@ -154,6 +154,14 @@ class RenderSystem
 
 		CullingSubSystem& GetCullingSubSystem() { return cullingSubSystem; }
 
+		ID3D12Device* GetDevice() { return Device; }
+		ID3D12GraphicsCommandList* GetCommandList() { return CommandList; }
+
+		int GetResolutionWidth() { return ResolutionWidth; }
+		int GetResolutionHeight() { return ResolutionHeight; }
+
+		ID3D12Resource* GetCurrentBackBufferTexture() { return BackBufferTextures[CurrentFrameIndex]; }
+
 	private:
 
 		COMRCPtr<ID3D12Device> Device;

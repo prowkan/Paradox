@@ -3,7 +3,16 @@
 
 #include "ShadowResolvePass.h"
 
-void ShadowResolvePass::Init()
+#include <Engine/Engine.h>
+
+#include "../RenderSystem.h"
+
+struct ShadowResolveConstantBuffer
+{
+	XMMATRIX ReProjMatrices[4];
+};
+
+void ShadowResolvePass::Init(RenderSystem& renderSystem)
 {
 	D3D12_RESOURCE_DESC ResourceDesc;
 	ZeroMemory(&ResourceDesc, sizeof(D3D12_RESOURCE_DESC));
@@ -12,12 +21,12 @@ void ShadowResolvePass::Init()
 	ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	ResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 	ResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8_UNORM;
-	ResourceDesc.Height = ResolutionHeight;
+	ResourceDesc.Height = renderSystem.GetResolutionHeight();
 	ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	ResourceDesc.MipLevels = 1;
 	ResourceDesc.SampleDesc.Count = 1;
 	ResourceDesc.SampleDesc.Quality = 0;
-	ResourceDesc.Width = ResolutionWidth;
+	ResourceDesc.Width = renderSystem.GetResolutionWidth();
 
 	D3D12_HEAP_PROPERTIES HeapProperties;
 	ZeroMemory(&HeapProperties, sizeof(D3D12_HEAP_PROPERTIES));
@@ -104,7 +113,7 @@ void ShadowResolvePass::Init()
 
 	HANDLE ShadowResolvePixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/ShadowResolve.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER ShadowResolvePixelShaderByteCodeLength;
-	Result = GetFileSizeEx(ShadowResolvePixelShaderFile, &ShadowResolvePixelShaderByteCodeLength);
+	BOOL Result = GetFileSizeEx(ShadowResolvePixelShaderFile, &ShadowResolvePixelShaderByteCodeLength);
 	ScopedMemoryBlockArray<BYTE> ShadowResolvePixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(ShadowResolvePixelShaderByteCodeLength.QuadPart);
 	Result = ReadFile(ShadowResolvePixelShaderFile, ShadowResolvePixelShaderByteCodeData, (DWORD)ShadowResolvePixelShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(ShadowResolvePixelShaderFile);
@@ -133,8 +142,10 @@ void ShadowResolvePass::Init()
 	SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(ShadowResolvePipelineState)));
 }
 
-void ShadowResolvePass::Execute()
+void ShadowResolvePass::Execute(RenderSystem& renderSystem)
 {
+	D3D12_RESOURCE_BARRIER ResourceBarriers[6];
+
 	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarriers[0].Transition.pResource = ShadowMaskTexture;
 	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
@@ -170,6 +181,33 @@ void ShadowResolvePass::Execute()
 	ResourceBarriers[4].Transition.Subresource = 0;
 	ResourceBarriers[4].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
+	GameFramework& gameFramework = Engine::GetEngine().GetGameFramework();
+
+	Camera& camera = gameFramework.GetCamera();
+
+	XMFLOAT3 CameraLocation = camera.GetCameraLocation();
+
+	XMMATRIX ShadowViewMatrices[4], ShadowProjMatrices[4], ShadowViewProjMatrices[4];
+
+	ShadowViewMatrices[0] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 10.0f, CameraLocation.y + 10.0f, CameraLocation.z - 10.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
+	ShadowViewMatrices[1] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 20.0f, CameraLocation.y + 20.0f, CameraLocation.z - 20.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
+	ShadowViewMatrices[2] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 50.0f, CameraLocation.y + 50.0f, CameraLocation.z - 50.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
+	ShadowViewMatrices[3] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 100.0f, CameraLocation.y + 100.0f, CameraLocation.z - 100.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
+
+	ShadowProjMatrices[0] = XMMatrixOrthographicLH(10.0f, 10.0f, 0.01f, 500.0f);
+	ShadowProjMatrices[1] = XMMatrixOrthographicLH(20.0f, 20.0f, 0.01f, 500.0f);
+	ShadowProjMatrices[2] = XMMatrixOrthographicLH(50.0f, 50.0f, 0.01f, 500.0f);
+	ShadowProjMatrices[3] = XMMatrixOrthographicLH(100.0f, 100.0f, 0.01f, 500.0f);
+
+	ShadowViewProjMatrices[0] = ShadowViewMatrices[0] * ShadowProjMatrices[0];
+	ShadowViewProjMatrices[1] = ShadowViewMatrices[1] * ShadowProjMatrices[1];
+	ShadowViewProjMatrices[2] = ShadowViewMatrices[2] * ShadowProjMatrices[2];
+	ShadowViewProjMatrices[3] = ShadowViewMatrices[3] * ShadowProjMatrices[3];
+
+	XMMATRIX ViewMatrix = camera.GetViewMatrix();
+	XMMATRIX ProjMatrix = camera.GetProjMatrix();
+	XMMATRIX ViewProjMatrix = camera.GetViewProjMatrix();
+
 	XMMATRIX ReProjMatrices[4];
 	ReProjMatrices[0] = XMMatrixInverse(nullptr, ViewProjMatrix) * ShadowViewProjMatrices[0];
 	ReProjMatrices[1] = XMMatrixInverse(nullptr, ViewProjMatrix) * ShadowViewProjMatrices[1];
@@ -203,9 +241,9 @@ void ShadowResolvePass::Execute()
 	ResourceBarriers[5].Transition.Subresource = 0;
 	ResourceBarriers[5].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(6, ResourceBarriers);
+	renderSystem.GetCommandList()->ResourceBarrier(6, ResourceBarriers);
 
-	CommandList->CopyBufferRegion(GPUShadowResolveConstantBuffer, 0, CPUShadowResolveConstantBuffers[CurrentFrameIndex], 0, 256);
+	renderSystem.GetCommandList()->CopyBufferRegion(GPUShadowResolveConstantBuffer, 0, CPUShadowResolveConstantBuffers[CurrentFrameIndex], 0, 256);
 
 	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarriers[0].Transition.pResource = GPUShadowResolveConstantBuffer;
@@ -214,36 +252,36 @@ void ShadowResolvePass::Execute()
 	ResourceBarriers[0].Transition.Subresource = 0;
 	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(1, ResourceBarriers);
+	renderSystem.GetCommandList()->ResourceBarrier(1, ResourceBarriers);
 
-	CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	renderSystem.GetCommandList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-	CommandList->OMSetRenderTargets(1, &ShadowMaskTextureRTV, TRUE, nullptr);
+	renderSystem.GetCommandList()->OMSetRenderTargets(1, &ShadowMaskTextureRTV, TRUE, nullptr);
 
 	D3D12_VIEWPORT Viewport;
-	Viewport.Height = float(ResolutionHeight);
+	Viewport.Height = float(renderSystem.GetResolutionHeight());
 	Viewport.MaxDepth = 1.0f;
 	Viewport.MinDepth = 0.0f;
 	Viewport.TopLeftX = 0.0f;
 	Viewport.TopLeftY = 0.0f;
-	Viewport.Width = float(ResolutionWidth);
+	Viewport.Width = float(renderSystem.GetResolutionWidth());
 
-	CommandList->RSSetViewports(1, &Viewport);
+	renderSystem.GetCommandList()->RSSetViewports(1, &Viewport);
 
 	D3D12_RECT ScissorRect;
-	ScissorRect.bottom = ResolutionHeight;
+	ScissorRect.bottom = renderSystem.GetResolutionHeight();
 	ScissorRect.left = 0;
-	ScissorRect.right = ResolutionWidth;
+	ScissorRect.right = renderSystem.GetResolutionWidth();
 	ScissorRect.top = 0;
 
-	CommandList->RSSetScissorRects(1, &ScissorRect);
+	renderSystem.GetCommandList()->RSSetScissorRects(1, &ScissorRect);
 
-	CommandList->DiscardResource(ShadowMaskTexture, nullptr);
+	renderSystem.GetCommandList()->DiscardResource(ShadowMaskTexture, nullptr);
 
 	Device->CopyDescriptorsSimple(1, SamplerCPUHandle, ShadowMapSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 	SamplerCPUHandle.ptr += SamplerHandleSize;
 
-	CommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
+	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
 	SamplerGPUHandle.ptr += SamplerHandleSize;
 
 	UINT DestRangeSize = 6;
@@ -254,12 +292,12 @@ void ShadowResolvePass::Execute()
 
 	ResourceCPUHandle.ptr += 6 * ResourceHandleSize;
 
-	CommandList->SetPipelineState(ShadowResolvePipelineState);
+	renderSystem.GetCommandList()->SetPipelineState(ShadowResolvePipelineState);
 
-	CommandList->SetGraphicsRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-	CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
 
 	ResourceGPUHandle.ptr += 6 * ResourceHandleSize;
 
-	CommandList->DrawInstanced(4, 1, 0, 0);
+	renderSystem.GetCommandList()->DrawInstanced(4, 1, 0, 0);
 }

@@ -3,7 +3,9 @@
 
 #include "PostProcessBloomPass.h"
 
-void PostProcessBloomPass::Init()
+#include <Engine/Engine.h>
+
+void PostProcessBloomPass::Init(RenderSystem& renderSystem)
 {
 	D3D12_RESOURCE_DESC ResourceDesc;
 	ZeroMemory(&ResourceDesc, sizeof(D3D12_RESOURCE_DESC));
@@ -89,7 +91,7 @@ void PostProcessBloomPass::Init()
 
 	HANDLE BrightPassPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/BrightPass.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER BrightPassPixelShaderByteCodeLength;
-	Result = GetFileSizeEx(BrightPassPixelShaderFile, &BrightPassPixelShaderByteCodeLength);
+	BOOL Result = GetFileSizeEx(BrightPassPixelShaderFile, &BrightPassPixelShaderByteCodeLength);
 	ScopedMemoryBlockArray<BYTE> BrightPassPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(BrightPassPixelShaderByteCodeLength.QuadPart);
 	Result = ReadFile(BrightPassPixelShaderFile, BrightPassPixelShaderByteCodeData, (DWORD)BrightPassPixelShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(BrightPassPixelShaderFile);
@@ -234,8 +236,10 @@ void PostProcessBloomPass::Init()
 	SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(VerticalBlurPipelineState)));
 }
 
-void PostProcessBloomPass::Execute()
+void PostProcessBloomPass::Execute(RenderSystem& renderSystem)
 {
+	D3D12_RESOURCE_BARRIER ResourceBarriers[2];
+
 	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarriers[0].Transition.pResource = BloomTextures[0][0];
 	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
@@ -243,11 +247,11 @@ void PostProcessBloomPass::Execute()
 	ResourceBarriers[0].Transition.Subresource = 0;
 	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(1, ResourceBarriers);
+	renderSystem.GetCommandList()->ResourceBarrier(1, ResourceBarriers);
 
-	CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	renderSystem.GetCommandList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-	CommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[0][0], TRUE, nullptr);
+	renderSystem.GetCommandList()->OMSetRenderTargets(1, &BloomTexturesRTVs[0][0], TRUE, nullptr);
 
 	D3D12_VIEWPORT Viewport;
 	Viewport.Height = FLOAT(ResolutionHeight);
@@ -257,7 +261,7 @@ void PostProcessBloomPass::Execute()
 	Viewport.TopLeftY = 0.0f;
 	Viewport.Width = FLOAT(ResolutionWidth);
 
-	CommandList->RSSetViewports(1, &Viewport);
+	renderSystem.GetCommandList()->RSSetViewports(1, &Viewport);
 
 	D3D12_RECT ScissorRect;
 	ScissorRect.bottom = ResolutionHeight;
@@ -265,15 +269,15 @@ void PostProcessBloomPass::Execute()
 	ScissorRect.right = ResolutionWidth;
 	ScissorRect.top = 0;
 
-	CommandList->RSSetScissorRects(1, &ScissorRect);
+	renderSystem.GetCommandList()->RSSetScissorRects(1, &ScissorRect);
 
 	Device->CopyDescriptorsSimple(1, SamplerCPUHandle, BiLinearSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 	SamplerCPUHandle.ptr += SamplerHandleSize;
 
-	CommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
+	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
 	SamplerGPUHandle.ptr += SamplerHandleSize;
 
-	CommandList->DiscardResource(BloomTextures[0][0], nullptr);
+	renderSystem.GetCommandList()->DiscardResource(BloomTextures[0][0], nullptr);
 
 	UINT DestRangeSize = 2;
 	UINT SourceRangeSizes[2] = { 1, 1 };
@@ -283,13 +287,13 @@ void PostProcessBloomPass::Execute()
 
 	ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
 
-	CommandList->SetPipelineState(BrightPassPipelineState);
+	renderSystem.GetCommandList()->SetPipelineState(BrightPassPipelineState);
 
-	CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 	ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
-	CommandList->DrawInstanced(4, 1, 0, 0);
+	renderSystem.GetCommandList()->DrawInstanced(4, 1, 0, 0);
 
 	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarriers[0].Transition.pResource = BloomTextures[0][0];
@@ -305,11 +309,11 @@ void PostProcessBloomPass::Execute()
 	ResourceBarriers[1].Transition.Subresource = 0;
 	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(2, ResourceBarriers);
+	renderSystem.GetCommandList()->ResourceBarrier(2, ResourceBarriers);
 
-	CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	renderSystem.GetCommandList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-	CommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[1][0], TRUE, nullptr);
+	renderSystem.GetCommandList()->OMSetRenderTargets(1, &BloomTexturesRTVs[1][0], TRUE, nullptr);
 
 	Viewport.Height = FLOAT(ResolutionHeight);
 	Viewport.MaxDepth = 1.0f;
@@ -318,16 +322,16 @@ void PostProcessBloomPass::Execute()
 	Viewport.TopLeftY = 0.0f;
 	Viewport.Width = FLOAT(ResolutionWidth);
 
-	CommandList->RSSetViewports(1, &Viewport);
+	renderSystem.GetCommandList()->RSSetViewports(1, &Viewport);
 
 	ScissorRect.bottom = ResolutionHeight;
 	ScissorRect.left = 0;
 	ScissorRect.right = ResolutionWidth;
 	ScissorRect.top = 0;
 
-	CommandList->RSSetScissorRects(1, &ScissorRect);
+	renderSystem.GetCommandList()->RSSetScissorRects(1, &ScissorRect);
 
-	CommandList->DiscardResource(BloomTextures[1][0], nullptr);
+	renderSystem.GetCommandList()->DiscardResource(BloomTextures[1][0], nullptr);
 
 	DestRangeSize = 1;
 	SourceRangeSizes[0] = 1;
@@ -337,13 +341,13 @@ void PostProcessBloomPass::Execute()
 
 	ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
-	CommandList->SetPipelineState(HorizontalBlurPipelineState);
+	renderSystem.GetCommandList()->SetPipelineState(HorizontalBlurPipelineState);
 
-	CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 	ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-	CommandList->DrawInstanced(4, 1, 0, 0);
+	renderSystem.GetCommandList()->DrawInstanced(4, 1, 0, 0);
 
 	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarriers[0].Transition.pResource = BloomTextures[1][0];
@@ -359,11 +363,11 @@ void PostProcessBloomPass::Execute()
 	ResourceBarriers[1].Transition.Subresource = 0;
 	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(2, ResourceBarriers);
+	renderSystem.GetCommandList()->ResourceBarrier(2, ResourceBarriers);
 
-	CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	renderSystem.GetCommandList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-	CommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[2][0], TRUE, nullptr);
+	renderSystem.GetCommandList()->OMSetRenderTargets(1, &BloomTexturesRTVs[2][0], TRUE, nullptr);
 
 	Viewport.Height = FLOAT(ResolutionHeight);
 	Viewport.MaxDepth = 1.0f;
@@ -372,16 +376,16 @@ void PostProcessBloomPass::Execute()
 	Viewport.TopLeftY = 0.0f;
 	Viewport.Width = FLOAT(ResolutionWidth);
 
-	CommandList->RSSetViewports(1, &Viewport);
+	renderSystem.GetCommandList()->RSSetViewports(1, &Viewport);
 
 	ScissorRect.bottom = ResolutionHeight;
 	ScissorRect.left = 0;
 	ScissorRect.right = ResolutionWidth;
 	ScissorRect.top = 0;
 
-	CommandList->RSSetScissorRects(1, &ScissorRect);
+	renderSystem.GetCommandList()->RSSetScissorRects(1, &ScissorRect);
 
-	CommandList->DiscardResource(BloomTextures[2][0], nullptr);
+	renderSystem.GetCommandList()->DiscardResource(BloomTextures[2][0], nullptr);
 
 	DestRangeSize = 1;
 	SourceRangeSizes[0] = 1;
@@ -391,13 +395,13 @@ void PostProcessBloomPass::Execute()
 
 	ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
-	CommandList->SetPipelineState(VerticalBlurPipelineState);
+	renderSystem.GetCommandList()->SetPipelineState(VerticalBlurPipelineState);
 
-	CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 	ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-	CommandList->DrawInstanced(4, 1, 0, 0);
+	renderSystem.GetCommandList()->DrawInstanced(4, 1, 0, 0);
 
 	for (int i = 1; i < 7; i++)
 	{
@@ -408,11 +412,11 @@ void PostProcessBloomPass::Execute()
 		ResourceBarriers[0].Transition.Subresource = 0;
 		ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(1, ResourceBarriers);
+		renderSystem.GetCommandList()->ResourceBarrier(1, ResourceBarriers);
 
-		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		renderSystem.GetCommandList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-		CommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[0][i], TRUE, nullptr);
+		renderSystem.GetCommandList()->OMSetRenderTargets(1, &BloomTexturesRTVs[0][i], TRUE, nullptr);
 
 		Viewport.Height = FLOAT(ResolutionHeight >> i);
 		Viewport.MaxDepth = 1.0f;
@@ -421,16 +425,16 @@ void PostProcessBloomPass::Execute()
 		Viewport.TopLeftY = 0.0f;
 		Viewport.Width = FLOAT(ResolutionWidth >> i);
 
-		CommandList->RSSetViewports(1, &Viewport);
+		renderSystem.GetCommandList()->RSSetViewports(1, &Viewport);
 
 		ScissorRect.bottom = ResolutionHeight >> i;
 		ScissorRect.left = 0;
 		ScissorRect.right = ResolutionWidth >> i;
 		ScissorRect.top = 0;
 
-		CommandList->RSSetScissorRects(1, &ScissorRect);
+		renderSystem.GetCommandList()->RSSetScissorRects(1, &ScissorRect);
 
-		CommandList->DiscardResource(BloomTextures[0][i], nullptr);
+		renderSystem.GetCommandList()->DiscardResource(BloomTextures[0][i], nullptr);
 
 		DestRangeSize = 1;
 		SourceRangeSizes[0] = 1;
@@ -440,13 +444,13 @@ void PostProcessBloomPass::Execute()
 
 		ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->SetPipelineState(DownSamplePipelineState);
+		renderSystem.GetCommandList()->SetPipelineState(DownSamplePipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 		ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->DrawInstanced(4, 1, 0, 0);
+		renderSystem.GetCommandList()->DrawInstanced(4, 1, 0, 0);
 
 		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		ResourceBarriers[0].Transition.pResource = BloomTextures[0][i];
@@ -462,11 +466,11 @@ void PostProcessBloomPass::Execute()
 		ResourceBarriers[1].Transition.Subresource = 0;
 		ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(2, ResourceBarriers);
+		renderSystem.GetCommandList()->ResourceBarrier(2, ResourceBarriers);
 
-		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		renderSystem.GetCommandList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-		CommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[1][i], TRUE, nullptr);
+		renderSystem.GetCommandList()->OMSetRenderTargets(1, &BloomTexturesRTVs[1][i], TRUE, nullptr);
 
 		Viewport.Height = FLOAT(ResolutionHeight >> i);
 		Viewport.MaxDepth = 1.0f;
@@ -475,16 +479,16 @@ void PostProcessBloomPass::Execute()
 		Viewport.TopLeftY = 0.0f;
 		Viewport.Width = FLOAT(ResolutionWidth >> i);
 
-		CommandList->RSSetViewports(1, &Viewport);
+		renderSystem.GetCommandList()->RSSetViewports(1, &Viewport);
 
 		ScissorRect.bottom = ResolutionHeight >> i;
 		ScissorRect.left = 0;
 		ScissorRect.right = ResolutionWidth >> i;
 		ScissorRect.top = 0;
 
-		CommandList->RSSetScissorRects(1, &ScissorRect);
+		renderSystem.GetCommandList()->RSSetScissorRects(1, &ScissorRect);
 
-		CommandList->DiscardResource(BloomTextures[1][i], nullptr);
+		renderSystem.GetCommandList()->DiscardResource(BloomTextures[1][i], nullptr);
 
 		DestRangeSize = 1;
 		SourceRangeSizes[0] = 1;
@@ -494,13 +498,13 @@ void PostProcessBloomPass::Execute()
 
 		ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->SetPipelineState(HorizontalBlurPipelineState);
+		renderSystem.GetCommandList()->SetPipelineState(HorizontalBlurPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 		ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->DrawInstanced(4, 1, 0, 0);
+		renderSystem.GetCommandList()->DrawInstanced(4, 1, 0, 0);
 
 		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		ResourceBarriers[0].Transition.pResource = BloomTextures[1][i];
@@ -516,11 +520,11 @@ void PostProcessBloomPass::Execute()
 		ResourceBarriers[1].Transition.Subresource = 0;
 		ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(2, ResourceBarriers);
+		renderSystem.GetCommandList()->ResourceBarrier(2, ResourceBarriers);
 
-		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		renderSystem.GetCommandList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-		CommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[2][i], TRUE, nullptr);
+		renderSystem.GetCommandList()->OMSetRenderTargets(1, &BloomTexturesRTVs[2][i], TRUE, nullptr);
 
 		Viewport.Height = FLOAT(ResolutionHeight >> i);
 		Viewport.MaxDepth = 1.0f;
@@ -529,16 +533,16 @@ void PostProcessBloomPass::Execute()
 		Viewport.TopLeftY = 0.0f;
 		Viewport.Width = FLOAT(ResolutionWidth >> i);
 
-		CommandList->RSSetViewports(1, &Viewport);
+		renderSystem.GetCommandList()->RSSetViewports(1, &Viewport);
 
 		ScissorRect.bottom = ResolutionHeight >> i;
 		ScissorRect.left = 0;
 		ScissorRect.right = ResolutionWidth >> i;
 		ScissorRect.top = 0;
 
-		CommandList->RSSetScissorRects(1, &ScissorRect);
+		renderSystem.GetCommandList()->RSSetScissorRects(1, &ScissorRect);
 
-		CommandList->DiscardResource(BloomTextures[2][i], nullptr);
+		renderSystem.GetCommandList()->DiscardResource(BloomTextures[2][i], nullptr);
 
 		DestRangeSize = 1;
 		SourceRangeSizes[0] = 1;
@@ -548,13 +552,13 @@ void PostProcessBloomPass::Execute()
 
 		ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->SetPipelineState(VerticalBlurPipelineState);
+		renderSystem.GetCommandList()->SetPipelineState(VerticalBlurPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 		ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->DrawInstanced(4, 1, 0, 0);
+		renderSystem.GetCommandList()->DrawInstanced(4, 1, 0, 0);
 	}
 
 	for (int i = 5; i >= 0; i--)
@@ -566,11 +570,11 @@ void PostProcessBloomPass::Execute()
 		ResourceBarriers[0].Transition.Subresource = 0;
 		ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(1, ResourceBarriers);
+		renderSystem.GetCommandList()->ResourceBarrier(1, ResourceBarriers);
 
-		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		renderSystem.GetCommandList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-		CommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[2][i], TRUE, nullptr);
+		renderSystem.GetCommandList()->OMSetRenderTargets(1, &BloomTexturesRTVs[2][i], TRUE, nullptr);
 
 		Viewport.Height = FLOAT(ResolutionHeight >> i);
 		Viewport.MaxDepth = 1.0f;
@@ -579,14 +583,14 @@ void PostProcessBloomPass::Execute()
 		Viewport.TopLeftY = 0.0f;
 		Viewport.Width = FLOAT(ResolutionWidth >> i);
 
-		CommandList->RSSetViewports(1, &Viewport);
+		renderSystem.GetCommandList()->RSSetViewports(1, &Viewport);
 
 		ScissorRect.bottom = ResolutionHeight >> i;
 		ScissorRect.left = 0;
 		ScissorRect.right = ResolutionWidth >> i;
 		ScissorRect.top = 0;
 
-		CommandList->RSSetScissorRects(1, &ScissorRect);
+		renderSystem.GetCommandList()->RSSetScissorRects(1, &ScissorRect);
 
 		DestRangeSize = 1;
 		SourceRangeSizes[0] = 1;
@@ -596,12 +600,12 @@ void PostProcessBloomPass::Execute()
 
 		ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->SetPipelineState(UpSampleWithAddBlendPipelineState);
+		renderSystem.GetCommandList()->SetPipelineState(UpSampleWithAddBlendPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 		ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->DrawInstanced(4, 1, 0, 0);
+		renderSystem.GetCommandList()->DrawInstanced(4, 1, 0, 0);
 	}
 }

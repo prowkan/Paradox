@@ -3,7 +3,9 @@
 
 #include "MSAADepthBufferResolvePass.h"
 
-void MSAADepthBufferResolvePass::Init()
+#include "../RenderSystem.h"
+
+void MSAADepthBufferResolvePass::Init(RenderSystem& renderSystem)
 {
 	D3D12_RESOURCE_DESC ResourceDesc;
 	ZeroMemory(&ResourceDesc, sizeof(D3D12_RESOURCE_DESC));
@@ -43,14 +45,16 @@ void MSAADepthBufferResolvePass::Init()
 	SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 	SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
-	ResolvedDepthBufferTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	ResolvedDepthBufferTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * renderSystem.GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	CBSRUADescriptorsCount++;
 
-	Device->CreateShaderResourceView(ResolvedDepthBufferTexture, &SRVDesc, ResolvedDepthBufferTextureSRV);
+	renderSystem.GetDevice()->CreateShaderResourceView(ResolvedDepthBufferTexture, &SRVDesc, ResolvedDepthBufferTextureSRV);
 }
 
-void MSAADepthBufferResolvePass::Execute()
+void MSAADepthBufferResolvePass::Execute(RenderSystem& renderSystem)
 {
+	D3D12_RESOURCE_BARRIER ResourceBarriers[2];
+
 	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarriers[0].Transition.pResource = DepthBufferTexture;
 	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
@@ -65,11 +69,11 @@ void MSAADepthBufferResolvePass::Execute()
 	ResourceBarriers[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(2, ResourceBarriers);
+	renderSystem.GetCommandList()->ResourceBarrier(2, ResourceBarriers);
 
 	COMRCPtr<ID3D12GraphicsCommandList1> CommandList1;
 
-	CommandList->QueryInterface<ID3D12GraphicsCommandList1>(&CommandList1);
+	renderSystem.GetCommandList()->QueryInterface<ID3D12GraphicsCommandList1>(&CommandList1);
 	
 	CommandList1->ResolveSubresourceRegion(ResolvedDepthBufferTexture, 0, 0, 0, DepthBufferTexture, 0, nullptr, DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT_S8X24_UINT, D3D12_RESOLVE_MODE::D3D12_RESOLVE_MODE_MAX);
 }

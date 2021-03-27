@@ -3,7 +3,23 @@
 
 #include "SkyAndFogPass.h"
 
-void SkyAndFogPass::Init()
+#include "../RenderSystem.h"
+
+#include <Engine/Engine.h>
+
+struct SkyConstantBuffer
+{
+	XMMATRIX WVPMatrix;
+};
+
+struct SunConstantBuffer
+{
+	XMMATRIX ViewMatrix;
+	XMMATRIX ProjMatrix;
+	XMFLOAT3 SunPosition;
+};
+
+void SkyAndFogPass::Init(RenderSystem& renderSystem)
 {
 	UINT SkyMeshVertexCount = 1 + 25 * 100 + 1;
 	UINT SkyMeshIndexCount = 300 + 24 * 600 + 300;
@@ -776,8 +792,18 @@ void SkyAndFogPass::Init()
 	SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(FogPipelineState)));
 }
 
-void SkyAndFogPass::Execute()
+void SkyAndFogPass::Execute(RenderSystem& renderSystem)
 {
+	GameFramework& gameFramework = Engine::GetEngine().GetGameFramework();
+
+	Camera& camera = gameFramework.GetCamera();
+
+	XMFLOAT3 CameraLocation = camera.GetCameraLocation();
+
+	XMMATRIX ViewMatrix = camera.GetViewMatrix();
+	XMMATRIX ProjMatrix = camera.GetProjMatrix();
+	XMMATRIX ViewProjMatrix = camera.GetViewProjMatrix();
+
 	XMMATRIX SkyWorldMatrix = XMMatrixScaling(900.0f, 900.0f, 900.0f) * XMMatrixTranslation(CameraLocation.x, CameraLocation.y, CameraLocation.z);
 	XMMATRIX SkyWVPMatrix = SkyWorldMatrix * ViewProjMatrix;
 
@@ -813,6 +839,8 @@ void SkyAndFogPass::Execute()
 
 	CPUSunConstantBuffers[CurrentFrameIndex]->Unmap(0, &WrittenRange);
 
+	D3D12_RESOURCE_BARRIER ResourceBarriers[2];
+
 	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarriers[0].Transition.pResource = GPUSkyConstantBuffer;
 	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
@@ -827,10 +855,10 @@ void SkyAndFogPass::Execute()
 	ResourceBarriers[1].Transition.Subresource = 0;
 	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(2, ResourceBarriers);
+	renderSystem.GetCommandList()->ResourceBarrier(2, ResourceBarriers);
 
-	CommandList->CopyBufferRegion(GPUSkyConstantBuffer, 0, CPUSkyConstantBuffers[CurrentFrameIndex], 0, 256);
-	CommandList->CopyBufferRegion(GPUSunConstantBuffer, 0, CPUSunConstantBuffers[CurrentFrameIndex], 0, 256);
+	renderSystem.GetCommandList()->CopyBufferRegion(GPUSkyConstantBuffer, 0, CPUSkyConstantBuffers[CurrentFrameIndex], 0, 256);
+	renderSystem.GetCommandList()->CopyBufferRegion(GPUSunConstantBuffer, 0, CPUSunConstantBuffers[CurrentFrameIndex], 0, 256);
 
 	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarriers[0].Transition.pResource = GPUSkyConstantBuffer;
@@ -846,29 +874,29 @@ void SkyAndFogPass::Execute()
 	ResourceBarriers[1].Transition.Subresource = 0;
 	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(2, ResourceBarriers);
+	renderSystem.GetCommandList()->ResourceBarrier(2, ResourceBarriers);
 
-	CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	renderSystem.GetCommandList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-	CommandList->OMSetRenderTargets(1, &HDRSceneColorTextureRTV, TRUE, nullptr);
+	renderSystem.GetCommandList()->OMSetRenderTargets(1, &HDRSceneColorTextureRTV, TRUE, nullptr);
 
 	D3D12_VIEWPORT Viewport;
-	Viewport.Height = float(ResolutionHeight);
+	Viewport.Height = float(renderSystem.GetResolutionHeight());
 	Viewport.MaxDepth = 1.0f;
 	Viewport.MinDepth = 0.0f;
 	Viewport.TopLeftX = 0.0f;
 	Viewport.TopLeftY = 0.0f;
-	Viewport.Width = float(ResolutionWidth);
+	Viewport.Width = float(renderSystem.GetResolutionWidth());
 
-	CommandList->RSSetViewports(1, &Viewport);
+	renderSystem.GetCommandList()->RSSetViewports(1, &Viewport);
 
 	D3D12_RECT ScissorRect;
-	ScissorRect.bottom = ResolutionHeight;
+	ScissorRect.bottom = renderSystem.GetResolutionHeight();
 	ScissorRect.left = 0;
-	ScissorRect.right = ResolutionWidth;
+	ScissorRect.right = renderSystem.GetResolutionWidth();
 	ScissorRect.top = 0;
 
-	CommandList->RSSetScissorRects(1, &ScissorRect);
+	renderSystem.GetCommandList()->RSSetScissorRects(1, &ScissorRect);
 
 	UINT DestRangeSize = 1;
 	UINT SourceRangeSizes[2] = { 1 };
@@ -878,13 +906,13 @@ void SkyAndFogPass::Execute()
 
 	ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
-	CommandList->SetPipelineState(FogPipelineState);
+	renderSystem.GetCommandList()->SetPipelineState(FogPipelineState);
 
-	CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 	ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-	CommandList->DrawInstanced(4, 1, 0, 0);
+	renderSystem.GetCommandList()->DrawInstanced(4, 1, 0, 0);
 
 	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarriers[0].Transition.pResource = DepthBufferTexture;
@@ -893,32 +921,32 @@ void SkyAndFogPass::Execute()
 	ResourceBarriers[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(1, ResourceBarriers);
+	renderSystem.GetCommandList()->ResourceBarrier(1, ResourceBarriers);
 
-	CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	renderSystem.GetCommandList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	CommandList->OMSetRenderTargets(1, &HDRSceneColorTextureRTV, TRUE, &DepthBufferTextureDSV);
+	renderSystem.GetCommandList()->OMSetRenderTargets(1, &HDRSceneColorTextureRTV, TRUE, &DepthBufferTextureDSV);
 
-	Viewport.Height = float(ResolutionHeight);
+	Viewport.Height = float(renderSystem.GetResolutionHeight());
 	Viewport.MaxDepth = 1.0f;
 	Viewport.MinDepth = 0.0f;
 	Viewport.TopLeftX = 0.0f;
 	Viewport.TopLeftY = 0.0f;
-	Viewport.Width = float(ResolutionWidth);
+	Viewport.Width = float(renderSystem.GetResolutionWidth());
 
-	CommandList->RSSetViewports(1, &Viewport);
+	renderSystem.GetCommandList()->RSSetViewports(1, &Viewport);
 
-	ScissorRect.bottom = ResolutionHeight;
+	ScissorRect.bottom = renderSystem.GetResolutionHeight();
 	ScissorRect.left = 0;
-	ScissorRect.right = ResolutionWidth;
+	ScissorRect.right = renderSystem.GetResolutionWidth();
 	ScissorRect.top = 0;
 
-	CommandList->RSSetScissorRects(1, &ScissorRect);
+	renderSystem.GetCommandList()->RSSetScissorRects(1, &ScissorRect);
 
 	Device->CopyDescriptorsSimple(1, SamplerCPUHandle, TextureSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 	SamplerCPUHandle.ptr += SamplerHandleSize;
 
-	CommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
+	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
 	SamplerGPUHandle.ptr += SamplerHandleSize;
 
 	DestRangeSize = 2;
@@ -941,17 +969,17 @@ void SkyAndFogPass::Execute()
 	IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
 	IndexBufferView.SizeInBytes = sizeof(WORD) * (300 + 24 * 600 + 300);
 
-	CommandList->IASetVertexBuffers(0, 1, &VertexBufferView);
-	CommandList->IASetIndexBuffer(&IndexBufferView);
+	renderSystem.GetCommandList()->IASetVertexBuffers(0, 1, &VertexBufferView);
+	renderSystem.GetCommandList()->IASetIndexBuffer(&IndexBufferView);
 
-	CommandList->SetPipelineState(SkyPipelineState);
+	renderSystem.GetCommandList()->SetPipelineState(SkyPipelineState);
 
-	CommandList->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-	CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
 
 	ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
-	CommandList->DrawIndexedInstanced(300 + 24 * 600 + 300, 1, 0, 0, 0);
+	renderSystem.GetCommandList()->DrawIndexedInstanced(300 + 24 * 600 + 300, 1, 0, 0, 0);
 
 	DestRangeSize = 2;
 	SourceRangeSizes[0] = 1;
@@ -971,15 +999,15 @@ void SkyAndFogPass::Execute()
 	IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
 	IndexBufferView.SizeInBytes = sizeof(WORD) * 6;
 
-	CommandList->IASetVertexBuffers(0, 1, &VertexBufferView);
-	CommandList->IASetIndexBuffer(&IndexBufferView);
+	renderSystem.GetCommandList()->IASetVertexBuffers(0, 1, &VertexBufferView);
+	renderSystem.GetCommandList()->IASetIndexBuffer(&IndexBufferView);
 
-	CommandList->SetPipelineState(SunPipelineState);
+	renderSystem.GetCommandList()->SetPipelineState(SunPipelineState);
 
-	CommandList->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-	CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
 
 	ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
-	CommandList->DrawIndexedInstanced(6, 1, 0, 0, 0);
+	renderSystem.GetCommandList()->DrawIndexedInstanced(6, 1, 0, 0, 0);
 }

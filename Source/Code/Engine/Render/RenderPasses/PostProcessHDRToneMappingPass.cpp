@@ -3,7 +3,9 @@
 
 #include "PostProcessHDRToneMappingPass.h"
 
-void PostProcessHDRToneMappingPass::Init()
+#include <Engine/Engine.h>
+
+void PostProcessHDRToneMappingPass::Init(RenderSystem& renderSystem)
 {
 	D3D12_RESOURCE_DESC ResourceDesc;
 	ZeroMemory(&ResourceDesc, sizeof(D3D12_RESOURCE_DESC));
@@ -76,10 +78,12 @@ void PostProcessHDRToneMappingPass::Init()
 	SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(HDRToneMappingPipelineState)));
 }
 
-void PostProcessHDRToneMappingPass::Execute()
+void PostProcessHDRToneMappingPass::Execute(RenderSystem& renderSystem)
 {
+	D3D12_RESOURCE_BARRIER ResourceBarriers[2];
+
 	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[0].Transition.pResource = BloomTextures[2][0];
+	ResourceBarriers[0].Transition.pResource = OutputBloomTexture;
 	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 	ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
 	ResourceBarriers[0].Transition.Subresource = 0;
@@ -92,11 +96,11 @@ void PostProcessHDRToneMappingPass::Execute()
 	ResourceBarriers[1].Transition.Subresource = 0;
 	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(2, ResourceBarriers);
+	renderSystem.GetCommandList()->ResourceBarrier(2, ResourceBarriers);
 
-	CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	renderSystem.GetCommandList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-	CommandList->OMSetRenderTargets(1, &ToneMappedImageTextureRTV, TRUE, nullptr);
+	renderSystem.GetCommandList()->OMSetRenderTargets(1, &ToneMappedImageTextureRTV, TRUE, nullptr);
 
 	D3D12_VIEWPORT Viewport;
 	Viewport.Height = FLOAT(ResolutionHeight);
@@ -106,7 +110,7 @@ void PostProcessHDRToneMappingPass::Execute()
 	Viewport.TopLeftY = 0.0f;
 	Viewport.Width = FLOAT(ResolutionWidth);
 
-	CommandList->RSSetViewports(1, &Viewport);
+	renderSystem.GetCommandList()->RSSetViewports(1, &Viewport);
 
 	D3D12_RECT ScissorRect;
 	ScissorRect.bottom = ResolutionHeight;
@@ -114,23 +118,23 @@ void PostProcessHDRToneMappingPass::Execute()
 	ScissorRect.right = ResolutionWidth;
 	ScissorRect.top = 0;
 
-	CommandList->RSSetScissorRects(1, &ScissorRect);
+	renderSystem.GetCommandList()->RSSetScissorRects(1, &ScissorRect);
 
-	CommandList->DiscardResource(ToneMappedImageTexture, nullptr);
+	renderSystem.GetCommandList()->DiscardResource(ToneMappedImageTexture, nullptr);
 
 	UINT DestRangeSize = 2;
 	UINT SourceRangeSizes[2] = { 1, 1 };
-	D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[2] = { HDRSceneColorTextureSRV, BloomTexturesSRVs[2][0] };
+	D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[2] = { HDRSceneColorTextureSRV, OutputBloomTextureSRV };
 
 	Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
 
-	CommandList->SetPipelineState(HDRToneMappingPipelineState);
+	renderSystem.GetCommandList()->SetPipelineState(HDRToneMappingPipelineState);
 
-	CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 	ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
-	CommandList->DrawInstanced(4, 1, 0, 0);
+	renderSystem.GetCommandList()->DrawInstanced(4, 1, 0, 0);
 }

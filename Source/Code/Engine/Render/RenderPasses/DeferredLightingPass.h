@@ -2,14 +2,24 @@
 
 #include "../RenderPass.h"
 
+#include <Containers/COMRCPtr.h>
+
 class DeferredLightingPass : public RenderPass
 {
 	public:
 
-		virtual void Init() override;
-		virtual void Execute() override;
+		virtual void Init(RenderSystem& renderSystem) override;
+		virtual void Execute(RenderSystem& renderSystem) override;
 
 	private:
+
+		COMRCPtr<ID3D12Resource> GBufferTextures[2];
+		D3D12_CPU_DESCRIPTOR_HANDLE GBufferTexturesSRVs[2];
+
+		D3D12_CPU_DESCRIPTOR_HANDLE DepthBufferTextureSRV;
+
+		COMRCPtr<ID3D12Resource> ShadowMaskTexture;
+		D3D12_CPU_DESCRIPTOR_HANDLE ShadowMaskTextureSRV;
 
 		COMRCPtr<ID3D12Resource> HDRSceneColorTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE HDRSceneColorTextureRTV, HDRSceneColorTextureSRV;

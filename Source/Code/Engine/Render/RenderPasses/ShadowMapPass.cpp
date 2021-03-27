@@ -3,7 +3,25 @@
 
 #include "ShadowMapPass.h"
 
-void ShadowMapPass::Init()
+#include "../RenderSystem.h"
+
+#include <Engine/Engine.h>
+
+#include <Game/Components/Common/TransformComponent.h>
+#include <Game/Components/Common/BoundingBoxComponent.h>
+#include <Game/Components/Render/Meshes/StaticMeshComponent.h>
+#include <Game/Components/Render/Lights/PointLightComponent.h>
+
+#include <ResourceManager/Resources/Render/Meshes/StaticMeshResource.h>
+#include <ResourceManager/Resources/Render/Materials/MaterialResource.h>
+#include <ResourceManager/Resources/Render/Textures/Texture2DResource.h>
+
+struct ShadowMapPassConstantBuffer
+{
+	XMMATRIX WVPMatrix;
+};
+
+void ShadowMapPass::Init(RenderSystem& renderSystem)
 {
 	D3D12_RESOURCE_DESC ResourceDesc;
 	ZeroMemory(&ResourceDesc, sizeof(D3D12_RESOURCE_DESC));
@@ -137,8 +155,10 @@ void ShadowMapPass::Init()
 	}
 }
 
-void ShadowMapPass::Execute()
+void ShadowMapPass::Execute(RenderSystem& renderSystem)
 {
+	D3D12_RESOURCE_BARRIER ResourceBarriers[5];
+
 	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarriers[0].Transition.pResource = CascadedShadowMapTextures[0];
 	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE;
@@ -167,6 +187,29 @@ void ShadowMapPass::Execute()
 	ResourceBarriers[3].Transition.Subresource = 0;
 	ResourceBarriers[3].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
+	GameFramework& gameFramework = Engine::GetEngine().GetGameFramework();
+
+	Camera& camera = gameFramework.GetCamera();
+
+	XMFLOAT3 CameraLocation = camera.GetCameraLocation();
+
+	XMMATRIX ShadowViewMatrices[4], ShadowProjMatrices[4], ShadowViewProjMatrices[4];
+
+	ShadowViewMatrices[0] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 10.0f, CameraLocation.y + 10.0f, CameraLocation.z - 10.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
+	ShadowViewMatrices[1] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 20.0f, CameraLocation.y + 20.0f, CameraLocation.z - 20.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
+	ShadowViewMatrices[2] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 50.0f, CameraLocation.y + 50.0f, CameraLocation.z - 50.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
+	ShadowViewMatrices[3] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 100.0f, CameraLocation.y + 100.0f, CameraLocation.z - 100.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
+
+	ShadowProjMatrices[0] = XMMatrixOrthographicLH(10.0f, 10.0f, 0.01f, 500.0f);
+	ShadowProjMatrices[1] = XMMatrixOrthographicLH(20.0f, 20.0f, 0.01f, 500.0f);
+	ShadowProjMatrices[2] = XMMatrixOrthographicLH(50.0f, 50.0f, 0.01f, 500.0f);
+	ShadowProjMatrices[3] = XMMatrixOrthographicLH(100.0f, 100.0f, 0.01f, 500.0f);
+
+	ShadowViewProjMatrices[0] = ShadowViewMatrices[0] * ShadowProjMatrices[0];
+	ShadowViewProjMatrices[1] = ShadowViewMatrices[1] * ShadowProjMatrices[1];
+	ShadowViewProjMatrices[2] = ShadowViewMatrices[2] * ShadowProjMatrices[2];
+	ShadowViewProjMatrices[3] = ShadowViewMatrices[3] * ShadowProjMatrices[3];
+
 	for (int i = 0; i < 4; i++)
 	{
 		SIZE_T ConstantBufferOffset = 0;
@@ -181,7 +224,7 @@ void ShadowMapPass::Execute()
 
 		void *ConstantBufferData;
 
-		SAFE_DX(CPUConstantBuffers2[i][CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
+		SAFE_DX(CPUConstantBuffers[i][CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
 
 		for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
 		{
@@ -198,45 +241,45 @@ void ShadowMapPass::Execute()
 		WrittenRange.Begin = 0;
 		WrittenRange.End = ConstantBufferOffset;
 
-		CPUConstantBuffers2[i][CurrentFrameIndex]->Unmap(0, &WrittenRange);
+		CPUConstantBuffers[i][CurrentFrameIndex]->Unmap(0, &WrittenRange);
 
 		if (i == 0)
 		{
 			ResourceBarriers[4].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-			ResourceBarriers[4].Transition.pResource = GPUConstantBuffers2[i];
+			ResourceBarriers[4].Transition.pResource = GPUConstantBuffers[i];
 			ResourceBarriers[4].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
 			ResourceBarriers[4].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
 			ResourceBarriers[4].Transition.Subresource = 0;
 			ResourceBarriers[4].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-			CommandList->ResourceBarrier(5, ResourceBarriers);
+			renderSystem.GetCommandList()->ResourceBarrier(5, ResourceBarriers);
 		}
 		else
 		{
 			ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-			ResourceBarriers[0].Transition.pResource = GPUConstantBuffers2[i];
+			ResourceBarriers[0].Transition.pResource = GPUConstantBuffers[i];
 			ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
 			ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
 			ResourceBarriers[0].Transition.Subresource = 0;
 			ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-			CommandList->ResourceBarrier(1, ResourceBarriers);
+			renderSystem.GetCommandList()->ResourceBarrier(1, ResourceBarriers);
 		}
 
-		CommandList->CopyBufferRegion(GPUConstantBuffers2[i], 0, CPUConstantBuffers2[i][CurrentFrameIndex], 0, ConstantBufferOffset);
+		renderSystem.GetCommandList()->CopyBufferRegion(GPUConstantBuffers[i], 0, CPUConstantBuffers[i][CurrentFrameIndex], 0, ConstantBufferOffset);
 
 		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[0].Transition.pResource = GPUConstantBuffers2[i];
+		ResourceBarriers[0].Transition.pResource = GPUConstantBuffers[i];
 		ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
 		ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
 		ResourceBarriers[0].Transition.Subresource = 0;
 		ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(1, ResourceBarriers);
+		renderSystem.GetCommandList()->ResourceBarrier(1, ResourceBarriers);
 
-		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		renderSystem.GetCommandList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-		CommandList->OMSetRenderTargets(0, nullptr, TRUE, &CascadedShadowMapTexturesDSVs[i]);
+		renderSystem.GetCommandList()->OMSetRenderTargets(0, nullptr, TRUE, &CascadedShadowMapTexturesDSVs[i]);
 
 		D3D12_VIEWPORT Viewport;
 		Viewport.Height = 2048.0f;
@@ -246,7 +289,7 @@ void ShadowMapPass::Execute()
 		Viewport.TopLeftY = 0.0f;
 		Viewport.Width = 2048.0f;
 
-		CommandList->RSSetViewports(1, &Viewport);
+		renderSystem.GetCommandList()->RSSetViewports(1, &Viewport);
 
 		D3D12_RECT ScissorRect;
 		ScissorRect.bottom = 2048;
@@ -254,9 +297,9 @@ void ShadowMapPass::Execute()
 		ScissorRect.right = 2048;
 		ScissorRect.top = 0;
 
-		CommandList->RSSetScissorRects(1, &ScissorRect);
+		renderSystem.GetCommandList()->RSSetScissorRects(1, &ScissorRect);
 
-		CommandList->ClearDepthStencilView(CascadedShadowMapTexturesDSVs[i], D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+		renderSystem.GetCommandList()->ClearDepthStencilView(CascadedShadowMapTexturesDSVs[i], D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 		for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
 		{
@@ -269,7 +312,7 @@ void ShadowMapPass::Execute()
 
 			UINT DestRangeSize = 1;
 			UINT SourceRangeSizes[1] = { 1 };
-			D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[1] = { ConstantBufferCBVs2[i][k] };
+			D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[1] = { ConstantBufferCBVs[i][k] };
 
 			Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
@@ -285,16 +328,16 @@ void ShadowMapPass::Execute()
 			IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
 			IndexBufferView.SizeInBytes = sizeof(WORD) * 8 * 8 * 6 * 6;
 
-			CommandList->IASetVertexBuffers(0, 1, &VertexBufferView);
-			CommandList->IASetIndexBuffer(&IndexBufferView);
+			renderSystem.GetCommandList()->IASetVertexBuffers(0, 1, &VertexBufferView);
+			renderSystem.GetCommandList()->IASetIndexBuffer(&IndexBufferView);
 
-			CommandList->SetPipelineState(renderMaterial->ShadowMapPassPipelineState);
+			renderSystem.GetCommandList()->SetPipelineState(renderMaterial->ShadowMapPassPipelineState);
 
-			CommandList->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+			renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 			ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-			CommandList->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
+			renderSystem.GetCommandList()->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
 		}
 	}
 }

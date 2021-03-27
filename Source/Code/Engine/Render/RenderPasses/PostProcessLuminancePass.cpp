@@ -3,7 +3,11 @@
 
 #include "PostProcessLuminancePass.h"
 
-void PostProcessLuminancePass::Init()
+#include "../RenderSystem.h"
+
+#include <Engine/Engine.h>
+
+void PostProcessLuminancePass::Init(RenderSystem& renderSystem)
 {
 	D3D12_RESOURCE_DESC ResourceDesc;
 	ZeroMemory(&ResourceDesc, sizeof(D3D12_RESOURCE_DESC));
@@ -116,7 +120,7 @@ void PostProcessLuminancePass::Init()
 
 	HANDLE LuminanceCalcComputeShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/LuminanceCalc.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER LuminanceCalcComputeShaderByteCodeLength;
-	Result = GetFileSizeEx(LuminanceCalcComputeShaderFile, &LuminanceCalcComputeShaderByteCodeLength);
+	BOOL Result = GetFileSizeEx(LuminanceCalcComputeShaderFile, &LuminanceCalcComputeShaderByteCodeLength);
 	ScopedMemoryBlockArray<BYTE> LuminanceCalcComputeShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(LuminanceCalcComputeShaderByteCodeLength.QuadPart);
 	Result = ReadFile(LuminanceCalcComputeShaderFile, LuminanceCalcComputeShaderByteCodeData, (DWORD)LuminanceCalcComputeShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(LuminanceCalcComputeShaderFile);
@@ -158,8 +162,10 @@ void PostProcessLuminancePass::Init()
 	SAFE_DX(Device->CreateComputePipelineState(&ComputePipelineStateDesc, UUIDOF(LuminanceAvgPipelineState)));
 }
 
-void PostProcessLuminancePass::Execute()
+void PostProcessLuminancePass::Execute(RenderSystem& renderSystem)
 {
+	D3D12_RESOURCE_BARRIER ResourceBarriers[3];
+
 	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarriers[0].Transition.pResource = HDRSceneColorTexture;
 	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
@@ -181,7 +187,7 @@ void PostProcessLuminancePass::Execute()
 	ResourceBarriers[2].Transition.Subresource = 0;
 	ResourceBarriers[2].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(3, ResourceBarriers);
+	renderSystem.GetCommandList()->ResourceBarrier(3, ResourceBarriers);
 
 	UINT DestRangeSize = 2;
 	UINT SourceRangeSizes[2] = { 1, 1 };
@@ -191,16 +197,16 @@ void PostProcessLuminancePass::Execute()
 
 	ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
 
-	CommandList->SetPipelineState(LuminanceCalcPipelineState);
+	renderSystem.GetCommandList()->SetPipelineState(LuminanceCalcPipelineState);
 
-	CommandList->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-	CommandList->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
 
-	CommandList->DiscardResource(SceneLuminanceTextures[0], nullptr);
+	renderSystem.GetCommandList()->DiscardResource(SceneLuminanceTextures[0], nullptr);
 
 	ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
-	CommandList->Dispatch(80, 45, 1);
+	renderSystem.GetCommandList()->Dispatch(80, 45, 1);
 
 	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarriers[0].Transition.pResource = SceneLuminanceTextures[0];
@@ -216,7 +222,7 @@ void PostProcessLuminancePass::Execute()
 	ResourceBarriers[1].Transition.Subresource = 0;
 	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(2, ResourceBarriers);
+	renderSystem.GetCommandList()->ResourceBarrier(2, ResourceBarriers);
 
 	DestRangeSize = 2;
 	SourceRangeSizes[0] = 1;
@@ -228,16 +234,16 @@ void PostProcessLuminancePass::Execute()
 
 	ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
 
-	CommandList->SetPipelineState(LuminanceSumPipelineState);
+	renderSystem.GetCommandList()->SetPipelineState(LuminanceSumPipelineState);
 
-	CommandList->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-	CommandList->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
 
-	CommandList->DiscardResource(SceneLuminanceTextures[1], nullptr);
+	renderSystem.GetCommandList()->DiscardResource(SceneLuminanceTextures[1], nullptr);
 
 	ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
-	CommandList->Dispatch(80, 45, 1);
+	renderSystem.GetCommandList()->Dispatch(80, 45, 1);
 
 	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarriers[0].Transition.pResource = SceneLuminanceTextures[1];
@@ -253,7 +259,7 @@ void PostProcessLuminancePass::Execute()
 	ResourceBarriers[1].Transition.Subresource = 0;
 	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(2, ResourceBarriers);
+	renderSystem.GetCommandList()->ResourceBarrier(2, ResourceBarriers);
 
 	DestRangeSize = 2;
 	SourceRangeSizes[0] = 1;
@@ -265,14 +271,14 @@ void PostProcessLuminancePass::Execute()
 
 	ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
 
-	CommandList->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-	CommandList->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
 
-	CommandList->DiscardResource(SceneLuminanceTextures[2], nullptr);
+	renderSystem.GetCommandList()->DiscardResource(SceneLuminanceTextures[2], nullptr);
 
 	ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
-	CommandList->Dispatch(5, 3, 1);
+	renderSystem.GetCommandList()->Dispatch(5, 3, 1);
 
 	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarriers[0].Transition.pResource = SceneLuminanceTextures[2];
@@ -288,7 +294,7 @@ void PostProcessLuminancePass::Execute()
 	ResourceBarriers[1].Transition.Subresource = 0;
 	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(2, ResourceBarriers);
+	renderSystem.GetCommandList()->ResourceBarrier(2, ResourceBarriers);
 
 	DestRangeSize = 2;
 	SourceRangeSizes[0] = 1;
@@ -300,14 +306,14 @@ void PostProcessLuminancePass::Execute()
 
 	ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
 
-	CommandList->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-	CommandList->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
 
-	CommandList->DiscardResource(SceneLuminanceTextures[3], nullptr);
+	renderSystem.GetCommandList()->DiscardResource(SceneLuminanceTextures[3], nullptr);
 
 	ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
-	CommandList->Dispatch(1, 1, 1);
+	renderSystem.GetCommandList()->Dispatch(1, 1, 1);
 
 	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarriers[0].Transition.pResource = SceneLuminanceTextures[3];
@@ -316,7 +322,7 @@ void PostProcessLuminancePass::Execute()
 	ResourceBarriers[0].Transition.Subresource = 0;
 	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(1, ResourceBarriers);
+	renderSystem.GetCommandList()->ResourceBarrier(1, ResourceBarriers);
 
 	DestRangeSize = 2;
 	SourceRangeSizes[0] = 1;
@@ -328,14 +334,14 @@ void PostProcessLuminancePass::Execute()
 
 	ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
 
-	CommandList->SetPipelineState(LuminanceAvgPipelineState);
+	renderSystem.GetCommandList()->SetPipelineState(LuminanceAvgPipelineState);
 
-	CommandList->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-	CommandList->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
 
-	CommandList->DiscardResource(AverageLuminanceTexture, nullptr);
+	renderSystem.GetCommandList()->DiscardResource(AverageLuminanceTexture, nullptr);
 
 	ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
-	CommandList->Dispatch(1, 1, 1);
+	renderSystem.GetCommandList()->Dispatch(1, 1, 1);
 }
