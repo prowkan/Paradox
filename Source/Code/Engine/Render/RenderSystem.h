@@ -336,6 +336,18 @@ class FrameDescriptorHeap
 		UINT AllocatedDescriptorsForTables = 0;
 };
 
+struct Buffer
+{
+	COMRCPtr<ID3D12Resource> DXBuffer;
+	D3D12_RESOURCE_STATES DXBufferState;
+};
+
+struct Texture
+{
+	COMRCPtr<ID3D12Resource> DXTexture;
+	D3D12_RESOURCE_STATES *DXTextureSubResourceStates;
+};
+
 class RenderSystem
 {
 	public:
@@ -351,6 +363,11 @@ class RenderSystem
 		void DestroyRenderMesh(RenderMesh* renderMesh);
 		void DestroyRenderTexture(RenderTexture* renderTexture);
 		void DestroyRenderMaterial(RenderMaterial* renderMaterial);
+
+		Buffer CreateBuffer(const D3D12_HEAP_PROPERTIES& HeapProperties, D3D12_HEAP_FLAGS HeapFlags, const D3D12_RESOURCE_DESC& ResourceDesc, D3D12_RESOURCE_STATES InitialState, const D3D12_CLEAR_VALUE* ClearValue);
+		Buffer CreateBuffer(ID3D12Heap* Heap, UINT64 HeapOffset, const D3D12_RESOURCE_DESC& ResourceDesc, D3D12_RESOURCE_STATES InitialState, const D3D12_CLEAR_VALUE* ClearValue);
+		Texture CreateTexture(const D3D12_HEAP_PROPERTIES& HeapProperties, D3D12_HEAP_FLAGS HeapFlags, const D3D12_RESOURCE_DESC& ResourceDesc, D3D12_RESOURCE_STATES InitialState, const D3D12_CLEAR_VALUE* ClearValue);
+		Texture CreateTexture(ID3D12Heap* Heap, UINT64 HeapOffset, const D3D12_RESOURCE_DESC& ResourceDesc, D3D12_RESOURCE_STATES InitialState, const D3D12_CLEAR_VALUE* ClearValue);
 
 		CullingSubSystem& GetCullingSubSystem() { return cullingSubSystem; }
 
@@ -378,7 +395,7 @@ class RenderSystem
 
 		RootSignature GraphicsRootSignature, ComputeRootSignature;
 
-		COMRCPtr<ID3D12Resource> BackBufferTextures[2];
+		Texture BackBufferTextures[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE BackBufferTexturesRTVs[2];
 
 		// ===============================================================================================================
@@ -403,23 +420,24 @@ class RenderSystem
 
 		// ===============================================================================================================
 
-		COMRCPtr<ID3D12Resource> GBufferTextures[2];
+		Texture GBufferTextures[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE GBufferTexturesRTVs[2], GBufferTexturesSRVs[2];
 
-		COMRCPtr<ID3D12Resource> DepthBufferTexture;
+		Texture DepthBufferTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE DepthBufferTextureDSV, DepthBufferTextureSRV;
 
-		COMRCPtr<ID3D12Resource> GPUConstantBuffer, CPUConstantBuffers[2];
+		Buffer GPUConstantBuffer, CPUConstantBuffers[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs[20000];
 
 		// ===============================================================================================================
 
-		COMRCPtr<ID3D12Resource> ResolvedDepthBufferTexture;
+		Texture ResolvedDepthBufferTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE ResolvedDepthBufferTextureSRV;
 
 		// ===============================================================================================================
 
-		COMRCPtr<ID3D12Resource> OcclusionBufferTexture, OcclusionBufferTextureReadback[2];
+		Texture OcclusionBufferTexture;
+		Buffer OcclusionBufferTextureReadback[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE OcclusionBufferTextureRTV;
 
 		COMRCPtr<ID3D12PipelineState> OcclusionBufferPipelineState;
@@ -428,18 +446,18 @@ class RenderSystem
 
 		// ===============================================================================================================
 
-		COMRCPtr<ID3D12Resource> CascadedShadowMapTextures[4];
+		Texture CascadedShadowMapTextures[4];
 		D3D12_CPU_DESCRIPTOR_HANDLE CascadedShadowMapTexturesDSVs[4], CascadedShadowMapTexturesSRVs[4];
 
-		COMRCPtr<ID3D12Resource> GPUConstantBuffers2[4], CPUConstantBuffers2[4][2];
+		Buffer GPUConstantBuffers2[4], CPUConstantBuffers2[4][2];
 		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs2[4][20000];
 
 		// ===============================================================================================================
 
-		COMRCPtr<ID3D12Resource> ShadowMaskTexture;
+		Texture ShadowMaskTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE ShadowMaskTextureRTV, ShadowMaskTextureSRV;
 
-		COMRCPtr<ID3D12Resource> GPUShadowResolveConstantBuffer, CPUShadowResolveConstantBuffers[2];
+		Buffer GPUShadowResolveConstantBuffer, CPUShadowResolveConstantBuffers[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE ShadowResolveConstantBufferCBV;
 
 		COMRCPtr<ID3D12PipelineState> ShadowResolvePipelineState;
@@ -448,19 +466,19 @@ class RenderSystem
 		
 		// ===============================================================================================================
 
-		COMRCPtr<ID3D12Resource> HDRSceneColorTexture;
+		Texture HDRSceneColorTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE HDRSceneColorTextureRTV, HDRSceneColorTextureSRV;
 
-		COMRCPtr<ID3D12Resource> GPUDeferredLightingConstantBuffer, CPUDeferredLightingConstantBuffers[2];
+		Buffer GPUDeferredLightingConstantBuffer, CPUDeferredLightingConstantBuffers[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE DeferredLightingConstantBufferCBV;
 
-		COMRCPtr<ID3D12Resource> GPULightClustersBuffer, CPULightClustersBuffers[2];
+		Buffer GPULightClustersBuffer, CPULightClustersBuffers[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE LightClustersBufferSRV;
 
-		COMRCPtr<ID3D12Resource> GPULightIndicesBuffer, CPULightIndicesBuffers[2];
+		Buffer GPULightIndicesBuffer, CPULightIndicesBuffers[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE LightIndicesBufferSRV;
 
-		COMRCPtr<ID3D12Resource> GPUPointLightsBuffer, CPUPointLightsBuffers[2];
+		Buffer GPUPointLightsBuffer, CPUPointLightsBuffers[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE PointLightsBufferSRV;
 
 		COMRCPtr<ID3D12PipelineState> DeferredLightingPipelineState;
@@ -471,7 +489,7 @@ class RenderSystem
 
 		COMRCPtr<ID3D12Resource> SkyVertexBuffer, SkyIndexBuffer;
 		D3D12_GPU_VIRTUAL_ADDRESS SkyVertexBufferAddress, SkyIndexBufferAddress;
-		COMRCPtr<ID3D12Resource> GPUSkyConstantBuffer, CPUSkyConstantBuffers[2];
+		Buffer GPUSkyConstantBuffer, CPUSkyConstantBuffers[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE SkyConstantBufferCBV;
 		COMRCPtr<ID3D12PipelineState> SkyPipelineState;
 		COMRCPtr<ID3D12Resource> SkyTexture;
@@ -479,7 +497,7 @@ class RenderSystem
 
 		COMRCPtr<ID3D12Resource> SunVertexBuffer, SunIndexBuffer;
 		D3D12_GPU_VIRTUAL_ADDRESS SunVertexBufferAddress, SunIndexBufferAddress;
-		COMRCPtr<ID3D12Resource> GPUSunConstantBuffer, CPUSunConstantBuffers[2];
+		Buffer GPUSunConstantBuffer, CPUSunConstantBuffers[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE SunConstantBufferCBV;
 		COMRCPtr<ID3D12PipelineState> SunPipelineState;
 		COMRCPtr<ID3D12Resource> SunTexture;
@@ -491,15 +509,15 @@ class RenderSystem
 
 		// ===============================================================================================================
 
-		COMRCPtr<ID3D12Resource> ResolvedHDRSceneColorTexture;
+		Texture ResolvedHDRSceneColorTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE ResolvedHDRSceneColorTextureSRV;
 
 		// ===============================================================================================================
 
-		COMRCPtr<ID3D12Resource> SceneLuminanceTextures[4];
+		Texture SceneLuminanceTextures[4];
 		D3D12_CPU_DESCRIPTOR_HANDLE SceneLuminanceTexturesUAVs[4], SceneLuminanceTexturesSRVs[4];
 
-		COMRCPtr<ID3D12Resource> AverageLuminanceTexture;
+		Texture AverageLuminanceTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE AverageLuminanceTextureUAV, AverageLuminanceTextureSRV;
 
 		COMRCPtr<ID3D12PipelineState> LuminanceCalcPipelineState;
@@ -510,7 +528,7 @@ class RenderSystem
 
 		// ===============================================================================================================
 
-		COMRCPtr<ID3D12Resource> BloomTextures[3][7];
+		Texture BloomTextures[3][7];
 		D3D12_CPU_DESCRIPTOR_HANDLE BloomTexturesRTVs[3][7], BloomTexturesSRVs[3][7];
 
 		COMRCPtr<ID3D12PipelineState> BrightPassPipelineState;
@@ -523,7 +541,7 @@ class RenderSystem
 		
 		// ===============================================================================================================
 
-		COMRCPtr<ID3D12Resource> ToneMappedImageTexture;
+		Texture ToneMappedImageTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE ToneMappedImageTextureRTV;
 
 		COMRCPtr<ID3D12PipelineState> HDRToneMappingPipelineState;
@@ -566,6 +584,8 @@ class RenderSystem
 
 		D3D12_RESOURCE_BARRIER PendingResourceBarriers[MAX_PENDING_BARRIERS_COUNT];
 
-		void SwitchResourceState(ID3D12Resource *Resource, const UINT SubResource, const D3D12_RESOURCE_STATES OldState, const D3D12_RESOURCE_STATES NewState);
+		//void SwitchResourceState(ID3D12Resource *Resource, const UINT SubResource, const D3D12_RESOURCE_STATES OldState, const D3D12_RESOURCE_STATES NewState);
+		void SwitchResourceState(Buffer& buffer, const D3D12_RESOURCE_STATES NewState);
+		void SwitchResourceState(Texture& texture, const UINT SubResource, const D3D12_RESOURCE_STATES NewState);
 		void ApplyPendingBarriers();
 };
