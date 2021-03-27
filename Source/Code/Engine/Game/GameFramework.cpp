@@ -27,6 +27,16 @@ void GameFramework::InitFramework()
 	StaticMeshComponent::InitMetaClass();
 	PointLightComponent::InitMetaClass();
 
+	MetaClassesTable.emplace(Entity::GetMetaClassStatic()->GetClassName(), Entity::GetMetaClassStatic());
+	MetaClassesTable.emplace(StaticMeshEntity::GetMetaClassStatic()->GetClassName(), StaticMeshEntity::GetMetaClassStatic());
+	MetaClassesTable.emplace(PointLightEntity::GetMetaClassStatic()->GetClassName(), PointLightEntity::GetMetaClassStatic());
+
+	MetaClassesTable.emplace(Component::GetMetaClassStatic()->GetClassName(), Component::GetMetaClassStatic());
+	MetaClassesTable.emplace(TransformComponent::GetMetaClassStatic()->GetClassName(), TransformComponent::GetMetaClassStatic());
+	MetaClassesTable.emplace(BoundingBoxComponent::GetMetaClassStatic()->GetClassName(), BoundingBoxComponent::GetMetaClassStatic());
+	MetaClassesTable.emplace(StaticMeshComponent::GetMetaClassStatic()->GetClassName(), StaticMeshComponent::GetMetaClassStatic());
+	MetaClassesTable.emplace(PointLightComponent::GetMetaClassStatic()->GetClassName(), PointLightComponent::GetMetaClassStatic());
+
 	camera.InitCamera();
 	world.LoadWorld();
 }
