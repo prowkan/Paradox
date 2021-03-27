@@ -29,6 +29,116 @@
 #include <ResourceManager/Resources/Render/Materials/MaterialResource.h>
 #include <ResourceManager/Resources/Render/Textures/Texture2DResource.h>
 
+
+DescriptorHeap::DescriptorHeap(ID3D12Device *DXDevice, const D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType, const UINT DescriptorsCount)
+{
+	D3D12_DESCRIPTOR_HEAP_DESC DescriptorHeapDesc;
+	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	DescriptorHeapDesc.NodeMask = 0;
+	DescriptorHeapDesc.NumDescriptors = DescriptorsCount;
+	DescriptorHeapDesc.Type = DescriptorHeapType;
+
+	// TODO: Сделать обработку ошибок
+	DXDevice->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(DXDescriptorHeap));
+
+	FirstDescriptor = DXDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr;
+	DescriptorSize = DXDevice->GetDescriptorHandleIncrementSize(DescriptorHeapType);
+
+	AllocatedDescriptorsCount = 0;
+}
+
+RootSignature::RootSignature(ID3D12Device *DXDevice, const D3D12_ROOT_SIGNATURE_DESC& RootSignatureDesc)
+{
+	COMRCPtr<ID3DBlob> RootSignatureBlob;
+
+	// TODO: Сделать обработку ошибок
+	D3D12SerializeRootSignature(&RootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION::D3D_ROOT_SIGNATURE_VERSION_1_0, &RootSignatureBlob, nullptr);
+	// TODO: Сделать обработку ошибок
+	DXDevice->CreateRootSignature(0, RootSignatureBlob->GetBufferPointer(), RootSignatureBlob->GetBufferSize(), UUIDOF(DXRootSignature));
+
+	DXRootSignatureDesc = RootSignatureDesc;
+
+	DXRootSignatureDesc.pParameters = new D3D12_ROOT_PARAMETER[DXRootSignatureDesc.NumParameters];
+	DXRootSignatureDesc.pStaticSamplers = new D3D12_STATIC_SAMPLER_DESC[DXRootSignatureDesc.NumStaticSamplers];
+
+	for (size_t i = 0; i < DXRootSignatureDesc.NumParameters; i++)
+	{
+		((D3D12_ROOT_PARAMETER*)DXRootSignatureDesc.pParameters)[i] = RootSignatureDesc.pParameters[i];
+
+		if (DXRootSignatureDesc.pParameters[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+		{
+			((D3D12_ROOT_PARAMETER*)DXRootSignatureDesc.pParameters)[i].DescriptorTable.pDescriptorRanges = new D3D12_DESCRIPTOR_RANGE[DXRootSignatureDesc.pParameters[i].DescriptorTable.NumDescriptorRanges];
+
+			for (size_t j = 0; j < DXRootSignatureDesc.pParameters[i].DescriptorTable.NumDescriptorRanges; j++)
+			{
+				((D3D12_DESCRIPTOR_RANGE*)((D3D12_ROOT_PARAMETER*)DXRootSignatureDesc.pParameters)[i].DescriptorTable.pDescriptorRanges)[j] = RootSignatureDesc.pParameters[i].DescriptorTable.pDescriptorRanges[j];
+			}
+		}
+	}
+
+	for (size_t i = 0; i < DXRootSignatureDesc.NumStaticSamplers; i++)
+	{
+		((D3D12_STATIC_SAMPLER_DESC*)DXRootSignatureDesc.pStaticSamplers)[i] = RootSignatureDesc.pStaticSamplers[i];
+	}
+}
+
+RootSignature::~RootSignature()
+{
+	for (size_t i = 0; i < DXRootSignatureDesc.NumParameters; i++)
+	{
+		if (DXRootSignatureDesc.pParameters[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+		{
+			delete[] DXRootSignatureDesc.pParameters[i].DescriptorTable.pDescriptorRanges;
+		}
+	}
+
+	delete[] DXRootSignatureDesc.pParameters;
+	delete[] DXRootSignatureDesc.pStaticSamplers;
+}
+
+FrameDescriptorHeap::FrameDescriptorHeap(ID3D12Device *DXDevice, const D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType, const UINT DescriptorsCount) : DescriptorHeapType(DescriptorHeapType)
+{
+	D3D12_DESCRIPTOR_HEAP_DESC DescriptorHeapDesc;
+	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	DescriptorHeapDesc.NodeMask = 0;
+	DescriptorHeapDesc.NumDescriptors = DescriptorsCount;
+	DescriptorHeapDesc.Type = DescriptorHeapType;
+
+	// TODO: Сделать обработку ошибок
+	DXDevice->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(DXDescriptorHeaps[0]));
+	DXDevice->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(DXDescriptorHeaps[1]));
+
+	FirstDescriptorsCPU[0] = DXDescriptorHeaps[0]->GetCPUDescriptorHandleForHeapStart().ptr;
+	FirstDescriptorsCPU[1] = DXDescriptorHeaps[1]->GetCPUDescriptorHandleForHeapStart().ptr;
+	FirstDescriptorsGPU[0] = DXDescriptorHeaps[0]->GetGPUDescriptorHandleForHeapStart().ptr;
+	FirstDescriptorsGPU[1] = DXDescriptorHeaps[1]->GetGPUDescriptorHandleForHeapStart().ptr;
+	DescriptorSize = DXDevice->GetDescriptorHandleIncrementSize(DescriptorHeapType);
+}
+
+DescriptorTable FrameDescriptorHeap::AllocateDescriptorTable(const D3D12_ROOT_PARAMETER& RootParameter)
+{
+	UINT DescriptorsCountInTable = 0;
+
+	for (UINT i = 0; i < RootParameter.DescriptorTable.NumDescriptorRanges; i++)
+	{
+		DescriptorsCountInTable += RootParameter.DescriptorTable.pDescriptorRanges[i].NumDescriptors;
+	}
+
+	DescriptorTable descriptorTable(
+		DescriptorsCountInTable, 
+		AllocatedDescriptorsForTables, 
+		FirstDescriptorsCPU[0] + AllocatedDescriptorsForTables * DescriptorSize, 
+		FirstDescriptorsCPU[1] + AllocatedDescriptorsForTables * DescriptorSize, 
+		FirstDescriptorsGPU[0] + AllocatedDescriptorsForTables * DescriptorSize,
+		FirstDescriptorsGPU[1] + AllocatedDescriptorsForTables * DescriptorSize,
+		DescriptorHeapType
+	);
+
+	AllocatedDescriptorsForTables += DescriptorsCountInTable;
+
+	return descriptorTable;
+}
+
 void RenderSystem::InitSystem()
 {
 	clusterizationSubSystem.PreComputeClustersPlanes();
@@ -123,72 +233,15 @@ void RenderSystem::InitSystem()
 
 	CopySyncEvent = CreateEvent(NULL, FALSE, FALSE, (const wchar_t*)u"CopySyncEvent");
 
-	D3D12_DESCRIPTOR_HEAP_DESC DescriptorHeapDesc;
-	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
-	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	DescriptorHeapDesc.NodeMask = 0;
-	DescriptorHeapDesc.NumDescriptors = 29;
-	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+	new (&RTDescriptorHeap) DescriptorHeap(Device, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 29);
+	new (&DSDescriptorHeap) DescriptorHeap(Device, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 5);
+	new (&CBSRUADescriptorHeap) DescriptorHeap(Device, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 49);
+	new (&SamplersDescriptorHeap) DescriptorHeap(Device, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 4);
+	new (&ConstantBufferDescriptorHeap) DescriptorHeap(Device, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 100000);
+	new (&TexturesDescriptorHeap) DescriptorHeap(Device, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 8002);
 
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(RTDescriptorHeap)));
-
-	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
-	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	DescriptorHeapDesc.NodeMask = 0;
-	DescriptorHeapDesc.NumDescriptors = 5;
-	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(DSDescriptorHeap)));
-
-	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
-	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	DescriptorHeapDesc.NodeMask = 0;
-	DescriptorHeapDesc.NumDescriptors = 49;
-	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(CBSRUADescriptorHeap)));
-
-	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
-	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	DescriptorHeapDesc.NodeMask = 0;
-	DescriptorHeapDesc.NumDescriptors = 4;
-	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
-
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(SamplersDescriptorHeap)));
-
-	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
-	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	DescriptorHeapDesc.NodeMask = 0;
-	DescriptorHeapDesc.NumDescriptors = 100000;
-	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(ConstantBufferDescriptorHeap)));
-
-	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
-	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	DescriptorHeapDesc.NodeMask = 0;
-	DescriptorHeapDesc.NumDescriptors = 8002;
-	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(TexturesDescriptorHeap)));
-
-	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
-	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	DescriptorHeapDesc.NodeMask = 0;
-	DescriptorHeapDesc.NumDescriptors = 500000;
-	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(FrameResourcesDescriptorHeaps[0])));
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(FrameResourcesDescriptorHeaps[1])));
-
-	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
-	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	DescriptorHeapDesc.NodeMask = 0;
-	DescriptorHeapDesc.NumDescriptors = 2000;
-	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
-
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(FrameSamplersDescriptorHeaps[0])));
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(FrameSamplersDescriptorHeaps[1])));
+	new (&FrameResourcesDescriptorHeap) FrameDescriptorHeap(Device, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 500000);
+	new (&FrameSamplersDescriptorHeap) FrameDescriptorHeap(Device, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 2000);
 
 	D3D12_DESCRIPTOR_RANGE DescriptorRanges[4];
 	DescriptorRanges[0].BaseShaderRegister = 0;
@@ -212,75 +265,76 @@ void RenderSystem::InitSystem()
 	DescriptorRanges[3].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE::D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
 	DescriptorRanges[3].RegisterSpace = 0;
 
-	D3D12_ROOT_PARAMETER RootParameters[6];
-	RootParameters[0].DescriptorTable.NumDescriptorRanges = 1;
-	RootParameters[0].DescriptorTable.pDescriptorRanges = &DescriptorRanges[0];
-	RootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	RootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_VERTEX;
-	RootParameters[1].DescriptorTable.NumDescriptorRanges = 1;
-	RootParameters[1].DescriptorTable.pDescriptorRanges = &DescriptorRanges[1];
-	RootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	RootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_VERTEX;
-	RootParameters[2].DescriptorTable.NumDescriptorRanges = 1;
-	RootParameters[2].DescriptorTable.pDescriptorRanges = &DescriptorRanges[2];
-	RootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	RootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_VERTEX;
-	RootParameters[3].DescriptorTable.NumDescriptorRanges = 1;
-	RootParameters[3].DescriptorTable.pDescriptorRanges = &DescriptorRanges[0];
-	RootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	RootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_PIXEL;
-	RootParameters[4].DescriptorTable.NumDescriptorRanges = 1;
-	RootParameters[4].DescriptorTable.pDescriptorRanges = &DescriptorRanges[1];
-	RootParameters[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	RootParameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_PIXEL;
-	RootParameters[5].DescriptorTable.NumDescriptorRanges = 1;
-	RootParameters[5].DescriptorTable.pDescriptorRanges = &DescriptorRanges[2];
-	RootParameters[5].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	RootParameters[5].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_PIXEL;
+	D3D12_ROOT_PARAMETER GraphicsRootParameters[6];
+	GraphicsRootParameters[0].DescriptorTable.NumDescriptorRanges = 1;
+	GraphicsRootParameters[0].DescriptorTable.pDescriptorRanges = &DescriptorRanges[0];
+	GraphicsRootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	GraphicsRootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_VERTEX;
+	GraphicsRootParameters[1].DescriptorTable.NumDescriptorRanges = 1;
+	GraphicsRootParameters[1].DescriptorTable.pDescriptorRanges = &DescriptorRanges[1];
+	GraphicsRootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	GraphicsRootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_VERTEX;
+	GraphicsRootParameters[2].DescriptorTable.NumDescriptorRanges = 1;
+	GraphicsRootParameters[2].DescriptorTable.pDescriptorRanges = &DescriptorRanges[2];
+	GraphicsRootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	GraphicsRootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_VERTEX;
+	GraphicsRootParameters[3].DescriptorTable.NumDescriptorRanges = 1;
+	GraphicsRootParameters[3].DescriptorTable.pDescriptorRanges = &DescriptorRanges[0];
+	GraphicsRootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	GraphicsRootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_PIXEL;
+	GraphicsRootParameters[4].DescriptorTable.NumDescriptorRanges = 1;
+	GraphicsRootParameters[4].DescriptorTable.pDescriptorRanges = &DescriptorRanges[1];
+	GraphicsRootParameters[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	GraphicsRootParameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_PIXEL;
+	GraphicsRootParameters[5].DescriptorTable.NumDescriptorRanges = 1;
+	GraphicsRootParameters[5].DescriptorTable.pDescriptorRanges = &DescriptorRanges[2];
+	GraphicsRootParameters[5].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	GraphicsRootParameters[5].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_PIXEL;
 
-	D3D12_ROOT_SIGNATURE_DESC RootSignatureDesc;
-	RootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS;
-	RootSignatureDesc.NumParameters = 6;
-	RootSignatureDesc.NumStaticSamplers = 0;
-	RootSignatureDesc.pParameters = RootParameters;
-	RootSignatureDesc.pStaticSamplers = nullptr;
+	D3D12_ROOT_SIGNATURE_DESC GraphicsRootSignatureDesc;
+	GraphicsRootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS;
+	GraphicsRootSignatureDesc.NumParameters = 6;
+	GraphicsRootSignatureDesc.NumStaticSamplers = 0;
+	GraphicsRootSignatureDesc.pParameters = GraphicsRootParameters;
+	GraphicsRootSignatureDesc.pStaticSamplers = nullptr;
 
-	COMRCPtr<ID3DBlob> RootSignatureBlob;
+	new (&GraphicsRootSignature) RootSignature(Device, GraphicsRootSignatureDesc);
 
-	SAFE_DX(D3D12SerializeRootSignature(&RootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION::D3D_ROOT_SIGNATURE_VERSION_1_0, &RootSignatureBlob, nullptr));
+	D3D12_ROOT_PARAMETER ComputeRootParameters[6];
+	ComputeRootParameters[0].DescriptorTable.NumDescriptorRanges = 1;
+	ComputeRootParameters[0].DescriptorTable.pDescriptorRanges = &DescriptorRanges[0];
+	ComputeRootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	ComputeRootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_ALL;
+	ComputeRootParameters[1].DescriptorTable.NumDescriptorRanges = 1;
+	ComputeRootParameters[1].DescriptorTable.pDescriptorRanges = &DescriptorRanges[1];
+	ComputeRootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	ComputeRootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_ALL;
+	ComputeRootParameters[2].DescriptorTable.NumDescriptorRanges = 1;
+	ComputeRootParameters[2].DescriptorTable.pDescriptorRanges = &DescriptorRanges[2];
+	ComputeRootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	ComputeRootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_ALL;
+	ComputeRootParameters[3].DescriptorTable.NumDescriptorRanges = 1;
+	ComputeRootParameters[3].DescriptorTable.pDescriptorRanges = &DescriptorRanges[3];
+	ComputeRootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	ComputeRootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_ALL;
 
-	SAFE_DX(Device->CreateRootSignature(0, RootSignatureBlob->GetBufferPointer(), RootSignatureBlob->GetBufferSize(), UUIDOF(GraphicsRootSignature)));
+	D3D12_ROOT_SIGNATURE_DESC ComputeRootSignatureDesc;
+	ComputeRootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS;
+	ComputeRootSignatureDesc.NumParameters = 4;
+	ComputeRootSignatureDesc.NumStaticSamplers = 0;
+	ComputeRootSignatureDesc.pParameters = ComputeRootParameters;
+	ComputeRootSignatureDesc.pStaticSamplers = nullptr;
 
-	RootParameters[0].DescriptorTable.NumDescriptorRanges = 1;
-	RootParameters[0].DescriptorTable.pDescriptorRanges = &DescriptorRanges[0];
-	RootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	RootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_ALL;
-	RootParameters[1].DescriptorTable.NumDescriptorRanges = 1;
-	RootParameters[1].DescriptorTable.pDescriptorRanges = &DescriptorRanges[1];
-	RootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	RootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_ALL;
-	RootParameters[2].DescriptorTable.NumDescriptorRanges = 1;
-	RootParameters[2].DescriptorTable.pDescriptorRanges = &DescriptorRanges[2];
-	RootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	RootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_ALL;
-	RootParameters[3].DescriptorTable.NumDescriptorRanges = 1;
-	RootParameters[3].DescriptorTable.pDescriptorRanges = &DescriptorRanges[3];
-	RootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	RootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_ALL;
-
-	RootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS;
-	RootSignatureDesc.NumParameters = 4;
-	RootSignatureDesc.NumStaticSamplers = 0;
-	RootSignatureDesc.pParameters = RootParameters;
-	RootSignatureDesc.pStaticSamplers = nullptr;
-
-	SAFE_DX(D3D12SerializeRootSignature(&RootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION::D3D_ROOT_SIGNATURE_VERSION_1_0, &RootSignatureBlob, nullptr));
-
-	SAFE_DX(Device->CreateRootSignature(0, RootSignatureBlob->GetBufferPointer(), RootSignatureBlob->GetBufferSize(), UUIDOF(ComputeRootSignature)));
+	new (&ComputeRootSignature) RootSignature(Device, ComputeRootSignatureDesc);
 
 	{
-		SAFE_DX(SwapChain->GetBuffer(0, UUIDOF(BackBufferTextures[0])));
-		SAFE_DX(SwapChain->GetBuffer(1, UUIDOF(BackBufferTextures[1])));
+		SAFE_DX(SwapChain->GetBuffer(0, UUIDOF(BackBufferTextures[0].DXTexture)));
+		SAFE_DX(SwapChain->GetBuffer(1, UUIDOF(BackBufferTextures[1].DXTexture)));
+
+		BackBufferTextures[0].DXTextureSubResourceStates = new D3D12_RESOURCE_STATES;
+		BackBufferTextures[0].DXTextureSubResourceStates[0] = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PRESENT;
+		BackBufferTextures[1].DXTextureSubResourceStates = new D3D12_RESOURCE_STATES;
+		BackBufferTextures[1].DXTextureSubResourceStates[0] = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PRESENT;
 
 		D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
 		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
@@ -288,13 +342,11 @@ void RenderSystem::InitSystem()
 		RTVDesc.Texture2D.PlaneSlice = 0;
 		RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2D;
 
-		BackBufferTexturesRTVs[0].ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		RTDescriptorsCount++;
-		BackBufferTexturesRTVs[1].ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		RTDescriptorsCount++;
+		BackBufferTexturesRTVs[0] = RTDescriptorHeap.AllocateDescriptor();
+		BackBufferTexturesRTVs[1] = RTDescriptorHeap.AllocateDescriptor();
 
-		Device->CreateRenderTargetView(BackBufferTextures[0], &RTVDesc, BackBufferTexturesRTVs[0]);
-		Device->CreateRenderTargetView(BackBufferTextures[1], &RTVDesc, BackBufferTexturesRTVs[1]);
+		Device->CreateRenderTargetView(BackBufferTextures[0].DXTexture, &RTVDesc, BackBufferTexturesRTVs[0]);
+		Device->CreateRenderTargetView(BackBufferTextures[1].DXTexture, &RTVDesc, BackBufferTexturesRTVs[1]);
 	}
 
 	HANDLE FullScreenQuadVertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/FullScreenQuad.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
@@ -316,8 +368,7 @@ void RenderSystem::InitSystem()
 		SamplerDesc.MinLOD = 0;
 		SamplerDesc.MipLODBias = 0.0f;
 
-		TextureSampler.ptr = SamplersDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + SamplersDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-		SamplersDescriptorsCount++;
+		TextureSampler = SamplersDescriptorHeap.AllocateDescriptor();
 
 		Device->CreateSampler(&SamplerDesc, TextureSampler);
 
@@ -331,8 +382,7 @@ void RenderSystem::InitSystem()
 		SamplerDesc.MinLOD = 0;
 		SamplerDesc.MipLODBias = 0.0f;
 
-		ShadowMapSampler.ptr = SamplersDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + SamplersDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-		SamplersDescriptorsCount++;
+		ShadowMapSampler = SamplersDescriptorHeap.AllocateDescriptor();
 
 		Device->CreateSampler(&SamplerDesc, ShadowMapSampler);
 
@@ -346,8 +396,7 @@ void RenderSystem::InitSystem()
 		SamplerDesc.MinLOD = 0;
 		SamplerDesc.MipLODBias = 0.0f;
 
-		BiLinearSampler.ptr = SamplersDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + SamplersDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-		SamplersDescriptorsCount++;
+		BiLinearSampler = SamplersDescriptorHeap.AllocateDescriptor();
 
 		Device->CreateSampler(&SamplerDesc, BiLinearSampler);
 
@@ -361,10 +410,14 @@ void RenderSystem::InitSystem()
 		SamplerDesc.MinLOD = 0;
 		SamplerDesc.MipLODBias = 0.0f;
 
-		MinSampler.ptr = SamplersDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + SamplersDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-		SamplersDescriptorsCount++;
+		MinSampler = SamplersDescriptorHeap.AllocateDescriptor();
 
 		Device->CreateSampler(&SamplerDesc, MinSampler);
+
+		TextureSamplerTable = FrameSamplersDescriptorHeap.AllocateDescriptorTable(GraphicsRootSignature.GetRootSignatureDesc().pParameters[PIXEL_SHADER_SAMPLERS]);
+		ShadowMapSamplerTable = FrameSamplersDescriptorHeap.AllocateDescriptorTable(GraphicsRootSignature.GetRootSignatureDesc().pParameters[PIXEL_SHADER_SAMPLERS]);
+		BiLinearSamplerTable = FrameSamplersDescriptorHeap.AllocateDescriptorTable(GraphicsRootSignature.GetRootSignatureDesc().pParameters[PIXEL_SHADER_SAMPLERS]);
+		MinSamplerTable = FrameSamplersDescriptorHeap.AllocateDescriptorTable(GraphicsRootSignature.GetRootSignatureDesc().pParameters[PIXEL_SHADER_SAMPLERS]);
 	}
 
 	{
@@ -528,31 +581,12 @@ void RenderSystem::TickSystem(float DeltaTime)
 	SAFE_DX(CommandAllocators[CurrentFrameIndex]->Reset());
 	SAFE_DX(CommandList->Reset(CommandAllocators[CurrentFrameIndex], nullptr));
 
-	D3D12_CPU_DESCRIPTOR_HANDLE ResourceCPUHandle = FrameResourcesDescriptorHeaps[CurrentFrameIndex]->GetCPUDescriptorHandleForHeapStart();
-	D3D12_GPU_DESCRIPTOR_HANDLE ResourceGPUHandle = FrameResourcesDescriptorHeaps[CurrentFrameIndex]->GetGPUDescriptorHandleForHeapStart();
-	D3D12_CPU_DESCRIPTOR_HANDLE SamplerCPUHandle = FrameSamplersDescriptorHeaps[CurrentFrameIndex]->GetCPUDescriptorHandleForHeapStart();
-	D3D12_GPU_DESCRIPTOR_HANDLE SamplerGPUHandle = FrameSamplersDescriptorHeaps[CurrentFrameIndex]->GetGPUDescriptorHandleForHeapStart();
-	UINT ResourceHandleSize = Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	UINT SamplerHandleSize = Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-
-	ID3D12DescriptorHeap *DescriptorHeaps[2] = { FrameResourcesDescriptorHeaps[CurrentFrameIndex], FrameSamplersDescriptorHeaps[CurrentFrameIndex] };
+	ID3D12DescriptorHeap *DescriptorHeaps[2] = { FrameResourcesDescriptorHeap.GetDXDescriptorHeap(CurrentFrameIndex), FrameSamplersDescriptorHeap.GetDXDescriptorHeap(CurrentFrameIndex) };
+	//ID3D12DescriptorHeap *DescriptorHeaps[2] = { FrameResourcesDescriptorHeap.GetDXDescriptorHeap(0), FrameSamplersDescriptorHeap.GetDXDescriptorHeap(0) };
 
 	CommandList->SetDescriptorHeaps(2, DescriptorHeaps);
 	CommandList->SetGraphicsRootSignature(GraphicsRootSignature);
 	CommandList->SetComputeRootSignature(ComputeRootSignature);
-
-	OPTICK_EVENT("Draw Calls")
-
-	D3D12_RESOURCE_BARRIER ResourceBarrier;
-
-	ResourceBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarrier.Transition.pResource = BackBufferTextures[CurrentBackBufferIndex];
-	ResourceBarrier.Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PRESENT;
-	ResourceBarrier.Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST;
-	ResourceBarrier.Transition.Subresource = 0;
-	ResourceBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-	CommandList->ResourceBarrier(1, &ResourceBarrier);
 
 	SAFE_DX(CommandList->Close());
 
@@ -564,6 +598,112 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	CurrentFrameIndex = (CurrentFrameIndex + 1) % 2;
 	CurrentBackBufferIndex = SwapChain->GetCurrentBackBufferIndex();
+}
+
+/*void RenderSystem::SwitchResourceState(ID3D12Resource *Resource, const UINT SubResource, const D3D12_RESOURCE_STATES OldState, const D3D12_RESOURCE_STATES NewState)
+{
+	PendingResourceBarriers[PendingBarriersCount].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	PendingResourceBarriers[PendingBarriersCount].Transition.pResource = Resource;
+	PendingResourceBarriers[PendingBarriersCount].Transition.StateAfter = NewState;
+	PendingResourceBarriers[PendingBarriersCount].Transition.StateBefore = OldState;
+	PendingResourceBarriers[PendingBarriersCount].Transition.Subresource = SubResource;
+	PendingResourceBarriers[PendingBarriersCount].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+
+	++PendingBarriersCount;
+}*/
+
+void RenderSystem::SwitchResourceState(Buffer& buffer, const D3D12_RESOURCE_STATES NewState)
+{
+	if (buffer.DXBufferState != NewState)
+	{
+		PendingResourceBarriers[PendingBarriersCount].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		PendingResourceBarriers[PendingBarriersCount].Transition.pResource = buffer.DXBuffer;
+		PendingResourceBarriers[PendingBarriersCount].Transition.StateAfter = NewState;
+		PendingResourceBarriers[PendingBarriersCount].Transition.StateBefore = buffer.DXBufferState;
+		PendingResourceBarriers[PendingBarriersCount].Transition.Subresource = 0;
+		PendingResourceBarriers[PendingBarriersCount].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+
+		++PendingBarriersCount;
+
+		buffer.DXBufferState = NewState;
+	}
+}
+
+void RenderSystem::SwitchResourceState(Texture& texture, const UINT SubResource, const D3D12_RESOURCE_STATES NewState)
+{
+	if (SubResource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES)
+	{
+		bool AreAllSubResourcesInSameState = true;
+
+		for (UINT i = 1; i < texture.SubResourcesCount; i++)
+		{
+			if (texture.DXTextureSubResourceStates[i] != texture.DXTextureSubResourceStates[0])
+			{
+				AreAllSubResourcesInSameState = false;
+				break;
+			}
+		}
+
+		if (AreAllSubResourcesInSameState)
+		{
+			PendingResourceBarriers[PendingBarriersCount].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
+			PendingResourceBarriers[PendingBarriersCount].Transition.pResource = texture.DXTexture;
+			PendingResourceBarriers[PendingBarriersCount].Transition.StateAfter = NewState;
+			PendingResourceBarriers[PendingBarriersCount].Transition.StateBefore = texture.DXTextureSubResourceStates[0];
+			PendingResourceBarriers[PendingBarriersCount].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+			PendingResourceBarriers[PendingBarriersCount].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+
+			++PendingBarriersCount;
+		}
+		else
+		{
+			for (UINT i = 0; i < texture.SubResourcesCount; i++)
+			{
+				if (texture.DXTextureSubResourceStates[i] != NewState)
+				{
+					PendingResourceBarriers[PendingBarriersCount].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
+					PendingResourceBarriers[PendingBarriersCount].Transition.pResource = texture.DXTexture;
+					PendingResourceBarriers[PendingBarriersCount].Transition.StateAfter = NewState;
+					PendingResourceBarriers[PendingBarriersCount].Transition.StateBefore = texture.DXTextureSubResourceStates[i];
+					PendingResourceBarriers[PendingBarriersCount].Transition.Subresource = i;
+					PendingResourceBarriers[PendingBarriersCount].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+
+					++PendingBarriersCount;
+				}
+			}
+		}
+
+		for (UINT i = 0; i < texture.SubResourcesCount; i++)
+		{
+			texture.DXTextureSubResourceStates[i] = NewState;
+		}
+	}
+	else
+	{
+		if (texture.DXTextureSubResourceStates[SubResource] != NewState)
+		{
+			PendingResourceBarriers[PendingBarriersCount].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
+			PendingResourceBarriers[PendingBarriersCount].Transition.pResource = texture.DXTexture;
+			PendingResourceBarriers[PendingBarriersCount].Transition.StateAfter = NewState;
+			PendingResourceBarriers[PendingBarriersCount].Transition.StateBefore = texture.DXTextureSubResourceStates[SubResource];
+			PendingResourceBarriers[PendingBarriersCount].Transition.Subresource = SubResource;
+			PendingResourceBarriers[PendingBarriersCount].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+
+			++PendingBarriersCount;
+
+			texture.DXTextureSubResourceStates[SubResource] = NewState;
+		}
+	}
+}
+
+void RenderSystem::ApplyPendingBarriers()
+{
+	if (PendingBarriersCount > 0)
+	{
+		CommandList->ResourceBarrier(PendingBarriersCount, PendingResourceBarriers);
+
+		PendingBarriersCount = 0;
+	}
 }
 
 RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMeshCreateInfo)
@@ -902,8 +1042,10 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 	SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 	SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
-	renderTexture->TextureSRV.ptr = TexturesDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + TexturesDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	++TexturesDescriptorsCount;
+	/*renderTexture->TextureSRV.ptr = TexturesDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + TexturesDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	++TexturesDescriptorsCount;*/
+
+	renderTexture->TextureSRV = TexturesDescriptorHeap.AllocateDescriptor();
 
 	Device->CreateShaderResourceView(renderTexture->Texture, &SRVDesc, renderTexture->TextureSRV);
 
@@ -1018,6 +1160,72 @@ void RenderSystem::DestroyRenderTexture(RenderTexture* renderTexture)
 void RenderSystem::DestroyRenderMaterial(RenderMaterial* renderMaterial)
 {
 	RenderMaterialDestructionQueue.push_back(renderMaterial);
+}
+
+Buffer RenderSystem::CreateBuffer(const D3D12_HEAP_PROPERTIES& HeapProperties, D3D12_HEAP_FLAGS HeapFlags, const D3D12_RESOURCE_DESC& ResourceDesc, D3D12_RESOURCE_STATES InitialState, const D3D12_CLEAR_VALUE* ClearValue)
+{
+	Buffer buffer;
+	SAFE_DX(Device->CreateCommittedResource(&HeapProperties, HeapFlags, &ResourceDesc, InitialState, ClearValue, UUIDOF(buffer.DXBuffer)));
+	buffer.DXBufferState = InitialState;
+	return buffer;
+}
+
+Buffer RenderSystem::CreateBuffer(ID3D12Heap* Heap, UINT64 HeapOffset, const D3D12_RESOURCE_DESC& ResourceDesc, D3D12_RESOURCE_STATES InitialState, const D3D12_CLEAR_VALUE* ClearValue)
+{
+	Buffer buffer;
+	SAFE_DX(Device->CreatePlacedResource(Heap, HeapOffset, &ResourceDesc, InitialState, ClearValue, UUIDOF(buffer.DXBuffer)));
+	buffer.DXBufferState = InitialState;
+	return buffer;
+}
+
+Texture RenderSystem::CreateTexture(const D3D12_HEAP_PROPERTIES& HeapProperties, D3D12_HEAP_FLAGS HeapFlags, const D3D12_RESOURCE_DESC& ResourceDesc, D3D12_RESOURCE_STATES InitialState, const D3D12_CLEAR_VALUE* ClearValue)
+{
+	Texture texture;
+	SAFE_DX(Device->CreateCommittedResource(&HeapProperties, HeapFlags, &ResourceDesc, InitialState, ClearValue, UUIDOF(texture.DXTexture)));
+	UINT SubResourcesCount = 0;
+	if (ResourceDesc.Dimension == D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_TEXTURE2D)
+	{
+		SubResourcesCount = ResourceDesc.DepthOrArraySize * ResourceDesc.MipLevels;
+
+		if (ResourceDesc.Format == DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT_S8X24_UINT || ResourceDesc.Format == DXGI_FORMAT::DXGI_FORMAT_D24_UNORM_S8_UINT)
+			SubResourcesCount *= 2;
+	}
+	else if (ResourceDesc.Dimension == D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+	{
+		SubResourcesCount = ResourceDesc.MipLevels;
+	}
+	texture.DXTextureSubResourceStates = new D3D12_RESOURCE_STATES[SubResourcesCount];
+	for (UINT i = 0; i < SubResourcesCount; i++)
+	{
+		texture.DXTextureSubResourceStates[i] = InitialState;
+	}
+	texture.SubResourcesCount = SubResourcesCount;
+	return texture;
+}
+
+Texture RenderSystem::CreateTexture(ID3D12Heap* Heap, UINT64 HeapOffset, const D3D12_RESOURCE_DESC& ResourceDesc, D3D12_RESOURCE_STATES InitialState, const D3D12_CLEAR_VALUE* ClearValue)
+{
+	Texture texture;
+	SAFE_DX(Device->CreatePlacedResource(Heap, HeapOffset, &ResourceDesc, InitialState, ClearValue, UUIDOF(texture.DXTexture)));
+	UINT SubResourcesCount = 0;
+	if (ResourceDesc.Dimension == D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_TEXTURE2D)
+	{
+		SubResourcesCount = ResourceDesc.DepthOrArraySize * ResourceDesc.MipLevels;
+
+		if (ResourceDesc.Format == DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT_S8X24_UINT || ResourceDesc.Format == DXGI_FORMAT::DXGI_FORMAT_D24_UNORM_S8_UINT)
+			SubResourcesCount *= 2;
+	}
+	else if (ResourceDesc.Dimension == D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+	{
+		SubResourcesCount = ResourceDesc.MipLevels;
+	}
+	texture.DXTextureSubResourceStates = new D3D12_RESOURCE_STATES[SubResourcesCount];
+	for (UINT i = 0; i < SubResourcesCount; i++)
+	{
+		texture.DXTextureSubResourceStates[i] = InitialState;
+	}
+	texture.SubResourcesCount = SubResourcesCount;
+	return texture;
 }
 
 inline void RenderSystem::CheckDXCallResult(HRESULT hr, const char16_t* Function)
