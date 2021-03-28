@@ -131,8 +131,296 @@ inline float DistanceBetweenColor(const Color& Color1, const Color& Color2)
 	return powf(Color1.R - Color2.R, 2.0f) + powf(Color1.G - Color2.G, 2.0f) + powf(Color1.B - Color2.B, 2.0f);
 }
 
+class RenderPass;
+
 #define SAFE_DX(Func) CheckDXCallResult(Func, u#Func);
 #define UUIDOF(Value) __uuidof(Value), (void**)&Value
+
+class DescriptorHeap
+{
+	public:
+
+		DescriptorHeap()
+		{
+			DXDescriptorHeap = nullptr;
+		}
+
+		DescriptorHeap(ID3D12Device *DXDevice, const D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType, const UINT DescriptorsCount);
+
+		D3D12_CPU_DESCRIPTOR_HANDLE AllocateDescriptor()
+		{
+			D3D12_CPU_DESCRIPTOR_HANDLE Descriptor;
+			Descriptor.ptr = FirstDescriptor + AllocatedDescriptorsCount * DescriptorSize;
+			++AllocatedDescriptorsCount;
+			return Descriptor;
+		}
+
+	private:
+
+		COMRCPtr<ID3D12DescriptorHeap> DXDescriptorHeap;
+		SIZE_T FirstDescriptor;
+		UINT DescriptorSize;
+
+		UINT AllocatedDescriptorsCount;
+};
+
+class RootSignature
+{
+	public:
+
+		RootSignature()
+		{
+			DXRootSignature = nullptr;
+		}
+
+		RootSignature(ID3D12Device *DXDevice, const D3D12_ROOT_SIGNATURE_DESC& RootSignatureDesc);
+
+		~RootSignature();
+
+		operator ID3D12RootSignature*()
+		{
+			return DXRootSignature;
+		}
+
+		const D3D12_ROOT_SIGNATURE_DESC& GetRootSignatureDesc() { return DXRootSignatureDesc; };
+
+	private:
+
+		COMRCPtr<ID3D12RootSignature> DXRootSignature;
+
+		D3D12_ROOT_SIGNATURE_DESC DXRootSignatureDesc;
+};
+
+class FrameDescriptorHeap;
+
+class DescriptorTable
+{
+	public:
+
+		DescriptorTable() : CurrentFrameIndex(nullptr)
+		{
+			DescriptorsArray = nullptr;
+			ArrayOfOnes = nullptr;
+			DescriptorsCountInTable = 0;
+		}
+
+		DescriptorTable(const DescriptorTable& OtherDescriptorTable) : CurrentFrameIndex(OtherDescriptorTable.CurrentFrameIndex)
+		{
+			Device = OtherDescriptorTable.Device;
+
+			DescriptorHeapType = OtherDescriptorTable.DescriptorHeapType;
+
+			DescriptorsCountInTable = OtherDescriptorTable.DescriptorsCountInTable;
+			OffsetInDescriptorHeap = OtherDescriptorTable.OffsetInDescriptorHeap;
+
+			this->FirstDescriptorsInTableCPU[0] = OtherDescriptorTable.FirstDescriptorsInTableCPU[0];
+			this->FirstDescriptorsInTableCPU[1] = OtherDescriptorTable.FirstDescriptorsInTableCPU[1];
+			this->FirstDescriptorsInTableGPU[0] = OtherDescriptorTable.FirstDescriptorsInTableGPU[0];
+			this->FirstDescriptorsInTableGPU[1] = OtherDescriptorTable.FirstDescriptorsInTableGPU[1];
+
+			DescriptorsCountInTable = OtherDescriptorTable.DescriptorsCountInTable;
+			DescriptorsArray = new D3D12_CPU_DESCRIPTOR_HANDLE[OtherDescriptorTable.DescriptorsCountInTable];
+			ArrayOfOnes = new UINT[OtherDescriptorTable.DescriptorsCountInTable];
+
+			for (UINT i = 0; i < DescriptorsCountInTable; i++) ArrayOfOnes[i] = 1;
+		}
+
+		DescriptorTable(
+			const UINT DescriptorsCountInTable,
+			const UINT OffsetInDescriptorHeap,
+			const SIZE_T FirstDescriptorsInTableCPU0,
+			const SIZE_T FirstDescriptorsInTableCPU1,
+			const UINT64 FirstDescriptorsInTableGPU0,
+			const UINT64 FirstDescriptorsInTableGPU1,
+			D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType,
+			ID3D12Device* DXDevice,
+			UINT* FrameIndexRef
+		) : 
+			DescriptorsCountInTable(DescriptorsCountInTable), 
+			OffsetInDescriptorHeap(OffsetInDescriptorHeap),
+			DescriptorHeapType(DescriptorHeapType),
+			CurrentFrameIndex(FrameIndexRef)
+		{
+			DescriptorsArray = new D3D12_CPU_DESCRIPTOR_HANDLE[DescriptorsCountInTable];
+			ArrayOfOnes = new UINT[DescriptorsCountInTable];
+
+			for (UINT i = 0; i < DescriptorsCountInTable; i++) ArrayOfOnes[i] = 1;
+
+			this->FirstDescriptorsInTableCPU[0].ptr = FirstDescriptorsInTableCPU0;
+			this->FirstDescriptorsInTableCPU[1].ptr = FirstDescriptorsInTableCPU1;
+			this->FirstDescriptorsInTableGPU[0].ptr = FirstDescriptorsInTableGPU0;
+			this->FirstDescriptorsInTableGPU[1].ptr = FirstDescriptorsInTableGPU1;
+
+			Device = DXDevice;
+		}
+
+		~DescriptorTable()
+		{
+			delete[] DescriptorsArray;
+			delete[] ArrayOfOnes;
+		}
+
+		D3D12_CPU_DESCRIPTOR_HANDLE& operator[](size_t Index)
+		{
+			return DescriptorsArray[Index];
+		}
+
+		void UpdateDescriptorTable()
+		{
+			Device->CopyDescriptors(1, &FirstDescriptorsInTableCPU[*CurrentFrameIndex], &DescriptorsCountInTable, DescriptorsCountInTable, DescriptorsArray, ArrayOfOnes, DescriptorHeapType);
+		}
+
+		void SetTableSize(const UINT NewTableSize)
+		{
+			DescriptorsCountInTable = NewTableSize;
+		}
+
+		operator D3D12_GPU_DESCRIPTOR_HANDLE()
+		{
+			return FirstDescriptorsInTableGPU[*CurrentFrameIndex];
+		}
+
+		DescriptorTable& operator=(const DescriptorTable& OtherDescriptorTable)
+		{
+			Device = OtherDescriptorTable.Device;
+
+			CurrentFrameIndex = OtherDescriptorTable.CurrentFrameIndex;
+
+			DescriptorHeapType = OtherDescriptorTable.DescriptorHeapType;
+
+			DescriptorsCountInTable = OtherDescriptorTable.DescriptorsCountInTable;
+			OffsetInDescriptorHeap = OtherDescriptorTable.OffsetInDescriptorHeap;
+
+			this->FirstDescriptorsInTableCPU[0] = OtherDescriptorTable.FirstDescriptorsInTableCPU[0];
+			this->FirstDescriptorsInTableCPU[1] = OtherDescriptorTable.FirstDescriptorsInTableCPU[1];
+			this->FirstDescriptorsInTableGPU[0] = OtherDescriptorTable.FirstDescriptorsInTableGPU[0];
+			this->FirstDescriptorsInTableGPU[1] = OtherDescriptorTable.FirstDescriptorsInTableGPU[1];
+
+			DescriptorsCountInTable = OtherDescriptorTable.DescriptorsCountInTable;
+			delete[] DescriptorsArray;
+			delete[] ArrayOfOnes;
+			DescriptorsArray = new D3D12_CPU_DESCRIPTOR_HANDLE[OtherDescriptorTable.DescriptorsCountInTable];
+			ArrayOfOnes = new UINT[OtherDescriptorTable.DescriptorsCountInTable];
+
+			for (UINT i = 0; i < DescriptorsCountInTable; i++) ArrayOfOnes[i] = 1;
+			return *this;
+		}
+
+	private:
+
+		D3D12_CPU_DESCRIPTOR_HANDLE *DescriptorsArray;
+
+		D3D12_CPU_DESCRIPTOR_HANDLE FirstDescriptorsInTableCPU[2];
+		D3D12_GPU_DESCRIPTOR_HANDLE FirstDescriptorsInTableGPU[2];
+
+		D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType;
+
+		UINT DescriptorsCountInTable, OffsetInDescriptorHeap, *ArrayOfOnes;
+		UINT *CurrentFrameIndex;
+
+		ID3D12Device *Device;
+};
+
+class FrameDescriptorHeap
+{
+	public:
+
+		FrameDescriptorHeap() : CurrentFrameIndex(nullptr)
+		{
+			DXDescriptorHeaps[0] = nullptr;
+			DXDescriptorHeaps[1] = nullptr;
+		}
+
+		FrameDescriptorHeap(ID3D12Device *DXDevice, const D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType, const UINT DescriptorsCount, UINT* FrameIndexRef);
+
+		DescriptorTable AllocateDescriptorTable(const D3D12_ROOT_PARAMETER& RootParameter);
+
+		ID3D12DescriptorHeap* GetDXDescriptorHeap() { return DXDescriptorHeaps[*CurrentFrameIndex]; }
+
+	private:
+
+		COMRCPtr<ID3D12DescriptorHeap> DXDescriptorHeaps[2];
+
+		D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType;
+
+		SIZE_T FirstDescriptorsCPU[2];
+		UINT64 FirstDescriptorsGPU[2];
+
+		UINT DescriptorSize = 0;
+
+		UINT AllocatedDescriptorsForTables = 0;
+
+		ID3D12Device *Device;
+
+		UINT *CurrentFrameIndex;
+};
+
+struct Buffer
+{
+	COMRCPtr<ID3D12Resource> DXBuffer;
+	D3D12_RESOURCE_STATES DXBufferState;
+};
+
+struct Texture
+{
+	COMRCPtr<ID3D12Resource> DXTexture;
+	D3D12_RESOURCE_STATES *DXTextureSubResourceStates;
+	UINT SubResourcesCount;
+};
+
+class DX12Helpers
+{
+	public:
+
+		static inline D3D12_HEAP_PROPERTIES CreateDXHeapProperties(D3D12_HEAP_TYPE HeapType)
+		{
+			D3D12_HEAP_PROPERTIES HeapProperties;
+
+			HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+			HeapProperties.CreationNodeMask = 0;
+			HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
+			HeapProperties.Type = HeapType;
+			HeapProperties.VisibleNodeMask = 0;
+
+			return HeapProperties;
+		}
+
+		static inline D3D12_RESOURCE_DESC CreateDXResourceDescBuffer(UINT64 BufferSize, D3D12_RESOURCE_FLAGS ResourceFlags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE)
+		{
+			D3D12_RESOURCE_DESC ResourceDesc;
+			ResourceDesc.Alignment = 0;
+			ResourceDesc.DepthOrArraySize = 1;
+			ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER;
+			ResourceDesc.Flags = ResourceFlags;
+			ResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
+			ResourceDesc.Height = 1;
+			ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+			ResourceDesc.MipLevels = 1;
+			ResourceDesc.SampleDesc.Count = 1;
+			ResourceDesc.SampleDesc.Quality = 0;
+			ResourceDesc.Width = BufferSize;
+
+			return ResourceDesc;
+		}
+
+		static inline D3D12_RESOURCE_DESC CreateDXResourceDescTexture2D(UINT64 Width, UINT Height, DXGI_FORMAT Format, D3D12_RESOURCE_FLAGS ResourceFlags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE, UINT MIPLevels = 1, UINT SamplesCount = 1)
+		{
+			D3D12_RESOURCE_DESC ResourceDesc;
+			ResourceDesc.Alignment = 0;
+			ResourceDesc.DepthOrArraySize = 1;
+			ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+			ResourceDesc.Flags = ResourceFlags;
+			ResourceDesc.Format = Format;
+			ResourceDesc.Height = Height;
+			ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_UNKNOWN;
+			ResourceDesc.MipLevels = MIPLevels;
+			ResourceDesc.SampleDesc.Count = SamplesCount;
+			ResourceDesc.SampleDesc.Quality = 0;
+			ResourceDesc.Width = Width;
+
+			return ResourceDesc;
+		}
+};
 
 class RenderSystem
 {
@@ -150,9 +438,71 @@ class RenderSystem
 		void DestroyRenderTexture(RenderTexture* renderTexture);
 		void DestroyRenderMaterial(RenderMaterial* renderMaterial);
 
+		Buffer CreateBuffer(const D3D12_HEAP_PROPERTIES& HeapProperties, D3D12_HEAP_FLAGS HeapFlags, const D3D12_RESOURCE_DESC& ResourceDesc, D3D12_RESOURCE_STATES InitialState, const D3D12_CLEAR_VALUE* ClearValue);
+		Buffer CreateBuffer(ID3D12Heap* Heap, UINT64 HeapOffset, const D3D12_RESOURCE_DESC& ResourceDesc, D3D12_RESOURCE_STATES InitialState, const D3D12_CLEAR_VALUE* ClearValue);
+		Texture CreateTexture(const D3D12_HEAP_PROPERTIES& HeapProperties, D3D12_HEAP_FLAGS HeapFlags, const D3D12_RESOURCE_DESC& ResourceDesc, D3D12_RESOURCE_STATES InitialState, const D3D12_CLEAR_VALUE* ClearValue);
+		Texture CreateTexture(ID3D12Heap* Heap, UINT64 HeapOffset, const D3D12_RESOURCE_DESC& ResourceDesc, D3D12_RESOURCE_STATES InitialState, const D3D12_CLEAR_VALUE* ClearValue);
+
 		CullingSubSystem& GetCullingSubSystem() { return cullingSubSystem; }
+		ClusterizationSubSystem& GetClusterizationSubSystem() { return clusterizationSubSystem; }
+
+		ID3D12Device* GetDevice() { return Device; }
+		ID3D12GraphicsCommandList*& GetCommandList() { return CommandList.Pointer; }
+
+		int GetResolutionWidth() { return ResolutionWidth; }
+		int GetResolutionHeight() { return ResolutionHeight; }
+
+		Texture* GetCurrentBackBufferTexture() { return &BackBufferTextures[CurrentFrameIndex]; }
+
+		DescriptorHeap& GetRTDescriptorHeap() { return RTDescriptorHeap; }
+		DescriptorHeap& GetDSDescriptorHeap() { return DSDescriptorHeap; }
+		DescriptorHeap& GetCBSRUADescriptorHeap() { return CBSRUADescriptorHeap; }
+		DescriptorHeap& GetSamplersDescriptorHeap() { return SamplersDescriptorHeap; }
+
+		DescriptorHeap& GetConstantBufferDescriptorHeap() { return ConstantBufferDescriptorHeap; }
+		DescriptorHeap& GetTexturesDescriptorHeap() { return TexturesDescriptorHeap; }
+
+		RootSignature& GetGraphicsRootSignature() { return GraphicsRootSignature; }
+		RootSignature& GetComputeRootSignature() { return ComputeRootSignature; }
+
+		UINT GetCurrentFrameIndex() { return CurrentFrameIndex; }
+
+		D3D12_SHADER_BYTECODE GetFullScreenQuadVertexShader() { return FullScreenQuadVertexShader; }
+
+		FrameDescriptorHeap& GetFrameResourcesDescriptorHeap() { return FrameResourcesDescriptorHeap; }
+		FrameDescriptorHeap& GetFrameSamplersDescriptorHeap() { return FrameSamplersDescriptorHeap; }
+
+		DescriptorTable& GetTextureSamplerTable(){ return TextureSamplerTable; }
+		DescriptorTable& GetShadowMapSamplerTable() { return ShadowMapSamplerTable; }
+		DescriptorTable& GetBiLinearSamplerTable() { return BiLinearSamplerTable; }
+		DescriptorTable& GetMinSamplerTable() { return MinSamplerTable; }
+
+		ID3D12Resource* GetUploadBuffer() { return UploadBuffer; }
+
+		ID3D12CommandQueue* GetCommandQueue() { return CommandQueue; }
+
+		ID3D12Fence* GetCopySyncFence() { return CopySyncFence; }
+		HANDLE GetCopySyncEvent() { return CopySyncEvent; }
+
+		ID3D12CommandAllocator* GetCommandAllocator(UINT Index) { return CommandAllocators[Index]; }
+
+		template<typename T>
+		T* GetRenderPass()
+		{
+			for (RenderPass* renderPass : RenderPasses)
+			{
+				if (dynamic_cast<T*>(renderPass))
+				{
+					return (T*)renderPass;
+				}
+			}
+
+			return nullptr;
+		}
 
 	private:
+
+		D3D12_SHADER_BYTECODE FullScreenQuadVertexShader;
 
 		COMRCPtr<ID3D12Device> Device;
 		COMRCPtr<IDXGISwapChain4> SwapChain;
@@ -169,21 +519,21 @@ class RenderSystem
 		COMRCPtr<ID3D12Fence> FrameSyncFences[2], CopySyncFence;
 		HANDLE FrameSyncEvent, CopySyncEvent;
 
-		COMRCPtr<ID3D12DescriptorHeap> RTDescriptorHeap, DSDescriptorHeap, CBSRUADescriptorHeap, SamplersDescriptorHeap;
-		COMRCPtr<ID3D12DescriptorHeap> ConstantBufferDescriptorHeap, TexturesDescriptorHeap;
-		COMRCPtr<ID3D12DescriptorHeap> FrameResourcesDescriptorHeaps[2], FrameSamplersDescriptorHeaps[2];
+		DescriptorHeap RTDescriptorHeap, DSDescriptorHeap, CBSRUADescriptorHeap, SamplersDescriptorHeap;
+		DescriptorHeap ConstantBufferDescriptorHeap, TexturesDescriptorHeap;
 
-		UINT RTDescriptorsCount = 0, DSDescriptorsCount = 0, CBSRUADescriptorsCount = 0, SamplersDescriptorsCount = 0;
-		UINT ConstantBufferDescriptorsCount = 0, TexturesDescriptorsCount = 0;
+		FrameDescriptorHeap FrameResourcesDescriptorHeap, FrameSamplersDescriptorHeap;
 
-		COMRCPtr<ID3D12RootSignature> GraphicsRootSignature, ComputeRootSignature;
+		RootSignature GraphicsRootSignature, ComputeRootSignature;
 
-		COMRCPtr<ID3D12Resource> BackBufferTextures[2];
+		Texture BackBufferTextures[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE BackBufferTexturesRTVs[2];
 
 		// ===============================================================================================================
 
 		D3D12_CPU_DESCRIPTOR_HANDLE TextureSampler, ShadowMapSampler, BiLinearSampler, MinSampler;
+
+		DescriptorTable TextureSamplerTable, ShadowMapSamplerTable, BiLinearSamplerTable, MinSamplerTable;
 
 		// ===============================================================================================================
 
@@ -199,123 +549,6 @@ class RenderSystem
 		COMRCPtr<ID3D12Resource> UploadBuffer;
 		size_t UploadBufferOffset = 0;
 
-		// ===============================================================================================================
-
-		COMRCPtr<ID3D12Resource> GBufferTextures[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE GBufferTexturesRTVs[2], GBufferTexturesSRVs[2];
-
-		COMRCPtr<ID3D12Resource> DepthBufferTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE DepthBufferTextureDSV, DepthBufferTextureSRV;
-
-		COMRCPtr<ID3D12Resource> GPUConstantBuffer, CPUConstantBuffers[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs[20000];
-
-		// ===============================================================================================================
-
-		COMRCPtr<ID3D12Resource> ResolvedDepthBufferTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE ResolvedDepthBufferTextureSRV;
-
-		// ===============================================================================================================
-
-		COMRCPtr<ID3D12Resource> OcclusionBufferTexture, OcclusionBufferTextureReadback[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE OcclusionBufferTextureRTV;
-
-		COMRCPtr<ID3D12PipelineState> OcclusionBufferPipelineState;
-
-		// ===============================================================================================================
-
-		COMRCPtr<ID3D12Resource> CascadedShadowMapTextures[4];
-		D3D12_CPU_DESCRIPTOR_HANDLE CascadedShadowMapTexturesDSVs[4], CascadedShadowMapTexturesSRVs[4];
-
-		COMRCPtr<ID3D12Resource> GPUConstantBuffers2[4], CPUConstantBuffers2[4][2];
-		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs2[4][20000];
-
-		// ===============================================================================================================
-
-		COMRCPtr<ID3D12Resource> ShadowMaskTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE ShadowMaskTextureRTV, ShadowMaskTextureSRV;
-
-		COMRCPtr<ID3D12Resource> GPUShadowResolveConstantBuffer, CPUShadowResolveConstantBuffers[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE ShadowResolveConstantBufferCBV;
-
-		COMRCPtr<ID3D12PipelineState> ShadowResolvePipelineState;
-		
-		// ===============================================================================================================
-
-		COMRCPtr<ID3D12Resource> HDRSceneColorTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE HDRSceneColorTextureRTV, HDRSceneColorTextureSRV;
-
-		COMRCPtr<ID3D12Resource> GPUDeferredLightingConstantBuffer, CPUDeferredLightingConstantBuffers[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE DeferredLightingConstantBufferCBV;
-
-		COMRCPtr<ID3D12Resource> GPULightClustersBuffer, CPULightClustersBuffers[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE LightClustersBufferSRV;
-
-		COMRCPtr<ID3D12Resource> GPULightIndicesBuffer, CPULightIndicesBuffers[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE LightIndicesBufferSRV;
-
-		COMRCPtr<ID3D12Resource> GPUPointLightsBuffer, CPUPointLightsBuffers[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE PointLightsBufferSRV;
-
-		COMRCPtr<ID3D12PipelineState> DeferredLightingPipelineState;
-		
-		// ===============================================================================================================
-
-		COMRCPtr<ID3D12Resource> SkyVertexBuffer, SkyIndexBuffer;
-		D3D12_GPU_VIRTUAL_ADDRESS SkyVertexBufferAddress, SkyIndexBufferAddress;
-		COMRCPtr<ID3D12Resource> GPUSkyConstantBuffer, CPUSkyConstantBuffers[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE SkyConstantBufferCBV;
-		COMRCPtr<ID3D12PipelineState> SkyPipelineState;
-		COMRCPtr<ID3D12Resource> SkyTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE SkyTextureSRV;
-
-		COMRCPtr<ID3D12Resource> SunVertexBuffer, SunIndexBuffer;
-		D3D12_GPU_VIRTUAL_ADDRESS SunVertexBufferAddress, SunIndexBufferAddress;
-		COMRCPtr<ID3D12Resource> GPUSunConstantBuffer, CPUSunConstantBuffers[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE SunConstantBufferCBV;
-		COMRCPtr<ID3D12PipelineState> SunPipelineState;
-		COMRCPtr<ID3D12Resource> SunTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE SunTextureSRV;
-
-		COMRCPtr<ID3D12PipelineState> FogPipelineState;
-
-		// ===============================================================================================================
-
-		COMRCPtr<ID3D12Resource> ResolvedHDRSceneColorTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE ResolvedHDRSceneColorTextureSRV;
-
-		// ===============================================================================================================
-
-		COMRCPtr<ID3D12Resource> SceneLuminanceTextures[4];
-		D3D12_CPU_DESCRIPTOR_HANDLE SceneLuminanceTexturesUAVs[4], SceneLuminanceTexturesSRVs[4];
-
-		COMRCPtr<ID3D12Resource> AverageLuminanceTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE AverageLuminanceTextureUAV, AverageLuminanceTextureSRV;
-
-		COMRCPtr<ID3D12PipelineState> LuminanceCalcPipelineState;
-		COMRCPtr<ID3D12PipelineState> LuminanceSumPipelineState;
-		COMRCPtr<ID3D12PipelineState> LuminanceAvgPipelineState;
-
-		// ===============================================================================================================
-
-		COMRCPtr<ID3D12Resource> BloomTextures[3][7];
-		D3D12_CPU_DESCRIPTOR_HANDLE BloomTexturesRTVs[3][7], BloomTexturesSRVs[3][7];
-
-		COMRCPtr<ID3D12PipelineState> BrightPassPipelineState;
-		COMRCPtr<ID3D12PipelineState> DownSamplePipelineState;
-		COMRCPtr<ID3D12PipelineState> HorizontalBlurPipelineState;
-		COMRCPtr<ID3D12PipelineState> VerticalBlurPipelineState;
-		COMRCPtr<ID3D12PipelineState> UpSampleWithAddBlendPipelineState;
-		
-		// ===============================================================================================================
-
-		COMRCPtr<ID3D12Resource> ToneMappedImageTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE ToneMappedImageTextureRTV;
-
-		COMRCPtr<ID3D12PipelineState> HDRToneMappingPipelineState;
-		
-		// ===============================================================================================================
-				
 		vector<RenderMesh*> RenderMeshDestructionQueue;
 		vector<RenderMaterial*> RenderMaterialDestructionQueue;
 		vector<RenderTexture*> RenderTextureDestructionQueue;
@@ -327,4 +560,33 @@ class RenderSystem
 		inline const char16_t* GetDXErrorMessageFromHRESULT(HRESULT hr);
 
 		static const UINT MAX_MIP_LEVELS_IN_TEXTURE = 16;
+
+	public:
+		static const UINT VERTEX_SHADER_CONSTANT_BUFFERS = 0;
+		static const UINT VERTEX_SHADER_SHADER_RESOURCES = 1;
+		static const UINT VERTEX_SHADER_SAMPLERS = 2;
+
+		static const UINT PIXEL_SHADER_CONSTANT_BUFFERS = 3;
+		static const UINT PIXEL_SHADER_SHADER_RESOURCES = 4;
+		static const UINT PIXEL_SHADER_SAMPLERS = 5;
+
+		static const UINT COMPUTE_SHADER_CONSTANT_BUFFERS = 0;
+		static const UINT COMPUTE_SHADER_SHADER_RESOURCES = 1;
+		static const UINT COMPUTE_SHADER_SAMPLERS = 2;
+		static const UINT COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS = 3;
+
+	private:
+		static const UINT MAX_PENDING_BARRIERS_COUNT = 200;
+		UINT PendingBarriersCount = 0;
+
+		D3D12_RESOURCE_BARRIER PendingResourceBarriers[MAX_PENDING_BARRIERS_COUNT];
+
+		//void SwitchResourceState(ID3D12Resource *Resource, const UINT SubResource, const D3D12_RESOURCE_STATES OldState, const D3D12_RESOURCE_STATES NewState);
+	public:
+		void SwitchResourceState(Buffer& buffer, const D3D12_RESOURCE_STATES NewState);
+		void SwitchResourceState(Texture& texture, const UINT SubResource, const D3D12_RESOURCE_STATES NewState);
+		void ApplyPendingBarriers();
+
+	private: 
+		vector<RenderPass*> RenderPasses;
 };

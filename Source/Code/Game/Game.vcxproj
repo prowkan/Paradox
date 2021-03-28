@@ -106,7 +106,7 @@
       <PreprocessToFile>false</PreprocessToFile>
       <AssemblerOutput>All</AssemblerOutput>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -129,7 +129,7 @@
       <PreprocessToFile>false</PreprocessToFile>
       <AssemblerOutput>All</AssemblerOutput>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -152,7 +152,7 @@
       <PreprocessToFile>false</PreprocessToFile>
       <AssemblerOutput>All</AssemblerOutput>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -175,7 +175,7 @@
       <PreprocessToFile>false</PreprocessToFile>
       <AssemblerOutput>All</AssemblerOutput>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

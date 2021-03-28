@@ -106,7 +106,7 @@
       <PreprocessToFile>false</PreprocessToFile>
       <AssemblerOutput>All</AssemblerOutput>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -127,7 +127,7 @@
       <PreprocessToFile>false</PreprocessToFile>
       <AssemblerOutput>All</AssemblerOutput>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -148,7 +148,7 @@
       <PreprocessToFile>false</PreprocessToFile>
       <AssemblerOutput>All</AssemblerOutput>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -169,7 +169,7 @@
       <PreprocessToFile>false</PreprocessToFile>
       <AssemblerOutput>All</AssemblerOutput>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -208,6 +208,19 @@
     <ClInclude Include="MultiThreading\WorkerThread.h" />
     <ClInclude Include="Render\ClusterizationSubSystem.h" />
     <ClInclude Include="Render\CullingSubSystem.h" />
+    <ClInclude Include="Render\RenderPass.h" />
+    <ClInclude Include="Render\RenderPasses\BackBufferResolvePass.h" />
+    <ClInclude Include="Render\RenderPasses\DeferredLightingPass.h" />
+    <ClInclude Include="Render\RenderPasses\GBufferOpaquePass.h" />
+    <ClInclude Include="Render\RenderPasses\HDRSceneColorResolvePass.h" />
+    <ClInclude Include="Render\RenderPasses\MSAADepthBufferResolvePass.h" />
+    <ClInclude Include="Render\RenderPasses\OcclusionBufferPass.h" />
+    <ClInclude Include="Render\RenderPasses\PostProcessBloomPass.h" />
+    <ClInclude Include="Render\RenderPasses\PostProcessHDRToneMappingPass.h" />
+    <ClInclude Include="Render\RenderPasses\PostProcessLuminancePass.h" />
+    <ClInclude Include="Render\RenderPasses\ShadowMapPass.h" />
+    <ClInclude Include="Render\RenderPasses\ShadowResolvePass.h" />
+    <ClInclude Include="Render\RenderPasses\SkyAndFogPass.h" />
     <ClInclude Include="Render\RenderScene.h" />
     <ClInclude Include="Render\RenderSystem.h" />
     <ClInclude Include="ResourceManager\Resource.h" />
@@ -246,6 +259,19 @@
     <ClCompile Include="MultiThreading\WorkerThread.cpp" />
     <ClCompile Include="Render\ClusterizationSubSystem.cpp" />
     <ClCompile Include="Render\CullingSubSystem.cpp" />
+    <ClCompile Include="Render\RenderPass.cpp" />
+    <ClCompile Include="Render\RenderPasses\BackBufferResolvePass.cpp" />
+    <ClCompile Include="Render\RenderPasses\DeferredLightingPass.cpp" />
+    <ClCompile Include="Render\RenderPasses\GBufferOpaquePass.cpp" />
+    <ClCompile Include="Render\RenderPasses\HDRSceneColorResolvePass.cpp" />
+    <ClCompile Include="Render\RenderPasses\MSAADepthBufferResolvePass.cpp" />
+    <ClCompile Include="Render\RenderPasses\OcclusionBufferPass.cpp" />
+    <ClCompile Include="Render\RenderPasses\PostProcessBloomPass.cpp" />
+    <ClCompile Include="Render\RenderPasses\PostProcessHDRToneMappingPass.cpp" />
+    <ClCompile Include="Render\RenderPasses\PostProcessLuminancePass.cpp" />
+    <ClCompile Include="Render\RenderPasses\ShadowMapPass.cpp" />
+    <ClCompile Include="Render\RenderPasses\ShadowResolvePass.cpp" />
+    <ClCompile Include="Render\RenderPasses\SkyAndFogPass.cpp" />
     <ClCompile Include="Render\RenderScene.cpp" />
     <ClCompile Include="Render\RenderSystem.cpp" />
     <ClCompile Include="ResourceManager\Resource.cpp" />
