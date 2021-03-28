@@ -532,19 +532,19 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	TextureSamplerTable[0] = TextureSampler;
 	TextureSamplerTable.SetTableSize(1);
-	TextureSamplerTable.UpdateDescriptorTable(Device, CurrentFrameIndex);
+	TextureSamplerTable.UpdateDescriptorTable();
 
 	ShadowMapSamplerTable[0] = ShadowMapSampler;
 	ShadowMapSamplerTable.SetTableSize(1);
-	ShadowMapSamplerTable.UpdateDescriptorTable(Device, CurrentFrameIndex);
+	ShadowMapSamplerTable.UpdateDescriptorTable();
 
 	BiLinearSamplerTable[0] = BiLinearSampler;
 	BiLinearSamplerTable.SetTableSize(1);
-	BiLinearSamplerTable.UpdateDescriptorTable(Device, CurrentFrameIndex);
+	BiLinearSamplerTable.UpdateDescriptorTable();
 
 	MinSamplerTable[0] = MinSampler;
 	MinSamplerTable.SetTableSize(1);
-	MinSamplerTable.UpdateDescriptorTable(Device, CurrentFrameIndex);
+	MinSamplerTable.UpdateDescriptorTable();
 	
 	for (RenderPass* renderPass : RenderPasses)
 	{

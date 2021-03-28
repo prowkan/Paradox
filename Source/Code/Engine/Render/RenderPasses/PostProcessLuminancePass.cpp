@@ -182,11 +182,11 @@ void PostProcessLuminancePass::Execute(RenderSystem& renderSystem)
 
 	LuminancePassUATables[0][0] = SceneLuminanceTexturesUAVs[0];
 	LuminancePassSRTables[0].SetTableSize(1);
-	LuminancePassUATables[0].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+	LuminancePassUATables[0].UpdateDescriptorTable();
 
 	LuminancePassUATables[0].SetTableSize(1);
 	LuminancePassSRTables[0][0] = ResolvedHDRSceneColorTextureSRV;
-	LuminancePassSRTables[0].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+	LuminancePassSRTables[0].UpdateDescriptorTable();
 
 	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(RenderSystem::COMPUTE_SHADER_SHADER_RESOURCES, LuminancePassSRTables[0]);
 	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(RenderSystem::COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS, LuminancePassUATables[0]);
@@ -203,11 +203,11 @@ void PostProcessLuminancePass::Execute(RenderSystem& renderSystem)
 
 	LuminancePassSRTables[1][0] = SceneLuminanceTexturesSRVs[0];
 	LuminancePassSRTables[1].SetTableSize(1);
-	LuminancePassSRTables[1].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+	LuminancePassSRTables[1].UpdateDescriptorTable();
 
 	LuminancePassUATables[1][0] = SceneLuminanceTexturesUAVs[1];
 	LuminancePassUATables[1].SetTableSize(1);
-	LuminancePassUATables[1].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+	LuminancePassUATables[1].UpdateDescriptorTable();
 
 	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(RenderSystem::COMPUTE_SHADER_SHADER_RESOURCES, LuminancePassSRTables[1]);
 	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(RenderSystem::COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS, LuminancePassUATables[1]);
@@ -222,11 +222,11 @@ void PostProcessLuminancePass::Execute(RenderSystem& renderSystem)
 
 	LuminancePassSRTables[2][0] = SceneLuminanceTexturesSRVs[1];
 	LuminancePassSRTables[2].SetTableSize(1);
-	LuminancePassSRTables[2].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+	LuminancePassSRTables[2].UpdateDescriptorTable();
 
 	LuminancePassUATables[2][0] = SceneLuminanceTexturesUAVs[2];
 	LuminancePassUATables[2].SetTableSize(1);
-	LuminancePassUATables[2].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+	LuminancePassUATables[2].UpdateDescriptorTable();
 
 	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(RenderSystem::COMPUTE_SHADER_SHADER_RESOURCES, LuminancePassSRTables[2]);
 	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(RenderSystem::COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS, LuminancePassUATables[2]);
@@ -241,11 +241,11 @@ void PostProcessLuminancePass::Execute(RenderSystem& renderSystem)
 
 	LuminancePassSRTables[3][0] = SceneLuminanceTexturesSRVs[2];
 	LuminancePassSRTables[3].SetTableSize(1);
-	LuminancePassSRTables[3].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+	LuminancePassSRTables[3].UpdateDescriptorTable();
 
 	LuminancePassUATables[3][0] = SceneLuminanceTexturesUAVs[3];
 	LuminancePassUATables[3].SetTableSize(1);
-	LuminancePassUATables[3].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+	LuminancePassUATables[3].UpdateDescriptorTable();
 
 	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(RenderSystem::COMPUTE_SHADER_SHADER_RESOURCES, LuminancePassSRTables[3]);
 	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(RenderSystem::COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS, LuminancePassUATables[3]);
@@ -261,11 +261,11 @@ void PostProcessLuminancePass::Execute(RenderSystem& renderSystem)
 
 	LuminancePassUATables[4][0] = AverageLuminanceTextureUAV;
 	LuminancePassSRTables[4].SetTableSize(1);
-	LuminancePassUATables[4].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+	LuminancePassUATables[4].UpdateDescriptorTable();
 
 	LuminancePassSRTables[4][0] = SceneLuminanceTexturesSRVs[3];
 	LuminancePassUATables[4].SetTableSize(1);
-	LuminancePassSRTables[4].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+	LuminancePassSRTables[4].UpdateDescriptorTable();
 
 	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(RenderSystem::COMPUTE_SHADER_SHADER_RESOURCES, LuminancePassSRTables[4]);
 	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(RenderSystem::COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS, LuminancePassUATables[4]);

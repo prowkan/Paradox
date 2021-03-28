@@ -120,7 +120,7 @@ void PostProcessHDRToneMappingPass::Execute(RenderSystem& renderSystem)
 	HDRToneMappingPassSRTable[0] = HDRSceneColorTextureSRV;
 	HDRToneMappingPassSRTable[1] = OutputBloomTextureSRV;
 	HDRToneMappingPassSRTable.SetTableSize(2);
-	HDRToneMappingPassSRTable.UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+	HDRToneMappingPassSRTable.UpdateDescriptorTable();
 
 	renderSystem.GetCommandList()->DiscardResource(ToneMappedImageTexture.DXTexture, nullptr);
 

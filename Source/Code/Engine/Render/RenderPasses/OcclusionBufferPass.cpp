@@ -120,7 +120,7 @@ void OcclusionBufferPass::Execute(RenderSystem& renderSystem)
 {
 	OcclusionBufferPassSRTable[0] = ResolvedDepthBufferTextureSRV;
 	OcclusionBufferPassSRTable.SetTableSize(1);
-	OcclusionBufferPassSRTable.UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+	OcclusionBufferPassSRTable.UpdateDescriptorTable();
 
 	renderSystem.SwitchResourceState(*ResolvedDepthBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	renderSystem.SwitchResourceState(OcclusionBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);

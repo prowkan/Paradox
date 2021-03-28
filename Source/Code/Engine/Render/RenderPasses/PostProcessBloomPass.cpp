@@ -289,7 +289,7 @@ void PostProcessBloomPass::Execute(RenderSystem& renderSystem)
 	BloomPassSRTables1[0][0] = ResolvedHDRSceneColorTextureSRV;
 	BloomPassSRTables1[0][1] = SceneLuminanceTextureSRV;
 	BloomPassSRTables1[0].SetTableSize(2);
-	BloomPassSRTables1[0].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+	BloomPassSRTables1[0].UpdateDescriptorTable();
 
 	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(RenderSystem::PIXEL_SHADER_SHADER_RESOURCES, BloomPassSRTables1[0]);
 
@@ -325,7 +325,7 @@ void PostProcessBloomPass::Execute(RenderSystem& renderSystem)
 
 	BloomPassSRTables1[1][0] = BloomTexturesSRVs[0][0];
 	BloomPassSRTables1[1].SetTableSize(1);
-	BloomPassSRTables1[1].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+	BloomPassSRTables1[1].UpdateDescriptorTable();
 
 	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(RenderSystem::PIXEL_SHADER_SHADER_RESOURCES, BloomPassSRTables1[1]);
 
@@ -361,7 +361,7 @@ void PostProcessBloomPass::Execute(RenderSystem& renderSystem)
 
 	BloomPassSRTables1[2][0] = BloomTexturesSRVs[1][0];
 	BloomPassSRTables1[2].SetTableSize(1);
-	BloomPassSRTables1[2].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+	BloomPassSRTables1[2].UpdateDescriptorTable();
 
 	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(RenderSystem::PIXEL_SHADER_SHADER_RESOURCES, BloomPassSRTables1[2]);
 
@@ -398,7 +398,7 @@ void PostProcessBloomPass::Execute(RenderSystem& renderSystem)
 
 		BloomPassSRTables2[i - 1][0][0] = BloomTexturesSRVs[0][i - 1];
 		BloomPassSRTables2[i - 1][0].SetTableSize(1);
-		BloomPassSRTables2[i - 1][0].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+		BloomPassSRTables2[i - 1][0].UpdateDescriptorTable();
 
 		renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(RenderSystem::PIXEL_SHADER_SHADER_RESOURCES, BloomPassSRTables2[i - 1][0]);
 
@@ -434,7 +434,7 @@ void PostProcessBloomPass::Execute(RenderSystem& renderSystem)
 
 		BloomPassSRTables2[i - 1][1][0] = BloomTexturesSRVs[0][i];
 		BloomPassSRTables2[i - 1][1].SetTableSize(1);
-		BloomPassSRTables2[i - 1][1].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+		BloomPassSRTables2[i - 1][1].UpdateDescriptorTable();
 
 		renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(RenderSystem::PIXEL_SHADER_SHADER_RESOURCES, BloomPassSRTables2[i - 1][1]);
 
@@ -470,7 +470,7 @@ void PostProcessBloomPass::Execute(RenderSystem& renderSystem)
 
 		BloomPassSRTables2[i - 1][2][0] = BloomTexturesSRVs[1][i];
 		BloomPassSRTables2[i - 1][2].SetTableSize(1);
-		BloomPassSRTables2[i - 1][2].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+		BloomPassSRTables2[i - 1][2].UpdateDescriptorTable();
 
 		renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(RenderSystem::PIXEL_SHADER_SHADER_RESOURCES, BloomPassSRTables2[i - 1][2]);
 
@@ -506,7 +506,7 @@ void PostProcessBloomPass::Execute(RenderSystem& renderSystem)
 
 		BloomPassSRTables3[5 - i][0] = BloomTexturesSRVs[2][i + 1];
 		BloomPassSRTables3[5 - i].SetTableSize(1);
-		BloomPassSRTables3[5 - i].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+		BloomPassSRTables3[5 - i].UpdateDescriptorTable();
 
 		renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(RenderSystem::PIXEL_SHADER_SHADER_RESOURCES, BloomPassSRTables3[5 - i]);
 

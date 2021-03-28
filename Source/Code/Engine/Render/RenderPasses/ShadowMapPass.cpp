@@ -260,7 +260,7 @@ void ShadowMapPass::Execute(RenderSystem& renderSystem)
 
 			ConstantBufferTables[i * 20000 + k][0] = ConstantBufferCBVs[i][k];
 			ConstantBufferTables[i * 20000 + k].SetTableSize(1);
-			ConstantBufferTables[i * 20000 + k].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+			ConstantBufferTables[i * 20000 + k].UpdateDescriptorTable();
 
 			UINT DestRangeSize = 1;
 			UINT SourceRangeSizes[1] = { 1 };

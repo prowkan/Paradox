@@ -306,12 +306,12 @@ void GBufferOpaquePass::Execute(RenderSystem& renderSystem)
 
 		ConstantBufferTables[k][0] = ConstantBufferCBVs[k];
 		ConstantBufferTables[k].SetTableSize(1);
-		ConstantBufferTables[k].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+		ConstantBufferTables[k].UpdateDescriptorTable();
 
 		ShaderResourcesTables[k][0] = renderTexture0->TextureSRV;
 		ShaderResourcesTables[k][1] = renderTexture1->TextureSRV;
 		ShaderResourcesTables[k].SetTableSize(2);
-		ShaderResourcesTables[k].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+		ShaderResourcesTables[k].UpdateDescriptorTable();
 
 		D3D12_VERTEX_BUFFER_VIEW VertexBufferView;
 		VertexBufferView.BufferLocation = renderMesh->VertexBufferAddress;

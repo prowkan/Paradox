@@ -429,7 +429,7 @@ void DeferredLightingPass::Execute(RenderSystem& renderSystem)
 
 	DeferredLightingCBTable[0] = DeferredLightingConstantBufferCBV;
 	DeferredLightingCBTable.SetTableSize(1);
-	DeferredLightingCBTable.UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+	DeferredLightingCBTable.UpdateDescriptorTable();
 
 	DeferredLightingSRTable[0] = GBufferTexturesSRVs[0];
 	DeferredLightingSRTable[1] = GBufferTexturesSRVs[1];
@@ -439,7 +439,7 @@ void DeferredLightingPass::Execute(RenderSystem& renderSystem)
 	DeferredLightingSRTable[5] = LightIndicesBufferSRV;
 	DeferredLightingSRTable[6] = PointLightsBufferSRV;
 	DeferredLightingSRTable.SetTableSize(7);
-	DeferredLightingSRTable.UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+	DeferredLightingSRTable.UpdateDescriptorTable();
 
 	renderSystem.GetCommandList()->DiscardResource(HDRSceneColorTexture.DXTexture, nullptr);
 

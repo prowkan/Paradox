@@ -253,7 +253,7 @@ void ShadowResolvePass::Execute(RenderSystem& renderSystem)
 
 	ShadowResolveCBTable[0] = ShadowResolveConstantBufferCBV;
 	ShadowResolveCBTable.SetTableSize(1);
-	ShadowResolveCBTable.UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+	ShadowResolveCBTable.UpdateDescriptorTable();
 
 	ShadowResolveSRTable[0] = ResolvedDepthBufferTextureSRV;
 	ShadowResolveSRTable[1] = CascadedShadowMapTexturesSRVs[0];
@@ -261,7 +261,7 @@ void ShadowResolvePass::Execute(RenderSystem& renderSystem)
 	ShadowResolveSRTable[3] = CascadedShadowMapTexturesSRVs[2];
 	ShadowResolveSRTable[4] = CascadedShadowMapTexturesSRVs[3];
 	ShadowResolveSRTable.SetTableSize(5);
-	ShadowResolveSRTable.UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+	ShadowResolveSRTable.UpdateDescriptorTable();
 
 	renderSystem.GetCommandList()->DiscardResource(ShadowMaskTexture.DXTexture, nullptr);
 
