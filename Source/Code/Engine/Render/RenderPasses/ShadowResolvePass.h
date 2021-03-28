@@ -2,11 +2,16 @@
 
 #include "../RenderPass.h"
 
+#include "../RenderSystem.h"
+
 #include <Containers/COMRCPtr.h>
 
 class ShadowResolvePass : public RenderPass
 {
 	public:
+
+		Texture* GetShadowMaskTexture() { return &ShadowMaskTexture; }
+		D3D12_CPU_DESCRIPTOR_HANDLE GetShadowMaskTextureSRV() { return ShadowMaskTextureSRV; }
 
 		virtual void Init(RenderSystem& renderSystem) override;
 		virtual void Execute(RenderSystem& renderSystem) override;
@@ -15,14 +20,16 @@ class ShadowResolvePass : public RenderPass
 
 		D3D12_CPU_DESCRIPTOR_HANDLE ResolvedDepthBufferTextureSRV;
 
-		COMRCPtr<ID3D12Resource> CascadedShadowMapTextures[4];
-		D3D12_CPU_DESCRIPTOR_HANDLE CascadedShadowMapTexturesDSVs[4], CascadedShadowMapTexturesSRVs[4];
+		Texture *CascadedShadowMapTextures[4];
+		D3D12_CPU_DESCRIPTOR_HANDLE CascadedShadowMapTexturesSRVs[4];
 
-		COMRCPtr<ID3D12Resource> ShadowMaskTexture;
+		Texture ShadowMaskTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE ShadowMaskTextureRTV, ShadowMaskTextureSRV;
 
-		COMRCPtr<ID3D12Resource> GPUShadowResolveConstantBuffer, CPUShadowResolveConstantBuffers[2];
+		Buffer GPUShadowResolveConstantBuffer, CPUShadowResolveConstantBuffers[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE ShadowResolveConstantBufferCBV;
 
 		COMRCPtr<ID3D12PipelineState> ShadowResolvePipelineState;
+
+		DescriptorTable ShadowResolveCBTable, ShadowResolveSRTable;
 };

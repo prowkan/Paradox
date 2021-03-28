@@ -200,6 +200,7 @@ class DescriptorTable
 		DescriptorTable()
 		{
 			DescriptorsArray = nullptr;
+			ArrayOfOnes = nullptr;
 			DescriptorsCountInTable = 0;
 		}
 
@@ -210,10 +211,8 @@ class DescriptorTable
 			DescriptorsCountInTable = OtherDescriptorTable.DescriptorsCountInTable;
 			OffsetInDescriptorHeap = OtherDescriptorTable.OffsetInDescriptorHeap;
 
-			this->FirstDescriptorsInTableCPU[0] = OtherDescriptorTable.FirstDescriptorsInTableCPU[0];
-			this->FirstDescriptorsInTableCPU[1] = OtherDescriptorTable.FirstDescriptorsInTableCPU[1];
-			this->FirstDescriptorsInTableGPU[0] = OtherDescriptorTable.FirstDescriptorsInTableGPU[0];
-			this->FirstDescriptorsInTableGPU[1] = OtherDescriptorTable.FirstDescriptorsInTableGPU[1];
+			this->FirstDescriptorInTableCPU = OtherDescriptorTable.FirstDescriptorInTableCPU;
+			this->FirstDescriptorInTableGPU = OtherDescriptorTable.FirstDescriptorInTableGPU;
 
 			DescriptorsCountInTable = OtherDescriptorTable.DescriptorsCountInTable;
 			DescriptorsArray = new D3D12_CPU_DESCRIPTOR_HANDLE[OtherDescriptorTable.DescriptorsCountInTable];
@@ -225,10 +224,8 @@ class DescriptorTable
 		DescriptorTable(
 			const UINT DescriptorsCountInTable,
 			const UINT OffsetInDescriptorHeap,
-			const SIZE_T FirstDescriptorsInTableCPU0,
-			const SIZE_T FirstDescriptorsInTableCPU1,
-			const UINT64 FirstDescriptorsInTableGPU0,
-			const UINT64 FirstDescriptorsInTableGPU1,
+			const SIZE_T FirstDescriptorsInTableCPU,
+			const UINT64 FirstDescriptorsInTableGPU,
 			D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType
 		) : 
 			DescriptorsCountInTable(DescriptorsCountInTable), 
@@ -240,10 +237,8 @@ class DescriptorTable
 
 			for (UINT i = 0; i < DescriptorsCountInTable; i++) ArrayOfOnes[i] = 1;
 
-			this->FirstDescriptorsInTableCPU[0].ptr = FirstDescriptorsInTableCPU0;
-			this->FirstDescriptorsInTableCPU[1].ptr = FirstDescriptorsInTableCPU1;
-			this->FirstDescriptorsInTableGPU[0].ptr = FirstDescriptorsInTableGPU0;
-			this->FirstDescriptorsInTableGPU[1].ptr = FirstDescriptorsInTableGPU1;
+			this->FirstDescriptorInTableCPU.ptr = FirstDescriptorsInTableCPU;
+			this->FirstDescriptorInTableGPU.ptr = FirstDescriptorsInTableGPU;
 		}
 
 		~DescriptorTable()
@@ -257,10 +252,9 @@ class DescriptorTable
 			return DescriptorsArray[Index];
 		}
 
-		void UpdateDescriptorTable(ID3D12Device *Device, const UINT CurrentFrameIndex)
+		void UpdateDescriptorTable(ID3D12Device *Device)
 		{
-			Device->CopyDescriptors(1, &FirstDescriptorsInTableCPU[CurrentFrameIndex], &DescriptorsCountInTable, DescriptorsCountInTable, DescriptorsArray, ArrayOfOnes, DescriptorHeapType);
-			this->CurrentFrameIndex = CurrentFrameIndex;
+			Device->CopyDescriptors(1, &FirstDescriptorInTableCPU, &DescriptorsCountInTable, DescriptorsCountInTable, DescriptorsArray, ArrayOfOnes, DescriptorHeapType);
 		}
 
 		void SetTableSize(const UINT NewTableSize)
@@ -270,7 +264,7 @@ class DescriptorTable
 
 		operator D3D12_GPU_DESCRIPTOR_HANDLE()
 		{
-			return FirstDescriptorsInTableGPU[CurrentFrameIndex];
+			return FirstDescriptorInTableGPU;
 		}
 
 		DescriptorTable& operator=(const DescriptorTable& OtherDescriptorTable)
@@ -280,10 +274,8 @@ class DescriptorTable
 			DescriptorsCountInTable = OtherDescriptorTable.DescriptorsCountInTable;
 			OffsetInDescriptorHeap = OtherDescriptorTable.OffsetInDescriptorHeap;
 
-			this->FirstDescriptorsInTableCPU[0] = OtherDescriptorTable.FirstDescriptorsInTableCPU[0];
-			this->FirstDescriptorsInTableCPU[1] = OtherDescriptorTable.FirstDescriptorsInTableCPU[1];
-			this->FirstDescriptorsInTableGPU[0] = OtherDescriptorTable.FirstDescriptorsInTableGPU[0];
-			this->FirstDescriptorsInTableGPU[1] = OtherDescriptorTable.FirstDescriptorsInTableGPU[1];
+			this->FirstDescriptorInTableCPU = OtherDescriptorTable.FirstDescriptorInTableCPU;
+			this->FirstDescriptorInTableGPU = OtherDescriptorTable.FirstDescriptorInTableGPU;
 
 			DescriptorsCountInTable = OtherDescriptorTable.DescriptorsCountInTable;
 			delete[] DescriptorsArray;
@@ -299,13 +291,16 @@ class DescriptorTable
 
 		D3D12_CPU_DESCRIPTOR_HANDLE *DescriptorsArray;
 
-		D3D12_CPU_DESCRIPTOR_HANDLE FirstDescriptorsInTableCPU[2];
-		D3D12_GPU_DESCRIPTOR_HANDLE FirstDescriptorsInTableGPU[2];
+		/*D3D12_CPU_DESCRIPTOR_HANDLE FirstDescriptorsInTableCPU[2];
+		D3D12_GPU_DESCRIPTOR_HANDLE FirstDescriptorsInTableGPU[2];*/
+
+		D3D12_CPU_DESCRIPTOR_HANDLE FirstDescriptorInTableCPU;
+		D3D12_GPU_DESCRIPTOR_HANDLE FirstDescriptorInTableGPU;
 
 		D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType;
 
 		UINT DescriptorsCountInTable, OffsetInDescriptorHeap, *ArrayOfOnes;
-		UINT CurrentFrameIndex;
+		//UINT CurrentFrameIndex;
 };
 
 class FrameDescriptorHeap
@@ -314,24 +309,23 @@ class FrameDescriptorHeap
 
 		FrameDescriptorHeap()
 		{
-			DXDescriptorHeaps[0] = nullptr;
-			DXDescriptorHeaps[1] = nullptr;
+			DXDescriptorHeap = nullptr;
 		}
 
 		FrameDescriptorHeap(ID3D12Device *DXDevice, const D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType, const UINT DescriptorsCount);
 
 		DescriptorTable AllocateDescriptorTable(const D3D12_ROOT_PARAMETER& RootParameter);
 
-		ID3D12DescriptorHeap* GetDXDescriptorHeap(const UINT FrameIndex) { return DXDescriptorHeaps[FrameIndex]; }
+		ID3D12DescriptorHeap* GetDXDescriptorHeap(const UINT FrameIndex) { return DXDescriptorHeap; }
 
 	private:
 
-		COMRCPtr<ID3D12DescriptorHeap> DXDescriptorHeaps[2];
+		COMRCPtr<ID3D12DescriptorHeap> DXDescriptorHeap;
 
 		D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType;
 
-		SIZE_T FirstDescriptorsCPU[2];
-		UINT64 FirstDescriptorsGPU[2];
+		SIZE_T FirstDescriptorCPU;
+		UINT64 FirstDescriptorGPU;
 
 		UINT DescriptorSize = 0;
 
@@ -373,16 +367,65 @@ class RenderSystem
 		Texture CreateTexture(ID3D12Heap* Heap, UINT64 HeapOffset, const D3D12_RESOURCE_DESC& ResourceDesc, D3D12_RESOURCE_STATES InitialState, const D3D12_CLEAR_VALUE* ClearValue);
 
 		CullingSubSystem& GetCullingSubSystem() { return cullingSubSystem; }
+		ClusterizationSubSystem& GetClusterizationSubSystem() { return clusterizationSubSystem; }
 
 		ID3D12Device* GetDevice() { return Device; }
-		ID3D12GraphicsCommandList* GetCommandList() { return CommandList; }
+		ID3D12GraphicsCommandList*& GetCommandList() { return CommandList.Pointer; }
 
 		int GetResolutionWidth() { return ResolutionWidth; }
 		int GetResolutionHeight() { return ResolutionHeight; }
 
-		ID3D12Resource* GetCurrentBackBufferTexture() { return BackBufferTextures[CurrentFrameIndex]; }
+		Texture* GetCurrentBackBufferTexture() { return &BackBufferTextures[CurrentFrameIndex]; }
+
+		DescriptorHeap& GetRTDescriptorHeap() { return RTDescriptorHeap; }
+		DescriptorHeap& GetDSDescriptorHeap() { return DSDescriptorHeap; }
+		DescriptorHeap& GetCBSRUADescriptorHeap() { return CBSRUADescriptorHeap; }
+		DescriptorHeap& GetSamplersDescriptorHeap() { return SamplersDescriptorHeap; }
+
+		DescriptorHeap& GetConstantBufferDescriptorHeap() { return ConstantBufferDescriptorHeap; }
+		DescriptorHeap& GetTexturesDescriptorHeap() { return TexturesDescriptorHeap; }
+
+		RootSignature& GetGraphicsRootSignature() { return GraphicsRootSignature; }
+		RootSignature& GetComputeRootSignature() { return ComputeRootSignature; }
+
+		UINT GetCurrentFrameIndex() { return CurrentFrameIndex; }
+
+		D3D12_SHADER_BYTECODE GetFullScreenQuadVertexShader() { return FullScreenQuadVertexShader; }
+
+		FrameDescriptorHeap& GetFrameResourcesDescriptorHeap() { return FrameResourcesDescriptorHeap; }
+		FrameDescriptorHeap& GetFrameSamplersDescriptorHeap() { return FrameSamplersDescriptorHeap; }
+
+		DescriptorTable& GetTextureSamplerTable(){ return TextureSamplerTable; }
+		DescriptorTable& GetShadowMapSamplerTable() { return ShadowMapSamplerTable; }
+		DescriptorTable& GetBiLinearSamplerTable() { return BiLinearSamplerTable; }
+		DescriptorTable& GetMinSamplerTable() { return MinSamplerTable; }
+
+		ID3D12Resource* GetUploadBuffer() { return UploadBuffer; }
+
+		ID3D12CommandQueue* GetCommandQueue() { return CommandQueue; }
+
+		ID3D12Fence* GetCopySyncFence() { return CopySyncFence; }
+		HANDLE GetCopySyncEvent() { return CopySyncEvent; }
+
+		ID3D12CommandAllocator* GetCommandAllocator(UINT Index) { return CommandAllocators[Index]; }
+
+		template<typename T>
+		T* GetRenderPass()
+		{
+			for (RenderPass* renderPass : RenderPasses)
+			{
+				if (dynamic_cast<T*>(renderPass))
+				{
+					return (T*)renderPass;
+				}
+			}
+
+			return nullptr;
+		}
 
 	private:
+
+		D3D12_SHADER_BYTECODE FullScreenQuadVertexShader;
 
 		COMRCPtr<ID3D12Device> Device;
 		COMRCPtr<IDXGISwapChain4> SwapChain;
@@ -441,6 +484,7 @@ class RenderSystem
 
 		static const UINT MAX_MIP_LEVELS_IN_TEXTURE = 16;
 
+	public:
 		static const UINT VERTEX_SHADER_CONSTANT_BUFFERS = 0;
 		static const UINT VERTEX_SHADER_SHADER_RESOURCES = 1;
 		static const UINT VERTEX_SHADER_SAMPLERS = 2;
@@ -454,15 +498,18 @@ class RenderSystem
 		static const UINT COMPUTE_SHADER_SAMPLERS = 2;
 		static const UINT COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS = 3;
 
+	private:
 		static const UINT MAX_PENDING_BARRIERS_COUNT = 200;
 		UINT PendingBarriersCount = 0;
 
 		D3D12_RESOURCE_BARRIER PendingResourceBarriers[MAX_PENDING_BARRIERS_COUNT];
 
 		//void SwitchResourceState(ID3D12Resource *Resource, const UINT SubResource, const D3D12_RESOURCE_STATES OldState, const D3D12_RESOURCE_STATES NewState);
+	public:
 		void SwitchResourceState(Buffer& buffer, const D3D12_RESOURCE_STATES NewState);
 		void SwitchResourceState(Texture& texture, const UINT SubResource, const D3D12_RESOURCE_STATES NewState);
 		void ApplyPendingBarriers();
 
+	private: 
 		vector<RenderPass*> RenderPasses;
 };

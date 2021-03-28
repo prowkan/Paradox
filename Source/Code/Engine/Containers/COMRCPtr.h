@@ -39,7 +39,7 @@ class COMRCPtr
 		T* operator->() { return Pointer; }
 		operator T*() { return Pointer; }
 
-	private:
+	//private:
 
 		T *Pointer;
 };

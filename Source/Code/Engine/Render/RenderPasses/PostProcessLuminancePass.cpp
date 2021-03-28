@@ -3,12 +3,20 @@
 
 #include "PostProcessLuminancePass.h"
 
+#include "HDRSceneColorResolvePass.h"
+
 #include "../RenderSystem.h"
 
 #include <Engine/Engine.h>
 
+#undef SAFE_DX
+#define SAFE_DX(Func) Func
+
 void PostProcessLuminancePass::Init(RenderSystem& renderSystem)
 {
+	ResolvedHDRSceneColorTexture = renderSystem.GetRenderPass<HDRSceneColorResolvePass>()->GetResolvedHDRSceneColorTexture();
+	ResolvedHDRSceneColorTextureSRV = renderSystem.GetRenderPass<HDRSceneColorResolvePass>()->GetResolvedHDRSceneColorTextureSRV();
+
 	D3D12_RESOURCE_DESC ResourceDesc;
 	ZeroMemory(&ResourceDesc, sizeof(D3D12_RESOURCE_DESC));
 	ResourceDesc.Alignment = 0;
@@ -39,7 +47,7 @@ void PostProcessLuminancePass::Init(RenderSystem& renderSystem)
 		ResourceDesc.Width = Widths[i];
 		ResourceDesc.Height = Heights[i];
 
-		SAFE_DX(Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(SceneLuminanceTextures[i])));
+		SceneLuminanceTextures[i] = renderSystem.CreateTexture(HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr);
 	}
 
 	D3D12_UNORDERED_ACCESS_VIEW_DESC UAVDesc;
@@ -50,10 +58,9 @@ void PostProcessLuminancePass::Init(RenderSystem& renderSystem)
 
 	for (int i = 0; i < 4; i++)
 	{
-		SceneLuminanceTexturesUAVs[i].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		SceneLuminanceTexturesUAVs[i] = renderSystem.GetCBSRUADescriptorHeap().AllocateDescriptor();
 
-		Device->CreateUnorderedAccessView(SceneLuminanceTextures[i], nullptr, &UAVDesc, SceneLuminanceTexturesUAVs[i]);
+		renderSystem.GetDevice()->CreateUnorderedAccessView(SceneLuminanceTextures[i].DXTexture, nullptr, &UAVDesc, SceneLuminanceTexturesUAVs[i]);
 	}
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
@@ -67,10 +74,9 @@ void PostProcessLuminancePass::Init(RenderSystem& renderSystem)
 
 	for (int i = 0; i < 4; i++)
 	{
-		SceneLuminanceTexturesSRVs[i].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		SceneLuminanceTexturesSRVs[i] = renderSystem.GetCBSRUADescriptorHeap().AllocateDescriptor();
 
-		Device->CreateShaderResourceView(SceneLuminanceTextures[i], &SRVDesc, SceneLuminanceTexturesSRVs[i]);
+		renderSystem.GetDevice()->CreateShaderResourceView(SceneLuminanceTextures[i].DXTexture, &SRVDesc, SceneLuminanceTexturesSRVs[i]);
 	}
 
 	ZeroMemory(&ResourceDesc, sizeof(D3D12_RESOURCE_DESC));
@@ -93,17 +99,16 @@ void PostProcessLuminancePass::Init(RenderSystem& renderSystem)
 	HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT;
 	HeapProperties.VisibleNodeMask = 0;
 
-	SAFE_DX(Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr, UUIDOF(AverageLuminanceTexture)));
+	AverageLuminanceTexture = renderSystem.CreateTexture(HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr);
 
 	UAVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
 	UAVDesc.Texture2D.MipSlice = 0;
 	UAVDesc.Texture2D.PlaneSlice = 0;
 	UAVDesc.ViewDimension = D3D12_UAV_DIMENSION::D3D12_UAV_DIMENSION_TEXTURE2D;
 
-	AverageLuminanceTextureUAV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	CBSRUADescriptorsCount++;
+	AverageLuminanceTextureUAV = renderSystem.GetCBSRUADescriptorHeap().AllocateDescriptor();
 
-	Device->CreateUnorderedAccessView(AverageLuminanceTexture, nullptr, &UAVDesc, AverageLuminanceTextureUAV);
+	renderSystem.GetDevice()->CreateUnorderedAccessView(AverageLuminanceTexture.DXTexture, nullptr, &UAVDesc, AverageLuminanceTextureUAV);
 
 	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
 	SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -113,10 +118,9 @@ void PostProcessLuminancePass::Init(RenderSystem& renderSystem)
 	SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 	SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
-	AverageLuminanceTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	CBSRUADescriptorsCount++;
+	AverageLuminanceTextureSRV = renderSystem.GetCBSRUADescriptorHeap().AllocateDescriptor();
 
-	Device->CreateShaderResourceView(AverageLuminanceTexture, &SRVDesc, AverageLuminanceTextureSRV);
+	renderSystem.GetDevice()->CreateShaderResourceView(AverageLuminanceTexture.DXTexture, &SRVDesc, AverageLuminanceTextureSRV);
 
 	HANDLE LuminanceCalcComputeShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/LuminanceCalc.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER LuminanceCalcComputeShaderByteCodeLength;
@@ -143,86 +147,81 @@ void PostProcessLuminancePass::Init(RenderSystem& renderSystem)
 	ZeroMemory(&ComputePipelineStateDesc, sizeof(D3D12_COMPUTE_PIPELINE_STATE_DESC));
 	ComputePipelineStateDesc.CS.BytecodeLength = LuminanceCalcComputeShaderByteCodeLength.QuadPart;
 	ComputePipelineStateDesc.CS.pShaderBytecode = LuminanceCalcComputeShaderByteCodeData;
-	ComputePipelineStateDesc.pRootSignature = ComputeRootSignature;
+	ComputePipelineStateDesc.pRootSignature = renderSystem.GetComputeRootSignature();
 
-	SAFE_DX(Device->CreateComputePipelineState(&ComputePipelineStateDesc, UUIDOF(LuminanceCalcPipelineState)));
+	SAFE_DX(renderSystem.GetDevice()->CreateComputePipelineState(&ComputePipelineStateDesc, UUIDOF(LuminanceCalcPipelineState)));
 
 	ZeroMemory(&ComputePipelineStateDesc, sizeof(D3D12_COMPUTE_PIPELINE_STATE_DESC));
 	ComputePipelineStateDesc.CS.BytecodeLength = LuminanceSumComputeShaderByteCodeLength.QuadPart;
 	ComputePipelineStateDesc.CS.pShaderBytecode = LuminanceSumComputeShaderByteCodeData;
-	ComputePipelineStateDesc.pRootSignature = ComputeRootSignature;
+	ComputePipelineStateDesc.pRootSignature = renderSystem.GetComputeRootSignature();
 
-	SAFE_DX(Device->CreateComputePipelineState(&ComputePipelineStateDesc, UUIDOF(LuminanceSumPipelineState)));
+	SAFE_DX(renderSystem.GetDevice()->CreateComputePipelineState(&ComputePipelineStateDesc, UUIDOF(LuminanceSumPipelineState)));
 
 	ZeroMemory(&ComputePipelineStateDesc, sizeof(D3D12_COMPUTE_PIPELINE_STATE_DESC));
 	ComputePipelineStateDesc.CS.BytecodeLength = LuminanceAvgComputeShaderByteCodeLength.QuadPart;
 	ComputePipelineStateDesc.CS.pShaderBytecode = LuminanceAvgComputeShaderByteCodeData;
-	ComputePipelineStateDesc.pRootSignature = ComputeRootSignature;
+	ComputePipelineStateDesc.pRootSignature = renderSystem.GetComputeRootSignature();
 
-	SAFE_DX(Device->CreateComputePipelineState(&ComputePipelineStateDesc, UUIDOF(LuminanceAvgPipelineState)));
+	SAFE_DX(renderSystem.GetDevice()->CreateComputePipelineState(&ComputePipelineStateDesc, UUIDOF(LuminanceAvgPipelineState)));
+
+	LuminancePassSRTables[0] = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetComputeRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::COMPUTE_SHADER_SHADER_RESOURCES]);
+	LuminancePassSRTables[0].SetTableSize(1);
+	LuminancePassSRTables[1] = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetComputeRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::COMPUTE_SHADER_SHADER_RESOURCES]);
+	LuminancePassSRTables[1].SetTableSize(1);
+	LuminancePassSRTables[2] = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetComputeRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::COMPUTE_SHADER_SHADER_RESOURCES]);
+	LuminancePassSRTables[2].SetTableSize(1);
+	LuminancePassSRTables[3] = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetComputeRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::COMPUTE_SHADER_SHADER_RESOURCES]);
+	LuminancePassSRTables[3].SetTableSize(1);
+	LuminancePassSRTables[4] = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetComputeRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::COMPUTE_SHADER_SHADER_RESOURCES]);
+	LuminancePassSRTables[4].SetTableSize(1);
+		
+	LuminancePassSRTables[0][0] = ResolvedHDRSceneColorTextureSRV; LuminancePassSRTables[0].UpdateDescriptorTable(renderSystem.GetDevice());
+	LuminancePassSRTables[1][0] = SceneLuminanceTexturesSRVs[0]; LuminancePassSRTables[1].UpdateDescriptorTable(renderSystem.GetDevice());
+	LuminancePassSRTables[2][0] = SceneLuminanceTexturesSRVs[1]; LuminancePassSRTables[2].UpdateDescriptorTable(renderSystem.GetDevice());
+	LuminancePassSRTables[3][0] = SceneLuminanceTexturesSRVs[2]; LuminancePassSRTables[3].UpdateDescriptorTable(renderSystem.GetDevice());
+	LuminancePassSRTables[4][0] = SceneLuminanceTexturesSRVs[3]; LuminancePassSRTables[4].UpdateDescriptorTable(renderSystem.GetDevice());
+
+	LuminancePassUATables[0] = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetComputeRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]);
+	LuminancePassUATables[0].SetTableSize(1);
+	LuminancePassUATables[1] = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetComputeRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]);
+	LuminancePassUATables[1].SetTableSize(1);
+	LuminancePassUATables[2] = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetComputeRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]);
+	LuminancePassUATables[2].SetTableSize(1);
+	LuminancePassUATables[3] = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetComputeRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]);
+	LuminancePassUATables[3].SetTableSize(1);
+	LuminancePassUATables[4] = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetComputeRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]);
+	LuminancePassUATables[4].SetTableSize(1);
+	
+	LuminancePassUATables[0][0] = SceneLuminanceTexturesUAVs[0]; LuminancePassUATables[0].UpdateDescriptorTable(renderSystem.GetDevice());
+	LuminancePassUATables[1][0] = SceneLuminanceTexturesUAVs[1]; LuminancePassUATables[1].UpdateDescriptorTable(renderSystem.GetDevice());
+	LuminancePassUATables[2][0] = SceneLuminanceTexturesUAVs[2]; LuminancePassUATables[2].UpdateDescriptorTable(renderSystem.GetDevice());
+	LuminancePassUATables[3][0] = SceneLuminanceTexturesUAVs[3]; LuminancePassUATables[3].UpdateDescriptorTable(renderSystem.GetDevice());
+	LuminancePassUATables[4][0] = AverageLuminanceTextureUAV; LuminancePassUATables[4].UpdateDescriptorTable(renderSystem.GetDevice());
 }
 
 void PostProcessLuminancePass::Execute(RenderSystem& renderSystem)
 {
-	D3D12_RESOURCE_BARRIER ResourceBarriers[3];
-
-	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[0].Transition.pResource = HDRSceneColorTexture;
-	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
-	ResourceBarriers[0].Transition.Subresource = 0;
-	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-	ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[1].Transition.pResource = ResolvedHDRSceneColorTexture;
-	ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST;
-	ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[1].Transition.Subresource = 0;
-	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-	ResourceBarriers[2].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[2].Transition.pResource = SceneLuminanceTextures[0];
-	ResourceBarriers[2].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-	ResourceBarriers[2].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[2].Transition.Subresource = 0;
-	ResourceBarriers[2].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-	renderSystem.GetCommandList()->ResourceBarrier(3, ResourceBarriers);
+	renderSystem.SwitchResourceState(*ResolvedHDRSceneColorTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+	renderSystem.SwitchResourceState(SceneLuminanceTextures[0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	renderSystem.ApplyPendingBarriers();
 
 	UINT DestRangeSize = 2;
 	UINT SourceRangeSizes[2] = { 1, 1 };
 	D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[2] = { ResolvedHDRSceneColorTextureSRV, SceneLuminanceTexturesUAVs[0] };
 
-	Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
-	ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
-
 	renderSystem.GetCommandList()->SetPipelineState(LuminanceCalcPipelineState);
 
-	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(RenderSystem::COMPUTE_SHADER_SHADER_RESOURCES, LuminancePassSRTables[0]);
+	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(RenderSystem::COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS, LuminancePassUATables[0]);
 
-	renderSystem.GetCommandList()->DiscardResource(SceneLuminanceTextures[0], nullptr);
-
-	ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
+	renderSystem.GetCommandList()->DiscardResource(SceneLuminanceTextures[0].DXTexture, nullptr);
 
 	renderSystem.GetCommandList()->Dispatch(80, 45, 1);
 
-	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[0].Transition.pResource = SceneLuminanceTextures[0];
-	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-	ResourceBarriers[0].Transition.Subresource = 0;
-	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-	ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[1].Transition.pResource = SceneLuminanceTextures[1];
-	ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-	ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[1].Transition.Subresource = 0;
-	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-	renderSystem.GetCommandList()->ResourceBarrier(2, ResourceBarriers);
+	renderSystem.SwitchResourceState(SceneLuminanceTextures[0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+	renderSystem.SwitchResourceState(SceneLuminanceTextures[1], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	renderSystem.ApplyPendingBarriers();
 
 	DestRangeSize = 2;
 	SourceRangeSizes[0] = 1;
@@ -230,36 +229,18 @@ void PostProcessLuminancePass::Execute(RenderSystem& renderSystem)
 	SourceCPUHandles[0] = SceneLuminanceTexturesSRVs[0];
 	SourceCPUHandles[1] = SceneLuminanceTexturesUAVs[1];
 
-	Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
-	ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
-
 	renderSystem.GetCommandList()->SetPipelineState(LuminanceSumPipelineState);
 
-	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(RenderSystem::COMPUTE_SHADER_SHADER_RESOURCES, LuminancePassSRTables[1]);
+	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(RenderSystem::COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS, LuminancePassUATables[1]);
 
-	renderSystem.GetCommandList()->DiscardResource(SceneLuminanceTextures[1], nullptr);
-
-	ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
+	renderSystem.GetCommandList()->DiscardResource(SceneLuminanceTextures[1].DXTexture, nullptr);
 
 	renderSystem.GetCommandList()->Dispatch(80, 45, 1);
 
-	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[0].Transition.pResource = SceneLuminanceTextures[1];
-	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-	ResourceBarriers[0].Transition.Subresource = 0;
-	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-	ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[1].Transition.pResource = SceneLuminanceTextures[2];
-	ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-	ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[1].Transition.Subresource = 0;
-	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-	renderSystem.GetCommandList()->ResourceBarrier(2, ResourceBarriers);
+	renderSystem.SwitchResourceState(SceneLuminanceTextures[1], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+	renderSystem.SwitchResourceState(SceneLuminanceTextures[2], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	renderSystem.ApplyPendingBarriers();
 
 	DestRangeSize = 2;
 	SourceRangeSizes[0] = 1;
@@ -267,34 +248,17 @@ void PostProcessLuminancePass::Execute(RenderSystem& renderSystem)
 	SourceCPUHandles[0] = SceneLuminanceTexturesSRVs[1];
 	SourceCPUHandles[1] = SceneLuminanceTexturesUAVs[2];
 
-	Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(RenderSystem::COMPUTE_SHADER_SHADER_RESOURCES, LuminancePassSRTables[2]);
+	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(RenderSystem::COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS, LuminancePassUATables[2]);
 
-	ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
-
-	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
-
-	renderSystem.GetCommandList()->DiscardResource(SceneLuminanceTextures[2], nullptr);
-
-	ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
+	renderSystem.GetCommandList()->DiscardResource(SceneLuminanceTextures[2].DXTexture, nullptr);
 
 	renderSystem.GetCommandList()->Dispatch(5, 3, 1);
 
-	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[0].Transition.pResource = SceneLuminanceTextures[2];
-	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-	ResourceBarriers[0].Transition.Subresource = 0;
-	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	renderSystem.SwitchResourceState(SceneLuminanceTextures[2], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+	renderSystem.SwitchResourceState(SceneLuminanceTextures[3], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	renderSystem.ApplyPendingBarriers();
 
-	ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[1].Transition.pResource = SceneLuminanceTextures[3];
-	ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-	ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[1].Transition.Subresource = 0;
-	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-	renderSystem.GetCommandList()->ResourceBarrier(2, ResourceBarriers);
 
 	DestRangeSize = 2;
 	SourceRangeSizes[0] = 1;
@@ -302,27 +266,15 @@ void PostProcessLuminancePass::Execute(RenderSystem& renderSystem)
 	SourceCPUHandles[0] = SceneLuminanceTexturesSRVs[2];
 	SourceCPUHandles[1] = SceneLuminanceTexturesUAVs[3];
 
-	Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(RenderSystem::COMPUTE_SHADER_SHADER_RESOURCES, LuminancePassSRTables[3]);
+	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(RenderSystem::COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS, LuminancePassUATables[3]);
 
-	ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
-
-	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
-
-	renderSystem.GetCommandList()->DiscardResource(SceneLuminanceTextures[3], nullptr);
-
-	ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
+	renderSystem.GetCommandList()->DiscardResource(SceneLuminanceTextures[3].DXTexture, nullptr);
 
 	renderSystem.GetCommandList()->Dispatch(1, 1, 1);
 
-	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[0].Transition.pResource = SceneLuminanceTextures[3];
-	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-	ResourceBarriers[0].Transition.Subresource = 0;
-	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-	renderSystem.GetCommandList()->ResourceBarrier(1, ResourceBarriers);
+	renderSystem.SwitchResourceState(SceneLuminanceTextures[3], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	renderSystem.ApplyPendingBarriers();
 
 	DestRangeSize = 2;
 	SourceRangeSizes[0] = 1;
@@ -330,18 +282,12 @@ void PostProcessLuminancePass::Execute(RenderSystem& renderSystem)
 	SourceCPUHandles[0] = SceneLuminanceTexturesSRVs[3];
 	SourceCPUHandles[1] = AverageLuminanceTextureUAV;
 
-	Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
-	ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
-
 	renderSystem.GetCommandList()->SetPipelineState(LuminanceAvgPipelineState);
 
-	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(RenderSystem::COMPUTE_SHADER_SHADER_RESOURCES, LuminancePassSRTables[4]);
+	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(RenderSystem::COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS, LuminancePassUATables[4]);
 
-	renderSystem.GetCommandList()->DiscardResource(AverageLuminanceTexture, nullptr);
-
-	ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
+	renderSystem.GetCommandList()->DiscardResource(AverageLuminanceTexture.DXTexture, nullptr);
 
 	renderSystem.GetCommandList()->Dispatch(1, 1, 1);
 }

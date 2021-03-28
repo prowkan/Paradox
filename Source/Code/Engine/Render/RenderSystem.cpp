@@ -105,13 +105,10 @@ FrameDescriptorHeap::FrameDescriptorHeap(ID3D12Device *DXDevice, const D3D12_DES
 	DescriptorHeapDesc.Type = DescriptorHeapType;
 
 	// TODO: Сделать обработку ошибок
-	DXDevice->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(DXDescriptorHeaps[0]));
-	DXDevice->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(DXDescriptorHeaps[1]));
+	DXDevice->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(DXDescriptorHeap));
 
-	FirstDescriptorsCPU[0] = DXDescriptorHeaps[0]->GetCPUDescriptorHandleForHeapStart().ptr;
-	FirstDescriptorsCPU[1] = DXDescriptorHeaps[1]->GetCPUDescriptorHandleForHeapStart().ptr;
-	FirstDescriptorsGPU[0] = DXDescriptorHeaps[0]->GetGPUDescriptorHandleForHeapStart().ptr;
-	FirstDescriptorsGPU[1] = DXDescriptorHeaps[1]->GetGPUDescriptorHandleForHeapStart().ptr;
+	FirstDescriptorCPU = DXDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr;
+	FirstDescriptorGPU = DXDescriptorHeap->GetGPUDescriptorHandleForHeapStart().ptr;
 	DescriptorSize = DXDevice->GetDescriptorHandleIncrementSize(DescriptorHeapType);
 }
 
@@ -127,10 +124,8 @@ DescriptorTable FrameDescriptorHeap::AllocateDescriptorTable(const D3D12_ROOT_PA
 	DescriptorTable descriptorTable(
 		DescriptorsCountInTable, 
 		AllocatedDescriptorsForTables, 
-		FirstDescriptorsCPU[0] + AllocatedDescriptorsForTables * DescriptorSize, 
-		FirstDescriptorsCPU[1] + AllocatedDescriptorsForTables * DescriptorSize, 
-		FirstDescriptorsGPU[0] + AllocatedDescriptorsForTables * DescriptorSize,
-		FirstDescriptorsGPU[1] + AllocatedDescriptorsForTables * DescriptorSize,
+		FirstDescriptorCPU + AllocatedDescriptorsForTables * DescriptorSize, 
+		FirstDescriptorGPU + AllocatedDescriptorsForTables * DescriptorSize,
 		DescriptorHeapType
 	);
 
@@ -352,8 +347,9 @@ void RenderSystem::InitSystem()
 	HANDLE FullScreenQuadVertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/FullScreenQuad.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER FullScreenQuadVertexShaderByteCodeLength;
 	BOOL Result = GetFileSizeEx(FullScreenQuadVertexShaderFile, &FullScreenQuadVertexShaderByteCodeLength);
-	ScopedMemoryBlockArray<BYTE> FullScreenQuadVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(FullScreenQuadVertexShaderByteCodeLength.QuadPart);
-	Result = ReadFile(FullScreenQuadVertexShaderFile, FullScreenQuadVertexShaderByteCodeData, (DWORD)FullScreenQuadVertexShaderByteCodeLength.QuadPart, NULL, NULL);
+	FullScreenQuadVertexShader.pShaderBytecode = malloc(FullScreenQuadVertexShaderByteCodeLength.QuadPart);
+	FullScreenQuadVertexShader.BytecodeLength = FullScreenQuadVertexShaderByteCodeLength.QuadPart;
+	Result = ReadFile(FullScreenQuadVertexShaderFile, (void*)FullScreenQuadVertexShader.pShaderBytecode, (DWORD)FullScreenQuadVertexShaderByteCodeLength.QuadPart, NULL, NULL);
 	Result = CloseHandle(FullScreenQuadVertexShaderFile);
 
 	{
@@ -418,6 +414,22 @@ void RenderSystem::InitSystem()
 		ShadowMapSamplerTable = FrameSamplersDescriptorHeap.AllocateDescriptorTable(GraphicsRootSignature.GetRootSignatureDesc().pParameters[PIXEL_SHADER_SAMPLERS]);
 		BiLinearSamplerTable = FrameSamplersDescriptorHeap.AllocateDescriptorTable(GraphicsRootSignature.GetRootSignatureDesc().pParameters[PIXEL_SHADER_SAMPLERS]);
 		MinSamplerTable = FrameSamplersDescriptorHeap.AllocateDescriptorTable(GraphicsRootSignature.GetRootSignatureDesc().pParameters[PIXEL_SHADER_SAMPLERS]);
+
+		TextureSamplerTable[0] = TextureSampler;
+		TextureSamplerTable.SetTableSize(1);
+		TextureSamplerTable.UpdateDescriptorTable(Device);
+
+		ShadowMapSamplerTable[0] = ShadowMapSampler;
+		ShadowMapSamplerTable.SetTableSize(1);
+		ShadowMapSamplerTable.UpdateDescriptorTable(Device);
+
+		BiLinearSamplerTable[0] = BiLinearSampler;
+		BiLinearSamplerTable.SetTableSize(1);
+		BiLinearSamplerTable.UpdateDescriptorTable(Device);
+
+		MinSamplerTable[0] = MinSampler;
+		MinSamplerTable.SetTableSize(1);
+		MinSamplerTable.UpdateDescriptorTable(Device);
 	}
 
 	{
@@ -532,44 +544,6 @@ void RenderSystem::ShutdownSystem()
 
 void RenderSystem::TickSystem(float DeltaTime)
 {
-	for (RenderPass* renderPass : RenderPasses)
-	{
-		renderPass->Execute(*this);
-	}
-
-	GameFramework& gameFramework = Engine::GetEngine().GetGameFramework();
-
-	Camera& camera = gameFramework.GetCamera();
-
-	XMMATRIX ViewMatrix = camera.GetViewMatrix();
-	XMMATRIX ProjMatrix = camera.GetProjMatrix();
-	XMMATRIX ViewProjMatrix = camera.GetViewProjMatrix();
-
-	XMFLOAT3 CameraLocation = camera.GetCameraLocation();
-
-	XMMATRIX ShadowViewMatrices[4], ShadowProjMatrices[4], ShadowViewProjMatrices[4];
-
-	ShadowViewMatrices[0] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 10.0f, CameraLocation.y + 10.0f, CameraLocation.z - 10.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
-	ShadowViewMatrices[1] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 20.0f, CameraLocation.y + 20.0f, CameraLocation.z - 20.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
-	ShadowViewMatrices[2] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 50.0f, CameraLocation.y + 50.0f, CameraLocation.z - 50.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
-	ShadowViewMatrices[3] = XMMatrixLookToLH(XMVectorSet(CameraLocation.x - 100.0f, CameraLocation.y + 100.0f, CameraLocation.z - 100.0f, 1.0f), XMVectorSet(1.0f, -1.0f, 1.0f, 0.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
-
-	ShadowProjMatrices[0] = XMMatrixOrthographicLH(10.0f, 10.0f, 0.01f, 500.0f);
-	ShadowProjMatrices[1] = XMMatrixOrthographicLH(20.0f, 20.0f, 0.01f, 500.0f);
-	ShadowProjMatrices[2] = XMMatrixOrthographicLH(50.0f, 50.0f, 0.01f, 500.0f);
-	ShadowProjMatrices[3] = XMMatrixOrthographicLH(100.0f, 100.0f, 0.01f, 500.0f);
-
-	ShadowViewProjMatrices[0] = ShadowViewMatrices[0] * ShadowProjMatrices[0];
-	ShadowViewProjMatrices[1] = ShadowViewMatrices[1] * ShadowProjMatrices[1];
-	ShadowViewProjMatrices[2] = ShadowViewMatrices[2] * ShadowProjMatrices[2];
-	ShadowViewProjMatrices[3] = ShadowViewMatrices[3] * ShadowProjMatrices[3];
-
-	RenderScene& renderScene = gameFramework.GetWorld().GetRenderScene();
-
-	vector<StaticMeshComponent*> AllStaticMeshComponents = renderScene.GetStaticMeshComponents();
-	vector<StaticMeshComponent*> VisbleStaticMeshComponents = cullingSubSystem.GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ViewProjMatrix, true);
-	size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.size();
-
 	if (FrameSyncFences[CurrentFrameIndex]->GetCompletedValue() != 1)
 	{
 		SAFE_DX(FrameSyncFences[CurrentFrameIndex]->SetEventOnCompletion(1, FrameSyncEvent));
@@ -586,7 +560,15 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	CommandList->SetDescriptorHeaps(2, DescriptorHeaps);
 	CommandList->SetGraphicsRootSignature(GraphicsRootSignature);
-	CommandList->SetComputeRootSignature(ComputeRootSignature);
+	CommandList->SetComputeRootSignature(ComputeRootSignature); 
+	
+	for (RenderPass* renderPass : RenderPasses)
+	{
+		renderPass->Execute(*this);
+	}
+
+	SwitchResourceState(BackBufferTextures[CurrentFrameIndex], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PRESENT);
+	ApplyPendingBarriers();
 
 	SAFE_DX(CommandList->Close());
 

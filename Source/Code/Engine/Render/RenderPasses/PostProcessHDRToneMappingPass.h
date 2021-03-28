@@ -2,11 +2,15 @@
 
 #include "../RenderPass.h"
 
+#include "../RenderSystem.h"
+
 #include <Containers/COMRCPtr.h>
 
 class PostProcessHDRToneMappingPass : public RenderPass
 {
 	public:
+
+		Texture* GetToneMappedImageTexture() { return &ToneMappedImageTexture; }
 
 		virtual void Init(RenderSystem& renderSystem) override;
 		virtual void Execute(RenderSystem& renderSystem) override;
@@ -15,11 +19,13 @@ class PostProcessHDRToneMappingPass : public RenderPass
 
 		D3D12_CPU_DESCRIPTOR_HANDLE HDRSceneColorTextureSRV;
 
-		COMRCPtr<ID3D12Resource> OutputBloomTexture;
+		Texture *OutputBloomTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE OutputBloomTextureSRV;
 
-		COMRCPtr<ID3D12Resource> ToneMappedImageTexture;
+		Texture ToneMappedImageTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE ToneMappedImageTextureRTV;
 
 		COMRCPtr<ID3D12PipelineState> HDRToneMappingPipelineState;
+
+		DescriptorTable HDRToneMappingPassSRTable;
 };

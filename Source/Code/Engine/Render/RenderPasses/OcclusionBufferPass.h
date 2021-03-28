@@ -2,6 +2,8 @@
 
 #include "../RenderPass.h"
 
+#include "../RenderSystem.h"
+
 #include <Containers/COMRCPtr.h>
 
 class OcclusionBufferPass : public RenderPass
@@ -13,11 +15,14 @@ class OcclusionBufferPass : public RenderPass
 
 	private:
 
-		COMRCPtr<ID3D12Resource> ResolvedDepthBufferTexture;
+		Texture *ResolvedDepthBufferTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE ResolvedDepthBufferTextureSRV;
 
-		COMRCPtr<ID3D12Resource> OcclusionBufferTexture, OcclusionBufferTextureReadback[2];
+		Texture OcclusionBufferTexture;
+		Buffer OcclusionBufferTextureReadback[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE OcclusionBufferTextureRTV;
 
 		COMRCPtr<ID3D12PipelineState> OcclusionBufferPipelineState;
+
+		DescriptorTable OcclusionBufferPassSRTable;
 };

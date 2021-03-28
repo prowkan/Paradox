@@ -2,6 +2,8 @@
 
 #include "../RenderPass.h"
 
+#include "../RenderSystem.h"
+
 #include <Containers/COMRCPtr.h>
 
 class BackBufferResolvePass : public RenderPass
@@ -13,5 +15,5 @@ class BackBufferResolvePass : public RenderPass
 
 	private:
 
-		COMRCPtr<ID3D12Resource> ToneMappedImageTexture;
+		Texture *ToneMappedImageTexture;
 };
