@@ -47,28 +47,6 @@ void DeferredLightingPass::Init(RenderSystem& renderSystem)
 	DepthBufferTextureSRV = renderSystem.GetRenderPass<GBufferOpaquePass>()->GetDepthBufferTextureSRV();
 	ShadowMaskTextureSRV = renderSystem.GetRenderPass<ShadowResolvePass>()->GetShadowMaskTextureSRV();
 
-	D3D12_RESOURCE_DESC ResourceDesc;
-	ZeroMemory(&ResourceDesc, sizeof(D3D12_RESOURCE_DESC));
-	ResourceDesc.Alignment = 0;
-	ResourceDesc.DepthOrArraySize = 1;
-	ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	ResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-	ResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
-	ResourceDesc.Height = renderSystem.GetResolutionHeight();
-	ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_UNKNOWN;
-	ResourceDesc.MipLevels = 1;
-	ResourceDesc.SampleDesc.Count = 8;
-	ResourceDesc.SampleDesc.Quality = 0;
-	ResourceDesc.Width = renderSystem.GetResolutionWidth();
-
-	D3D12_HEAP_PROPERTIES HeapProperties;
-	ZeroMemory(&HeapProperties, sizeof(D3D12_HEAP_PROPERTIES));
-	HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	HeapProperties.CreationNodeMask = 0;
-	HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
-	HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT;
-	HeapProperties.VisibleNodeMask = 0;
-
 	D3D12_CLEAR_VALUE ClearValue;
 	ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
 	ClearValue.Color[0] = 0.0f;
@@ -76,7 +54,7 @@ void DeferredLightingPass::Init(RenderSystem& renderSystem)
 	ClearValue.Color[2] = 0.0f;
 	ClearValue.Color[3] = 0.0f;
 
-	HDRSceneColorTexture = renderSystem.CreateTexture(HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue);
+	HDRSceneColorTexture = renderSystem.CreateTexture(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, DX12Helpers::CreateDXResourceDescTexture2D(renderSystem.GetResolutionWidth(), renderSystem.GetResolutionHeight(), DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT, D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET, 1, 8), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue);
 
 	D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
 	RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
@@ -95,37 +73,10 @@ void DeferredLightingPass::Init(RenderSystem& renderSystem)
 
 	renderSystem.GetDevice()->CreateShaderResourceView(HDRSceneColorTexture.DXTexture, &SRVDesc, HDRSceneColorTextureSRV);
 
-	ZeroMemory(&ResourceDesc, sizeof(D3D12_RESOURCE_DESC));
-	ResourceDesc.Alignment = 0;
-	ResourceDesc.DepthOrArraySize = 1;
-	ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER;
-	ResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE;
-	ResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
-	ResourceDesc.Height = 1;
-	ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-	ResourceDesc.MipLevels = 1;
-	ResourceDesc.SampleDesc.Count = 1;
-	ResourceDesc.SampleDesc.Quality = 0;
-	ResourceDesc.Width = 256;
+	GPUDeferredLightingConstantBuffer = renderSystem.CreateBuffer(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, DX12Helpers::CreateDXResourceDescBuffer(256), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr);
 
-	ZeroMemory(&HeapProperties, sizeof(D3D12_HEAP_PROPERTIES));
-	HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	HeapProperties.CreationNodeMask = 0;
-	HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
-	HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT;
-	HeapProperties.VisibleNodeMask = 0;
-
-	GPUDeferredLightingConstantBuffer = renderSystem.CreateBuffer(HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr);
-
-	ZeroMemory(&HeapProperties, sizeof(D3D12_HEAP_PROPERTIES));
-	HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	HeapProperties.CreationNodeMask = 0;
-	HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
-	HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD;
-	HeapProperties.VisibleNodeMask = 0;
-
-	CPUDeferredLightingConstantBuffers[0] = renderSystem.CreateBuffer(HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr);
-	CPUDeferredLightingConstantBuffers[1] = renderSystem.CreateBuffer(HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr);
+	CPUDeferredLightingConstantBuffers[0] = renderSystem.CreateBuffer(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, DX12Helpers::CreateDXResourceDescBuffer(256), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr);
+	CPUDeferredLightingConstantBuffers[1] = renderSystem.CreateBuffer(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, DX12Helpers::CreateDXResourceDescBuffer(256), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr);
 
 	D3D12_CONSTANT_BUFFER_VIEW_DESC CBVDesc;
 	CBVDesc.BufferLocation = GPUDeferredLightingConstantBuffer.DXBuffer->GetGPUVirtualAddress();
@@ -135,37 +86,10 @@ void DeferredLightingPass::Init(RenderSystem& renderSystem)
 
 	renderSystem.GetDevice()->CreateConstantBufferView(&CBVDesc, DeferredLightingConstantBufferCBV);
 
-	ZeroMemory(&ResourceDesc, sizeof(D3D12_RESOURCE_DESC));
-	ResourceDesc.Alignment = 0;
-	ResourceDesc.DepthOrArraySize = 1;
-	ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER;
-	ResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE;
-	ResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
-	ResourceDesc.Height = 1;
-	ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-	ResourceDesc.MipLevels = 1;
-	ResourceDesc.SampleDesc.Count = 1;
-	ResourceDesc.SampleDesc.Quality = 0;
-	ResourceDesc.Width = sizeof(LightCluster) * ClusterizationSubSystem::CLUSTERS_COUNT_X * ClusterizationSubSystem::CLUSTERS_COUNT_Y * ClusterizationSubSystem::CLUSTERS_COUNT_Z;
+	GPULightClustersBuffer = renderSystem.CreateBuffer(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, DX12Helpers::CreateDXResourceDescBuffer(sizeof(LightCluster) * ClusterizationSubSystem::CLUSTERS_COUNT_X * ClusterizationSubSystem::CLUSTERS_COUNT_Y * ClusterizationSubSystem::CLUSTERS_COUNT_Z), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, nullptr);
 
-	ZeroMemory(&HeapProperties, sizeof(D3D12_HEAP_PROPERTIES));
-	HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	HeapProperties.CreationNodeMask = 0;
-	HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
-	HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT;
-	HeapProperties.VisibleNodeMask = 0;
-
-	GPULightClustersBuffer = renderSystem.CreateBuffer(HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, nullptr);
-
-	ZeroMemory(&HeapProperties, sizeof(D3D12_HEAP_PROPERTIES));
-	HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	HeapProperties.CreationNodeMask = 0;
-	HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
-	HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD;
-	HeapProperties.VisibleNodeMask = 0;
-
-	CPULightClustersBuffers[0] = renderSystem.CreateBuffer(HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr);
-	CPULightClustersBuffers[1] = renderSystem.CreateBuffer(HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr);
+	CPULightClustersBuffers[0] = renderSystem.CreateBuffer(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, DX12Helpers::CreateDXResourceDescBuffer(sizeof(LightCluster) * ClusterizationSubSystem::CLUSTERS_COUNT_X * ClusterizationSubSystem::CLUSTERS_COUNT_Y * ClusterizationSubSystem::CLUSTERS_COUNT_Z), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr);
+	CPULightClustersBuffers[1] = renderSystem.CreateBuffer(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, DX12Helpers::CreateDXResourceDescBuffer(sizeof(LightCluster) * ClusterizationSubSystem::CLUSTERS_COUNT_X * ClusterizationSubSystem::CLUSTERS_COUNT_Y * ClusterizationSubSystem::CLUSTERS_COUNT_Z), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr);
 
 	SRVDesc.Buffer.FirstElement = 0;
 	SRVDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAGS::D3D12_BUFFER_SRV_FLAG_NONE;
@@ -179,37 +103,10 @@ void DeferredLightingPass::Init(RenderSystem& renderSystem)
 
 	renderSystem.GetDevice()->CreateShaderResourceView(GPULightClustersBuffer.DXBuffer, &SRVDesc, LightClustersBufferSRV);
 
-	ZeroMemory(&ResourceDesc, sizeof(D3D12_RESOURCE_DESC));
-	ResourceDesc.Alignment = 0;
-	ResourceDesc.DepthOrArraySize = 1;
-	ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER;
-	ResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE;
-	ResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
-	ResourceDesc.Height = 1;
-	ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-	ResourceDesc.MipLevels = 1;
-	ResourceDesc.SampleDesc.Count = 1;
-	ResourceDesc.SampleDesc.Quality = 0;
-	ResourceDesc.Width = ClusterizationSubSystem::MAX_LIGHTS_PER_CLUSTER * sizeof(uint16_t) * ClusterizationSubSystem::CLUSTERS_COUNT_X * ClusterizationSubSystem::CLUSTERS_COUNT_Y * ClusterizationSubSystem::CLUSTERS_COUNT_Z;
+	GPULightIndicesBuffer = renderSystem.CreateBuffer(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, DX12Helpers::CreateDXResourceDescBuffer(ClusterizationSubSystem::MAX_LIGHTS_PER_CLUSTER * sizeof(uint16_t) * ClusterizationSubSystem::CLUSTERS_COUNT_X * ClusterizationSubSystem::CLUSTERS_COUNT_Y * ClusterizationSubSystem::CLUSTERS_COUNT_Z), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, nullptr);
 
-	ZeroMemory(&HeapProperties, sizeof(D3D12_HEAP_PROPERTIES));
-	HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	HeapProperties.CreationNodeMask = 0;
-	HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
-	HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT;
-	HeapProperties.VisibleNodeMask = 0;
-
-	GPULightIndicesBuffer = renderSystem.CreateBuffer(HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, nullptr);
-
-	ZeroMemory(&HeapProperties, sizeof(D3D12_HEAP_PROPERTIES));
-	HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	HeapProperties.CreationNodeMask = 0;
-	HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
-	HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD;
-	HeapProperties.VisibleNodeMask = 0;
-
-	CPULightIndicesBuffers[0] = renderSystem.CreateBuffer(HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr);
-	CPULightIndicesBuffers[1] = renderSystem.CreateBuffer(HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr);
+	CPULightIndicesBuffers[0] = renderSystem.CreateBuffer(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, DX12Helpers::CreateDXResourceDescBuffer(ClusterizationSubSystem::MAX_LIGHTS_PER_CLUSTER * sizeof(uint16_t) * ClusterizationSubSystem::CLUSTERS_COUNT_X * ClusterizationSubSystem::CLUSTERS_COUNT_Y * ClusterizationSubSystem::CLUSTERS_COUNT_Z), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr);
+	CPULightIndicesBuffers[1] = renderSystem.CreateBuffer(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, DX12Helpers::CreateDXResourceDescBuffer(ClusterizationSubSystem::MAX_LIGHTS_PER_CLUSTER * sizeof(uint16_t) * ClusterizationSubSystem::CLUSTERS_COUNT_X * ClusterizationSubSystem::CLUSTERS_COUNT_Y * ClusterizationSubSystem::CLUSTERS_COUNT_Z), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr);
 
 	SRVDesc.Buffer.FirstElement = 0;
 	SRVDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAGS::D3D12_BUFFER_SRV_FLAG_NONE;
@@ -223,37 +120,10 @@ void DeferredLightingPass::Init(RenderSystem& renderSystem)
 
 	renderSystem.GetDevice()->CreateShaderResourceView(GPULightIndicesBuffer.DXBuffer, &SRVDesc, LightIndicesBufferSRV);
 
-	ZeroMemory(&ResourceDesc, sizeof(D3D12_RESOURCE_DESC));
-	ResourceDesc.Alignment = 0;
-	ResourceDesc.DepthOrArraySize = 1;
-	ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER;
-	ResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE;
-	ResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
-	ResourceDesc.Height = 1;
-	ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-	ResourceDesc.MipLevels = 1;
-	ResourceDesc.SampleDesc.Count = 1;
-	ResourceDesc.SampleDesc.Quality = 0;
-	ResourceDesc.Width = 10000 * sizeof(PointLight);
+	GPUPointLightsBuffer = renderSystem.CreateBuffer(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, DX12Helpers::CreateDXResourceDescBuffer(10000 * sizeof(PointLight)), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, nullptr);
 
-	ZeroMemory(&HeapProperties, sizeof(D3D12_HEAP_PROPERTIES));
-	HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	HeapProperties.CreationNodeMask = 0;
-	HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
-	HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT;
-	HeapProperties.VisibleNodeMask = 0;
-
-	GPUPointLightsBuffer = renderSystem.CreateBuffer(HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, nullptr);
-
-	ZeroMemory(&HeapProperties, sizeof(D3D12_HEAP_PROPERTIES));
-	HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	HeapProperties.CreationNodeMask = 0;
-	HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
-	HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD;
-	HeapProperties.VisibleNodeMask = 0;
-
-	CPUPointLightsBuffers[0] = renderSystem.CreateBuffer(HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr);
-	CPUPointLightsBuffers[1] = renderSystem.CreateBuffer(HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr);
+	CPUPointLightsBuffers[0] = renderSystem.CreateBuffer(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, DX12Helpers::CreateDXResourceDescBuffer(10000 * sizeof(PointLight)), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr);
+	CPUPointLightsBuffers[1] = renderSystem.CreateBuffer(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, DX12Helpers::CreateDXResourceDescBuffer(10000 * sizeof(PointLight)), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr);
 
 	SRVDesc.Buffer.FirstElement = 0;
 	SRVDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAGS::D3D12_BUFFER_SRV_FLAG_NONE;

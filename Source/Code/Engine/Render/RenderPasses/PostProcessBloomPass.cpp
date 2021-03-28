@@ -16,28 +16,6 @@ void PostProcessBloomPass::Init(RenderSystem& renderSystem)
 	ResolvedHDRSceneColorTextureSRV = renderSystem.GetRenderPass<HDRSceneColorResolvePass>()->GetResolvedHDRSceneColorTextureSRV();
 	SceneLuminanceTextureSRV = renderSystem.GetRenderPass<PostProcessLuminancePass>()->GetSceneLuminanceTextureSRV();
 
-	D3D12_RESOURCE_DESC ResourceDesc;
-	ZeroMemory(&ResourceDesc, sizeof(D3D12_RESOURCE_DESC));
-	ResourceDesc.Alignment = 0;
-	ResourceDesc.DepthOrArraySize = 1;
-	ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	ResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-	ResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
-	//ResourceDesc.Height = ResolutionHeight;
-	ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_UNKNOWN;
-	ResourceDesc.MipLevels = 1;
-	ResourceDesc.SampleDesc.Count = 1;
-	ResourceDesc.SampleDesc.Quality = 0;
-	//ResourceDesc.Width = ResolutionWidth;
-
-	D3D12_HEAP_PROPERTIES HeapProperties;
-	ZeroMemory(&HeapProperties, sizeof(D3D12_HEAP_PROPERTIES));
-	HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	HeapProperties.CreationNodeMask = 0;
-	HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
-	HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT;
-	HeapProperties.VisibleNodeMask = 0;
-
 	D3D12_CLEAR_VALUE ClearValue;
 	ClearValue.Color[0] = 0.0f;
 	ClearValue.Color[1] = 0.0f;
@@ -47,12 +25,9 @@ void PostProcessBloomPass::Init(RenderSystem& renderSystem)
 
 	for (int i = 0; i < 7; i++)
 	{
-		ResourceDesc.Width = renderSystem.GetResolutionWidth() >> i;
-		ResourceDesc.Height = renderSystem.GetResolutionHeight() >> i;
-
-		BloomTextures[0][i] = renderSystem.CreateTexture(HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue);
-		BloomTextures[1][i] = renderSystem.CreateTexture(HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue);
-		BloomTextures[2][i] = renderSystem.CreateTexture(HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue);
+		BloomTextures[0][i] = renderSystem.CreateTexture(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, DX12Helpers::CreateDXResourceDescTexture2D(renderSystem.GetResolutionWidth() >> i, renderSystem.GetResolutionHeight() >> i, DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT, D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue);
+		BloomTextures[1][i] = renderSystem.CreateTexture(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, DX12Helpers::CreateDXResourceDescTexture2D(renderSystem.GetResolutionWidth() >> i, renderSystem.GetResolutionHeight() >> i, DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT, D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue);
+		BloomTextures[2][i] = renderSystem.CreateTexture(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, DX12Helpers::CreateDXResourceDescTexture2D(renderSystem.GetResolutionWidth() >> i, renderSystem.GetResolutionHeight() >> i, DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT, D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue);
 	}
 
 	D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
@@ -255,8 +230,21 @@ void PostProcessBloomPass::Init(RenderSystem& renderSystem)
 
 void PostProcessBloomPass::Execute(RenderSystem& renderSystem)
 {
-	renderSystem.SwitchResourceState(BloomTextures[0][0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
+	for (int i = 0; i < 7; i++)
+	{
+		renderSystem.SwitchResourceState(BloomTextures[0][i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
+		renderSystem.SwitchResourceState(BloomTextures[1][i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
+		renderSystem.SwitchResourceState(BloomTextures[2][i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
+	}
+
 	renderSystem.ApplyPendingBarriers();
+
+	for (int i = 0; i < 7; i++)
+	{
+		renderSystem.GetCommandList()->DiscardResource(BloomTextures[0][i].DXTexture, nullptr);
+		renderSystem.GetCommandList()->DiscardResource(BloomTextures[1][i].DXTexture, nullptr);
+		renderSystem.GetCommandList()->DiscardResource(BloomTextures[2][i].DXTexture, nullptr);
+	}
 
 	renderSystem.GetCommandList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
@@ -282,8 +270,6 @@ void PostProcessBloomPass::Execute(RenderSystem& renderSystem)
 
 	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(RenderSystem::PIXEL_SHADER_SAMPLERS, renderSystem.GetBiLinearSamplerTable());
 
-	renderSystem.GetCommandList()->DiscardResource(BloomTextures[0][0].DXTexture, nullptr);
-
 	renderSystem.GetCommandList()->SetPipelineState(BrightPassPipelineState);
 
 	BloomPassSRTables1[0][0] = ResolvedHDRSceneColorTextureSRV;
@@ -296,7 +282,6 @@ void PostProcessBloomPass::Execute(RenderSystem& renderSystem)
 	renderSystem.GetCommandList()->DrawInstanced(4, 1, 0, 0);
 
 	renderSystem.SwitchResourceState(BloomTextures[0][0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	renderSystem.SwitchResourceState(BloomTextures[1][0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 	renderSystem.ApplyPendingBarriers();
 
 	renderSystem.GetCommandList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
@@ -319,8 +304,6 @@ void PostProcessBloomPass::Execute(RenderSystem& renderSystem)
 
 	renderSystem.GetCommandList()->RSSetScissorRects(1, &ScissorRect);
 
-	renderSystem.GetCommandList()->DiscardResource(BloomTextures[1][0].DXTexture, nullptr);
-
 	renderSystem.GetCommandList()->SetPipelineState(HorizontalBlurPipelineState);
 
 	BloomPassSRTables1[1][0] = BloomTexturesSRVs[0][0];
@@ -332,7 +315,6 @@ void PostProcessBloomPass::Execute(RenderSystem& renderSystem)
 	renderSystem.GetCommandList()->DrawInstanced(4, 1, 0, 0);
 
 	renderSystem.SwitchResourceState(BloomTextures[1][0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	renderSystem.SwitchResourceState(BloomTextures[2][0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 	renderSystem.ApplyPendingBarriers();
 
 	renderSystem.GetCommandList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
@@ -355,8 +337,6 @@ void PostProcessBloomPass::Execute(RenderSystem& renderSystem)
 
 	renderSystem.GetCommandList()->RSSetScissorRects(1, &ScissorRect);
 
-	renderSystem.GetCommandList()->DiscardResource(BloomTextures[2][0].DXTexture, nullptr);
-
 	renderSystem.GetCommandList()->SetPipelineState(VerticalBlurPipelineState);
 
 	BloomPassSRTables1[2][0] = BloomTexturesSRVs[1][0];
@@ -369,9 +349,6 @@ void PostProcessBloomPass::Execute(RenderSystem& renderSystem)
 
 	for (int i = 1; i < 7; i++)
 	{
-		renderSystem.SwitchResourceState(BloomTextures[0][i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
-		renderSystem.ApplyPendingBarriers();
-
 		renderSystem.GetCommandList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 		renderSystem.GetCommandList()->OMSetRenderTargets(1, &BloomTexturesRTVs[0][i], TRUE, nullptr);
@@ -392,8 +369,6 @@ void PostProcessBloomPass::Execute(RenderSystem& renderSystem)
 
 		renderSystem.GetCommandList()->RSSetScissorRects(1, &ScissorRect);
 
-		renderSystem.GetCommandList()->DiscardResource(BloomTextures[0][i].DXTexture, nullptr);
-
 		renderSystem.GetCommandList()->SetPipelineState(DownSamplePipelineState);
 
 		BloomPassSRTables2[i - 1][0][0] = BloomTexturesSRVs[0][i - 1];
@@ -405,7 +380,6 @@ void PostProcessBloomPass::Execute(RenderSystem& renderSystem)
 		renderSystem.GetCommandList()->DrawInstanced(4, 1, 0, 0);
 
 		renderSystem.SwitchResourceState(BloomTextures[0][i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		renderSystem.SwitchResourceState(BloomTextures[1][i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 		renderSystem.ApplyPendingBarriers();
 
 		renderSystem.GetCommandList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
@@ -428,8 +402,6 @@ void PostProcessBloomPass::Execute(RenderSystem& renderSystem)
 
 		renderSystem.GetCommandList()->RSSetScissorRects(1, &ScissorRect);
 
-		renderSystem.GetCommandList()->DiscardResource(BloomTextures[1][i].DXTexture, nullptr);
-
 		renderSystem.GetCommandList()->SetPipelineState(HorizontalBlurPipelineState);
 
 		BloomPassSRTables2[i - 1][1][0] = BloomTexturesSRVs[0][i];
@@ -441,7 +413,6 @@ void PostProcessBloomPass::Execute(RenderSystem& renderSystem)
 		renderSystem.GetCommandList()->DrawInstanced(4, 1, 0, 0);
 
 		renderSystem.SwitchResourceState(BloomTextures[1][i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		renderSystem.SwitchResourceState(BloomTextures[2][i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 		renderSystem.ApplyPendingBarriers();
 
 		renderSystem.GetCommandList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
@@ -463,8 +434,6 @@ void PostProcessBloomPass::Execute(RenderSystem& renderSystem)
 		ScissorRect.top = 0;
 
 		renderSystem.GetCommandList()->RSSetScissorRects(1, &ScissorRect);
-
-		renderSystem.GetCommandList()->DiscardResource(BloomTextures[2][i].DXTexture, nullptr);
 
 		renderSystem.GetCommandList()->SetPipelineState(VerticalBlurPipelineState);
 

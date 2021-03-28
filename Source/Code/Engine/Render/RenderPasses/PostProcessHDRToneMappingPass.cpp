@@ -17,28 +17,6 @@ void PostProcessHDRToneMappingPass::Init(RenderSystem& renderSystem)
 	OutputBloomTexture = renderSystem.GetRenderPass<PostProcessBloomPass>()->GetOutputBloomTexture();
 	OutputBloomTextureSRV = renderSystem.GetRenderPass<PostProcessBloomPass>()->GetOutputBloomTextureSRV();
 
-	D3D12_RESOURCE_DESC ResourceDesc;
-	ZeroMemory(&ResourceDesc, sizeof(D3D12_RESOURCE_DESC));
-	ResourceDesc.Alignment = 0;
-	ResourceDesc.DepthOrArraySize = 1;
-	ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	ResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-	ResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-	ResourceDesc.Height = renderSystem.GetResolutionHeight();
-	ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_UNKNOWN;
-	ResourceDesc.MipLevels = 1;
-	ResourceDesc.SampleDesc.Count = 8;
-	ResourceDesc.SampleDesc.Quality = 0;
-	ResourceDesc.Width = renderSystem.GetResolutionWidth();
-
-	D3D12_HEAP_PROPERTIES HeapProperties;
-	ZeroMemory(&HeapProperties, sizeof(D3D12_HEAP_PROPERTIES));
-	HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	HeapProperties.CreationNodeMask = 0;
-	HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
-	HeapProperties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT;
-	HeapProperties.VisibleNodeMask = 0;
-
 	D3D12_CLEAR_VALUE ClearValue;
 	ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 	ClearValue.Color[0] = 0.0f;
@@ -46,7 +24,7 @@ void PostProcessHDRToneMappingPass::Init(RenderSystem& renderSystem)
 	ClearValue.Color[2] = 0.0f;
 	ClearValue.Color[3] = 0.0f;
 
-	ToneMappedImageTexture = renderSystem.CreateTexture(HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue);
+	ToneMappedImageTexture = renderSystem.CreateTexture(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, DX12Helpers::CreateDXResourceDescTexture2D(renderSystem.GetResolutionWidth(), renderSystem.GetResolutionHeight(), DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET, 1, 8), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue);
 
 	D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
 	RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
