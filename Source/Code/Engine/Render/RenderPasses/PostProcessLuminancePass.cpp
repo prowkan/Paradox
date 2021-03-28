@@ -273,7 +273,7 @@ void PostProcessLuminancePass::Execute(RenderSystem& renderSystem)
 
 	renderSystem.GetCommandList()->Dispatch(1, 1, 1);
 
-	renderSystem.SwitchResourceState(SceneLuminanceTextures[3], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	renderSystem.SwitchResourceState(SceneLuminanceTextures[3], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 	renderSystem.ApplyPendingBarriers();
 
 	DestRangeSize = 2;

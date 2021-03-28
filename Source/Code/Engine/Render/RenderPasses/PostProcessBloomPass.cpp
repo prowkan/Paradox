@@ -240,14 +240,14 @@ void PostProcessBloomPass::Init(RenderSystem& renderSystem)
 
 		if (i == 0)
 		{
-			BloomPassSRTables1[0][0] = ResolvedHDRSceneColorTextureSRV;
-			BloomPassSRTables1[0][1] = SceneLuminanceTextureSRV;
-			BloomPassSRTables1[0].UpdateDescriptorTable(renderSystem.GetDevice());
+			BloomPassSRTables1[i][0] = ResolvedHDRSceneColorTextureSRV;
+			BloomPassSRTables1[i][1] = SceneLuminanceTextureSRV;
+			BloomPassSRTables1[i].UpdateDescriptorTable(renderSystem.GetDevice());
 		}
 		else
 		{
-			BloomPassSRTables1[1][0] = BloomTexturesSRVs[0][0];
-			BloomPassSRTables1[1].UpdateDescriptorTable(renderSystem.GetDevice());
+			BloomPassSRTables1[i][0] = BloomTexturesSRVs[i - 1][0];
+			BloomPassSRTables1[i].UpdateDescriptorTable(renderSystem.GetDevice());
 		}
 	}
 	
@@ -268,8 +268,8 @@ void PostProcessBloomPass::Init(RenderSystem& renderSystem)
 		BloomPassSRTables3[i] = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetGraphicsRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::PIXEL_SHADER_SHADER_RESOURCES]);
 		BloomPassSRTables3[i].SetTableSize(1);
 
-		BloomPassSRTables3[0][0] = BloomTexturesSRVs[2][6 - i]; 
-		BloomPassSRTables3[0].UpdateDescriptorTable(renderSystem.GetDevice());
+		BloomPassSRTables3[i][0] = BloomTexturesSRVs[2][6 - i]; 
+		BloomPassSRTables3[i].UpdateDescriptorTable(renderSystem.GetDevice());
 	}
 }
 

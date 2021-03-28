@@ -54,7 +54,7 @@ void HDRSceneColorResolvePass::Init(RenderSystem& renderSystem)
 
 void HDRSceneColorResolvePass::Execute(RenderSystem& renderSystem)
 {
-	renderSystem.SwitchResourceState(*HDRSceneColorTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE);
+	renderSystem.SwitchResourceState(*HDRSceneColorTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 	renderSystem.SwitchResourceState(ResolvedHDRSceneColorTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST);
 
 	renderSystem.ApplyPendingBarriers();
