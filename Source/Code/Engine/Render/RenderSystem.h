@@ -195,14 +195,16 @@ class DescriptorTable
 {
 	public:
 
-		DescriptorTable()
+		DescriptorTable() : CurrentFrameIndex(nullptr)
 		{
 			DescriptorsArray = nullptr;
 			DescriptorsCountInTable = 0;
 		}
 
-		DescriptorTable(const DescriptorTable& OtherDescriptorTable)
+		DescriptorTable(const DescriptorTable& OtherDescriptorTable) : CurrentFrameIndex(OtherDescriptorTable.CurrentFrameIndex)
 		{
+			Device = OtherDescriptorTable.Device;
+
 			DescriptorHeapType = OtherDescriptorTable.DescriptorHeapType;
 
 			DescriptorsCountInTable = OtherDescriptorTable.DescriptorsCountInTable;
@@ -227,11 +229,14 @@ class DescriptorTable
 			const SIZE_T FirstDescriptorsInTableCPU1,
 			const UINT64 FirstDescriptorsInTableGPU0,
 			const UINT64 FirstDescriptorsInTableGPU1,
-			D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType
+			D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType,
+			ID3D12Device* DXDevice,
+			UINT* FrameIndexRef
 		) : 
 			DescriptorsCountInTable(DescriptorsCountInTable), 
 			OffsetInDescriptorHeap(OffsetInDescriptorHeap),
-			DescriptorHeapType(DescriptorHeapType)
+			DescriptorHeapType(DescriptorHeapType),
+			CurrentFrameIndex(FrameIndexRef)
 		{
 			DescriptorsArray = new D3D12_CPU_DESCRIPTOR_HANDLE[DescriptorsCountInTable];
 			ArrayOfOnes = new UINT[DescriptorsCountInTable];
@@ -242,6 +247,8 @@ class DescriptorTable
 			this->FirstDescriptorsInTableCPU[1].ptr = FirstDescriptorsInTableCPU1;
 			this->FirstDescriptorsInTableGPU[0].ptr = FirstDescriptorsInTableGPU0;
 			this->FirstDescriptorsInTableGPU[1].ptr = FirstDescriptorsInTableGPU1;
+
+			Device = DXDevice;
 		}
 
 		~DescriptorTable()
@@ -255,10 +262,9 @@ class DescriptorTable
 			return DescriptorsArray[Index];
 		}
 
-		void UpdateDescriptorTable(ID3D12Device *Device, const UINT CurrentFrameIndex)
+		void UpdateDescriptorTable()
 		{
-			Device->CopyDescriptors(1, &FirstDescriptorsInTableCPU[CurrentFrameIndex], &DescriptorsCountInTable, DescriptorsCountInTable, DescriptorsArray, ArrayOfOnes, DescriptorHeapType);
-			this->CurrentFrameIndex = CurrentFrameIndex;
+			Device->CopyDescriptors(1, &FirstDescriptorsInTableCPU[*CurrentFrameIndex], &DescriptorsCountInTable, DescriptorsCountInTable, DescriptorsArray, ArrayOfOnes, DescriptorHeapType);
 		}
 
 		void SetTableSize(const UINT NewTableSize)
@@ -268,11 +274,15 @@ class DescriptorTable
 
 		operator D3D12_GPU_DESCRIPTOR_HANDLE()
 		{
-			return FirstDescriptorsInTableGPU[CurrentFrameIndex];
+			return FirstDescriptorsInTableGPU[*CurrentFrameIndex];
 		}
 
 		DescriptorTable& operator=(const DescriptorTable& OtherDescriptorTable)
 		{
+			Device = OtherDescriptorTable.Device;
+
+			CurrentFrameIndex = OtherDescriptorTable.CurrentFrameIndex;
+
 			DescriptorHeapType = OtherDescriptorTable.DescriptorHeapType;
 
 			DescriptorsCountInTable = OtherDescriptorTable.DescriptorsCountInTable;
@@ -303,24 +313,26 @@ class DescriptorTable
 		D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType;
 
 		UINT DescriptorsCountInTable, OffsetInDescriptorHeap, *ArrayOfOnes;
-		UINT CurrentFrameIndex;
+		UINT *CurrentFrameIndex;
+
+		ID3D12Device *Device;
 };
 
 class FrameDescriptorHeap
 {
 	public:
 
-		FrameDescriptorHeap()
+		FrameDescriptorHeap() : CurrentFrameIndex(nullptr)
 		{
 			DXDescriptorHeaps[0] = nullptr;
 			DXDescriptorHeaps[1] = nullptr;
 		}
 
-		FrameDescriptorHeap(ID3D12Device *DXDevice, const D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType, const UINT DescriptorsCount);
+		FrameDescriptorHeap(ID3D12Device *DXDevice, const D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType, const UINT DescriptorsCount, UINT* FrameIndexRef);
 
 		DescriptorTable AllocateDescriptorTable(const D3D12_ROOT_PARAMETER& RootParameter);
 
-		ID3D12DescriptorHeap* GetDXDescriptorHeap(const UINT FrameIndex) { return DXDescriptorHeaps[FrameIndex]; }
+		ID3D12DescriptorHeap* GetDXDescriptorHeap() { return DXDescriptorHeaps[*CurrentFrameIndex]; }
 
 	private:
 
@@ -334,6 +346,10 @@ class FrameDescriptorHeap
 		UINT DescriptorSize = 0;
 
 		UINT AllocatedDescriptorsForTables = 0;
+
+		ID3D12Device *Device;
+
+		UINT *CurrentFrameIndex;
 };
 
 struct Buffer
