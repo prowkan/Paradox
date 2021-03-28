@@ -105,10 +105,13 @@ FrameDescriptorHeap::FrameDescriptorHeap(ID3D12Device *DXDevice, const D3D12_DES
 	DescriptorHeapDesc.Type = DescriptorHeapType;
 
 	// TODO: Сделать обработку ошибок
-	DXDevice->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(DXDescriptorHeap));
+	DXDevice->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(DXDescriptorHeaps[0]));
+	DXDevice->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(DXDescriptorHeaps[1]));
 
-	FirstDescriptorCPU = DXDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr;
-	FirstDescriptorGPU = DXDescriptorHeap->GetGPUDescriptorHandleForHeapStart().ptr;
+	FirstDescriptorsCPU[0] = DXDescriptorHeaps[0]->GetCPUDescriptorHandleForHeapStart().ptr;
+	FirstDescriptorsCPU[1] = DXDescriptorHeaps[1]->GetCPUDescriptorHandleForHeapStart().ptr;
+	FirstDescriptorsGPU[0] = DXDescriptorHeaps[0]->GetGPUDescriptorHandleForHeapStart().ptr;
+	FirstDescriptorsGPU[1] = DXDescriptorHeaps[1]->GetGPUDescriptorHandleForHeapStart().ptr;
 	DescriptorSize = DXDevice->GetDescriptorHandleIncrementSize(DescriptorHeapType);
 }
 
@@ -122,10 +125,12 @@ DescriptorTable FrameDescriptorHeap::AllocateDescriptorTable(const D3D12_ROOT_PA
 	}
 
 	DescriptorTable descriptorTable(
-		DescriptorsCountInTable, 
-		AllocatedDescriptorsForTables, 
-		FirstDescriptorCPU + AllocatedDescriptorsForTables * DescriptorSize, 
-		FirstDescriptorGPU + AllocatedDescriptorsForTables * DescriptorSize,
+		DescriptorsCountInTable,
+		AllocatedDescriptorsForTables,
+		FirstDescriptorsCPU[0] + AllocatedDescriptorsForTables * DescriptorSize,
+		FirstDescriptorsCPU[1] + AllocatedDescriptorsForTables * DescriptorSize,
+		FirstDescriptorsGPU[0] + AllocatedDescriptorsForTables * DescriptorSize,
+		FirstDescriptorsGPU[1] + AllocatedDescriptorsForTables * DescriptorSize,
 		DescriptorHeapType
 	);
 
@@ -414,22 +419,6 @@ void RenderSystem::InitSystem()
 		ShadowMapSamplerTable = FrameSamplersDescriptorHeap.AllocateDescriptorTable(GraphicsRootSignature.GetRootSignatureDesc().pParameters[PIXEL_SHADER_SAMPLERS]);
 		BiLinearSamplerTable = FrameSamplersDescriptorHeap.AllocateDescriptorTable(GraphicsRootSignature.GetRootSignatureDesc().pParameters[PIXEL_SHADER_SAMPLERS]);
 		MinSamplerTable = FrameSamplersDescriptorHeap.AllocateDescriptorTable(GraphicsRootSignature.GetRootSignatureDesc().pParameters[PIXEL_SHADER_SAMPLERS]);
-
-		TextureSamplerTable[0] = TextureSampler;
-		TextureSamplerTable.SetTableSize(1);
-		TextureSamplerTable.UpdateDescriptorTable(Device);
-
-		ShadowMapSamplerTable[0] = ShadowMapSampler;
-		ShadowMapSamplerTable.SetTableSize(1);
-		ShadowMapSamplerTable.UpdateDescriptorTable(Device);
-
-		BiLinearSamplerTable[0] = BiLinearSampler;
-		BiLinearSamplerTable.SetTableSize(1);
-		BiLinearSamplerTable.UpdateDescriptorTable(Device);
-
-		MinSamplerTable[0] = MinSampler;
-		MinSamplerTable.SetTableSize(1);
-		MinSamplerTable.UpdateDescriptorTable(Device);
 	}
 
 	{
@@ -556,11 +545,26 @@ void RenderSystem::TickSystem(float DeltaTime)
 	SAFE_DX(CommandList->Reset(CommandAllocators[CurrentFrameIndex], nullptr));
 
 	ID3D12DescriptorHeap *DescriptorHeaps[2] = { FrameResourcesDescriptorHeap.GetDXDescriptorHeap(CurrentFrameIndex), FrameSamplersDescriptorHeap.GetDXDescriptorHeap(CurrentFrameIndex) };
-	//ID3D12DescriptorHeap *DescriptorHeaps[2] = { FrameResourcesDescriptorHeap.GetDXDescriptorHeap(0), FrameSamplersDescriptorHeap.GetDXDescriptorHeap(0) };
-
+	
 	CommandList->SetDescriptorHeaps(2, DescriptorHeaps);
 	CommandList->SetGraphicsRootSignature(GraphicsRootSignature);
 	CommandList->SetComputeRootSignature(ComputeRootSignature); 
+
+	TextureSamplerTable[0] = TextureSampler;
+	TextureSamplerTable.SetTableSize(1);
+	TextureSamplerTable.UpdateDescriptorTable(Device, CurrentFrameIndex);
+
+	ShadowMapSamplerTable[0] = ShadowMapSampler;
+	ShadowMapSamplerTable.SetTableSize(1);
+	ShadowMapSamplerTable.UpdateDescriptorTable(Device, CurrentFrameIndex);
+
+	BiLinearSamplerTable[0] = BiLinearSampler;
+	BiLinearSamplerTable.SetTableSize(1);
+	BiLinearSamplerTable.UpdateDescriptorTable(Device, CurrentFrameIndex);
+
+	MinSamplerTable[0] = MinSampler;
+	MinSamplerTable.SetTableSize(1);
+	MinSamplerTable.UpdateDescriptorTable(Device, CurrentFrameIndex);
 	
 	for (RenderPass* renderPass : RenderPasses)
 	{

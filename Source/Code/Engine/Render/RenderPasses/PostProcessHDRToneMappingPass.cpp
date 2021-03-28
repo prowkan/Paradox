@@ -86,11 +86,6 @@ void PostProcessHDRToneMappingPass::Init(RenderSystem& renderSystem)
 	SAFE_DX(renderSystem.GetDevice()->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(HDRToneMappingPipelineState)));
 
 	HDRToneMappingPassSRTable = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetGraphicsRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::PIXEL_SHADER_SHADER_RESOURCES]);
-
-	HDRToneMappingPassSRTable[0] = HDRSceneColorTextureSRV;
-	HDRToneMappingPassSRTable[1] = OutputBloomTextureSRV;
-	HDRToneMappingPassSRTable.SetTableSize(2);
-	HDRToneMappingPassSRTable.UpdateDescriptorTable(renderSystem.GetDevice());
 }
 
 void PostProcessHDRToneMappingPass::Execute(RenderSystem& renderSystem)
@@ -121,6 +116,11 @@ void PostProcessHDRToneMappingPass::Execute(RenderSystem& renderSystem)
 	ScissorRect.top = 0;
 
 	renderSystem.GetCommandList()->RSSetScissorRects(1, &ScissorRect);
+
+	HDRToneMappingPassSRTable[0] = HDRSceneColorTextureSRV;
+	HDRToneMappingPassSRTable[1] = OutputBloomTextureSRV;
+	HDRToneMappingPassSRTable.SetTableSize(2);
+	HDRToneMappingPassSRTable.UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
 
 	renderSystem.GetCommandList()->DiscardResource(ToneMappedImageTexture.DXTexture, nullptr);
 

@@ -155,20 +155,7 @@ void ShadowResolvePass::Init(RenderSystem& renderSystem)
 	SAFE_DX(renderSystem.GetDevice()->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(ShadowResolvePipelineState)));
 
 	ShadowResolveCBTable = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetGraphicsRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::PIXEL_SHADER_CONSTANT_BUFFERS]);
-
-	ShadowResolveCBTable[0] = ShadowResolveConstantBufferCBV;
-	ShadowResolveCBTable.SetTableSize(1);
-	ShadowResolveCBTable.UpdateDescriptorTable(renderSystem.GetDevice());
-
 	ShadowResolveSRTable = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetGraphicsRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::PIXEL_SHADER_SHADER_RESOURCES]);
-
-	ShadowResolveSRTable[0] = ResolvedDepthBufferTextureSRV;
-	ShadowResolveSRTable[1] = CascadedShadowMapTexturesSRVs[0];
-	ShadowResolveSRTable[2] = CascadedShadowMapTexturesSRVs[1];
-	ShadowResolveSRTable[3] = CascadedShadowMapTexturesSRVs[2];
-	ShadowResolveSRTable[4] = CascadedShadowMapTexturesSRVs[3];
-	ShadowResolveSRTable.SetTableSize(5);
-	ShadowResolveSRTable.UpdateDescriptorTable(renderSystem.GetDevice());
 }
 
 void ShadowResolvePass::Execute(RenderSystem& renderSystem)
@@ -263,6 +250,18 @@ void ShadowResolvePass::Execute(RenderSystem& renderSystem)
 	ScissorRect.top = 0;
 
 	renderSystem.GetCommandList()->RSSetScissorRects(1, &ScissorRect);
+
+	ShadowResolveCBTable[0] = ShadowResolveConstantBufferCBV;
+	ShadowResolveCBTable.SetTableSize(1);
+	ShadowResolveCBTable.UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+
+	ShadowResolveSRTable[0] = ResolvedDepthBufferTextureSRV;
+	ShadowResolveSRTable[1] = CascadedShadowMapTexturesSRVs[0];
+	ShadowResolveSRTable[2] = CascadedShadowMapTexturesSRVs[1];
+	ShadowResolveSRTable[3] = CascadedShadowMapTexturesSRVs[2];
+	ShadowResolveSRTable[4] = CascadedShadowMapTexturesSRVs[3];
+	ShadowResolveSRTable.SetTableSize(5);
+	ShadowResolveSRTable.UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
 
 	renderSystem.GetCommandList()->DiscardResource(ShadowMaskTexture.DXTexture, nullptr);
 

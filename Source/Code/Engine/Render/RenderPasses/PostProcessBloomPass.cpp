@@ -237,18 +237,6 @@ void PostProcessBloomPass::Init(RenderSystem& renderSystem)
 	{
 		BloomPassSRTables1[i] = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetGraphicsRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::PIXEL_SHADER_SHADER_RESOURCES]);
 		BloomPassSRTables1[i].SetTableSize(i == 0 ? 2 : 1);
-
-		if (i == 0)
-		{
-			BloomPassSRTables1[i][0] = ResolvedHDRSceneColorTextureSRV;
-			BloomPassSRTables1[i][1] = SceneLuminanceTextureSRV;
-			BloomPassSRTables1[i].UpdateDescriptorTable(renderSystem.GetDevice());
-		}
-		else
-		{
-			BloomPassSRTables1[i][0] = BloomTexturesSRVs[i - 1][0];
-			BloomPassSRTables1[i].UpdateDescriptorTable(renderSystem.GetDevice());
-		}
 	}
 	
 	for (int i = 0; i < 3; i++)
@@ -256,20 +244,12 @@ void PostProcessBloomPass::Init(RenderSystem& renderSystem)
 		for (int j = 0; j < 6; j++)
 		{
 			BloomPassSRTables2[j][i] = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetGraphicsRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::PIXEL_SHADER_SHADER_RESOURCES]);
-			BloomPassSRTables2[j][i].SetTableSize(1);
-
-			BloomPassSRTables2[j][i][0] = BloomTexturesSRVs[i == 2 ? 1 : 0][i == 0 ? j : j + 1]; 
-			BloomPassSRTables2[j][i].UpdateDescriptorTable(renderSystem.GetDevice());
 		}
 	}
 
 	for (int i = 0; i < 6; i++)
 	{
 		BloomPassSRTables3[i] = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetGraphicsRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::PIXEL_SHADER_SHADER_RESOURCES]);
-		BloomPassSRTables3[i].SetTableSize(1);
-
-		BloomPassSRTables3[i][0] = BloomTexturesSRVs[2][6 - i]; 
-		BloomPassSRTables3[i].UpdateDescriptorTable(renderSystem.GetDevice());
 	}
 }
 
@@ -306,6 +286,11 @@ void PostProcessBloomPass::Execute(RenderSystem& renderSystem)
 
 	renderSystem.GetCommandList()->SetPipelineState(BrightPassPipelineState);
 
+	BloomPassSRTables1[0][0] = ResolvedHDRSceneColorTextureSRV;
+	BloomPassSRTables1[0][1] = SceneLuminanceTextureSRV;
+	BloomPassSRTables1[0].SetTableSize(2);
+	BloomPassSRTables1[0].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+
 	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(RenderSystem::PIXEL_SHADER_SHADER_RESOURCES, BloomPassSRTables1[0]);
 
 	renderSystem.GetCommandList()->DrawInstanced(4, 1, 0, 0);
@@ -338,6 +323,10 @@ void PostProcessBloomPass::Execute(RenderSystem& renderSystem)
 
 	renderSystem.GetCommandList()->SetPipelineState(HorizontalBlurPipelineState);
 
+	BloomPassSRTables1[1][0] = BloomTexturesSRVs[0][0];
+	BloomPassSRTables1[1].SetTableSize(1);
+	BloomPassSRTables1[1].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+
 	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(RenderSystem::PIXEL_SHADER_SHADER_RESOURCES, BloomPassSRTables1[1]);
 
 	renderSystem.GetCommandList()->DrawInstanced(4, 1, 0, 0);
@@ -369,6 +358,10 @@ void PostProcessBloomPass::Execute(RenderSystem& renderSystem)
 	renderSystem.GetCommandList()->DiscardResource(BloomTextures[2][0].DXTexture, nullptr);
 
 	renderSystem.GetCommandList()->SetPipelineState(VerticalBlurPipelineState);
+
+	BloomPassSRTables1[2][0] = BloomTexturesSRVs[1][0];
+	BloomPassSRTables1[2].SetTableSize(1);
+	BloomPassSRTables1[2].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
 
 	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(RenderSystem::PIXEL_SHADER_SHADER_RESOURCES, BloomPassSRTables1[2]);
 
@@ -403,6 +396,10 @@ void PostProcessBloomPass::Execute(RenderSystem& renderSystem)
 
 		renderSystem.GetCommandList()->SetPipelineState(DownSamplePipelineState);
 
+		BloomPassSRTables2[i - 1][0][0] = BloomTexturesSRVs[0][i - 1];
+		BloomPassSRTables2[i - 1][0].SetTableSize(1);
+		BloomPassSRTables2[i - 1][0].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+
 		renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(RenderSystem::PIXEL_SHADER_SHADER_RESOURCES, BloomPassSRTables2[i - 1][0]);
 
 		renderSystem.GetCommandList()->DrawInstanced(4, 1, 0, 0);
@@ -434,6 +431,10 @@ void PostProcessBloomPass::Execute(RenderSystem& renderSystem)
 		renderSystem.GetCommandList()->DiscardResource(BloomTextures[1][i].DXTexture, nullptr);
 
 		renderSystem.GetCommandList()->SetPipelineState(HorizontalBlurPipelineState);
+
+		BloomPassSRTables2[i - 1][1][0] = BloomTexturesSRVs[0][i];
+		BloomPassSRTables2[i - 1][1].SetTableSize(1);
+		BloomPassSRTables2[i - 1][1].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
 
 		renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(RenderSystem::PIXEL_SHADER_SHADER_RESOURCES, BloomPassSRTables2[i - 1][1]);
 
@@ -467,6 +468,10 @@ void PostProcessBloomPass::Execute(RenderSystem& renderSystem)
 
 		renderSystem.GetCommandList()->SetPipelineState(VerticalBlurPipelineState);
 
+		BloomPassSRTables2[i - 1][2][0] = BloomTexturesSRVs[1][i];
+		BloomPassSRTables2[i - 1][2].SetTableSize(1);
+		BloomPassSRTables2[i - 1][2].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+
 		renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(RenderSystem::PIXEL_SHADER_SHADER_RESOURCES, BloomPassSRTables2[i - 1][2]);
 
 		renderSystem.GetCommandList()->DrawInstanced(4, 1, 0, 0);
@@ -498,6 +503,10 @@ void PostProcessBloomPass::Execute(RenderSystem& renderSystem)
 		renderSystem.GetCommandList()->RSSetScissorRects(1, &ScissorRect);
 
 		renderSystem.GetCommandList()->SetPipelineState(UpSampleWithAddBlendPipelineState);
+
+		BloomPassSRTables3[5 - i][0] = BloomTexturesSRVs[2][i + 1];
+		BloomPassSRTables3[5 - i].SetTableSize(1);
+		BloomPassSRTables3[5 - i].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
 
 		renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(RenderSystem::PIXEL_SHADER_SHADER_RESOURCES, BloomPassSRTables3[5 - i]);
 

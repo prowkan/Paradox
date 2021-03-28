@@ -297,22 +297,7 @@ void DeferredLightingPass::Init(RenderSystem& renderSystem)
 	SAFE_DX(renderSystem.GetDevice()->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(DeferredLightingPipelineState)));
 
 	DeferredLightingCBTable = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetGraphicsRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::PIXEL_SHADER_CONSTANT_BUFFERS]);
-
-	DeferredLightingCBTable[0] = DeferredLightingConstantBufferCBV;
-	DeferredLightingCBTable.SetTableSize(1);
-	DeferredLightingCBTable.UpdateDescriptorTable(renderSystem.GetDevice());
-
 	DeferredLightingSRTable = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetGraphicsRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::PIXEL_SHADER_SHADER_RESOURCES]);
-
-	DeferredLightingSRTable[0] = GBufferTexturesSRVs[0];
-	DeferredLightingSRTable[1] = GBufferTexturesSRVs[1];
-	DeferredLightingSRTable[2] = DepthBufferTextureSRV;
-	DeferredLightingSRTable[3] = ShadowMaskTextureSRV;
-	DeferredLightingSRTable[4] = LightClustersBufferSRV;
-	DeferredLightingSRTable[5] = LightIndicesBufferSRV;
-	DeferredLightingSRTable[6] = PointLightsBufferSRV;
-	DeferredLightingSRTable.SetTableSize(7);
-	DeferredLightingSRTable.UpdateDescriptorTable(renderSystem.GetDevice());
 }
 
 void DeferredLightingPass::Execute(RenderSystem& renderSystem)
@@ -441,6 +426,20 @@ void DeferredLightingPass::Execute(RenderSystem& renderSystem)
 	ScissorRect.top = 0;
 
 	renderSystem.GetCommandList()->RSSetScissorRects(1, &ScissorRect);
+
+	DeferredLightingCBTable[0] = DeferredLightingConstantBufferCBV;
+	DeferredLightingCBTable.SetTableSize(1);
+	DeferredLightingCBTable.UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+
+	DeferredLightingSRTable[0] = GBufferTexturesSRVs[0];
+	DeferredLightingSRTable[1] = GBufferTexturesSRVs[1];
+	DeferredLightingSRTable[2] = DepthBufferTextureSRV;
+	DeferredLightingSRTable[3] = ShadowMaskTextureSRV;
+	DeferredLightingSRTable[4] = LightClustersBufferSRV;
+	DeferredLightingSRTable[5] = LightIndicesBufferSRV;
+	DeferredLightingSRTable[6] = PointLightsBufferSRV;
+	DeferredLightingSRTable.SetTableSize(7);
+	DeferredLightingSRTable.UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
 
 	renderSystem.GetCommandList()->DiscardResource(HDRSceneColorTexture.DXTexture, nullptr);
 

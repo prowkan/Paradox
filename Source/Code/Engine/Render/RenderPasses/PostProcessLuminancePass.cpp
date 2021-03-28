@@ -165,39 +165,11 @@ void PostProcessLuminancePass::Init(RenderSystem& renderSystem)
 
 	SAFE_DX(renderSystem.GetDevice()->CreateComputePipelineState(&ComputePipelineStateDesc, UUIDOF(LuminanceAvgPipelineState)));
 
-	LuminancePassSRTables[0] = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetComputeRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::COMPUTE_SHADER_SHADER_RESOURCES]);
-	LuminancePassSRTables[0].SetTableSize(1);
-	LuminancePassSRTables[1] = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetComputeRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::COMPUTE_SHADER_SHADER_RESOURCES]);
-	LuminancePassSRTables[1].SetTableSize(1);
-	LuminancePassSRTables[2] = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetComputeRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::COMPUTE_SHADER_SHADER_RESOURCES]);
-	LuminancePassSRTables[2].SetTableSize(1);
-	LuminancePassSRTables[3] = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetComputeRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::COMPUTE_SHADER_SHADER_RESOURCES]);
-	LuminancePassSRTables[3].SetTableSize(1);
-	LuminancePassSRTables[4] = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetComputeRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::COMPUTE_SHADER_SHADER_RESOURCES]);
-	LuminancePassSRTables[4].SetTableSize(1);
-		
-	LuminancePassSRTables[0][0] = ResolvedHDRSceneColorTextureSRV; LuminancePassSRTables[0].UpdateDescriptorTable(renderSystem.GetDevice());
-	LuminancePassSRTables[1][0] = SceneLuminanceTexturesSRVs[0]; LuminancePassSRTables[1].UpdateDescriptorTable(renderSystem.GetDevice());
-	LuminancePassSRTables[2][0] = SceneLuminanceTexturesSRVs[1]; LuminancePassSRTables[2].UpdateDescriptorTable(renderSystem.GetDevice());
-	LuminancePassSRTables[3][0] = SceneLuminanceTexturesSRVs[2]; LuminancePassSRTables[3].UpdateDescriptorTable(renderSystem.GetDevice());
-	LuminancePassSRTables[4][0] = SceneLuminanceTexturesSRVs[3]; LuminancePassSRTables[4].UpdateDescriptorTable(renderSystem.GetDevice());
-
-	LuminancePassUATables[0] = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetComputeRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]);
-	LuminancePassUATables[0].SetTableSize(1);
-	LuminancePassUATables[1] = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetComputeRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]);
-	LuminancePassUATables[1].SetTableSize(1);
-	LuminancePassUATables[2] = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetComputeRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]);
-	LuminancePassUATables[2].SetTableSize(1);
-	LuminancePassUATables[3] = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetComputeRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]);
-	LuminancePassUATables[3].SetTableSize(1);
-	LuminancePassUATables[4] = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetComputeRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]);
-	LuminancePassUATables[4].SetTableSize(1);
-	
-	LuminancePassUATables[0][0] = SceneLuminanceTexturesUAVs[0]; LuminancePassUATables[0].UpdateDescriptorTable(renderSystem.GetDevice());
-	LuminancePassUATables[1][0] = SceneLuminanceTexturesUAVs[1]; LuminancePassUATables[1].UpdateDescriptorTable(renderSystem.GetDevice());
-	LuminancePassUATables[2][0] = SceneLuminanceTexturesUAVs[2]; LuminancePassUATables[2].UpdateDescriptorTable(renderSystem.GetDevice());
-	LuminancePassUATables[3][0] = SceneLuminanceTexturesUAVs[3]; LuminancePassUATables[3].UpdateDescriptorTable(renderSystem.GetDevice());
-	LuminancePassUATables[4][0] = AverageLuminanceTextureUAV; LuminancePassUATables[4].UpdateDescriptorTable(renderSystem.GetDevice());
+	for (int i = 0; i < 5; i++)
+	{
+		LuminancePassSRTables[i] = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetComputeRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::COMPUTE_SHADER_SHADER_RESOURCES]);
+		LuminancePassUATables[i] = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetComputeRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS]);
+	}
 }
 
 void PostProcessLuminancePass::Execute(RenderSystem& renderSystem)
@@ -206,11 +178,15 @@ void PostProcessLuminancePass::Execute(RenderSystem& renderSystem)
 	renderSystem.SwitchResourceState(SceneLuminanceTextures[0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	renderSystem.ApplyPendingBarriers();
 
-	UINT DestRangeSize = 2;
-	UINT SourceRangeSizes[2] = { 1, 1 };
-	D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[2] = { ResolvedHDRSceneColorTextureSRV, SceneLuminanceTexturesUAVs[0] };
-
 	renderSystem.GetCommandList()->SetPipelineState(LuminanceCalcPipelineState);
+
+	LuminancePassUATables[0][0] = SceneLuminanceTexturesUAVs[0];
+	LuminancePassSRTables[0].SetTableSize(1);
+	LuminancePassUATables[0].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+
+	LuminancePassUATables[0].SetTableSize(1);
+	LuminancePassSRTables[0][0] = ResolvedHDRSceneColorTextureSRV;
+	LuminancePassSRTables[0].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
 
 	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(RenderSystem::COMPUTE_SHADER_SHADER_RESOURCES, LuminancePassSRTables[0]);
 	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(RenderSystem::COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS, LuminancePassUATables[0]);
@@ -223,13 +199,15 @@ void PostProcessLuminancePass::Execute(RenderSystem& renderSystem)
 	renderSystem.SwitchResourceState(SceneLuminanceTextures[1], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	renderSystem.ApplyPendingBarriers();
 
-	DestRangeSize = 2;
-	SourceRangeSizes[0] = 1;
-	SourceRangeSizes[1] = 1;
-	SourceCPUHandles[0] = SceneLuminanceTexturesSRVs[0];
-	SourceCPUHandles[1] = SceneLuminanceTexturesUAVs[1];
-
 	renderSystem.GetCommandList()->SetPipelineState(LuminanceSumPipelineState);
+
+	LuminancePassSRTables[1][0] = SceneLuminanceTexturesSRVs[0];
+	LuminancePassSRTables[1].SetTableSize(1);
+	LuminancePassSRTables[1].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+
+	LuminancePassUATables[1][0] = SceneLuminanceTexturesUAVs[1];
+	LuminancePassUATables[1].SetTableSize(1);
+	LuminancePassUATables[1].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
 
 	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(RenderSystem::COMPUTE_SHADER_SHADER_RESOURCES, LuminancePassSRTables[1]);
 	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(RenderSystem::COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS, LuminancePassUATables[1]);
@@ -242,11 +220,13 @@ void PostProcessLuminancePass::Execute(RenderSystem& renderSystem)
 	renderSystem.SwitchResourceState(SceneLuminanceTextures[2], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	renderSystem.ApplyPendingBarriers();
 
-	DestRangeSize = 2;
-	SourceRangeSizes[0] = 1;
-	SourceRangeSizes[1] = 1;
-	SourceCPUHandles[0] = SceneLuminanceTexturesSRVs[1];
-	SourceCPUHandles[1] = SceneLuminanceTexturesUAVs[2];
+	LuminancePassSRTables[2][0] = SceneLuminanceTexturesSRVs[1];
+	LuminancePassSRTables[2].SetTableSize(1);
+	LuminancePassSRTables[2].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+
+	LuminancePassUATables[2][0] = SceneLuminanceTexturesUAVs[2];
+	LuminancePassUATables[2].SetTableSize(1);
+	LuminancePassUATables[2].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
 
 	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(RenderSystem::COMPUTE_SHADER_SHADER_RESOURCES, LuminancePassSRTables[2]);
 	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(RenderSystem::COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS, LuminancePassUATables[2]);
@@ -259,12 +239,13 @@ void PostProcessLuminancePass::Execute(RenderSystem& renderSystem)
 	renderSystem.SwitchResourceState(SceneLuminanceTextures[3], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	renderSystem.ApplyPendingBarriers();
 
+	LuminancePassSRTables[3][0] = SceneLuminanceTexturesSRVs[2];
+	LuminancePassSRTables[3].SetTableSize(1);
+	LuminancePassSRTables[3].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
 
-	DestRangeSize = 2;
-	SourceRangeSizes[0] = 1;
-	SourceRangeSizes[1] = 1;
-	SourceCPUHandles[0] = SceneLuminanceTexturesSRVs[2];
-	SourceCPUHandles[1] = SceneLuminanceTexturesUAVs[3];
+	LuminancePassUATables[3][0] = SceneLuminanceTexturesUAVs[3];
+	LuminancePassUATables[3].SetTableSize(1);
+	LuminancePassUATables[3].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
 
 	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(RenderSystem::COMPUTE_SHADER_SHADER_RESOURCES, LuminancePassSRTables[3]);
 	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(RenderSystem::COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS, LuminancePassUATables[3]);
@@ -276,13 +257,15 @@ void PostProcessLuminancePass::Execute(RenderSystem& renderSystem)
 	renderSystem.SwitchResourceState(SceneLuminanceTextures[3], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 	renderSystem.ApplyPendingBarriers();
 
-	DestRangeSize = 2;
-	SourceRangeSizes[0] = 1;
-	SourceRangeSizes[1] = 1;
-	SourceCPUHandles[0] = SceneLuminanceTexturesSRVs[3];
-	SourceCPUHandles[1] = AverageLuminanceTextureUAV;
-
 	renderSystem.GetCommandList()->SetPipelineState(LuminanceAvgPipelineState);
+
+	LuminancePassUATables[4][0] = AverageLuminanceTextureUAV;
+	LuminancePassSRTables[4].SetTableSize(1);
+	LuminancePassUATables[4].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+
+	LuminancePassSRTables[4][0] = SceneLuminanceTexturesSRVs[3];
+	LuminancePassUATables[4].SetTableSize(1);
+	LuminancePassSRTables[4].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
 
 	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(RenderSystem::COMPUTE_SHADER_SHADER_RESOURCES, LuminancePassSRTables[4]);
 	renderSystem.GetCommandList()->SetComputeRootDescriptorTable(RenderSystem::COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS, LuminancePassUATables[4]);

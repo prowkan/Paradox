@@ -800,32 +800,11 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 
 	FogSRTable = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetGraphicsRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::PIXEL_SHADER_SHADER_RESOURCES]);
 
-	FogSRTable[0] = DepthBufferTextureSRV;
-	FogSRTable.SetTableSize(1);
-
-	FogSRTable.UpdateDescriptorTable(renderSystem.GetDevice());
-
 	SkyCBTable = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetGraphicsRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::VERTEX_SHADER_CONSTANT_BUFFERS]);
 	SkySRTable = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetGraphicsRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::PIXEL_SHADER_SHADER_RESOURCES]);
 
 	SunCBTable = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetGraphicsRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::VERTEX_SHADER_CONSTANT_BUFFERS]);
 	SunSRTable = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetGraphicsRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::PIXEL_SHADER_SHADER_RESOURCES]);
-
-	SkyCBTable[0] = SkyConstantBufferCBV;
-	SkyCBTable.SetTableSize(1);
-	SkyCBTable.UpdateDescriptorTable(renderSystem.GetDevice());
-
-	SkySRTable[0] = SkyTextureSRV;
-	SkySRTable.SetTableSize(1);
-	SkySRTable.UpdateDescriptorTable(renderSystem.GetDevice());
-
-	SunCBTable[0] = SunConstantBufferCBV;
-	SunCBTable.SetTableSize(1);
-	SunCBTable.UpdateDescriptorTable(renderSystem.GetDevice());
-
-	SunSRTable[0] = SunTextureSRV;
-	SunSRTable.SetTableSize(1);
-	SunSRTable.UpdateDescriptorTable(renderSystem.GetDevice());
 }
 
 void SkyAndFogPass::Execute(RenderSystem& renderSystem)
@@ -910,6 +889,10 @@ void SkyAndFogPass::Execute(RenderSystem& renderSystem)
 
 	renderSystem.GetCommandList()->RSSetScissorRects(1, &ScissorRect);
 
+	FogSRTable[0] = DepthBufferTextureSRV;
+	FogSRTable.SetTableSize(1);
+	FogSRTable.UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+
 	renderSystem.GetCommandList()->SetPipelineState(FogPipelineState);
 
 	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(RenderSystem::PIXEL_SHADER_SHADER_RESOURCES, FogSRTable);
@@ -952,6 +935,14 @@ void SkyAndFogPass::Execute(RenderSystem& renderSystem)
 	IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
 	IndexBufferView.SizeInBytes = sizeof(WORD) * (300 + 24 * 600 + 300);
 
+	SkyCBTable[0] = SkyConstantBufferCBV;
+	SkyCBTable.SetTableSize(1);
+	SkyCBTable.UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+
+	SkySRTable[0] = SkyTextureSRV;
+	SkySRTable.SetTableSize(1);
+	SkySRTable.UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+
 	renderSystem.GetCommandList()->IASetVertexBuffers(0, 1, &VertexBufferView);
 	renderSystem.GetCommandList()->IASetIndexBuffer(&IndexBufferView);
 
@@ -969,6 +960,14 @@ void SkyAndFogPass::Execute(RenderSystem& renderSystem)
 	IndexBufferView.BufferLocation = SunIndexBufferAddress;
 	IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
 	IndexBufferView.SizeInBytes = sizeof(WORD) * 6;
+
+	SunCBTable[0] = SunConstantBufferCBV;
+	SunCBTable.SetTableSize(1);
+	SunCBTable.UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+
+	SunSRTable[0] = SunTextureSRV;
+	SunSRTable.SetTableSize(1);
+	SunSRTable.UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
 
 	renderSystem.GetCommandList()->IASetVertexBuffers(0, 1, &VertexBufferView);
 	renderSystem.GetCommandList()->IASetIndexBuffer(&IndexBufferView);

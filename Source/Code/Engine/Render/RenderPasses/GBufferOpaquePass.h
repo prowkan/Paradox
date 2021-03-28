@@ -31,7 +31,5 @@ class GBufferOpaquePass : public RenderPass
 		Buffer GPUConstantBuffer, CPUConstantBuffers[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs[20000];
 
-		DescriptorTable ConstantBufferTables[20000], ShaderResourcesTables[4000];
-
-		bool First = true;
+		DescriptorTable ConstantBufferTables[20000], ShaderResourcesTables[20000];
 };

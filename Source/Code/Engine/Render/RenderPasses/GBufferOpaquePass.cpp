@@ -179,38 +179,13 @@ void GBufferOpaquePass::Init(RenderSystem& renderSystem)
 	for (UINT i = 0; i < 20000; i++)
 	{
 		ConstantBufferTables[i] = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetGraphicsRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::VERTEX_SHADER_CONSTANT_BUFFERS]);
-		ConstantBufferTables[i].SetTableSize(1);
-		ConstantBufferTables[i][0] = ConstantBufferCBVs[i];
-		ConstantBufferTables[i].UpdateDescriptorTable(renderSystem.GetDevice());
+		ShaderResourcesTables[i] = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetGraphicsRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::PIXEL_SHADER_SHADER_RESOURCES]);
+
 	}
 }
 
 void GBufferOpaquePass::Execute(RenderSystem& renderSystem)
 {
-	if (First)
-	{
-		for (UINT i = 0; i < 4000; i++)
-		{
-			ShaderResourcesTables[i] = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetGraphicsRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::PIXEL_SHADER_SHADER_RESOURCES]);
-			ShaderResourcesTables[i].SetTableSize(2);
-
-			char MaterialResourceName[255];
-
-			sprintf(MaterialResourceName, "Standart_%d", i);
-
-			MaterialResource *Material = Engine::GetEngine().GetResourceManager().GetResource<MaterialResource>(MaterialResourceName);
-			RenderTexture *renderTexture0 = Material->GetTexture(0)->GetRenderTexture();
-			RenderTexture *renderTexture1 = Material->GetTexture(1)->GetRenderTexture();
-
-			ShaderResourcesTables[i][0] = renderTexture0->TextureSRV;
-			ShaderResourcesTables[i][1] = renderTexture1->TextureSRV;
-
-			ShaderResourcesTables[i].UpdateDescriptorTable(renderSystem.GetDevice());
-		}
-
-		First = false;
-	}
-
 	GameFramework& gameFramework = Engine::GetEngine().GetGameFramework();
 
 	RenderScene& renderScene = gameFramework.GetWorld().GetRenderScene();
@@ -325,6 +300,18 @@ void GBufferOpaquePass::Execute(RenderSystem& renderSystem)
 
 		RenderMesh *renderMesh = staticMeshComponent->GetStaticMesh()->GetRenderMesh();
 		RenderMaterial *renderMaterial = staticMeshComponent->GetMaterial()->GetRenderMaterial();
+		MaterialResource *material = staticMeshComponent->GetMaterial();
+		RenderTexture *renderTexture0 = material->GetTexture(0)->GetRenderTexture();
+		RenderTexture *renderTexture1 = material->GetTexture(1)->GetRenderTexture();
+
+		ConstantBufferTables[k][0] = ConstantBufferCBVs[k];
+		ConstantBufferTables[k].SetTableSize(1);
+		ConstantBufferTables[k].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
+
+		ShaderResourcesTables[k][0] = renderTexture0->TextureSRV;
+		ShaderResourcesTables[k][1] = renderTexture1->TextureSRV;
+		ShaderResourcesTables[k].SetTableSize(2);
+		ShaderResourcesTables[k].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
 
 		D3D12_VERTEX_BUFFER_VIEW VertexBufferView;
 		VertexBufferView.BufferLocation = renderMesh->VertexBufferAddress;
@@ -342,7 +329,7 @@ void GBufferOpaquePass::Execute(RenderSystem& renderSystem)
 		renderSystem.GetCommandList()->SetPipelineState(renderMaterial->GBufferOpaquePassPipelineState);
 
 		renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(RenderSystem::VERTEX_SHADER_CONSTANT_BUFFERS, ConstantBufferTables[k]);
-		renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(RenderSystem::PIXEL_SHADER_SHADER_RESOURCES, ShaderResourcesTables[k % 4000]);
+		renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(RenderSystem::PIXEL_SHADER_SHADER_RESOURCES, ShaderResourcesTables[k]);
 
 		renderSystem.GetCommandList()->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
 	}

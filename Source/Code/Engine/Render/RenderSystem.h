@@ -211,8 +211,10 @@ class DescriptorTable
 			DescriptorsCountInTable = OtherDescriptorTable.DescriptorsCountInTable;
 			OffsetInDescriptorHeap = OtherDescriptorTable.OffsetInDescriptorHeap;
 
-			this->FirstDescriptorInTableCPU = OtherDescriptorTable.FirstDescriptorInTableCPU;
-			this->FirstDescriptorInTableGPU = OtherDescriptorTable.FirstDescriptorInTableGPU;
+			this->FirstDescriptorsInTableCPU[0] = OtherDescriptorTable.FirstDescriptorsInTableCPU[0];
+			this->FirstDescriptorsInTableCPU[1] = OtherDescriptorTable.FirstDescriptorsInTableCPU[1];
+			this->FirstDescriptorsInTableGPU[0] = OtherDescriptorTable.FirstDescriptorsInTableGPU[0];
+			this->FirstDescriptorsInTableGPU[1] = OtherDescriptorTable.FirstDescriptorsInTableGPU[1];
 
 			DescriptorsCountInTable = OtherDescriptorTable.DescriptorsCountInTable;
 			DescriptorsArray = new D3D12_CPU_DESCRIPTOR_HANDLE[OtherDescriptorTable.DescriptorsCountInTable];
@@ -224,11 +226,13 @@ class DescriptorTable
 		DescriptorTable(
 			const UINT DescriptorsCountInTable,
 			const UINT OffsetInDescriptorHeap,
-			const SIZE_T FirstDescriptorsInTableCPU,
-			const UINT64 FirstDescriptorsInTableGPU,
+			const SIZE_T FirstDescriptorsInTableCPU0,
+			const SIZE_T FirstDescriptorsInTableCPU1,
+			const UINT64 FirstDescriptorsInTableGPU0,
+			const UINT64 FirstDescriptorsInTableGPU1,
 			D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType
-		) : 
-			DescriptorsCountInTable(DescriptorsCountInTable), 
+		) :
+			DescriptorsCountInTable(DescriptorsCountInTable),
 			OffsetInDescriptorHeap(OffsetInDescriptorHeap),
 			DescriptorHeapType(DescriptorHeapType)
 		{
@@ -237,8 +241,10 @@ class DescriptorTable
 
 			for (UINT i = 0; i < DescriptorsCountInTable; i++) ArrayOfOnes[i] = 1;
 
-			this->FirstDescriptorInTableCPU.ptr = FirstDescriptorsInTableCPU;
-			this->FirstDescriptorInTableGPU.ptr = FirstDescriptorsInTableGPU;
+			this->FirstDescriptorsInTableCPU[0].ptr = FirstDescriptorsInTableCPU0;
+			this->FirstDescriptorsInTableCPU[1].ptr = FirstDescriptorsInTableCPU1;
+			this->FirstDescriptorsInTableGPU[0].ptr = FirstDescriptorsInTableGPU0;
+			this->FirstDescriptorsInTableGPU[1].ptr = FirstDescriptorsInTableGPU1;
 		}
 
 		~DescriptorTable()
@@ -252,9 +258,10 @@ class DescriptorTable
 			return DescriptorsArray[Index];
 		}
 
-		void UpdateDescriptorTable(ID3D12Device *Device)
+		void UpdateDescriptorTable(ID3D12Device *Device, const UINT CurrentFrameIndex)
 		{
-			Device->CopyDescriptors(1, &FirstDescriptorInTableCPU, &DescriptorsCountInTable, DescriptorsCountInTable, DescriptorsArray, ArrayOfOnes, DescriptorHeapType);
+			Device->CopyDescriptors(1, &FirstDescriptorsInTableCPU[CurrentFrameIndex], &DescriptorsCountInTable, DescriptorsCountInTable, DescriptorsArray, ArrayOfOnes, DescriptorHeapType);
+			this->CurrentFrameIndex = CurrentFrameIndex;
 		}
 
 		void SetTableSize(const UINT NewTableSize)
@@ -264,7 +271,7 @@ class DescriptorTable
 
 		operator D3D12_GPU_DESCRIPTOR_HANDLE()
 		{
-			return FirstDescriptorInTableGPU;
+			return FirstDescriptorsInTableGPU[CurrentFrameIndex];
 		}
 
 		DescriptorTable& operator=(const DescriptorTable& OtherDescriptorTable)
@@ -274,8 +281,10 @@ class DescriptorTable
 			DescriptorsCountInTable = OtherDescriptorTable.DescriptorsCountInTable;
 			OffsetInDescriptorHeap = OtherDescriptorTable.OffsetInDescriptorHeap;
 
-			this->FirstDescriptorInTableCPU = OtherDescriptorTable.FirstDescriptorInTableCPU;
-			this->FirstDescriptorInTableGPU = OtherDescriptorTable.FirstDescriptorInTableGPU;
+			this->FirstDescriptorsInTableCPU[0] = OtherDescriptorTable.FirstDescriptorsInTableCPU[0];
+			this->FirstDescriptorsInTableCPU[1] = OtherDescriptorTable.FirstDescriptorsInTableCPU[1];
+			this->FirstDescriptorsInTableGPU[0] = OtherDescriptorTable.FirstDescriptorsInTableGPU[0];
+			this->FirstDescriptorsInTableGPU[1] = OtherDescriptorTable.FirstDescriptorsInTableGPU[1];
 
 			DescriptorsCountInTable = OtherDescriptorTable.DescriptorsCountInTable;
 			delete[] DescriptorsArray;
@@ -291,16 +300,13 @@ class DescriptorTable
 
 		D3D12_CPU_DESCRIPTOR_HANDLE *DescriptorsArray;
 
-		/*D3D12_CPU_DESCRIPTOR_HANDLE FirstDescriptorsInTableCPU[2];
-		D3D12_GPU_DESCRIPTOR_HANDLE FirstDescriptorsInTableGPU[2];*/
-
-		D3D12_CPU_DESCRIPTOR_HANDLE FirstDescriptorInTableCPU;
-		D3D12_GPU_DESCRIPTOR_HANDLE FirstDescriptorInTableGPU;
+		D3D12_CPU_DESCRIPTOR_HANDLE FirstDescriptorsInTableCPU[2];
+		D3D12_GPU_DESCRIPTOR_HANDLE FirstDescriptorsInTableGPU[2];
 
 		D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType;
 
 		UINT DescriptorsCountInTable, OffsetInDescriptorHeap, *ArrayOfOnes;
-		//UINT CurrentFrameIndex;
+		UINT CurrentFrameIndex;
 };
 
 class FrameDescriptorHeap
@@ -309,23 +315,24 @@ class FrameDescriptorHeap
 
 		FrameDescriptorHeap()
 		{
-			DXDescriptorHeap = nullptr;
+			DXDescriptorHeaps[0] = nullptr;
+			DXDescriptorHeaps[1] = nullptr;
 		}
 
 		FrameDescriptorHeap(ID3D12Device *DXDevice, const D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType, const UINT DescriptorsCount);
 
 		DescriptorTable AllocateDescriptorTable(const D3D12_ROOT_PARAMETER& RootParameter);
 
-		ID3D12DescriptorHeap* GetDXDescriptorHeap(const UINT FrameIndex) { return DXDescriptorHeap; }
+		ID3D12DescriptorHeap* GetDXDescriptorHeap(const UINT FrameIndex) { return DXDescriptorHeaps[FrameIndex]; }
 
 	private:
 
-		COMRCPtr<ID3D12DescriptorHeap> DXDescriptorHeap;
+		COMRCPtr<ID3D12DescriptorHeap> DXDescriptorHeaps[2];
 
 		D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType;
 
-		SIZE_T FirstDescriptorCPU;
-		UINT64 FirstDescriptorGPU;
+		SIZE_T FirstDescriptorsCPU[2];
+		UINT64 FirstDescriptorsGPU[2];
 
 		UINT DescriptorSize = 0;
 

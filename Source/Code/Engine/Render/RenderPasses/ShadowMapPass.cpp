@@ -151,19 +151,6 @@ void ShadowMapPass::Init(RenderSystem& renderSystem)
 	for (UINT i = 0; i < 80000; i++)
 	{
 		ConstantBufferTables[i] = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetGraphicsRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::VERTEX_SHADER_CONSTANT_BUFFERS]);
-		ConstantBufferTables[i].SetTableSize(1);
-	}
-
-	for (UINT i = 0; i < 20000; i++)
-	{
-		ConstantBufferTables[i][0] = ConstantBufferCBVs[0][i];
-		ConstantBufferTables[i].UpdateDescriptorTable(renderSystem.GetDevice());
-		ConstantBufferTables[20000 + i][0] = ConstantBufferCBVs[1][i];
-		ConstantBufferTables[20000 + i].UpdateDescriptorTable(renderSystem.GetDevice());
-		ConstantBufferTables[40000 + i][0] = ConstantBufferCBVs[2][i];
-		ConstantBufferTables[40000 + i].UpdateDescriptorTable(renderSystem.GetDevice());
-		ConstantBufferTables[60000 + i][0] = ConstantBufferCBVs[3][i];
-		ConstantBufferTables[60000 + i].UpdateDescriptorTable(renderSystem.GetDevice());
 	}
 }
 
@@ -270,6 +257,10 @@ void ShadowMapPass::Execute(RenderSystem& renderSystem)
 			RenderMaterial *renderMaterial = staticMeshComponent->GetMaterial()->GetRenderMaterial();
 			RenderTexture *renderTexture0 = staticMeshComponent->GetMaterial()->GetTexture(0)->GetRenderTexture();
 			RenderTexture *renderTexture1 = staticMeshComponent->GetMaterial()->GetTexture(1)->GetRenderTexture();
+
+			ConstantBufferTables[i * 20000 + k][0] = ConstantBufferCBVs[i][k];
+			ConstantBufferTables[i * 20000 + k].SetTableSize(1);
+			ConstantBufferTables[i * 20000 + k].UpdateDescriptorTable(renderSystem.GetDevice(), renderSystem.GetCurrentFrameIndex());
 
 			UINT DestRangeSize = 1;
 			UINT SourceRangeSizes[1] = { 1 };
