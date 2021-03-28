@@ -96,7 +96,7 @@ RootSignature::~RootSignature()
 	delete[] DXRootSignatureDesc.pStaticSamplers;
 }
 
-FrameDescriptorHeap::FrameDescriptorHeap(ID3D12Device *DXDevice, const D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType, const UINT DescriptorsCount) : DescriptorHeapType(DescriptorHeapType)
+FrameDescriptorHeap::FrameDescriptorHeap(ID3D12Device *DXDevice, const D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType, const UINT DescriptorsCount, UINT* FrameIndexRef) : DescriptorHeapType(DescriptorHeapType), CurrentFrameIndex(FrameIndexRef)
 {
 	D3D12_DESCRIPTOR_HEAP_DESC DescriptorHeapDesc;
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
@@ -113,6 +113,8 @@ FrameDescriptorHeap::FrameDescriptorHeap(ID3D12Device *DXDevice, const D3D12_DES
 	FirstDescriptorsGPU[0] = DXDescriptorHeaps[0]->GetGPUDescriptorHandleForHeapStart().ptr;
 	FirstDescriptorsGPU[1] = DXDescriptorHeaps[1]->GetGPUDescriptorHandleForHeapStart().ptr;
 	DescriptorSize = DXDevice->GetDescriptorHandleIncrementSize(DescriptorHeapType);
+
+	Device = DXDevice;
 }
 
 DescriptorTable FrameDescriptorHeap::AllocateDescriptorTable(const D3D12_ROOT_PARAMETER& RootParameter)
@@ -131,7 +133,9 @@ DescriptorTable FrameDescriptorHeap::AllocateDescriptorTable(const D3D12_ROOT_PA
 		FirstDescriptorsCPU[1] + AllocatedDescriptorsForTables * DescriptorSize,
 		FirstDescriptorsGPU[0] + AllocatedDescriptorsForTables * DescriptorSize,
 		FirstDescriptorsGPU[1] + AllocatedDescriptorsForTables * DescriptorSize,
-		DescriptorHeapType
+		DescriptorHeapType,
+		Device,
+		CurrentFrameIndex
 	);
 
 	AllocatedDescriptorsForTables += DescriptorsCountInTable;
@@ -240,8 +244,8 @@ void RenderSystem::InitSystem()
 	new (&ConstantBufferDescriptorHeap) DescriptorHeap(Device, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 100000);
 	new (&TexturesDescriptorHeap) DescriptorHeap(Device, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 8002);
 
-	new (&FrameResourcesDescriptorHeap) FrameDescriptorHeap(Device, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 500000);
-	new (&FrameSamplersDescriptorHeap) FrameDescriptorHeap(Device, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 2000);
+	new (&FrameResourcesDescriptorHeap) FrameDescriptorHeap(Device, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 500000, &CurrentFrameIndex);
+	new (&FrameSamplersDescriptorHeap) FrameDescriptorHeap(Device, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 2000, &CurrentFrameIndex);
 
 	D3D12_DESCRIPTOR_RANGE DescriptorRanges[4];
 	DescriptorRanges[0].BaseShaderRegister = 0;
@@ -426,11 +430,7 @@ void RenderSystem::InitSystem()
 		ZeroMemory(&HeapDesc, sizeof(D3D12_HEAP_DESC));
 		HeapDesc.Alignment = 0;
 		HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
-		HeapDesc.Properties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-		HeapDesc.Properties.CreationNodeMask = 0;
-		HeapDesc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
-		HeapDesc.Properties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT;
-		HeapDesc.Properties.VisibleNodeMask = 0;
+		HeapDesc.Properties = DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT);
 		HeapDesc.SizeInBytes = BUFFER_MEMORY_HEAP_SIZE;
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(BufferMemoryHeaps[CurrentBufferMemoryHeapIndex])));
@@ -438,11 +438,7 @@ void RenderSystem::InitSystem()
 		ZeroMemory(&HeapDesc, sizeof(D3D12_HEAP_DESC));
 		HeapDesc.Alignment = 0;
 		HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES;
-		HeapDesc.Properties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-		HeapDesc.Properties.CreationNodeMask = 0;
-		HeapDesc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
-		HeapDesc.Properties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT;
-		HeapDesc.Properties.VisibleNodeMask = 0;
+		HeapDesc.Properties = DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT);
 		HeapDesc.SizeInBytes = TEXTURE_MEMORY_HEAP_SIZE;
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(TextureMemoryHeaps[CurrentTextureMemoryHeapIndex])));
@@ -450,28 +446,12 @@ void RenderSystem::InitSystem()
 		ZeroMemory(&HeapDesc, sizeof(D3D12_HEAP_DESC));
 		HeapDesc.Alignment = 0;
 		HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
-		HeapDesc.Properties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-		HeapDesc.Properties.CreationNodeMask = 0;
-		HeapDesc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
-		HeapDesc.Properties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD;
-		HeapDesc.Properties.VisibleNodeMask = 0;
+		HeapDesc.Properties = DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD);
 		HeapDesc.SizeInBytes = UPLOAD_HEAP_SIZE;
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(UploadHeap)));
 
-		D3D12_RESOURCE_DESC ResourceDesc;
-		ZeroMemory(&ResourceDesc, sizeof(D3D12_RESOURCE_DESC));
-		ResourceDesc.Alignment = 0;
-		ResourceDesc.DepthOrArraySize = 1;
-		ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER;
-		ResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE;
-		ResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
-		ResourceDesc.Height = 1;
-		ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-		ResourceDesc.MipLevels = 1;
-		ResourceDesc.SampleDesc.Count = 1;
-		ResourceDesc.SampleDesc.Quality = 0;
-		ResourceDesc.Width = UPLOAD_HEAP_SIZE;
+		D3D12_RESOURCE_DESC ResourceDesc = DX12Helpers::CreateDXResourceDescBuffer(UPLOAD_HEAP_SIZE);
 
 		SAFE_DX(Device->CreatePlacedResource(UploadHeap, 0, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(UploadBuffer)));
 	}
@@ -544,8 +524,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 	SAFE_DX(CommandAllocators[CurrentFrameIndex]->Reset());
 	SAFE_DX(CommandList->Reset(CommandAllocators[CurrentFrameIndex], nullptr));
 
-	ID3D12DescriptorHeap *DescriptorHeaps[2] = { FrameResourcesDescriptorHeap.GetDXDescriptorHeap(CurrentFrameIndex), FrameSamplersDescriptorHeap.GetDXDescriptorHeap(CurrentFrameIndex) };
-	
+	ID3D12DescriptorHeap *DescriptorHeaps[2] = { FrameResourcesDescriptorHeap.GetDXDescriptorHeap(), FrameSamplersDescriptorHeap.GetDXDescriptorHeap() };
+
 	CommandList->SetDescriptorHeaps(2, DescriptorHeaps);
 	CommandList->SetGraphicsRootSignature(GraphicsRootSignature);
 	CommandList->SetComputeRootSignature(ComputeRootSignature); 
