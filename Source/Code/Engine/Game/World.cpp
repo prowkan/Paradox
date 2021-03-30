@@ -26,49 +26,53 @@ void World::LoadWorld()
 	const int VertexCount = 9 * 9 * 6;
 	const int IndexCount = 8 * 8 * 6 * 6;
 
-	BYTE MeshData[sizeof(Vertex) * VertexCount + sizeof(WORD) * IndexCount];
+	//BYTE MeshData[sizeof(Vertex) * VertexCount + sizeof(WORD) * IndexCount];
+	BYTE MeshData[(sizeof(XMFLOAT3) + sizeof(XMFLOAT2) + sizeof(XMFLOAT3[3])) * VertexCount + sizeof(WORD) * IndexCount];
 
-	Vertex *Vertices = (Vertex*)MeshData;
+	//Vertex *Vertices = (Vertex*)MeshData;
+	XMFLOAT3 *Positions = (XMFLOAT3*)MeshData;
+	XMFLOAT2 *TexCoords = (XMFLOAT2*)(MeshData + VertexCount * sizeof(XMFLOAT3));
+	XMFLOAT3 (*TangentSpaces)[3]  = (XMFLOAT3(*)[3])(MeshData + VertexCount * (sizeof(XMFLOAT3) + sizeof(XMFLOAT2)));
 
 	for (int i = 0; i < 9; i++)
 	{
 		for (int j = 0; j < 9; j++)
 		{
-			Vertices[0 + 9 * i + j].Position = XMFLOAT3(-1.0f + j * 0.25f, 1.0f - i * 0.25f, -1.0f);
-			Vertices[0 + 9 * i + j].TexCoord = XMFLOAT2(j * 0.125f, i * 0.125f);
-			Vertices[0 + 9 * i + j].Normal = XMFLOAT3(0.0f, 0.0f, -1.0f);
-			Vertices[0 + 9 * i + j].Tangent = XMFLOAT3(1.0f, 0.0f, 0.0f);
-			Vertices[0 + 9 * i + j].Binormal = XMFLOAT3(0.0f, -1.0f, 0.0f);
+			Positions[0 + 9 * i + j] = XMFLOAT3(-1.0f + j * 0.25f, 1.0f - i * 0.25f, -1.0f);
+			TexCoords[0 + 9 * i + j] = XMFLOAT2(j * 0.125f, i * 0.125f);
+			TangentSpaces[0 + 9 * i + j][0] = XMFLOAT3(0.0f, 0.0f, -1.0f);
+			TangentSpaces[0 + 9 * i + j][1] = XMFLOAT3(1.0f, 0.0f, 0.0f);
+			TangentSpaces[0 + 9 * i + j][2] = XMFLOAT3(0.0f, -1.0f, 0.0f);
 
-			Vertices[81 + 9 * i + j].Position = XMFLOAT3(1.0f, 1.0f - i * 0.25f, -1.0f + j * 0.25f);
-			Vertices[81 + 9 * i + j].TexCoord = XMFLOAT2(j * 0.125f, i * 0.125f);
-			Vertices[81 + 9 * i + j].Normal = XMFLOAT3(1.0f, 0.0f, 0.0f);
-			Vertices[81 + 9 * i + j].Tangent = XMFLOAT3(0.0f, 0.0f, 1.0f);
-			Vertices[81 + 9 * i + j].Binormal = XMFLOAT3(0.0f, -1.0f, 0.0f);
+			Positions[81 + 9 * i + j] = XMFLOAT3(1.0f, 1.0f - i * 0.25f, -1.0f + j * 0.25f);
+			TexCoords[81 + 9 * i + j] = XMFLOAT2(j * 0.125f, i * 0.125f);
+			TangentSpaces[81 + 9 * i + j][0] = XMFLOAT3(1.0f, 0.0f, 0.0f);
+			TangentSpaces[81 + 9 * i + j][1] = XMFLOAT3(0.0f, 0.0f, 1.0f);
+			TangentSpaces[81 + 9 * i + j][2] = XMFLOAT3(0.0f, -1.0f, 0.0f);
 
-			Vertices[2 * 81 + 9 * i + j].Position = XMFLOAT3(1.0f - j * 0.25f, 1.0f - i * 0.25f, 1.0f);
-			Vertices[2 * 81 + 9 * i + j].TexCoord = XMFLOAT2(j * 0.125f, i * 0.125f);
-			Vertices[2 * 81 + 9 * i + j].Normal = XMFLOAT3(0.0f, 0.0f, 1.0f);
-			Vertices[2 * 81 + 9 * i + j].Tangent = XMFLOAT3(-1.0f, 0.0f, 0.0f);
-			Vertices[2 * 81 + 9 * i + j].Binormal = XMFLOAT3(0.0f, -1.0f, 0.0f);
+			Positions[2 * 81 + 9 * i + j] = XMFLOAT3(1.0f - j * 0.25f, 1.0f - i * 0.25f, 1.0f);
+			TexCoords[2 * 81 + 9 * i + j] = XMFLOAT2(j * 0.125f, i * 0.125f);
+			TangentSpaces[2 * 81 + 9 * i + j][0] = XMFLOAT3(0.0f, 0.0f, 1.0f);
+			TangentSpaces[2 * 81 + 9 * i + j][1] = XMFLOAT3(-1.0f, 0.0f, 0.0f);
+			TangentSpaces[2 * 81 + 9 * i + j][2] = XMFLOAT3(0.0f, -1.0f, 0.0f);
 
-			Vertices[3 * 81 + 9 * i + j].Position = XMFLOAT3(-1.0f, 1.0f - i * 0.25f, 1.0f - j * 0.25f);
-			Vertices[3 * 81 + 9 * i + j].TexCoord = XMFLOAT2(j * 0.125f, i * 0.125f);
-			Vertices[3 * 81 + 9 * i + j].Normal = XMFLOAT3(-1.0f, 0.0f, 0.0f);
-			Vertices[3 * 81 + 9 * i + j].Tangent = XMFLOAT3(0.0f, 0.0f, -1.0f);
-			Vertices[3 * 81 + 9 * i + j].Binormal = XMFLOAT3(0.0f, -1.0f, 0.0f);
+			Positions[3 * 81 + 9 * i + j] = XMFLOAT3(-1.0f, 1.0f - i * 0.25f, 1.0f - j * 0.25f);
+			TexCoords[3 * 81 + 9 * i + j] = XMFLOAT2(j * 0.125f, i * 0.125f);
+			TangentSpaces[3 * 81 + 9 * i + j][0] = XMFLOAT3(-1.0f, 0.0f, 0.0f);
+			TangentSpaces[3 * 81 + 9 * i + j][1] = XMFLOAT3(0.0f, 0.0f, -1.0f);
+			TangentSpaces[3 * 81 + 9 * i + j][2] = XMFLOAT3(0.0f, -1.0f, 0.0f);
 
-			Vertices[4 * 81 + 9 * i + j].Position = XMFLOAT3(-1.0f + j * 0.25f, 1.0f, 1.0f - i * 0.25f);
-			Vertices[4 * 81 + 9 * i + j].TexCoord = XMFLOAT2(j * 0.125f, i * 0.125f);
-			Vertices[4 * 81 + 9 * i + j].Normal = XMFLOAT3(0.0f, 1.0f, 0.0f);
-			Vertices[4 * 81 + 9 * i + j].Tangent = XMFLOAT3(1.0f, 0.0f, 0.0f);
-			Vertices[4 * 81 + 9 * i + j].Binormal = XMFLOAT3(0.0f, 0.0f, -1.0f);
+			Positions[4 * 81 + 9 * i + j] = XMFLOAT3(-1.0f + j * 0.25f, 1.0f, 1.0f - i * 0.25f);
+			TexCoords[4 * 81 + 9 * i + j] = XMFLOAT2(j * 0.125f, i * 0.125f);
+			TangentSpaces[4 * 81 + 9 * i + j][0] = XMFLOAT3(0.0f, 1.0f, 0.0f);
+			TangentSpaces[4 * 81 + 9 * i + j][1] = XMFLOAT3(1.0f, 0.0f, 0.0f);
+			TangentSpaces[4 * 81 + 9 * i + j][2] = XMFLOAT3(0.0f, 0.0f, -1.0f);
 
-			Vertices[5 * 81 + 9 * i + j].Position = XMFLOAT3(-1.0f + j * 0.25f, -1.0f, -1.0f + i * 0.25f);
-			Vertices[5 * 81 + 9 * i + j].TexCoord = XMFLOAT2(j * 0.125f, i * 0.125f);
-			Vertices[5 * 81 + 9 * i + j].Normal = XMFLOAT3(0.0f, -1.0f, 0.0f);
-			Vertices[5 * 81 + 9 * i + j].Tangent = XMFLOAT3(1.0f, 0.0f, 0.0f);
-			Vertices[5 * 81 + 9 * i + j].Binormal = XMFLOAT3(0.0f, 0.0f, 1.0f);
+			Positions[5 * 81 + 9 * i + j] = XMFLOAT3(-1.0f + j * 0.25f, -1.0f, -1.0f + i * 0.25f);
+			TexCoords[5 * 81 + 9 * i + j] = XMFLOAT2(j * 0.125f, i * 0.125f);
+			TangentSpaces[5 * 81 + 9 * i + j][0] = XMFLOAT3(0.0f, -1.0f, 0.0f);
+			TangentSpaces[5 * 81 + 9 * i + j][1] = XMFLOAT3(1.0f, 0.0f, 0.0f);
+			TangentSpaces[5 * 81 + 9 * i + j][2] = XMFLOAT3(0.0f, 0.0f, 1.0f);
 		}
 	}
 

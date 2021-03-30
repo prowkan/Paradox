@@ -240,17 +240,23 @@ void GBufferOpaquePass::Execute(RenderSystem& renderSystem)
 		ShaderResourcesTables[k].SetTableSize(2);
 		ShaderResourcesTables[k].UpdateDescriptorTable();
 
-		D3D12_VERTEX_BUFFER_VIEW VertexBufferView;
-		VertexBufferView.BufferLocation = renderMesh->VertexBufferAddress;
-		VertexBufferView.SizeInBytes = sizeof(Vertex) * 9 * 9 * 6;
-		VertexBufferView.StrideInBytes = sizeof(Vertex);
+		D3D12_VERTEX_BUFFER_VIEW VertexBufferViews[3];
+		VertexBufferViews[0].BufferLocation = renderMesh->VertexBufferAddresses[0];
+		VertexBufferViews[0].SizeInBytes = sizeof(XMFLOAT3) * 9 * 9 * 6;
+		VertexBufferViews[0].StrideInBytes = sizeof(XMFLOAT3);
+		VertexBufferViews[1].BufferLocation = renderMesh->VertexBufferAddresses[1];
+		VertexBufferViews[1].SizeInBytes = sizeof(XMFLOAT2) * 9 * 9 * 6;
+		VertexBufferViews[1].StrideInBytes = sizeof(XMFLOAT2);
+		VertexBufferViews[2].BufferLocation = renderMesh->VertexBufferAddresses[2];
+		VertexBufferViews[2].SizeInBytes = 3 * sizeof(XMFLOAT3) * 9 * 9 * 6;
+		VertexBufferViews[2].StrideInBytes = 3 * sizeof(XMFLOAT3);
 
 		D3D12_INDEX_BUFFER_VIEW IndexBufferView;
 		IndexBufferView.BufferLocation = renderMesh->IndexBufferAddress;
 		IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
 		IndexBufferView.SizeInBytes = sizeof(WORD) * 8 * 8 * 6 * 6;
 
-		renderSystem.GetCommandList()->IASetVertexBuffers(0, 1, &VertexBufferView);
+		renderSystem.GetCommandList()->IASetVertexBuffers(0, 3, VertexBufferViews);
 		renderSystem.GetCommandList()->IASetIndexBuffer(&IndexBufferView);
 
 		renderSystem.GetCommandList()->SetPipelineState(renderMaterial->GBufferOpaquePassPipelineState);

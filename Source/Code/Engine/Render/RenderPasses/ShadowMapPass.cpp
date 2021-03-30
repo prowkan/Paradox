@@ -218,9 +218,9 @@ void ShadowMapPass::Execute(RenderSystem& renderSystem)
 			D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[1] = { ConstantBufferCBVs[i][k] };
 
 			D3D12_VERTEX_BUFFER_VIEW VertexBufferView;
-			VertexBufferView.BufferLocation = renderMesh->VertexBufferAddress;
-			VertexBufferView.SizeInBytes = sizeof(Vertex) * 9 * 9 * 6;
-			VertexBufferView.StrideInBytes = sizeof(Vertex);
+			VertexBufferView.BufferLocation = renderMesh->VertexBufferAddresses[0];
+			VertexBufferView.SizeInBytes = sizeof(XMFLOAT3) * 9 * 9 * 6;
+			VertexBufferView.StrideInBytes = sizeof(XMFLOAT3);
 
 			D3D12_INDEX_BUFFER_VIEW IndexBufferView;
 			IndexBufferView.BufferLocation = renderMesh->IndexBufferAddress;

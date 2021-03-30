@@ -758,8 +758,10 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 
 	SAFE_DX(CopySyncFence->Signal(0));
 
-	renderMesh->VertexBufferAddress = renderMesh->MeshBuffer->GetGPUVirtualAddress();
-	renderMesh->IndexBufferAddress = renderMesh->VertexBufferAddress + sizeof(Vertex) * renderMeshCreateInfo.VertexCount;
+	renderMesh->VertexBufferAddresses[0] = renderMesh->MeshBuffer->GetGPUVirtualAddress();
+	renderMesh->VertexBufferAddresses[1] = renderMesh->VertexBufferAddresses[0] + sizeof(XMFLOAT3) * renderMeshCreateInfo.VertexCount;
+	renderMesh->VertexBufferAddresses[2] = renderMesh->VertexBufferAddresses[1] + sizeof(XMFLOAT2) * renderMeshCreateInfo.VertexCount;
+	renderMesh->IndexBufferAddress = renderMesh->VertexBufferAddresses[2] + 3 * sizeof(XMFLOAT3) * renderMeshCreateInfo.VertexCount;
 
 	return renderMesh;
 }
@@ -776,42 +778,42 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 		{
 			switch (renderTextureCreateInfo.CompressionType)
 			{
-			case BlockCompression::BC1:
-				TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC1_UNORM_SRGB;
-				break;
-			case BlockCompression::BC2:
-				TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC2_UNORM_SRGB;
-				break;
-			case BlockCompression::BC3:
-				TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC3_UNORM_SRGB;
-				break;
-			default:
-				TextureFormat = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
-				break;
+				case BlockCompression::BC1:
+					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC1_UNORM_SRGB;
+					break;
+				case BlockCompression::BC2:
+					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC2_UNORM_SRGB;
+					break;
+				case BlockCompression::BC3:
+					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC3_UNORM_SRGB;
+					break;
+				default:
+					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
+					break;
 			}
 		}
 		else
 		{
 			switch (renderTextureCreateInfo.CompressionType)
 			{
-			case BlockCompression::BC1:
-				TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC1_UNORM;
-				break;
-			case BlockCompression::BC2:
-				TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC2_UNORM;
-				break;
-			case BlockCompression::BC3:
-				TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC3_UNORM;
-				break;
-			case BlockCompression::BC4:
-				TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC4_UNORM;
-				break;
-			case BlockCompression::BC5:
-				TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC5_UNORM;
-				break;
-			default:
-				TextureFormat = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
-				break;
+				case BlockCompression::BC1:
+					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC1_UNORM;
+					break;
+				case BlockCompression::BC2:
+					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC2_UNORM;
+					break;
+				case BlockCompression::BC3:
+					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC3_UNORM;
+					break;
+				case BlockCompression::BC4:
+					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC4_UNORM;
+					break;
+				case BlockCompression::BC5:
+					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_BC5_UNORM;
+					break;
+				default:
+					TextureFormat = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
+					break;
 			}
 		}
 	}
@@ -985,28 +987,28 @@ RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInf
 	InputElementDescs[0].SemanticName = "POSITION";
 	InputElementDescs[1].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
 	InputElementDescs[1].Format = DXGI_FORMAT::DXGI_FORMAT_R32G32_FLOAT;
-	InputElementDescs[1].InputSlot = 0;
+	InputElementDescs[1].InputSlot = 1;
 	InputElementDescs[1].InputSlotClass = D3D12_INPUT_CLASSIFICATION::D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
 	InputElementDescs[1].InstanceDataStepRate = 0;
 	InputElementDescs[1].SemanticIndex = 0;
 	InputElementDescs[1].SemanticName = "TEXCOORD";
 	InputElementDescs[2].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
 	InputElementDescs[2].Format = DXGI_FORMAT::DXGI_FORMAT_R32G32B32_FLOAT;
-	InputElementDescs[2].InputSlot = 0;
+	InputElementDescs[2].InputSlot = 2;
 	InputElementDescs[2].InputSlotClass = D3D12_INPUT_CLASSIFICATION::D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
 	InputElementDescs[2].InstanceDataStepRate = 0;
 	InputElementDescs[2].SemanticIndex = 0;
 	InputElementDescs[2].SemanticName = "NORMAL";
 	InputElementDescs[3].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
 	InputElementDescs[3].Format = DXGI_FORMAT::DXGI_FORMAT_R32G32B32_FLOAT;
-	InputElementDescs[3].InputSlot = 0;
+	InputElementDescs[3].InputSlot = 2;
 	InputElementDescs[3].InputSlotClass = D3D12_INPUT_CLASSIFICATION::D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
 	InputElementDescs[3].InstanceDataStepRate = 0;
 	InputElementDescs[3].SemanticIndex = 0;
 	InputElementDescs[3].SemanticName = "TANGENT";
 	InputElementDescs[4].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
 	InputElementDescs[4].Format = DXGI_FORMAT::DXGI_FORMAT_R32G32B32_FLOAT;
-	InputElementDescs[4].InputSlot = 0;
+	InputElementDescs[4].InputSlot = 2;
 	InputElementDescs[4].InputSlotClass = D3D12_INPUT_CLASSIFICATION::D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
 	InputElementDescs[4].InstanceDataStepRate = 0;
 	InputElementDescs[4].SemanticIndex = 0;
@@ -1046,7 +1048,7 @@ RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInf
 	GraphicsPipelineStateDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK::D3D12_DEPTH_WRITE_MASK_ALL;
 	GraphicsPipelineStateDesc.DSVFormat = DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT;
 	GraphicsPipelineStateDesc.Flags = D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_NONE;
-	GraphicsPipelineStateDesc.InputLayout.NumElements = 5;
+	GraphicsPipelineStateDesc.InputLayout.NumElements = 1;
 	GraphicsPipelineStateDesc.InputLayout.pInputElementDescs = InputElementDescs;
 	GraphicsPipelineStateDesc.NodeMask = 0;
 	GraphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE::D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;

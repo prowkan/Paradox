@@ -8,7 +8,7 @@
 struct RenderMesh
 {
 	COMRCPtr<ID3D12Resource> MeshBuffer;
-	D3D12_GPU_VIRTUAL_ADDRESS VertexBufferAddress, IndexBufferAddress;
+	D3D12_GPU_VIRTUAL_ADDRESS VertexBufferAddresses[3], IndexBufferAddress;
 };
 
 struct RenderTexture
