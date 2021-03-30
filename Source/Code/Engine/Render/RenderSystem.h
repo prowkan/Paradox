@@ -7,7 +7,7 @@
 
 struct RenderMesh
 {
-	COMRCPtr<ID3D12Resource> VertexBuffer, IndexBuffer;
+	COMRCPtr<ID3D12Resource> MeshBuffer;
 	D3D12_GPU_VIRTUAL_ADDRESS VertexBufferAddress, IndexBufferAddress;
 };
 
@@ -27,8 +27,7 @@ enum class BlockCompression { BC1, BC2, BC3, BC4, BC5 };
 
 struct RenderMeshCreateInfo
 {
-	void *VertexData;
-	void *IndexData;
+	void *MeshData;
 	UINT VertexCount;
 	UINT IndexCount;
 };

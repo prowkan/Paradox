@@ -6,8 +6,7 @@ struct RenderMesh;
 
 struct StaticMeshResourceCreateInfo
 {
-	void *VertexData;
-	void *IndexData;
+	void *MeshData;
 	UINT VertexCount;
 	UINT IndexCount;
 };

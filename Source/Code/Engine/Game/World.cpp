@@ -26,7 +26,9 @@ void World::LoadWorld()
 	const int VertexCount = 9 * 9 * 6;
 	const int IndexCount = 8 * 8 * 6 * 6;
 
-	Vertex Vertices[VertexCount];
+	BYTE MeshData[sizeof(Vertex) * VertexCount + sizeof(WORD) * IndexCount];
+
+	Vertex *Vertices = (Vertex*)MeshData;
 
 	for (int i = 0; i < 9; i++)
 	{
@@ -70,7 +72,7 @@ void World::LoadWorld()
 		}
 	}
 
-	WORD Indices[IndexCount];
+	WORD *Indices = (WORD*)(MeshData + sizeof(Vertex) * VertexCount);
 
 	for (int i = 0; i < 8; i++)
 	{
@@ -121,10 +123,9 @@ void World::LoadWorld()
 	}
 
 	StaticMeshResourceCreateInfo staticMeshResourceCreateInfo;
-	staticMeshResourceCreateInfo.IndexCount = IndexCount;
-	staticMeshResourceCreateInfo.IndexData = Indices;
+	staticMeshResourceCreateInfo.MeshData = MeshData;
 	staticMeshResourceCreateInfo.VertexCount = VertexCount;
-	staticMeshResourceCreateInfo.VertexData = Vertices;
+	staticMeshResourceCreateInfo.IndexCount = IndexCount;
 
 	for (int k = 0; k < 4000; k++)
 	{
