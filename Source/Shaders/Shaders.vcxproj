@@ -184,10 +184,6 @@
     <FxCompile Include="VerticalBlur.hlsl" />
     <FxCompile Include="OcclusionBuffer.hlsl" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="CleanShaders.py" />
-    <None Include="CompileShaders.py" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

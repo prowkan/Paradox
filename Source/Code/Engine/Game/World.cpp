@@ -53,8 +53,7 @@ void World::LoadWorld()
 		StaticMeshResourceCreateInfo staticMeshResourceCreateInfo;
 		staticMeshResourceCreateInfo.VertexCount = staticMeshFileHeader->VertexCount;
 		staticMeshResourceCreateInfo.IndexCount = staticMeshFileHeader->IndexCount;
-		staticMeshResourceCreateInfo.VertexData = (BYTE*)staticMeshFileHeader + sizeof(StaticMeshFileHeader);
-		staticMeshResourceCreateInfo.IndexData = (BYTE*)staticMeshFileHeader + sizeof(StaticMeshFileHeader) + staticMeshResourceCreateInfo.VertexCount * sizeof(Vertex);
+		staticMeshResourceCreateInfo.MeshData = (BYTE*)staticMeshFileHeader + sizeof(StaticMeshFileHeader);
 
 		char StaticMeshResourceName[255];
 

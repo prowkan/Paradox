@@ -558,53 +558,57 @@ class Vertex:
 VertexCount = 9 * 9 * 6
 IndexCount = 8 * 8 * 6 * 6
 
-Vertices = [Vertex()] * VertexCount
+#Vertices = [Vertex()] * VertexCount
+Positions = [Vector3()] * VertexCount;
+TexCoords = [Vector2()] * VertexCount;
+TangentSpaces = [[]] * VertexCount;
+
 Indices = [0] * IndexCount
 
 for i in range(9):
     for j in range(9):
 
-        Vertices[0 + 9 * i + j] = Vertex()
-        Vertices[0 + 9 * i + j].Position = Vector3(-1.0 + j * 0.25, 1.0 - i * 0.25, -1.0)
-        Vertices[0 + 9 * i + j].TexCoord = Vector2(j * 0.125, i * 0.125)
-        Vertices[0 + 9 * i + j].Normal = Vector3(0.0, 0.0, -1.0)
-        Vertices[0 + 9 * i + j].Tangent = Vector3(1.0, 0.0, 0.0)
-        Vertices[0 + 9 * i + j].Binormal = Vector3(0.0, -1.0, 0.0)
+        Positions[0 + 9 * i + j] = Vector3(-1.0 + j * 0.25, 1.0 - i * 0.25, -1.0)
+        TexCoords[0 + 9 * i + j] = Vector2(j * 0.125, i * 0.125)
+        TangentSpaces[0 + 9 * i + j] = [Vector3()] * 3;
+        TangentSpaces[0 + 9 * i + j][0] = Vector3(0.0, 0.0, -1.0)
+        TangentSpaces[0 + 9 * i + j][1] = Vector3(1.0, 0.0, 0.0)
+        TangentSpaces[0 + 9 * i + j][2] = Vector3(0.0, -1.0, 0.0)
 
-        Vertices[81 + 9 * i + j] = Vertex()
-        Vertices[81 + 9 * i + j].Position = Vector3(1.0, 1.0 - i * 0.25, -1.0 + j * 0.25)
-        Vertices[81 + 9 * i + j].TexCoord = Vector2(j * 0.125, i * 0.125)
-        Vertices[81 + 9 * i + j].Normal = Vector3(1.0, 0.0, 0.0)
-        Vertices[81 + 9 * i + j].Tangent = Vector3(0.0, 0.0, 1.0)
-        Vertices[81 + 9 * i + j].Binormal = Vector3(0.0, -1.0, 0.0)
+        Positions[81 + 9 * i + j] = Vector3(1.0, 1.0 - i * 0.25, -1.0 + j * 0.25)
+        TexCoords[81 + 9 * i + j] = Vector2(j * 0.125, i * 0.125)
+        TangentSpaces[81 + 9 * i + j] = [Vector3()] * 3;
+        TangentSpaces[81 + 9 * i + j][0] = Vector3(1.0, 0.0, 0.0)
+        TangentSpaces[81 + 9 * i + j][1] = Vector3(0.0, 0.0, 1.0)
+        TangentSpaces[81 + 9 * i + j][2] = Vector3(0.0, -1.0, 0.0)
 
-        Vertices[2 * 81 + 9 * i + j] = Vertex()
-        Vertices[2 * 81 + 9 * i + j].Position = Vector3(1.0 - j * 0.25, 1.0 - i * 0.25, 1.0)
-        Vertices[2 * 81 + 9 * i + j].TexCoord = Vector2(j * 0.125, i * 0.125)
-        Vertices[2 * 81 + 9 * i + j].Normal = Vector3(0.0, 0.0, 1.0)
-        Vertices[2 * 81 + 9 * i + j].Tangent = Vector3(-1.0, 0.0, 0.0)
-        Vertices[2 * 81 + 9 * i + j].Binormal = Vector3(0.0, -1.0, 0.0)
+        Positions[2 * 81 + 9 * i + j] = Vector3(1.0 - j * 0.25, 1.0 - i * 0.25, 1.0)
+        TexCoords[2 * 81 + 9 * i + j] = Vector2(j * 0.125, i * 0.125)
+        TangentSpaces[2 * 81 + 9 * i + j] = [Vector3()] * 3;
+        TangentSpaces[2 * 81 + 9 * i + j][0] = Vector3(0.0, 0.0, 1.0)
+        TangentSpaces[2 * 81 + 9 * i + j][1] = Vector3(-1.0, 0.0, 0.0)
+        TangentSpaces[2 * 81 + 9 * i + j][2] = Vector3(0.0, -1.0, 0.0)
 
-        Vertices[3 * 81 + 9 * i + j] = Vertex()
-        Vertices[3 * 81 + 9 * i + j].Position = Vector3(-1.0, 1.0 - i * 0.25, 1.0 - j * 0.25)
-        Vertices[3 * 81 + 9 * i + j].TexCoord = Vector2(j * 0.125, i * 0.125)
-        Vertices[3 * 81 + 9 * i + j].Normal = Vector3(-1.0, 0.0, 0.0)
-        Vertices[3 * 81 + 9 * i + j].Tangent = Vector3(0.0, 0.0, -1.0)
-        Vertices[3 * 81 + 9 * i + j].Binormal = Vector3(0.0, -1.0, 0.0)
+        Positions[3 * 81 + 9 * i + j] = Vector3(-1.0, 1.0 - i * 0.25, 1.0 - j * 0.25)
+        TexCoords[3 * 81 + 9 * i + j] = Vector2(j * 0.125, i * 0.125)
+        TangentSpaces[3 * 81 + 9 * i + j] = [Vector3()] * 3;
+        TangentSpaces[3 * 81 + 9 * i + j][0] = Vector3(-1.0, 0.0, 0.0)
+        TangentSpaces[3 * 81 + 9 * i + j][1] = Vector3(0.0, 0.0, -1.0)
+        TangentSpaces[3 * 81 + 9 * i + j][2] = Vector3(0.0, -1.0, 0.0)
 
-        Vertices[4 * 81 + 9 * i + j] = Vertex()
-        Vertices[4 * 81 + 9 * i + j].Position = Vector3(-1.0 + j * 0.25, 1.0, 1.0 - i * 0.25)
-        Vertices[4 * 81 + 9 * i + j].TexCoord = Vector2(j * 0.125, i * 0.125)
-        Vertices[4 * 81 + 9 * i + j].Normal = Vector3(0.0, 1.0, 0.0)
-        Vertices[4 * 81 + 9 * i + j].Tangent = Vector3(1.0, 0.0, 0.0)
-        Vertices[4 * 81 + 9 * i + j].Binormal = Vector3(0.0, 0.0, -1.0)
+        Positions[4 * 81 + 9 * i + j] = Vector3(-1.0 + j * 0.25, 1.0, 1.0 - i * 0.25)
+        TexCoords[4 * 81 + 9 * i + j] = Vector2(j * 0.125, i * 0.125)
+        TangentSpaces[4 * 81 + 9 * i + j] = [Vector3()] * 3;
+        TangentSpaces[4 * 81 + 9 * i + j][0] = Vector3(0.0, 1.0, 0.0)
+        TangentSpaces[4 * 81 + 9 * i + j][1] = Vector3(1.0, 0.0, 0.0)
+        TangentSpaces[4 * 81 + 9 * i + j][2] = Vector3(0.0, 0.0, -1.0)
 
-        Vertices[5 * 81 + 9 * i + j] = Vertex()
-        Vertices[5 * 81 + 9 * i + j].Position = Vector3(-1.0 + j * 0.25, -1.0, -1.0 + i * 0.25)
-        Vertices[5 * 81 + 9 * i + j].TexCoord = Vector2(j * 0.125, i * 0.125)
-        Vertices[5 * 81 + 9 * i + j].Normal = Vector3(0.0, -1.0, 0.0)
-        Vertices[5 * 81 + 9 * i + j].Tangent = Vector3(1.0, 0.0, 0.0)
-        Vertices[5 * 81 + 9 * i + j].Binormal = Vector3(0.0, 0.0, 1.0)
+        Positions[5 * 81 + 9 * i + j] = Vector3(-1.0 + j * 0.25, -1.0, -1.0 + i * 0.25)
+        TexCoords[5 * 81 + 9 * i + j] = Vector2(j * 0.125, i * 0.125)
+        TangentSpaces[5 * 81 + 9 * i + j] = [Vector3()] * 3;
+        TangentSpaces[5 * 81 + 9 * i + j][0] = Vector3(0.0, -1.0, 0.0)
+        TangentSpaces[5 * 81 + 9 * i + j][1] = Vector3(1.0, 0.0, 0.0)
+        TangentSpaces[5 * 81 + 9 * i + j][2] = Vector3(0.0, 0.0, 1.0)
 
 for i in range(8):
     for j in range(8):
@@ -655,8 +659,14 @@ CubeMeshData = bytearray()
 CubeMeshData.extend(int(VertexCount).to_bytes(4, byteorder='little', signed=False))
 CubeMeshData.extend(int(IndexCount).to_bytes(4, byteorder='little', signed=False))
 
-for Vx in Vertices:
-    CubeMeshData.extend(Vx.Serialize())
+for Pos in Positions:
+    CubeMeshData.extend(Pos.Serialize())
+for Tc in TexCoords:
+    CubeMeshData.extend(Tc.Serialize())
+for TS in TangentSpaces:
+    CubeMeshData.extend(TS[0].Serialize())
+    CubeMeshData.extend(TS[1].Serialize())
+    CubeMeshData.extend(TS[2].Serialize())
 
 for Idx in Indices:
     CubeMeshData.extend(int(Idx).to_bytes(2, byteorder='little', signed=False))

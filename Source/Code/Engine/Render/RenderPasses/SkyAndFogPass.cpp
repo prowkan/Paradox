@@ -164,19 +164,13 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 
 	renderSystem.GetDevice()->CreateConstantBufferView(&CBVDesc, SkyConstantBufferCBV);
 
-	HANDLE SkyVertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SkyVertexShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-	LARGE_INTEGER SkyVertexShaderByteCodeLength;
-	BOOL Result = GetFileSizeEx(SkyVertexShaderFile, &SkyVertexShaderByteCodeLength);
-	ScopedMemoryBlockArray<BYTE> SkyVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(SkyVertexShaderByteCodeLength.QuadPart);
-	Result = ReadFile(SkyVertexShaderFile, SkyVertexShaderByteCodeData, (DWORD)SkyVertexShaderByteCodeLength.QuadPart, NULL, NULL);
-	Result = CloseHandle(SkyVertexShaderFile);
+	SIZE_T SkyVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("SkyVertexShader");
+	ScopedMemoryBlockArray<BYTE> SkyVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(SkyVertexShaderByteCodeLength);
+	Engine::GetEngine().GetFileSystem().LoadFile("SkyVertexShader", SkyVertexShaderByteCodeData);
 
-	HANDLE SkyPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SkyPixelShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-	LARGE_INTEGER SkyPixelShaderByteCodeLength;
-	Result = GetFileSizeEx(SkyPixelShaderFile, &SkyPixelShaderByteCodeLength);
-	ScopedMemoryBlockArray<BYTE> SkyPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(SkyPixelShaderByteCodeLength.QuadPart);
-	Result = ReadFile(SkyPixelShaderFile, SkyPixelShaderByteCodeData, (DWORD)SkyPixelShaderByteCodeLength.QuadPart, NULL, NULL);
-	Result = CloseHandle(SkyPixelShaderFile);
+	SIZE_T SkyPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("SkyPixelShader");
+	ScopedMemoryBlockArray<BYTE> SkyPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(SkyPixelShaderByteCodeLength);
+	Engine::GetEngine().GetFileSystem().LoadFile("SkyPixelShader", SkyPixelShaderByteCodeData);
 
 	D3D12_INPUT_ELEMENT_DESC InputElementDescs[5];
 	ZeroMemory(InputElementDescs, 5 * sizeof(D3D12_INPUT_ELEMENT_DESC));
@@ -230,7 +224,7 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 	GraphicsPipelineStateDesc.NumRenderTargets = 1;
 	GraphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE::D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	GraphicsPipelineStateDesc.pRootSignature = renderSystem.GetGraphicsRootSignature();
-	GraphicsPipelineStateDesc.PS.BytecodeLength = SkyPixelShaderByteCodeLength.QuadPart;
+	GraphicsPipelineStateDesc.PS.BytecodeLength = SkyPixelShaderByteCodeLength;
 	GraphicsPipelineStateDesc.PS.pShaderBytecode = SkyPixelShaderByteCodeData;
 	GraphicsPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_BACK;
 	GraphicsPipelineStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID;
@@ -238,7 +232,7 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 	GraphicsPipelineStateDesc.SampleDesc.Count = 8;
 	GraphicsPipelineStateDesc.SampleDesc.Quality = 0;
 	GraphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
-	GraphicsPipelineStateDesc.VS.BytecodeLength = SkyVertexShaderByteCodeLength.QuadPart;
+	GraphicsPipelineStateDesc.VS.BytecodeLength = SkyVertexShaderByteCodeLength;
 	GraphicsPipelineStateDesc.VS.pShaderBytecode = SkyVertexShaderByteCodeData;
 
 	SAFE_DX(renderSystem.GetDevice()->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(SkyPipelineState)));
@@ -430,19 +424,13 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 
 	renderSystem.GetDevice()->CreateConstantBufferView(&CBVDesc, SunConstantBufferCBV);
 
-	HANDLE SunVertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SunVertexShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-	LARGE_INTEGER SunVertexShaderByteCodeLength;
-	Result = GetFileSizeEx(SunVertexShaderFile, &SunVertexShaderByteCodeLength);
-	ScopedMemoryBlockArray<BYTE> SunVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(SunVertexShaderByteCodeLength.QuadPart);
-	Result = ReadFile(SunVertexShaderFile, SunVertexShaderByteCodeData, (DWORD)SunVertexShaderByteCodeLength.QuadPart, NULL, NULL);
-	Result = CloseHandle(SunVertexShaderFile);
+	SIZE_T SunVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("SunVertexShader");
+	ScopedMemoryBlockArray<BYTE> SunVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(SunVertexShaderByteCodeLength);
+	Engine::GetEngine().GetFileSystem().LoadFile("SunVertexShader", SunVertexShaderByteCodeData);
 
-	HANDLE SunPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SunPixelShader.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-	LARGE_INTEGER SunPixelShaderByteCodeLength;
-	Result = GetFileSizeEx(SunPixelShaderFile, &SunPixelShaderByteCodeLength);
-	ScopedMemoryBlockArray<BYTE> SunPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(SunPixelShaderByteCodeLength.QuadPart);
-	Result = ReadFile(SunPixelShaderFile, SunPixelShaderByteCodeData, (DWORD)SunPixelShaderByteCodeLength.QuadPart, NULL, NULL);
-	Result = CloseHandle(SunPixelShaderFile);
+	SIZE_T SunPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("SunPixelShader");
+	ScopedMemoryBlockArray<BYTE> SunPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(SunPixelShaderByteCodeLength);
+	Engine::GetEngine().GetFileSystem().LoadFile("SunPixelShader", SunPixelShaderByteCodeData);
 
 	ZeroMemory(InputElementDescs, 5 * sizeof(D3D12_INPUT_ELEMENT_DESC));
 	InputElementDescs[0].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
@@ -501,7 +489,7 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 	GraphicsPipelineStateDesc.NumRenderTargets = 1;
 	GraphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE::D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	GraphicsPipelineStateDesc.pRootSignature = renderSystem.GetGraphicsRootSignature();
-	GraphicsPipelineStateDesc.PS.BytecodeLength = SunPixelShaderByteCodeLength.QuadPart;
+	GraphicsPipelineStateDesc.PS.BytecodeLength = SunPixelShaderByteCodeLength;
 	GraphicsPipelineStateDesc.PS.pShaderBytecode = SunPixelShaderByteCodeData;
 	GraphicsPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_BACK;
 	GraphicsPipelineStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID;
@@ -509,7 +497,7 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 	GraphicsPipelineStateDesc.SampleDesc.Count = 8;
 	GraphicsPipelineStateDesc.SampleDesc.Quality = 0;
 	GraphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
-	GraphicsPipelineStateDesc.VS.BytecodeLength = SunVertexShaderByteCodeLength.QuadPart;
+	GraphicsPipelineStateDesc.VS.BytecodeLength = SunVertexShaderByteCodeLength;
 	GraphicsPipelineStateDesc.VS.pShaderBytecode = SunVertexShaderByteCodeData;
 
 	SAFE_DX(renderSystem.GetDevice()->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(SunPipelineState)));
@@ -605,12 +593,9 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 
 	renderSystem.GetDevice()->CreateShaderResourceView(SunTexture, &SRVDesc, SunTextureSRV);
 
-	HANDLE FogPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/Fog.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-	LARGE_INTEGER FogPixelShaderByteCodeLength;
-	Result = GetFileSizeEx(FogPixelShaderFile, &FogPixelShaderByteCodeLength);
-	ScopedMemoryBlockArray<BYTE> FogPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(FogPixelShaderByteCodeLength.QuadPart);
-	Result = ReadFile(FogPixelShaderFile, FogPixelShaderByteCodeData, (DWORD)FogPixelShaderByteCodeLength.QuadPart, NULL, NULL);
-	Result = CloseHandle(FogPixelShaderFile);
+	SIZE_T FogPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("Fog");
+	ScopedMemoryBlockArray<BYTE> FogPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(FogPixelShaderByteCodeLength);
+	Engine::GetEngine().GetFileSystem().LoadFile("Fog", FogPixelShaderByteCodeData);
 
 	ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
 	GraphicsPipelineStateDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE::D3D12_COLOR_WRITE_ENABLE_ALL;
@@ -628,7 +613,7 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 	GraphicsPipelineStateDesc.NumRenderTargets = 1;
 	GraphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE::D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	GraphicsPipelineStateDesc.pRootSignature = renderSystem.GetGraphicsRootSignature();
-	GraphicsPipelineStateDesc.PS.BytecodeLength = FogPixelShaderByteCodeLength.QuadPart;
+	GraphicsPipelineStateDesc.PS.BytecodeLength = FogPixelShaderByteCodeLength;
 	GraphicsPipelineStateDesc.PS.pShaderBytecode = FogPixelShaderByteCodeData;
 	GraphicsPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_BACK;
 	GraphicsPipelineStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID;
