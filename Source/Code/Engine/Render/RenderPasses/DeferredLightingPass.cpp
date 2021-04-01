@@ -38,14 +38,14 @@ struct DeferredLightingConstantBuffer
 
 void DeferredLightingPass::Init(RenderSystem& renderSystem)
 {
-	GBufferTextures[0] = renderSystem.GetRenderPass<GBufferOpaquePass>()->GetGBufferTexture(0);
-	GBufferTextures[1] = renderSystem.GetRenderPass<GBufferOpaquePass>()->GetGBufferTexture(1);
-	ShadowMaskTexture = renderSystem.GetRenderPass<ShadowResolvePass>()->GetShadowMaskTexture();
+	GBufferTextures[0] = ((GBufferOpaquePass*)renderSystem.GetRenderPass("GBufferOpaquePass"))->GetGBufferTexture(0);
+	GBufferTextures[1] = ((GBufferOpaquePass*)renderSystem.GetRenderPass("GBufferOpaquePass"))->GetGBufferTexture(1);
+	ShadowMaskTexture = ((ShadowResolvePass*)renderSystem.GetRenderPass("ShadowResolvePass"))->GetShadowMaskTexture();
 
-	GBufferTexturesSRVs[0] = renderSystem.GetRenderPass<GBufferOpaquePass>()->GetGBufferTextureSRV(0);
-	GBufferTexturesSRVs[1] = renderSystem.GetRenderPass<GBufferOpaquePass>()->GetGBufferTextureSRV(1);
-	DepthBufferTextureSRV = renderSystem.GetRenderPass<GBufferOpaquePass>()->GetDepthBufferTextureSRV();
-	ShadowMaskTextureSRV = renderSystem.GetRenderPass<ShadowResolvePass>()->GetShadowMaskTextureSRV();
+	GBufferTexturesSRVs[0] = ((GBufferOpaquePass*)renderSystem.GetRenderPass("GBufferOpaquePass"))->GetGBufferTextureSRV(0);
+	GBufferTexturesSRVs[1] = ((GBufferOpaquePass*)renderSystem.GetRenderPass("GBufferOpaquePass"))->GetGBufferTextureSRV(1);
+	DepthBufferTextureSRV = ((GBufferOpaquePass*)renderSystem.GetRenderPass("GBufferOpaquePass"))->GetDepthBufferTextureSRV();
+	ShadowMaskTextureSRV = ((ShadowResolvePass*)renderSystem.GetRenderPass("ShadowResolvePass"))->GetShadowMaskTextureSRV();
 
 	D3D12_CLEAR_VALUE ClearValue;
 	ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;

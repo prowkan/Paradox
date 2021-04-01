@@ -20,16 +20,16 @@ struct ShadowResolveConstantBuffer
 
 void ShadowResolvePass::Init(RenderSystem& renderSystem)
 {
-	CascadedShadowMapTextures[0] = renderSystem.GetRenderPass<ShadowMapPass>()->GetCascadedShadowMapTexture(0);
-	CascadedShadowMapTextures[1] = renderSystem.GetRenderPass<ShadowMapPass>()->GetCascadedShadowMapTexture(1);
-	CascadedShadowMapTextures[2] = renderSystem.GetRenderPass<ShadowMapPass>()->GetCascadedShadowMapTexture(2);
-	CascadedShadowMapTextures[3] = renderSystem.GetRenderPass<ShadowMapPass>()->GetCascadedShadowMapTexture(3);
+	CascadedShadowMapTextures[0] = ((ShadowMapPass*)renderSystem.GetRenderPass("ShadowMapPass"))->GetCascadedShadowMapTexture(0);
+	CascadedShadowMapTextures[1] = ((ShadowMapPass*)renderSystem.GetRenderPass("ShadowMapPass"))->GetCascadedShadowMapTexture(1);
+	CascadedShadowMapTextures[2] = ((ShadowMapPass*)renderSystem.GetRenderPass("ShadowMapPass"))->GetCascadedShadowMapTexture(2);
+	CascadedShadowMapTextures[3] = ((ShadowMapPass*)renderSystem.GetRenderPass("ShadowMapPass"))->GetCascadedShadowMapTexture(3);
 
-	ResolvedDepthBufferTextureSRV = renderSystem.GetRenderPass<MSAADepthBufferResolvePass>()->GetResolvedDepthBufferTextureSRV();
-	CascadedShadowMapTexturesSRVs[0] = renderSystem.GetRenderPass<ShadowMapPass>()->GetCascadedShadowMapTextureSRV(0);
-	CascadedShadowMapTexturesSRVs[1] = renderSystem.GetRenderPass<ShadowMapPass>()->GetCascadedShadowMapTextureSRV(1);
-	CascadedShadowMapTexturesSRVs[2] = renderSystem.GetRenderPass<ShadowMapPass>()->GetCascadedShadowMapTextureSRV(2);
-	CascadedShadowMapTexturesSRVs[3] = renderSystem.GetRenderPass<ShadowMapPass>()->GetCascadedShadowMapTextureSRV(3);
+	ResolvedDepthBufferTextureSRV = ((MSAADepthBufferResolvePass*)renderSystem.GetRenderPass("MSAADepthBufferResolvePass"))->GetResolvedDepthBufferTextureSRV();
+	CascadedShadowMapTexturesSRVs[0] = ((ShadowMapPass*)renderSystem.GetRenderPass("ShadowMapPass"))->GetCascadedShadowMapTextureSRV(0);
+	CascadedShadowMapTexturesSRVs[1] = ((ShadowMapPass*)renderSystem.GetRenderPass("ShadowMapPass"))->GetCascadedShadowMapTextureSRV(1);
+	CascadedShadowMapTexturesSRVs[2] = ((ShadowMapPass*)renderSystem.GetRenderPass("ShadowMapPass"))->GetCascadedShadowMapTextureSRV(2);
+	CascadedShadowMapTexturesSRVs[3] = ((ShadowMapPass*)renderSystem.GetRenderPass("ShadowMapPass"))->GetCascadedShadowMapTextureSRV(3);
 
 	D3D12_CLEAR_VALUE ClearValue;
 	ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_R8_UNORM;

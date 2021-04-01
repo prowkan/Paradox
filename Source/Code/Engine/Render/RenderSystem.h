@@ -485,19 +485,7 @@ class RenderSystem
 
 		ID3D12CommandAllocator* GetCommandAllocator(UINT Index) { return CommandAllocators[Index]; }
 
-		template<typename T>
-		T* GetRenderPass()
-		{
-			for (RenderPass* renderPass : RenderPasses)
-			{
-				if (dynamic_cast<T*>(renderPass))
-				{
-					return (T*)renderPass;
-				}
-			}
-
-			return nullptr;
-		}
+		RenderPass* GetRenderPass(const string& RenderPassName);
 
 	private:
 

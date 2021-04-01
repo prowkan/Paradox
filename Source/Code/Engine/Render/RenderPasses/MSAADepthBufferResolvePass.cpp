@@ -12,7 +12,7 @@
 
 void MSAADepthBufferResolvePass::Init(RenderSystem& renderSystem)
 {
-	DepthBufferTexture = renderSystem.GetRenderPass<GBufferOpaquePass>()->GetDepthBufferTexture();
+	DepthBufferTexture = ((GBufferOpaquePass*)renderSystem.GetRenderPass("GBufferOpaquePass"))->GetDepthBufferTexture();
 
 	D3D12_CLEAR_VALUE ClearValue;
 	ClearValue.DepthStencil.Depth = 1.0f;

@@ -20,6 +20,8 @@ class GBufferOpaquePass : public RenderPass
 		virtual void Init(RenderSystem& renderSystem) override;
 		virtual void Execute(RenderSystem& renderSystem) override;
 
+		virtual const char* GetName() override { return "GBufferOpaquePass"; }
+
 	private:
 
 		Texture GBufferTextures[2];

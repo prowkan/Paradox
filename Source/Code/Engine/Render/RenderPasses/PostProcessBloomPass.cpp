@@ -13,8 +13,8 @@
 
 void PostProcessBloomPass::Init(RenderSystem& renderSystem)
 {
-	ResolvedHDRSceneColorTextureSRV = renderSystem.GetRenderPass<HDRSceneColorResolvePass>()->GetResolvedHDRSceneColorTextureSRV();
-	SceneLuminanceTextureSRV = renderSystem.GetRenderPass<PostProcessLuminancePass>()->GetSceneLuminanceTextureSRV();
+	ResolvedHDRSceneColorTextureSRV = ((HDRSceneColorResolvePass*)renderSystem.GetRenderPass("HDRSceneColorResolvePass"))->GetResolvedHDRSceneColorTextureSRV();
+	SceneLuminanceTextureSRV = ((PostProcessLuminancePass*)renderSystem.GetRenderPass("PostProcessLuminancePass"))->GetSceneLuminanceTextureSRV();
 
 	D3D12_CLEAR_VALUE ClearValue;
 	ClearValue.Color[0] = 0.0f;
