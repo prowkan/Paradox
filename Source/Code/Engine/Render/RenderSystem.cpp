@@ -374,13 +374,11 @@ void RenderSystem::InitSystem()
 		Device->CreateRenderTargetView(BackBufferTextures[1].DXTexture, &RTVDesc, BackBufferTexturesRTVs[1]);
 	}
 
-	HANDLE FullScreenQuadVertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/FullScreenQuad.dxbc", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-	LARGE_INTEGER FullScreenQuadVertexShaderByteCodeLength;
-	BOOL Result = GetFileSizeEx(FullScreenQuadVertexShaderFile, &FullScreenQuadVertexShaderByteCodeLength);
-	FullScreenQuadVertexShader.pShaderBytecode = malloc(FullScreenQuadVertexShaderByteCodeLength.QuadPart);
-	FullScreenQuadVertexShader.BytecodeLength = FullScreenQuadVertexShaderByteCodeLength.QuadPart;
-	Result = ReadFile(FullScreenQuadVertexShaderFile, (void*)FullScreenQuadVertexShader.pShaderBytecode, (DWORD)FullScreenQuadVertexShaderByteCodeLength.QuadPart, NULL, NULL);
-	Result = CloseHandle(FullScreenQuadVertexShaderFile);
+	// ===============================================================================================================
+
+	SIZE_T FullScreenQuadVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("FullScreenQuad");
+	ScopedMemoryBlockArray<BYTE> FullScreenQuadVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(FullScreenQuadVertexShaderByteCodeLength);
+	Engine::GetEngine().GetFileSystem().LoadFile("FullScreenQuad", FullScreenQuadVertexShaderByteCodeData);
 
 	{
 		D3D12_SAMPLER_DESC SamplerDesc;

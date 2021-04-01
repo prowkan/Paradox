@@ -9,6 +9,7 @@ void Engine::InitEngine()
 {
 	multiThreadingSystem.InitSystem();
 	memoryManager.InitManager();
+	fileSystem.InitSystem();
 	inputSystem.InitSystem();
 	renderSystem.InitSystem();
 	gameFramework.InitFramework();
@@ -19,6 +20,7 @@ void Engine::ShutdownEngine()
 	inputSystem.ShutdownSystem();
 	gameFramework.ShutdownFramework();
 	renderSystem.ShutdownSystem();
+	fileSystem.ShutdownSystem();
 	multiThreadingSystem.ShutdownSystem();
 	memoryManager.ShutdownManager();
 }

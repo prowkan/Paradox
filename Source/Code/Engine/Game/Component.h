@@ -30,6 +30,8 @@ class Component
 			return nullptr;
 		}
 
+		virtual void LoadFromFile(HANDLE File) {}
+
 		const char* GetComponentName() { return ComponentName; }
 		const char *ComponentName;
 

@@ -43,6 +43,8 @@ class Entity
 			return nullptr;
 		}
 
+		virtual void LoadFromFile(HANDLE File) {}
+
 		const char* GetEntityName() { return EntityName; }
 		const char *EntityName;
 

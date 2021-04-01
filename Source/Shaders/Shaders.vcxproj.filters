@@ -40,4 +40,8 @@
     <FxCompile Include="VerticalBlur.hlsl" />
     <FxCompile Include="OcclusionBuffer.hlsl" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="CompileShaders.py" />
+    <None Include="CleanShaders.py" />
+  </ItemGroup>
 </Project>

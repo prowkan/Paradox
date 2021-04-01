@@ -24,3 +24,13 @@ void PointLightComponent::RegisterComponent()
 void PointLightComponent::UnRegisterComponent()
 {
 }
+
+void PointLightComponent::LoadFromFile(HANDLE File)
+{
+	BOOL Result;
+	Result = ReadFile(File, &Brightness, sizeof(float), NULL, NULL);
+	Result = ReadFile(File, &Radius, sizeof(float), NULL, NULL);
+	Result = ReadFile(File, &Color, sizeof(XMFLOAT3), NULL, NULL);
+
+	transformComponent = Owner->GetComponent<TransformComponent>();
+}
