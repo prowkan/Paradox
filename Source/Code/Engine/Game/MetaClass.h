@@ -2,6 +2,9 @@
 
 #undef GetClassName
 
+class Entity;
+class Component;
+
 template<typename T>
 void CallObjectConstructor(void* Pointer)
 {
@@ -9,6 +12,15 @@ void CallObjectConstructor(void* Pointer)
 }
 
 using ObjectConstructorType = void(*)(void*);
+
+enum class ClassPropertyType { Float, Vector, Rotator, Color, EntityReference, ComponentReference, ResourceReference };
+
+struct ClassProperty
+{
+	ClassPropertyType PropertyType;
+
+	size_t ValueOffset;
+};
 
 class MetaClass
 {
@@ -34,6 +46,8 @@ class MetaClass
 		}
 
 		uint32_t InstancesCount = 0;
+
+		map<string, ClassProperty*> ClassProperties;
 
 	private:
 
