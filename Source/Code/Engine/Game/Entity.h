@@ -4,6 +4,7 @@
 
 class Component;
 class World;
+class Resource;
 
 class Entity
 {
@@ -44,6 +45,27 @@ class Entity
 
 		const char* GetEntityName() { return EntityName; }
 		const char *EntityName;
+
+		float GetFloatProperty(const string& PropertyName) { return *(float*)((BYTE*)this + metaClass->ClassProperties[PropertyName]->ValueOffset); }
+		void SetFloatProperty(const string& PropertyName, const float Value) { *(float*)((BYTE*)this + metaClass->ClassProperties[PropertyName]->ValueOffset) = Value; }
+
+		XMFLOAT3 GetVectorProperty(const string& PropertyName) { return *(XMFLOAT3*)((BYTE*)this + metaClass->ClassProperties[PropertyName]->ValueOffset); }
+		void SetVectorProperty(const string& PropertyName, const XMFLOAT3& Value) { *(XMFLOAT3*)((BYTE*)this + metaClass->ClassProperties[PropertyName]->ValueOffset) = Value; }
+
+		XMFLOAT3 GetRotatorProperty(const string& PropertyName) { return *(XMFLOAT3*)((BYTE*)this + metaClass->ClassProperties[PropertyName]->ValueOffset); }
+		void SetRotatorProperty(const string& PropertyName, const XMFLOAT3& Value) { *(XMFLOAT3*)((BYTE*)this + metaClass->ClassProperties[PropertyName]->ValueOffset) = Value; }
+
+		XMFLOAT3 GetColorProperty(const string& PropertyName) { return *(XMFLOAT3*)((BYTE*)this + metaClass->ClassProperties[PropertyName]->ValueOffset); }
+		void SetColorProperty(const string& PropertyName, const XMFLOAT3& Value) { *(XMFLOAT3*)((BYTE*)this + metaClass->ClassProperties[PropertyName]->ValueOffset) = Value; }
+
+		Entity* GetEntityReferenceProperty(const string& PropertyName) { return *(Entity**)((BYTE*)this + metaClass->ClassProperties[PropertyName]->ValueOffset); }
+		void SetEntityReferenceProperty(const string& PropertyName, Entity* Value) { *(Entity**)((BYTE*)this + metaClass->ClassProperties[PropertyName]->ValueOffset) = Value; }
+
+		Component* GetComponentReferenceProperty(const string& PropertyName) { return *(Component**)((BYTE*)this + metaClass->ClassProperties[PropertyName]->ValueOffset); }
+		void SetComponentReferenceProperty(const string& PropertyName, Component* Value) { *(Component**)((BYTE*)this + metaClass->ClassProperties[PropertyName]->ValueOffset) = Value; }
+
+		Resource* GetResourceReferenceProperty(const string& PropertyName) { return *(Resource**)((BYTE*)this + metaClass->ClassProperties[PropertyName]->ValueOffset); }
+		void SetResourceReferenceProperty(const string& PropertyName, Resource* Value) { *(Resource**)((BYTE*)this + metaClass->ClassProperties[PropertyName]->ValueOffset) = Value; }
 
 	protected:
 
