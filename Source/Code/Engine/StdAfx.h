@@ -16,9 +16,8 @@
 #include <d3d12.h>
 #include <dxgi1_6.h>
 
-#include <d3dcompiler.h>
-
-#include <DirectXMath.h>
+#include "F:/DirectXMath/Inc/DirectXMath.h"
+#include "F:/DirectXMath/Inc/DirectXPackedVector.h"
 
 #define USE_OPTICK 1
 #include <F:/Optick/include/optick.h>
@@ -27,8 +26,6 @@
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
-
-#pragma comment(lib, "d3dcompiler.lib")
 
 #ifdef _DEBUG
 #pragma comment(lib, "F:/Optick/lib/x64/debug/OptickCore.lib")
