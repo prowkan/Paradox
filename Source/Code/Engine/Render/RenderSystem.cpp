@@ -193,6 +193,10 @@ void RenderSystem::InitSystem()
 
 	delete[] PhysicalDevices;
 
+	VkPhysicalDeviceProperties PhysicalDeviceProperties;
+
+	vkGetPhysicalDeviceProperties(PhysicalDevice, &PhysicalDeviceProperties);
+
 	uint32_t DeviceLayerPropertiesCount;
 	SAFE_VK(vkEnumerateDeviceLayerProperties(PhysicalDevice, &DeviceLayerPropertiesCount, nullptr));
 	VkLayerProperties *DeviceLayerProperties = new VkLayerProperties[DeviceLayerPropertiesCount];
@@ -773,22 +777,23 @@ void RenderSystem::InitSystem()
 
 		vkGetImageMemoryRequirements(Device, GBufferTextures[0], &MemoryRequirements);
 
-		VkDeviceSize GBufferTexture0Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize GBufferTexture0Offset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = GBufferTexture0Offset + MemoryRequirements.size;
 
 		vkGetImageMemoryRequirements(Device, GBufferTextures[1], &MemoryRequirements);
 
-		VkDeviceSize GBufferTexture1Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize GBufferTexture1Offset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = GBufferTexture1Offset + MemoryRequirements.size;
 
 		vkGetImageMemoryRequirements(Device, DepthBufferTexture, &MemoryRequirements);
 
-		VkDeviceSize DepthBufferTextureOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize DepthBufferTextureOffset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = DepthBufferTextureOffset + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, GPUConstantBuffer, &MemoryRequirements);
 		
-		VkDeviceSize GPUConstantBufferOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize GPUConstantBufferOffset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		GPUConstantBufferOffset = (GPUConstantBufferOffset == 0) ? 0 : GPUConstantBufferOffset + (PhysicalDeviceProperties.limits.bufferImageGranularity - GPUConstantBufferOffset % PhysicalDeviceProperties.limits.bufferImageGranularity);
 		MemoryAllocateInfo.allocationSize = GPUConstantBufferOffset + MemoryRequirements.size;
 
 		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPUMemory1));
@@ -805,12 +810,12 @@ void RenderSystem::InitSystem()
 
 		vkGetBufferMemoryRequirements(Device, CPUConstantBuffers[0], &MemoryRequirements);
 		
-		VkDeviceSize CPUConstantBuffer0Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize CPUConstantBuffer0Offset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = CPUConstantBuffer0Offset + MemoryRequirements.size;
 		
 		vkGetBufferMemoryRequirements(Device, CPUConstantBuffers[1], &MemoryRequirements);
 
-		VkDeviceSize CPUConstantBuffer1Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize CPUConstantBuffer1Offset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = CPUConstantBuffer1Offset + MemoryRequirements.size;
 
 		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUMemory1));
@@ -1005,7 +1010,7 @@ void RenderSystem::InitSystem()
 
 		vkGetImageMemoryRequirements(Device, ResolvedDepthBufferTexture, &MemoryRequirements);
 
-		VkDeviceSize ResolvedDepthBufferTextureOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize ResolvedDepthBufferTextureOffset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = ResolvedDepthBufferTextureOffset + MemoryRequirements.size;
 
 		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPUMemory2));
@@ -1191,7 +1196,7 @@ void RenderSystem::InitSystem()
 
 		vkGetImageMemoryRequirements(Device, OcclusionBufferTexture, &MemoryRequirements);
 
-		VkDeviceSize OcclusionBufferTextureOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize OcclusionBufferTextureOffset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = OcclusionBufferTextureOffset + MemoryRequirements.size;
 
 		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPUMemory3));
@@ -1205,12 +1210,12 @@ void RenderSystem::InitSystem()
 
 		vkGetBufferMemoryRequirements(Device, OcclusionBufferReadbackBuffers[0], &MemoryRequirements);
 
-		VkDeviceSize OcclusionBufferReadbackBuffer0Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize OcclusionBufferReadbackBuffer0Offset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = OcclusionBufferReadbackBuffer0Offset + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, OcclusionBufferReadbackBuffers[1], &MemoryRequirements);
 
-		VkDeviceSize OcclusionBufferReadbackBuffer1Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize OcclusionBufferReadbackBuffer1Offset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = OcclusionBufferReadbackBuffer1Offset + MemoryRequirements.size;
 
 		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUMemory3));
@@ -1535,42 +1540,43 @@ void RenderSystem::InitSystem()
 
 		vkGetImageMemoryRequirements(Device, CascadedShadowMapTextures[0], &MemoryRequirements);
 
-		VkDeviceSize CascadedShadowMapTexture0Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize CascadedShadowMapTexture0Offset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = CascadedShadowMapTexture0Offset + MemoryRequirements.size;
 
 		vkGetImageMemoryRequirements(Device, CascadedShadowMapTextures[1], &MemoryRequirements);
 
-		VkDeviceSize CascadedShadowMapTexture1Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize CascadedShadowMapTexture1Offset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = CascadedShadowMapTexture1Offset + MemoryRequirements.size;
 
 		vkGetImageMemoryRequirements(Device, CascadedShadowMapTextures[2], &MemoryRequirements);
 
-		VkDeviceSize CascadedShadowMapTexture2Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize CascadedShadowMapTexture2Offset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = CascadedShadowMapTexture2Offset + MemoryRequirements.size;
 
 		vkGetImageMemoryRequirements(Device, CascadedShadowMapTextures[3], &MemoryRequirements);
 
-		VkDeviceSize CascadedShadowMapTexture3Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize CascadedShadowMapTexture3Offset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = CascadedShadowMapTexture3Offset + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, GPUConstantBuffers2[0], &MemoryRequirements);
 
-		VkDeviceSize ConstantBuffer0Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize ConstantBuffer0Offset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		ConstantBuffer0Offset = (ConstantBuffer0Offset == 0) ? 0 : ConstantBuffer0Offset + (PhysicalDeviceProperties.limits.bufferImageGranularity - ConstantBuffer0Offset % PhysicalDeviceProperties.limits.bufferImageGranularity);
 		MemoryAllocateInfo.allocationSize = ConstantBuffer0Offset + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, GPUConstantBuffers2[1], &MemoryRequirements);
 
-		VkDeviceSize ConstantBuffer1Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
-		MemoryAllocateInfo.allocationSize = ConstantBuffer0Offset + MemoryRequirements.size;
+		VkDeviceSize ConstantBuffer1Offset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = ConstantBuffer1Offset + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, GPUConstantBuffers2[2], &MemoryRequirements);
 
-		VkDeviceSize ConstantBuffer2Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
-		MemoryAllocateInfo.allocationSize = ConstantBuffer0Offset + MemoryRequirements.size;
+		VkDeviceSize ConstantBuffer2Offset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		MemoryAllocateInfo.allocationSize = ConstantBuffer2Offset + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, GPUConstantBuffers2[3], &MemoryRequirements);
 
-		VkDeviceSize ConstantBuffer3Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize ConstantBuffer3Offset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = ConstantBuffer3Offset + MemoryRequirements.size;
 
 		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPUMemory4));
@@ -1591,42 +1597,42 @@ void RenderSystem::InitSystem()
 
 		vkGetBufferMemoryRequirements(Device, CPUConstantBuffers2[0][0], &MemoryRequirements);
 
-		VkDeviceSize ConstantBuffer00Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize ConstantBuffer00Offset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = ConstantBuffer00Offset + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, CPUConstantBuffers2[0][1], &MemoryRequirements);
 
-		VkDeviceSize ConstantBuffer01Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize ConstantBuffer01Offset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = ConstantBuffer01Offset + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, CPUConstantBuffers2[1][0], &MemoryRequirements);
 
-		VkDeviceSize ConstantBuffer10Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize ConstantBuffer10Offset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = ConstantBuffer10Offset + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, CPUConstantBuffers2[1][1], &MemoryRequirements);
 
-		VkDeviceSize ConstantBuffer11Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize ConstantBuffer11Offset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = ConstantBuffer11Offset + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, CPUConstantBuffers2[2][0], &MemoryRequirements);
 
-		VkDeviceSize ConstantBuffer20Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize ConstantBuffer20Offset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = ConstantBuffer20Offset + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, CPUConstantBuffers2[2][1], &MemoryRequirements);
 
-		VkDeviceSize ConstantBuffer21Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize ConstantBuffer21Offset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = ConstantBuffer21Offset + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, CPUConstantBuffers2[3][0], &MemoryRequirements);
 
-		VkDeviceSize ConstantBuffer30Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize ConstantBuffer30Offset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = ConstantBuffer30Offset + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, CPUConstantBuffers2[3][1], &MemoryRequirements);
 
-		VkDeviceSize ConstantBuffer31Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize ConstantBuffer31Offset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = ConstantBuffer31Offset + MemoryRequirements.size;
 
 		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUMemory4));
@@ -1790,12 +1796,13 @@ void RenderSystem::InitSystem()
 
 		vkGetImageMemoryRequirements(Device, ShadowMaskTexture, &MemoryRequirements);
 
-		VkDeviceSize ShadowMaskTextureOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize ShadowMaskTextureOffset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = ShadowMaskTextureOffset + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, GPUShadowResolveConstantBuffer, &MemoryRequirements);
 
-		VkDeviceSize GPUConstantBufferOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize GPUConstantBufferOffset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		GPUConstantBufferOffset = (GPUConstantBufferOffset == 0) ? 0 : GPUConstantBufferOffset + (PhysicalDeviceProperties.limits.bufferImageGranularity - GPUConstantBufferOffset % PhysicalDeviceProperties.limits.bufferImageGranularity);
 		MemoryAllocateInfo.allocationSize = GPUConstantBufferOffset + MemoryRequirements.size;
 
 		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPUMemory5));
@@ -1810,12 +1817,12 @@ void RenderSystem::InitSystem()
 
 		vkGetBufferMemoryRequirements(Device, CPUShadowResolveConstantBuffers[0], &MemoryRequirements);
 
-		VkDeviceSize CPUConstantBuffer0Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize CPUConstantBuffer0Offset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = CPUConstantBuffer0Offset + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, CPUShadowResolveConstantBuffers[1], &MemoryRequirements);
 
-		VkDeviceSize CPUConstantBuffer1Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize CPUConstantBuffer1Offset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = CPUConstantBuffer1Offset + MemoryRequirements.size;
 
 		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUMemory5));
@@ -2186,27 +2193,28 @@ void RenderSystem::InitSystem()
 
 		vkGetImageMemoryRequirements(Device, HDRSceneColorTexture, &MemoryRequirements);
 
-		VkDeviceSize HDRSceneColorTextureOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize HDRSceneColorTextureOffset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = HDRSceneColorTextureOffset + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, GPUDeferredLightingConstantBuffer, &MemoryRequirements);
 
-		VkDeviceSize GPUConstantBufferOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize GPUConstantBufferOffset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		GPUConstantBufferOffset = (GPUConstantBufferOffset == 0) ? 0 : GPUConstantBufferOffset + (PhysicalDeviceProperties.limits.bufferImageGranularity - GPUConstantBufferOffset % PhysicalDeviceProperties.limits.bufferImageGranularity); 
 		MemoryAllocateInfo.allocationSize = GPUConstantBufferOffset + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, GPULightClustersBuffer, &MemoryRequirements);
 
-		VkDeviceSize GPULightClustersBufferOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize GPULightClustersBufferOffset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = GPULightClustersBufferOffset + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, GPULightIndicesBuffer, &MemoryRequirements);
 
-		VkDeviceSize GPULightIndicesBufferOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize GPULightIndicesBufferOffset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = GPULightIndicesBufferOffset + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, GPUPointLightsBuffer, &MemoryRequirements);
 
-		VkDeviceSize GPUPointLightsBufferOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize GPUPointLightsBufferOffset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = GPUPointLightsBufferOffset + MemoryRequirements.size;
 
 		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPUMemory6));
@@ -2224,42 +2232,42 @@ void RenderSystem::InitSystem()
 
 		vkGetBufferMemoryRequirements(Device, CPUDeferredLightingConstantBuffers[0], &MemoryRequirements);
 
-		VkDeviceSize CPUConstantBuffer0Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize CPUConstantBuffer0Offset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = CPUConstantBuffer0Offset + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, CPUDeferredLightingConstantBuffers[1], &MemoryRequirements);
 
-		VkDeviceSize CPUConstantBuffer1Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize CPUConstantBuffer1Offset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = CPUConstantBuffer1Offset + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, CPULightClustersBuffers[0], &MemoryRequirements);
 
-		VkDeviceSize CPULightClustersBufferOffset0 = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize CPULightClustersBufferOffset0 = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = CPULightClustersBufferOffset0 + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, CPULightClustersBuffers[1], &MemoryRequirements);
 
-		VkDeviceSize CPULightClustersBufferOffset1 = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize CPULightClustersBufferOffset1 = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = CPULightClustersBufferOffset1 + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, CPULightIndicesBuffers[0], &MemoryRequirements);
 
-		VkDeviceSize CPULightIndicesBufferOffset0 = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize CPULightIndicesBufferOffset0 = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = CPULightIndicesBufferOffset0 + MemoryRequirements.size;
 		
 		vkGetBufferMemoryRequirements(Device, CPULightIndicesBuffers[1], &MemoryRequirements);
 
-		VkDeviceSize CPULightIndicesBufferOffset1 = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize CPULightIndicesBufferOffset1 = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = CPULightIndicesBufferOffset1 + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, CPUPointLightsBuffers[0], &MemoryRequirements);
 
-		VkDeviceSize CPUPointLightsBufferOffset0 = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize CPUPointLightsBufferOffset0 = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = CPUPointLightsBufferOffset0 + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, CPUPointLightsBuffers[1], &MemoryRequirements);
 
-		VkDeviceSize CPUPointLightsBufferOffset1 = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize CPUPointLightsBufferOffset1 = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = CPUPointLightsBufferOffset1 + MemoryRequirements.size;
 
 		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUMemory6));
@@ -2909,42 +2917,44 @@ void RenderSystem::InitSystem()
 
 		vkGetBufferMemoryRequirements(Device, SkyVertexBuffer, &MemoryRequirements);
 
-		VkDeviceSize SkyVertexBufferOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize SkyVertexBufferOffset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = SkyVertexBufferOffset + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, SkyIndexBuffer, &MemoryRequirements);
 
-		VkDeviceSize SkyIndexBufferOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize SkyIndexBufferOffset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = SkyIndexBufferOffset + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, SunVertexBuffer, &MemoryRequirements);
 
-		VkDeviceSize SunVertexBufferOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize SunVertexBufferOffset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = SunVertexBufferOffset + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, SunIndexBuffer, &MemoryRequirements);
 
-		VkDeviceSize SunIndexBufferOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize SunIndexBufferOffset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = SunIndexBufferOffset + MemoryRequirements.size;
 
 		vkGetImageMemoryRequirements(Device, SkyTexture, &MemoryRequirements);
 
-		VkDeviceSize SkyTextureOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize SkyTextureOffset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		SkyTextureOffset = (SkyTextureOffset == 0) ? 0 : SkyTextureOffset + (PhysicalDeviceProperties.limits.bufferImageGranularity - SkyTextureOffset % PhysicalDeviceProperties.limits.bufferImageGranularity);
 		MemoryAllocateInfo.allocationSize = SkyTextureOffset + MemoryRequirements.size;
 
 		vkGetImageMemoryRequirements(Device, SunTexture, &MemoryRequirements);
 
-		VkDeviceSize SunTextureOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize SunTextureOffset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = SunTextureOffset + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, GPUSkyConstantBuffer, &MemoryRequirements);
 
-		VkDeviceSize GPUSkyConstantBufferOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize GPUSkyConstantBufferOffset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		GPUSkyConstantBufferOffset = (GPUSkyConstantBufferOffset == 0) ? 0 : GPUSkyConstantBufferOffset + (PhysicalDeviceProperties.limits.bufferImageGranularity - GPUSkyConstantBufferOffset % PhysicalDeviceProperties.limits.bufferImageGranularity);
 		MemoryAllocateInfo.allocationSize = GPUSkyConstantBufferOffset + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, GPUSunConstantBuffer, &MemoryRequirements);
 
-		VkDeviceSize GPUSunConstantBufferOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize GPUSunConstantBufferOffset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = GPUSunConstantBufferOffset + MemoryRequirements.size;
 
 		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPUMemory7));
@@ -2965,22 +2975,22 @@ void RenderSystem::InitSystem()
 
 		vkGetBufferMemoryRequirements(Device, CPUSkyConstantBuffers[0], &MemoryRequirements);
 
-		VkDeviceSize CPUSkyConstantBufferOffset0 = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize CPUSkyConstantBufferOffset0 = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = CPUSkyConstantBufferOffset0 + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, CPUSkyConstantBuffers[1], &MemoryRequirements);
 
-		VkDeviceSize CPUSkyConstantBufferOffset1 = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize CPUSkyConstantBufferOffset1 = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = CPUSkyConstantBufferOffset1 + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, CPUSunConstantBuffers[0], &MemoryRequirements);
 
-		VkDeviceSize CPUSunConstantBufferOffset0 = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize CPUSunConstantBufferOffset0 = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = CPUSunConstantBufferOffset0 + MemoryRequirements.size;
 
 		vkGetBufferMemoryRequirements(Device, CPUSunConstantBuffers[1], &MemoryRequirements);
 
-		VkDeviceSize CPUSunConstantBufferOffset1 = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize CPUSunConstantBufferOffset1 = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = CPUSunConstantBufferOffset1 + MemoryRequirements.size;
 
 		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &CPUMemory7));
@@ -3890,7 +3900,7 @@ void RenderSystem::InitSystem()
 
 		vkGetImageMemoryRequirements(Device, ResolvedHDRSceneColorTexture, &MemoryRequirements);
 
-		VkDeviceSize ResolvedHDRSceneColorTextureOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize ResolvedHDRSceneColorTextureOffset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = ResolvedHDRSceneColorTextureOffset + MemoryRequirements.size;
 
 		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPUMemory8));
@@ -4046,27 +4056,27 @@ void RenderSystem::InitSystem()
 
 		vkGetImageMemoryRequirements(Device, SceneLuminanceTextures[0], &MemoryRequirements);
 
-		VkDeviceSize SceneLuminanceTexture0Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize SceneLuminanceTexture0Offset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = SceneLuminanceTexture0Offset + MemoryRequirements.size;
 
 		vkGetImageMemoryRequirements(Device, SceneLuminanceTextures[1], &MemoryRequirements);
 
-		VkDeviceSize SceneLuminanceTexture1Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize SceneLuminanceTexture1Offset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = SceneLuminanceTexture1Offset + MemoryRequirements.size;
 
 		vkGetImageMemoryRequirements(Device, SceneLuminanceTextures[2], &MemoryRequirements);
 
-		VkDeviceSize SceneLuminanceTexture2Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize SceneLuminanceTexture2Offset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = SceneLuminanceTexture2Offset + MemoryRequirements.size;
 
 		vkGetImageMemoryRequirements(Device, SceneLuminanceTextures[3], &MemoryRequirements);
 
-		VkDeviceSize SceneLuminanceTexture3Offset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize SceneLuminanceTexture3Offset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = SceneLuminanceTexture3Offset + MemoryRequirements.size;
 
 		vkGetImageMemoryRequirements(Device, AverageLuminanceTexture, &MemoryRequirements);
 
-		VkDeviceSize AverageLuminanceTextureOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize AverageLuminanceTextureOffset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = AverageLuminanceTextureOffset + MemoryRequirements.size;
 
 		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPUMemory9));
@@ -4319,17 +4329,17 @@ void RenderSystem::InitSystem()
 
 			vkGetImageMemoryRequirements(Device, BloomTextures[0][i], &MemoryRequirements);
 
-			BloomTexturesOffsets[0][i] = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+			BloomTexturesOffsets[0][i] = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 			MemoryAllocateInfo.allocationSize = BloomTexturesOffsets[0][i] + MemoryRequirements.size;
 
 			vkGetImageMemoryRequirements(Device, BloomTextures[1][i], &MemoryRequirements);
 
-			BloomTexturesOffsets[1][i] = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+			BloomTexturesOffsets[1][i] = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 			MemoryAllocateInfo.allocationSize = BloomTexturesOffsets[1][i] + MemoryRequirements.size;
 
 			vkGetImageMemoryRequirements(Device, BloomTextures[2][i], &MemoryRequirements);
 
-			BloomTexturesOffsets[2][i] = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+			BloomTexturesOffsets[2][i] = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 			MemoryAllocateInfo.allocationSize = BloomTexturesOffsets[2][i] + MemoryRequirements.size;
 		}
 
@@ -4725,7 +4735,7 @@ void RenderSystem::InitSystem()
 
 		vkGetImageMemoryRequirements(Device, ToneMappedImageTexture, &MemoryRequirements);
 
-		VkDeviceSize ToneMappedImageTextureOffset = MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
+		VkDeviceSize ToneMappedImageTextureOffset = (MemoryAllocateInfo.allocationSize == 0) ? 0 : MemoryAllocateInfo.allocationSize + (MemoryRequirements.alignment - MemoryAllocateInfo.allocationSize % MemoryRequirements.alignment);
 		MemoryAllocateInfo.allocationSize = ToneMappedImageTextureOffset + MemoryRequirements.size;
 
 		SAFE_VK(vkAllocateMemory(Device, &MemoryAllocateInfo, nullptr, &GPUMemory11));
