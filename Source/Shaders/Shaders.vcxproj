@@ -74,31 +74,31 @@
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
-    <NMakeBuildCommandLine>CompileShaders.bat</NMakeBuildCommandLine>
-    <NMakeReBuildCommandLine>CompileShaders.bat</NMakeReBuildCommandLine>
-    <NMakeCleanCommandLine>CleanShaders.bat</NMakeCleanCommandLine>
+    <NMakeBuildCommandLine>CompileShaders.py</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>CompileShaders.py</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>CleanShaders.py</NMakeCleanCommandLine>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
-    <NMakeBuildCommandLine>CompileShaders.bat</NMakeBuildCommandLine>
-    <NMakeReBuildCommandLine>CompileShaders.bat</NMakeReBuildCommandLine>
-    <NMakeCleanCommandLine>CleanShaders.bat</NMakeCleanCommandLine>
+    <NMakeBuildCommandLine>CompileShaders.py</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>CompileShaders.py</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>CleanShaders.py</NMakeCleanCommandLine>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
-    <NMakeBuildCommandLine>CompileShaders.bat</NMakeBuildCommandLine>
-    <NMakeReBuildCommandLine>CompileShaders.bat</NMakeReBuildCommandLine>
-    <NMakeCleanCommandLine>CleanShaders.bat</NMakeCleanCommandLine>
+    <NMakeBuildCommandLine>CompileShaders.py</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>CompileShaders.py</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>CleanShaders.py</NMakeCleanCommandLine>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <NMakeBuildCommandLine>CompileShaders.bat</NMakeBuildCommandLine>
-    <NMakeReBuildCommandLine>CompileShaders.bat</NMakeReBuildCommandLine>
-    <NMakeCleanCommandLine>CleanShaders.bat</NMakeCleanCommandLine>
+    <NMakeBuildCommandLine>CompileShaders.py</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>CompileShaders.py</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>CleanShaders.py</NMakeCleanCommandLine>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
   </PropertyGroup>
@@ -159,16 +159,30 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <None Include="CleanShaders.bat" />
-    <None Include="CompileShaders.bat" />
+    <None Include="CleanShaders.py" />
+    <None Include="CompileShaders.py" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="MaterialBase_PixelShader.hlsl">
-      <FileType>Document</FileType>
-    </None>
-    <None Include="MaterialBase_VertexShader.hlsl">
-      <FileType>Document</FileType>
-    </None>
+    <FxCompile Include="BrightPass.hlsl" />
+    <FxCompile Include="DeferredLighting.hlsl" />
+    <FxCompile Include="Fog.hlsl" />
+    <FxCompile Include="FullScreenQuad.hlsl" />
+    <FxCompile Include="HDRToneMapping.hlsl" />
+    <FxCompile Include="HorizontalBlur.hlsl" />
+    <FxCompile Include="ImageResample.hlsl" />
+    <FxCompile Include="LuminanceAvg.hlsl" />
+    <FxCompile Include="LuminanceCalc.hlsl" />
+    <FxCompile Include="LuminanceSum.hlsl" />
+    <FxCompile Include="MaterialBase_PixelShader_GBufferOpaquePass.hlsl" />
+    <FxCompile Include="MaterialBase_VertexShader_GBufferOpaquePass.hlsl" />
+    <FxCompile Include="MaterialBase_VertexShader_ShadowMapPass.hlsl" />
+    <FxCompile Include="ShadowResolve.hlsl" />
+    <FxCompile Include="SkyPixelShader.hlsl" />
+    <FxCompile Include="SkyVertexShader.hlsl" />
+    <FxCompile Include="SunPixelShader.hlsl" />
+    <FxCompile Include="SunVertexShader.hlsl" />
+    <FxCompile Include="VerticalBlur.hlsl" />
+    <FxCompile Include="OcclusionBuffer.hlsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

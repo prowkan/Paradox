@@ -4,12 +4,15 @@
 
 struct RenderTexture;
 
+enum class BlockCompression;
+
 struct Texture2DResourceCreateInfo
 {
 	UINT Width, Height;
 	UINT MIPLevels;
 	BOOL SRGB;
 	BOOL Compressed;
+	BlockCompression CompressionType;
 	BYTE *TexelData;
 };
 

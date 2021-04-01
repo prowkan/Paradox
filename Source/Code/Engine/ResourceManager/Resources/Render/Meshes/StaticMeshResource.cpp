@@ -11,9 +11,8 @@ void StaticMeshResource::CreateResource(const void* ResourceData)
 
 	RenderMeshCreateInfo renderMeshCreateInfo;
 	renderMeshCreateInfo.IndexCount = staticMeshResourceCreateInfo.IndexCount;
-	renderMeshCreateInfo.IndexData = staticMeshResourceCreateInfo.IndexData;
 	renderMeshCreateInfo.VertexCount = staticMeshResourceCreateInfo.VertexCount;
-	renderMeshCreateInfo.VertexData = staticMeshResourceCreateInfo.VertexData;
+	renderMeshCreateInfo.MeshData = staticMeshResourceCreateInfo.MeshData;
 
 	renderMesh = Engine::GetEngine().GetRenderSystem().CreateRenderMesh(renderMeshCreateInfo);
 }
