@@ -672,6 +672,19 @@ void RenderSystem::ApplyPendingBarriers()
 	}
 }
 
+RenderPass* RenderSystem::GetRenderPass(const string& RenderPassName)
+{
+	for (RenderPass* renderPass : RenderPasses)
+	{
+		if (renderPass->GetName() == RenderPassName)
+		{
+			return renderPass;
+		}
+	}
+
+	return nullptr;
+}
+
 RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMeshCreateInfo)
 {
 	RenderMesh *renderMesh = new RenderMesh();

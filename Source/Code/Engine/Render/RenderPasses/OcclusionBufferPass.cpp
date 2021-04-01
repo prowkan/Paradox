@@ -12,8 +12,8 @@
 
 void OcclusionBufferPass::Init(RenderSystem& renderSystem)
 {
-	ResolvedDepthBufferTexture = renderSystem.GetRenderPass<MSAADepthBufferResolvePass>()->GetResolvedDepthBufferTexture();
-	ResolvedDepthBufferTextureSRV = renderSystem.GetRenderPass<MSAADepthBufferResolvePass>()->GetResolvedDepthBufferTextureSRV();
+	ResolvedDepthBufferTexture = ((MSAADepthBufferResolvePass*)renderSystem.GetRenderPass("MSAADepthBufferResolvePass"))->GetResolvedDepthBufferTexture();
+	ResolvedDepthBufferTextureSRV = ((MSAADepthBufferResolvePass*)renderSystem.GetRenderPass("MSAADepthBufferResolvePass"))->GetResolvedDepthBufferTextureSRV();
 
 	D3D12_RESOURCE_DESC ResourceDesc = DX12Helpers::CreateDXResourceDescTexture2D(256, 144, DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT, D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
 

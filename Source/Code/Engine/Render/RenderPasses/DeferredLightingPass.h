@@ -17,6 +17,8 @@ class DeferredLightingPass : public RenderPass
 		virtual void Init(RenderSystem& renderSystem) override;
 		virtual void Execute(RenderSystem& renderSystem) override;
 
+		virtual const char* GetName() override { return "DeferredLightingPass"; }
+
 	private:
 
 		Texture *GBufferTextures[2];

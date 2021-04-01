@@ -14,9 +14,9 @@
 
 void PostProcessLuminancePass::Init(RenderSystem& renderSystem)
 {
-	ResolvedHDRSceneColorTexture = renderSystem.GetRenderPass<HDRSceneColorResolvePass>()->GetResolvedHDRSceneColorTexture();
-	ResolvedHDRSceneColorTextureSRV = renderSystem.GetRenderPass<HDRSceneColorResolvePass>()->GetResolvedHDRSceneColorTextureSRV();
-
+	ResolvedHDRSceneColorTexture = ((HDRSceneColorResolvePass*)renderSystem.GetRenderPass("HDRSceneColorResolvePass"))->GetResolvedHDRSceneColorTexture();
+	ResolvedHDRSceneColorTextureSRV = ((HDRSceneColorResolvePass*)renderSystem.GetRenderPass("HDRSceneColorResolvePass"))->GetResolvedHDRSceneColorTextureSRV();
+	
 	int Widths[4] = { 1280, 80, 5, 1 };
 	int Heights[4] = { 720, 45, 3, 1 };
 

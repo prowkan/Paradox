@@ -27,12 +27,12 @@ struct SunConstantBuffer
 
 void SkyAndFogPass::Init(RenderSystem& renderSystem)
 {
-	HDRSceneColorTextureRTV = renderSystem.GetRenderPass<DeferredLightingPass>()->GetHDRSceneColorTextureRTV();
+	HDRSceneColorTextureRTV = ((DeferredLightingPass*)renderSystem.GetRenderPass("DeferredLightingPass"))->GetHDRSceneColorTextureRTV();
 
-	DepthBufferTexture = renderSystem.GetRenderPass<GBufferOpaquePass>()->GetDepthBufferTexture();
-	DepthBufferTextureDSV = renderSystem.GetRenderPass<GBufferOpaquePass>()->GetDepthBufferTextureDSV();
-	DepthBufferTextureSRV = renderSystem.GetRenderPass<GBufferOpaquePass>()->GetDepthBufferTextureSRV();
-
+	DepthBufferTexture = ((GBufferOpaquePass*)renderSystem.GetRenderPass("GBufferOpaquePass"))->GetDepthBufferTexture();
+	DepthBufferTextureDSV = ((GBufferOpaquePass*)renderSystem.GetRenderPass("GBufferOpaquePass"))->GetDepthBufferTextureDSV();
+	DepthBufferTextureSRV = ((GBufferOpaquePass*)renderSystem.GetRenderPass("GBufferOpaquePass"))->GetDepthBufferTextureSRV();
+	
 	UINT SkyMeshVertexCount = 1 + 25 * 100 + 1;
 	UINT SkyMeshIndexCount = 300 + 24 * 600 + 300;
 

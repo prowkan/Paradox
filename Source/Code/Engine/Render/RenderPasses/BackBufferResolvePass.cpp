@@ -9,7 +9,7 @@
 
 void BackBufferResolvePass::Init(RenderSystem& renderSystem)
 {
-	ToneMappedImageTexture = renderSystem.GetRenderPass<PostProcessHDRToneMappingPass>()->GetToneMappedImageTexture();
+	ToneMappedImageTexture = ((PostProcessHDRToneMappingPass*)renderSystem.GetRenderPass("PostProcessHDRToneMappingPass"))->GetToneMappedImageTexture();
 }
 
 void BackBufferResolvePass::Execute(RenderSystem& renderSystem)

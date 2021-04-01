@@ -13,9 +13,9 @@
 
 void PostProcessHDRToneMappingPass::Init(RenderSystem& renderSystem)
 {
-	HDRSceneColorTextureSRV = renderSystem.GetRenderPass<DeferredLightingPass>()->GetHDRSceneColorTextureSRV();
-	OutputBloomTexture = renderSystem.GetRenderPass<PostProcessBloomPass>()->GetOutputBloomTexture();
-	OutputBloomTextureSRV = renderSystem.GetRenderPass<PostProcessBloomPass>()->GetOutputBloomTextureSRV();
+	HDRSceneColorTextureSRV = ((DeferredLightingPass*)renderSystem.GetRenderPass("DeferredLightingPass"))->GetHDRSceneColorTextureSRV();
+	OutputBloomTexture = ((PostProcessBloomPass*)renderSystem.GetRenderPass("PostProcessBloomPass"))->GetOutputBloomTexture();
+	OutputBloomTextureSRV = ((PostProcessBloomPass*)renderSystem.GetRenderPass("PostProcessBloomPass"))->GetOutputBloomTextureSRV();
 
 	D3D12_CLEAR_VALUE ClearValue;
 	ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;

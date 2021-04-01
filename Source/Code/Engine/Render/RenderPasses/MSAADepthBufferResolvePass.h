@@ -10,11 +10,13 @@ class MSAADepthBufferResolvePass : public RenderPass
 {
 	public:
 
+		Texture* GetResolvedDepthBufferTexture() { return &ResolvedDepthBufferTexture; }
+		D3D12_CPU_DESCRIPTOR_HANDLE GetResolvedDepthBufferTextureSRV() { return ResolvedDepthBufferTextureSRV; }
+
 		virtual void Init(RenderSystem& renderSystem) override;
 		virtual void Execute(RenderSystem& renderSystem) override;
 
-		Texture* GetResolvedDepthBufferTexture() { return &ResolvedDepthBufferTexture; }
-		D3D12_CPU_DESCRIPTOR_HANDLE GetResolvedDepthBufferTextureSRV() { return ResolvedDepthBufferTextureSRV; }
+		virtual const char* GetName() override { return "MSAADepthBufferResolvePass"; }
 
 	private:
 

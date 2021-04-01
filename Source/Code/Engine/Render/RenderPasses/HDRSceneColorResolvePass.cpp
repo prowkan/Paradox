@@ -12,7 +12,7 @@
 
 void HDRSceneColorResolvePass::Init(RenderSystem& renderSystem)
 {
-	HDRSceneColorTexture = renderSystem.GetRenderPass<DeferredLightingPass>()->GetHDRSceneColorTexture();
+	HDRSceneColorTexture = ((DeferredLightingPass*)renderSystem.GetRenderPass("DeferredLightingPass"))->GetHDRSceneColorTexture();
 
 	ResolvedHDRSceneColorTexture = renderSystem.CreateTexture(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, DX12Helpers::CreateDXResourceDescTexture2D(renderSystem.GetResolutionWidth(), renderSystem.GetResolutionHeight(), DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, nullptr);
 
