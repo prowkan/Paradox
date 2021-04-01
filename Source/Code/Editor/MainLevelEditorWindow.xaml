@@ -51,7 +51,7 @@
                 
             </ListBox>
         </StackPanel>
-        <StackPanel DockPanel.Dock="Right" Width="300">
+        <StackPanel DockPanel.Dock="Right" Width="300" Name="PropertiesStack">
             
         </StackPanel>
         <WindowsFormsHost Name="WFHost" KeyDown="WFHost_KeyDown" KeyUp="WFHost_KeyUp">

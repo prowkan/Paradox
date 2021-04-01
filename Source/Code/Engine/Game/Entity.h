@@ -46,6 +46,34 @@ class Entity
 		const char* GetEntityName() { return EntityName; }
 		const char *EntityName;
 
+		uint32_t GetPropertiesCount() { return (uint32_t)metaClass->ClassProperties.size(); }
+
+		const char* GetPropertyName(uint32_t PropertyIndex)
+		{
+			auto PropertyIterator = metaClass->ClassProperties.begin();
+
+			while (PropertyIndex > 0)
+			{
+				++PropertyIterator;
+				--PropertyIndex;
+			}
+
+			return (*PropertyIterator).first.c_str();
+		}
+
+		ClassPropertyType GetPropertyType(uint32_t PropertyIndex)
+		{
+			auto PropertyIterator = metaClass->ClassProperties.begin();
+
+			while (PropertyIndex > 0)
+			{
+				++PropertyIterator;
+				--PropertyIndex;
+			}
+
+			return (*PropertyIterator).second->PropertyType;
+		}
+
 		float GetFloatProperty(const string& PropertyName) { return *(float*)((BYTE*)this + metaClass->ClassProperties[PropertyName]->ValueOffset); }
 		void SetFloatProperty(const string& PropertyName, const float Value) { *(float*)((BYTE*)this + metaClass->ClassProperties[PropertyName]->ValueOffset) = Value; }
 

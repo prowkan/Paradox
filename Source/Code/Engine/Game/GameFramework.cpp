@@ -46,40 +46,40 @@ void GameFramework::InitFramework()
 
 	TransformComponent::GetMetaClassStatic()->ClassProperties.emplace("Location", new ClassProperty());
 	TransformComponent::GetMetaClassStatic()->ClassProperties["Location"]->PropertyType = ClassPropertyType::Vector;
-	TransformComponent::GetMetaClassStatic()->ClassProperties["Location"]->ValueOffset = 24;
+	TransformComponent::GetMetaClassStatic()->ClassProperties["Location"]->ValueOffset = 32;
 	TransformComponent::GetMetaClassStatic()->ClassProperties.emplace("Rotation", new ClassProperty());
 	TransformComponent::GetMetaClassStatic()->ClassProperties["Rotation"]->PropertyType = ClassPropertyType::Rotator;
-	TransformComponent::GetMetaClassStatic()->ClassProperties["Rotation"]->ValueOffset = 36;
+	TransformComponent::GetMetaClassStatic()->ClassProperties["Rotation"]->ValueOffset = 44;
 	TransformComponent::GetMetaClassStatic()->ClassProperties.emplace("Scale", new ClassProperty());
 	TransformComponent::GetMetaClassStatic()->ClassProperties["Scale"]->PropertyType = ClassPropertyType::Vector;
-	TransformComponent::GetMetaClassStatic()->ClassProperties["Scale"]->ValueOffset = 48;
+	TransformComponent::GetMetaClassStatic()->ClassProperties["Scale"]->ValueOffset = 56;
 	TransformComponent::GetMetaClassStatic()->ClassProperties.emplace("PivotPoint", new ClassProperty());
 	TransformComponent::GetMetaClassStatic()->ClassProperties["PivotPoint"]->PropertyType = ClassPropertyType::Vector;
-	TransformComponent::GetMetaClassStatic()->ClassProperties["PivotPoint"]->ValueOffset = 60;
+	TransformComponent::GetMetaClassStatic()->ClassProperties["PivotPoint"]->ValueOffset = 68;
 
 	BoundingBoxComponent::GetMetaClassStatic()->ClassProperties.emplace("Center", new ClassProperty());
 	BoundingBoxComponent::GetMetaClassStatic()->ClassProperties["Center"]->PropertyType = ClassPropertyType::Vector;
-	BoundingBoxComponent::GetMetaClassStatic()->ClassProperties["Center"]->ValueOffset = 24;
+	BoundingBoxComponent::GetMetaClassStatic()->ClassProperties["Center"]->ValueOffset = 32;
 	BoundingBoxComponent::GetMetaClassStatic()->ClassProperties.emplace("HalfSize", new ClassProperty());
-	BoundingBoxComponent::GetMetaClassStatic()->ClassProperties["HalfSize"]->PropertyType = ClassPropertyType::Rotator;
-	BoundingBoxComponent::GetMetaClassStatic()->ClassProperties["HalfSize"]->ValueOffset = 36;
+	BoundingBoxComponent::GetMetaClassStatic()->ClassProperties["HalfSize"]->PropertyType = ClassPropertyType::Vector;
+	BoundingBoxComponent::GetMetaClassStatic()->ClassProperties["HalfSize"]->ValueOffset = 44;
 
 	StaticMeshComponent::GetMetaClassStatic()->ClassProperties.emplace("StaticMesh", new ClassProperty());
 	StaticMeshComponent::GetMetaClassStatic()->ClassProperties["StaticMesh"]->PropertyType = ClassPropertyType::ResourceReference;
-	StaticMeshComponent::GetMetaClassStatic()->ClassProperties["StaticMesh"]->ValueOffset = 24;
+	StaticMeshComponent::GetMetaClassStatic()->ClassProperties["StaticMesh"]->ValueOffset = 32;
 	StaticMeshComponent::GetMetaClassStatic()->ClassProperties.emplace("Material", new ClassProperty());
 	StaticMeshComponent::GetMetaClassStatic()->ClassProperties["Material"]->PropertyType = ClassPropertyType::ResourceReference;
-	StaticMeshComponent::GetMetaClassStatic()->ClassProperties["Material"]->ValueOffset = 32;
+	StaticMeshComponent::GetMetaClassStatic()->ClassProperties["Material"]->ValueOffset = 44;
 
 	PointLightComponent::GetMetaClassStatic()->ClassProperties.emplace("Brightness", new ClassProperty());
 	PointLightComponent::GetMetaClassStatic()->ClassProperties["Brightness"]->PropertyType = ClassPropertyType::Float;
-	PointLightComponent::GetMetaClassStatic()->ClassProperties["Brightness"]->ValueOffset = 24;
+	PointLightComponent::GetMetaClassStatic()->ClassProperties["Brightness"]->ValueOffset = 32;
 	PointLightComponent::GetMetaClassStatic()->ClassProperties.emplace("Radius", new ClassProperty());
 	PointLightComponent::GetMetaClassStatic()->ClassProperties["Radius"]->PropertyType = ClassPropertyType::Float;
-	PointLightComponent::GetMetaClassStatic()->ClassProperties["Radius"]->ValueOffset = 28;
+	PointLightComponent::GetMetaClassStatic()->ClassProperties["Radius"]->ValueOffset = 36;
 	PointLightComponent::GetMetaClassStatic()->ClassProperties.emplace("Color", new ClassProperty());
 	PointLightComponent::GetMetaClassStatic()->ClassProperties["Color"]->PropertyType = ClassPropertyType::Color;
-	PointLightComponent::GetMetaClassStatic()->ClassProperties["Color"]->ValueOffset = 32;
+	PointLightComponent::GetMetaClassStatic()->ClassProperties["Color"]->ValueOffset = 40;
 
 	MetaClassesTable.emplace(Entity::GetMetaClassStatic()->GetClassName(), Entity::GetMetaClassStatic());
 	MetaClassesTable.emplace(StaticMeshEntity::GetMetaClassStatic()->GetClassName(), StaticMeshEntity::GetMetaClassStatic());

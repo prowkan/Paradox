@@ -69,6 +69,66 @@ namespace Editor
             ListBoxItem listBoxItem = (ListBoxItem)listBox.Items[listBox.SelectedIndex];
             string EntityClassName = System.Runtime.InteropServices.Marshal.PtrToStringAnsi(EditorEngine.GetEntityClassName(listBoxItem.Content.ToString()));
             StatusBarLabel.Content = EntityClassName;
+
+            PropertiesStack.Children.Clear();
+
+            uint EntityPropertiesCount = EditorEngine.GetEntityPropertiesCount(listBoxItem.Content.ToString());
+
+            for (uint i = 0; i < EntityPropertiesCount; i++)
+            {
+                string EntityPropertyName = System.Runtime.InteropServices.Marshal.PtrToStringAnsi(EditorEngine.GetEntityPropertyName(listBoxItem.Content.ToString(), i));
+                EditorEngine.ClassPropertyType EntityPropertyType = EditorEngine.GetEntityPropertyType(listBoxItem.Content.ToString(), i);
+
+                Label PropertyLabel = new Label();
+                PropertyLabel.Content = EntityPropertyName + " " + EntityPropertyType.ToString();
+                PropertiesStack.Children.Add(PropertyLabel);
+
+                if (EntityPropertyType == EditorEngine.ClassPropertyType.ComponentReference)
+                {
+                    IntPtr ComponentReference = EditorEngine.GetEntityComponentReferenceProperty(listBoxItem.Content.ToString(), EntityPropertyName);
+
+                    uint ComponentPropertiesCount = EditorEngine.GetComponentPropertiesCount(ComponentReference);
+
+                    for (uint j = 0; j < ComponentPropertiesCount; j++)
+                    {
+                        string ComponentPropertyName = System.Runtime.InteropServices.Marshal.PtrToStringAnsi(EditorEngine.GetComponentPropertyName(ComponentReference, j));
+                        EditorEngine.ClassPropertyType ComponentPropertyType = EditorEngine.GetComponentPropertyType(ComponentReference, j);
+
+                        Label PropertyLabel1 = new Label();
+                        PropertyLabel1.Content = ComponentPropertyName + " " + ComponentPropertyType.ToString();
+                        PropertiesStack.Children.Add(PropertyLabel1);
+
+                        if (ComponentPropertyType == EditorEngine.ClassPropertyType.Float)
+                        {
+                            float Value = EditorEngine.GetComponentFloatProperty(ComponentReference, ComponentPropertyName);
+                            TextBox textBox = new TextBox();
+                            textBox.Text = Value.ToString();
+                            PropertiesStack.Children.Add(textBox);
+                        }
+                        else if (ComponentPropertyType == EditorEngine.ClassPropertyType.Vector)
+                        {
+                            EditorEngine.Float3 Value = EditorEngine.GetComponentVectorProperty(ComponentReference, ComponentPropertyName);
+                            TextBox textBox = new TextBox();
+                            textBox.Text = "X = " + Value.X.ToString() + " Y = " + Value.Y.ToString() + " Z = " + Value.Z.ToString();
+                            PropertiesStack.Children.Add(textBox);
+                        }
+                        else if (ComponentPropertyType == EditorEngine.ClassPropertyType.Rotator)
+                        {
+                            EditorEngine.Rotator Value = EditorEngine.GetComponentRotatorProperty(ComponentReference, ComponentPropertyName);
+                            TextBox textBox = new TextBox();
+                            textBox.Text = "Pitch = " + Value.Pitch.ToString() + " Yaw = " + Value.Yaw.ToString() + " Roll = " + Value.Roll.ToString();
+                            PropertiesStack.Children.Add(textBox);
+                        }
+                        else if (ComponentPropertyType == EditorEngine.ClassPropertyType.Color)
+                        {
+                            EditorEngine.Color Value = EditorEngine.GetComponentColorProperty(ComponentReference, ComponentPropertyName);
+                            TextBox textBox = new TextBox();
+                            textBox.Text = "Red = " + Value.R.ToString() + " Green = " + Value.G.ToString() + " Blue = " + Value.B.ToString();
+                            PropertiesStack.Children.Add(textBox);
+                        }
+                    }
+                }
+            }
         }
 
         private int X, Y;

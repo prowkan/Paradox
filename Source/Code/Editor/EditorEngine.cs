@@ -10,6 +10,23 @@ namespace Editor
 {
     class EditorEngine
     {
+        public enum ClassPropertyType { Float, Vector, Rotator, Color, EntityReference, ComponentReference, ResourceReference };
+
+        public struct Float3
+        {
+            public float X, Y, Z;
+        }
+
+        public struct Rotator
+        {
+            public float Pitch, Yaw, Roll;
+        }
+
+        public struct Color
+        {
+            public float R, G, B;
+        }
+
         [DllImport("EditorEngine.NET.dll", CallingConvention = CallingConvention.Cdecl)]
         private static extern void StartApplication();
 
@@ -36,6 +53,42 @@ namespace Editor
 
         [DllImport("EditorEngine.NET.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr GetEntityClassName(string EntityName);
+
+        [DllImport("EditorEngine.NET.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern uint GetEntityPropertiesCount(string EntityName);
+
+        [DllImport("EditorEngine.NET.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern IntPtr GetEntityPropertyName(string EntityName, uint PropertyIndex);
+
+        [DllImport("EditorEngine.NET.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern ClassPropertyType GetEntityPropertyType(string EntityName, uint PropertyIndex);
+
+        [DllImport("EditorEngine.NET.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern IntPtr GetEntityComponentReferenceProperty(string EntityName, string PropertyName);
+
+        [DllImport("EditorEngine.NET.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern IntPtr GetComponentClassName(IntPtr Component);
+
+        [DllImport("EditorEngine.NET.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern uint GetComponentPropertiesCount(IntPtr Component);
+
+        [DllImport("EditorEngine.NET.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern IntPtr GetComponentPropertyName(IntPtr Component, uint PropertyIndex);
+
+        [DllImport("EditorEngine.NET.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern ClassPropertyType GetComponentPropertyType(IntPtr Component, uint PropertyIndex);
+
+        [DllImport("EditorEngine.NET.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern Float3 GetComponentVectorProperty(IntPtr component, string PropertyName);
+
+        [DllImport("EditorEngine.NET.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern Rotator GetComponentRotatorProperty(IntPtr component, string PropertyName);
+
+        [DllImport("EditorEngine.NET.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern Color GetComponentColorProperty(IntPtr component, string PropertyName);
+
+        [DllImport("EditorEngine.NET.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern float GetComponentFloatProperty(IntPtr component, string PropertyName);
 
         private IntPtr LevelRenderCanvasHandle;
         private Thread EngineThread;

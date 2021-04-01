@@ -4,6 +4,7 @@
 #include <../Engine/Core/Application.h>
 #include <../Engine/Engine/Engine.h>
 #include <../Engine/Game/Entity.h>
+#include <../Engine/Game/Component.h>
 
 extern "C" __declspec(dllexport) void StartApplication()
 {
@@ -75,4 +76,64 @@ extern "C" __declspec(dllexport) void MoveCamera(bool bForward, bool bBackward, 
 extern "C" __declspec(dllexport) const char* GetEntityClassName(const char* EntityName)
 {
 	return Engine::GetEngine().GetGameFramework().GetWorld().FindEntityByName(EntityName)->GetMetaClass()->GetClassName();
+}
+
+extern "C" __declspec(dllexport) uint32_t GetEntityPropertiesCount(const char* EntityName)
+{
+	return Engine::GetEngine().GetGameFramework().GetWorld().FindEntityByName(EntityName)->GetPropertiesCount();
+}
+
+extern "C" __declspec(dllexport) const char* GetEntityPropertyName(const char* EntityName, uint32_t PropertyIndex)
+{
+	return Engine::GetEngine().GetGameFramework().GetWorld().FindEntityByName(EntityName)->GetPropertyName(PropertyIndex);
+}
+
+extern "C" __declspec(dllexport) ClassPropertyType GetEntityPropertyType(const char* EntityName, uint32_t PropertyIndex)
+{
+	return Engine::GetEngine().GetGameFramework().GetWorld().FindEntityByName(EntityName)->GetPropertyType(PropertyIndex);
+}
+
+extern "C" __declspec(dllexport) void* GetEntityComponentReferenceProperty(const char* EntityName, const char* PropertyName)
+{
+	return Engine::GetEngine().GetGameFramework().GetWorld().FindEntityByName(EntityName)->GetComponentReferenceProperty(PropertyName);
+}
+
+extern "C" __declspec(dllexport) const char* GetComponentClassName(Component* component)
+{
+	return component->GetMetaClass()->GetClassName();
+}
+
+extern "C" __declspec(dllexport) uint32_t GetComponentPropertiesCount(Component* component)
+{
+	return component->GetPropertiesCount();
+}
+
+extern "C" __declspec(dllexport) const char* GetComponentPropertyName(Component* component, uint32_t PropertyIndex)
+{
+	return component->GetPropertyName(PropertyIndex);
+}
+
+extern "C" __declspec(dllexport) ClassPropertyType GetComponentPropertyType(Component* component, uint32_t PropertyIndex)
+{
+	return component->GetPropertyType(PropertyIndex);
+}
+
+extern "C" __declspec(dllexport) XMFLOAT3 GetComponentVectorProperty(Component* component, const char* PropertyName)
+{
+	return component->GetVectorProperty(PropertyName);
+}
+
+extern "C" __declspec(dllexport) XMFLOAT3 GetComponentRotatorProperty(Component* component, const char* PropertyName)
+{
+	return component->GetRotatorProperty(PropertyName);
+}
+
+extern "C" __declspec(dllexport) XMFLOAT3 GetComponentColorProperty(Component* component, const char* PropertyName)
+{
+	return component->GetColorProperty(PropertyName);
+}
+
+extern "C" __declspec(dllexport) float GetComponentFloatProperty(Component* component, const char* PropertyName)
+{
+	return component->GetFloatProperty(PropertyName);
 }
