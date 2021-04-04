@@ -153,7 +153,7 @@ void World::LoadWorld()
 		resourceManager.AddResource<MaterialResource>(MaterialResourceName, &materialResourceCreateInfo);
 	}
 
-	HANDLE LevelFile = CreateFile((const wchar_t*)u"GameContent/WorldChunks/000.worldchunk", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+	HANDLE LevelFile = CreateFile((const wchar_t*)u"WorldChunks/000.worldchunk", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER LevelFileSize;
 	
 	UINT EntitiesCount;

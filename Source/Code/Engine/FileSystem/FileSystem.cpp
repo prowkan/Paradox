@@ -21,7 +21,7 @@ void FileSystem::MountPackage(const string& PackageName, const char16_t* FileNam
 
 	Result = ReadFile(FileHandle, FileRecords, FileRecordsCount * sizeof(FileRecord), NULL, NULL);
 
-	for (int i = 0; i < FileRecordsCount; i++)
+	for (UINT i = 0; i < FileRecordsCount; i++)
 	{
 		GlobalFileTable.emplace(FileRecords[i].FileName, FileTableEntry{ FileHandle, FileRecords[i].FileSize, FileRecords[i].FileOffset });
 	}
@@ -33,9 +33,9 @@ void FileSystem::MountPackage(const string& PackageName, const char16_t* FileNam
 
 void FileSystem::InitSystem()
 {
-	MountPackage("Objects", u"GameContent/AssetPackages/Objects.assetpackage");
-	MountPackage("Textures", u"GameContent/AssetPackages/Textures.assetpackage");
-	MountPackage("Shaders", u"GameContent/AssetPackages/Shaders.assetpackage");
+	MountPackage("Objects", u"AssetPackages/Objects.assetpackage");
+	MountPackage("Textures", u"AssetPackages/Textures.assetpackage");
+	MountPackage("Shaders", u"AssetPackages/Shaders.assetpackage");
 }
 
 void FileSystem::ShutdownSystem()

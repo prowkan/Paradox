@@ -1,7 +1,7 @@
 import os
 import struct
 
-os.chdir("F:/Paradox/Build/GameContent/WorldChunks")
+os.chdir("F:/Paradox/Build/WorldChunks")
 
 f = open("000.worldchunk", "wb")
 

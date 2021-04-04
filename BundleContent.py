@@ -1,8 +1,6 @@
 import os
 import glob
 
-#FileList = glob.glob("F:/Paradox/Build/GameContent/Objects/*.*")
-
 class FileRecord:
 
     def __init__(self):
@@ -18,35 +16,6 @@ class FileRecord:
         Bytes.extend(self.FileOffset.to_bytes(8, 'little'))
         return Bytes
 
-#FileRecordArray = []
-
-#Offset = 4 + 4000 * (1024 + 8 + 8)
-
-#for FilePath in FileList:
-#    fileRecord = FileRecord()
-#    fileRecord.FileName = FilePath[FilePath.rfind('\\') + 1:-7]
-#    fileRecord.FileSize = os.stat(FilePath).st_size
-#    fileRecord.FileOffset = Offset
-#    Offset = Offset + fileRecord.FileSize
-#    FileRecordArray.append(fileRecord)
-  
-#os.chdir("F:/Paradox/Build/GameContent/AssetPackages")
-
-#f = open("Objects.assetpackage", "wb")
-
-#f.write(int(4000).to_bytes(4, 'little'))
-
-#for fileRecord in FileRecordArray:
-#    f.write(fileRecord.Serialize())
-
-#os.chdir("F:/Paradox/Build/GameContent/Objects")
-
-#for FilePath in FileList:
-#    f1 = open(FilePath[FilePath.rfind('\\') + 1:], "rb")
-#    f.write(f1.read())
-
-#f.close()
-
 def PackFilesIntoArchive(FilesFolder, ArchiveName):
     FileList = glob.glob(FilesFolder + "/*.*")
     FileRecordArray = []
@@ -61,7 +30,7 @@ def PackFilesIntoArchive(FilesFolder, ArchiveName):
         Offset = Offset + fileRecord.FileSize
         FileRecordArray.append(fileRecord)
 
-    os.chdir("F:/Paradox/Build/GameContent/AssetPackages")
+    os.chdir("F:/Paradox/Build/AssetPackages")
 
     f = open(ArchiveName + ".assetpackage", "wb")
 
