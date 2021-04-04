@@ -3,6 +3,7 @@
 #include <MultiThreading/MultiThreadingSystem.h>
 #include <MemoryManager/MemoryManager.h>
 
+#include <Config/ConfigSystem.h>
 #include <FileSystem/FileSystem.h>
 #include <Input/InputSystem.h>
 #include <Render/RenderSystem.h>
@@ -24,6 +25,7 @@ class Engine
 		MultiThreadingSystem& GetMultiThreadingSystem() { return multiThreadingSystem; }
 		MemoryManager& GetMemoryManager() { return memoryManager; }
 
+		ConfigSystem& GetConfigSystem() { return configSystem; }
 		FileSystem& GetFileSystem() { return fileSystem; }
 		InputSystem& GetInputSystem() { return inputSystem; }
 		RenderSystem& GetRenderSystem() { return renderSystem; }
@@ -39,6 +41,7 @@ class Engine
 		MultiThreadingSystem multiThreadingSystem;
 		MemoryManager memoryManager;
 
+		ConfigSystem configSystem;
 		FileSystem fileSystem;
 		InputSystem inputSystem;
 		RenderSystem renderSystem;

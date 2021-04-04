@@ -63,12 +63,7 @@ class Component
 			return (*PropertyIterator).second->PropertyType;
 		}
 
-		float GetFloatProperty(const string& PropertyName)
-		{ 
-			size_t Offset = metaClass->ClassProperties[PropertyName]->ValueOffset;
-			float Value = *(float*)((BYTE*)this + metaClass->ClassProperties[PropertyName]->ValueOffset);
-			return *(float*)((BYTE*)this + metaClass->ClassProperties[PropertyName]->ValueOffset);
-		}
+		float GetFloatProperty(const string& PropertyName) { return *(float*)((BYTE*)this + metaClass->ClassProperties[PropertyName]->ValueOffset); }
 		void SetFloatProperty(const string& PropertyName, const float Value) { *(float*)((BYTE*)this + metaClass->ClassProperties[PropertyName]->ValueOffset) = Value; }
 
 		XMFLOAT3 GetVectorProperty(const string& PropertyName) { return *(XMFLOAT3*)((BYTE*)this + metaClass->ClassProperties[PropertyName]->ValueOffset); }

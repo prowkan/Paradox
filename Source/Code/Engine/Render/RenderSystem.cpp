@@ -190,6 +190,14 @@ void RenderSystem::InitSystem()
 		ResolutionHeight = 720;
 	}
 
+	ResolutionWidth = Engine::GetEngine().GetConfigSystem().GetRenderConfigValueInt("Screen", "ResolutionWidth");
+	ResolutionHeight = Engine::GetEngine().GetConfigSystem().GetRenderConfigValueInt("Screen", "ResolutionHeight");
+
+	int HardwareAntiAliasingMode = Engine::GetEngine().GetConfigSystem().GetRenderConfigValueInt("Graphics", "HardwareAntiAliasingMode");
+	int HardwareAntiAliasingLevel = Engine::GetEngine().GetConfigSystem().GetRenderConfigValueInt("Graphics", "HardwareAntiAliasingLevel");
+
+	int SamplesCount = (HardwareAntiAliasingMode > 0) ? 1 << (HardwareAntiAliasingLevel + 1) : 1;
+
 	SAFE_DX(D3D12CreateDevice(Adapter, D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_11_0, UUIDOF(Device)));
 
 	D3D12_COMMAND_QUEUE_DESC CommandQueueDesc;
@@ -539,6 +547,11 @@ void RenderSystem::TickSystem(float DeltaTime)
 		Engine::GetEngine().GetGameFramework().GetCamera().SetAspectRatio((float)EditorViewportWidth / (float)EditorViewportHeight);
 	}
 #endif
+
+	int HardwareAntiAliasingMode = Engine::GetEngine().GetConfigSystem().GetRenderConfigValueInt("Graphics", "HardwareAntiAliasingMode");
+	int HardwareAntiAliasingLevel = Engine::GetEngine().GetConfigSystem().GetRenderConfigValueInt("Graphics", "HardwareAntiAliasingLevel");
+
+	int SamplesCount = (HardwareAntiAliasingMode > 0) ? 1 << (HardwareAntiAliasingLevel + 1) : 1;
 
 	if (FrameSyncFences[CurrentFrameIndex]->GetCompletedValue() != 1)
 	{
@@ -1017,6 +1030,11 @@ RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInf
 {
 	RenderMaterial *renderMaterial = new RenderMaterial();
 
+	int HardwareAntiAliasingMode = Engine::GetEngine().GetConfigSystem().GetRenderConfigValueInt("Graphics", "HardwareAntiAliasingMode");
+	int HardwareAntiAliasingLevel = Engine::GetEngine().GetConfigSystem().GetRenderConfigValueInt("Graphics", "HardwareAntiAliasingLevel");
+
+	int SamplesCount = (HardwareAntiAliasingMode > 0) ? 1 << (HardwareAntiAliasingLevel + 1) : 1;
+
 	D3D12_INPUT_ELEMENT_DESC InputElementDescs[5];
 	InputElementDescs[0].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
 	InputElementDescs[0].Format = DXGI_FORMAT::DXGI_FORMAT_R32G32B32_FLOAT;
@@ -1074,7 +1092,7 @@ RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInf
 	GraphicsPipelineStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID;
 	GraphicsPipelineStateDesc.RTVFormats[0] = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 	GraphicsPipelineStateDesc.RTVFormats[1] = DXGI_FORMAT::DXGI_FORMAT_R10G10B10A2_UNORM;
-	GraphicsPipelineStateDesc.SampleDesc.Count = 8;
+	GraphicsPipelineStateDesc.SampleDesc.Count = SamplesCount;
 	GraphicsPipelineStateDesc.SampleDesc.Quality = 0;
 	GraphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
 	GraphicsPipelineStateDesc.VS.BytecodeLength = renderMaterialCreateInfo.GBufferOpaquePassVertexShaderByteCodeLength;
