@@ -1,5 +1,6 @@
 struct VSInput
 {
+	[[vk::location(0)]] float3 Position : POSITION;
 	float3 Position : POSITION;
 };
 
@@ -13,7 +14,7 @@ struct VSConstants
 	float4x4 WVPMatrix;
 };
 
-ConstantBuffer<VSConstants> VertexShaderConstants : register(b0);
+[[vk::binding(0, 0)]] ConstantBuffer<VSConstants> VertexShaderConstants : register(b0);
 
 VSOutput VS(VSInput VertexShaderInput)
 {

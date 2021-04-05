@@ -1,7 +1,7 @@
 struct VSOutput
 {
 	float4 Position : SV_Position;
-	float2 TexCoord : TEXCOORD;
+	[[vk::location(0)]] float2 TexCoord : TEXCOORD;
 };
 
 VSOutput VS(uint VertexID : SV_VertexID)

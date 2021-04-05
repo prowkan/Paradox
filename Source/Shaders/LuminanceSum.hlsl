@@ -1,5 +1,5 @@
-Texture2D<float> InputLuminanceTexture : register(t0);
-RWTexture2D<float> OutputLuminanceTexture : register(u0);
+[[vk::binding(0, 0)]] Texture2D<float> InputLuminanceTexture : register(t0);
+[[vk::binding(1, 0)]] RWTexture2D<float> OutputLuminanceTexture : register(u0);
 
 groupshared float LocalLuminances[16][16];
 

@@ -1,20 +1,20 @@
 struct VSInput
 {
-	float3 Position : POSITION;
-	float2 TexCoord : TEXCOORD;
-	float3 Normal : NORMAL;
-	float3 Tangent : TANGENT;
-	float3 Binormal : BINORMAL;
+	[[vk::location(0)]] float3 Position : POSITION;
+	[[vk::location(1)]] float2 TexCoord : TEXCOORD;
+	[[vk::location(2)]] float3 Normal : NORMAL;
+	[[vk::location(3)]] float3 Tangent : TANGENT;
+	[[vk::location(4)]] float3 Binormal : BINORMAL;
 };
 
 
 struct VSOutput
 {
 	float4 Position : SV_Position;
-	float2 TexCoord : TEXCOORD;
-	float3 Normal : NORMAL;
-	float3 Tangent : TANGENT;
-	float3 Binormal : BINORMAL;
+	[[vk::location(0)]] float2 TexCoord : TEXCOORD;
+	[[vk::location(1)]] float3 Normal : NORMAL;
+	[[vk::location(2)]] float3 Tangent : TANGENT;
+	[[vk::location(3)]] float3 Binormal : BINORMAL;
 };
 
 struct VSConstants
@@ -24,7 +24,7 @@ struct VSConstants
 	float3x3 VectorTransformMatrix;
 };
 
-ConstantBuffer<VSConstants> VertexShaderConstants : register(b0);
+[[vk::binding(0, 0)]] ConstantBuffer<VSConstants> VertexShaderConstants : register(b0);
 
 VSOutput VS(VSInput VertexShaderInput)
 {

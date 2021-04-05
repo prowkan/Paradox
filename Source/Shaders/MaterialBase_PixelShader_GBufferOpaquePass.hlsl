@@ -1,22 +1,22 @@
 struct PSInput
 {
 	float4 Position : SV_Position;
-	float2 TexCoord : TEXCOORD;
-	float3 Normal : NORMAL;
-	float3 Tangent : TANGENT;
-	float3 Binormal : BINORMAL;
+	[[vk::location(0)]] float2 TexCoord : TEXCOORD;
+	[[vk::location(1)]] float3 Normal : NORMAL;
+	[[vk::location(2)]] float3 Tangent : TANGENT;
+	[[vk::location(3)]] float3 Binormal : BINORMAL;
 };
 
 struct PSOutput
 {
-	float4 GBuffer0 : SV_Target0;
-	float4 GBuffer1 : SV_Target1;
+	[[vk::location(0)]] float4 GBuffer0 : SV_Target0;
+	[[vk::location(1)]] float4 GBuffer1 : SV_Target1;
 };
 
-Texture2D DiffuseMap : register(t0);
-Texture2D NormalMap : register(t1);
+[[vk::binding(0, 1)]] Texture2D DiffuseMap : register(t0);
+[[vk::binding(1, 1)]] Texture2D NormalMap : register(t1);
 
-SamplerState Sampler : register(s0);
+[[vk::binding(0, 2)]] SamplerState Sampler : register(s0);
 
 PSOutput PS(PSInput PixelShaderInput)
 {

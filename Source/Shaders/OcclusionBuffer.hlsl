@@ -1,14 +1,14 @@
 struct PSInput
 {
 	float4 Position : SV_Position;
-	float2 TexCoord : TEXCOORD;
+	[[vk::location(0)]] float2 TexCoord : TEXCOORD;
 };
 
-Texture2D<float> DepthBufferTexture : register(t0);
+[[vk::binding(0, 0)]] Texture2D<float> DepthBufferTexture : register(t0);
 
-SamplerState MinSampler;
+[[vk::binding(1, 0)]] SamplerState MinSampler;
 
-float PS(PSInput PixelShaderInput) : SV_Target
+[[vk::location(0)]] float PS(PSInput PixelShaderInput) : SV_Target
 {
 	float2 Offset = float2(1.0f / (2.0f * 256.0f * 144.0f), 1.0f / (2.0f * 256.0f * 144.0f));
 

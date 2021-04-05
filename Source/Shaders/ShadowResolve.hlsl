@@ -1,7 +1,7 @@
 struct PSInput
 {
 	float4 Position : SV_Position;
-	float2 TexCoord : TEXCOORD;
+	[[vk::location(0)]] float2 TexCoord : TEXCOORD;
 };
 
 struct PSConstants
@@ -9,12 +9,12 @@ struct PSConstants
 	float4x4 ReProjMatrices[4];
 };
 
-ConstantBuffer<PSConstants> PixelShaderConstants : register(b0);
+[[vk::binding(0, 0)]] ConstantBuffer<PSConstants> PixelShaderConstants : register(b0);
 
-Texture2D<float> DepthBufferTexture : register(t0);
-Texture2D<float> CascadedShadowMaps[4] : register(t1);
+[[vk::binding(1, 0)]] Texture2D<float> DepthBufferTexture : register(t0);
+[[vk::binding(2, 0)]] Texture2D<float> CascadedShadowMaps[4] : register(t1);
 
-SamplerComparisonState ShadowMapSampler : register(s0);
+[[vk::binding(3, 0)]] SamplerComparisonState ShadowMapSampler : register(s0);
 
 float4 PS(PSInput PixelShaderInput) : SV_Target
 {
