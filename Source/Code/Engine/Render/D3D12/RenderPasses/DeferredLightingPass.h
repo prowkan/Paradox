@@ -2,7 +2,7 @@
 
 #include "../RenderPass.h"
 
-#include "../RenderSystem.h"
+#include "../RenderDeviceD3D12.h"
 
 #include <Containers/COMRCPtr.h>
 
@@ -14,8 +14,8 @@ class DeferredLightingPass : public RenderPass
 		D3D12_CPU_DESCRIPTOR_HANDLE GetHDRSceneColorTextureRTV() { return HDRSceneColorTextureRTV; }
 		D3D12_CPU_DESCRIPTOR_HANDLE GetHDRSceneColorTextureSRV() { return HDRSceneColorTextureSRV; }
 
-		virtual void Init(RenderSystem& renderSystem) override;
-		virtual void Execute(RenderSystem& renderSystem) override;
+		virtual void Init(RenderDeviceD3D12& renderDevice) override;
+		virtual void Execute(RenderDeviceD3D12& renderDevice) override;
 
 		virtual const char* GetName() override { return "DeferredLightingPass"; }
 

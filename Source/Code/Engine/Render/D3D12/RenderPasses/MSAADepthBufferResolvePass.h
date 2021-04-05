@@ -2,7 +2,7 @@
 
 #include "../RenderPass.h"
 
-#include "../RenderSystem.h"
+#include "../RenderDeviceD3D12.h"
 
 #include <Containers/COMRCPtr.h>
 
@@ -13,8 +13,8 @@ class MSAADepthBufferResolvePass : public RenderPass
 		Texture* GetResolvedDepthBufferTexture() { return &ResolvedDepthBufferTexture; }
 		D3D12_CPU_DESCRIPTOR_HANDLE GetResolvedDepthBufferTextureSRV() { return ResolvedDepthBufferTextureSRV; }
 
-		virtual void Init(RenderSystem& renderSystem) override;
-		virtual void Execute(RenderSystem& renderSystem) override;
+		virtual void Init(RenderDeviceD3D12& renderDevice) override;
+		virtual void Execute(RenderDeviceD3D12& renderDevice) override;
 
 		virtual const char* GetName() override { return "MSAADepthBufferResolvePass"; }
 

@@ -10,10 +10,10 @@
 #undef SAFE_DX
 #define SAFE_DX(Func) Func
 
-void OcclusionBufferPass::Init(RenderSystem& renderSystem)
+void OcclusionBufferPass::Init(RenderDeviceD3D12& renderDevice)
 {
-	ResolvedDepthBufferTexture = ((MSAADepthBufferResolvePass*)renderSystem.GetRenderPass("MSAADepthBufferResolvePass"))->GetResolvedDepthBufferTexture();
-	ResolvedDepthBufferTextureSRV = ((MSAADepthBufferResolvePass*)renderSystem.GetRenderPass("MSAADepthBufferResolvePass"))->GetResolvedDepthBufferTextureSRV();
+	ResolvedDepthBufferTexture = ((MSAADepthBufferResolvePass*)renderDevice.GetRenderPass("MSAADepthBufferResolvePass"))->GetResolvedDepthBufferTexture();
+	ResolvedDepthBufferTextureSRV = ((MSAADepthBufferResolvePass*)renderDevice.GetRenderPass("MSAADepthBufferResolvePass"))->GetResolvedDepthBufferTextureSRV();
 
 	D3D12_RESOURCE_DESC ResourceDesc = DX12Helpers::CreateDXResourceDescTexture2D(256, 144, DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT, D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
 
@@ -24,7 +24,7 @@ void OcclusionBufferPass::Init(RenderSystem& renderSystem)
 	ClearValue.Color[3] = 0.0f;
 	ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
 
-	OcclusionBufferTexture = renderSystem.CreateTexture(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_SOURCE, &ClearValue);
+	OcclusionBufferTexture = renderDevice.CreateTexture(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_SOURCE, &ClearValue);
 
 	D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
 	RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
@@ -32,16 +32,16 @@ void OcclusionBufferPass::Init(RenderSystem& renderSystem)
 	RTVDesc.Texture2D.PlaneSlice = 0;
 	RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2D;
 
-	OcclusionBufferTextureRTV = renderSystem.GetRTDescriptorHeap().AllocateDescriptor();
+	OcclusionBufferTextureRTV = renderDevice.GetRTDescriptorHeap().AllocateDescriptor();
 
-	renderSystem.GetDevice()->CreateRenderTargetView(OcclusionBufferTexture.DXTexture, &RTVDesc, OcclusionBufferTextureRTV);
+	renderDevice.GetDevice()->CreateRenderTargetView(OcclusionBufferTexture.DXTexture, &RTVDesc, OcclusionBufferTextureRTV);
 
 	D3D12_PLACED_SUBRESOURCE_FOOTPRINT PlacedSubResourceFootPrint;
 
 	UINT NumRows;
 	UINT64 RowSizeInBytes, TotalBytes;
 
-	renderSystem.GetDevice()->GetCopyableFootprints(&ResourceDesc, 0, 1, 0, &PlacedSubResourceFootPrint, &NumRows, &RowSizeInBytes, &TotalBytes);
+	renderDevice.GetDevice()->GetCopyableFootprints(&ResourceDesc, 0, 1, 0, &PlacedSubResourceFootPrint, &NumRows, &RowSizeInBytes, &TotalBytes);
 
 	ResourceDesc.Alignment = 0;
 	ResourceDesc.DepthOrArraySize = 1;
@@ -55,8 +55,8 @@ void OcclusionBufferPass::Init(RenderSystem& renderSystem)
 	ResourceDesc.SampleDesc.Quality = 0;
 	ResourceDesc.Width = TotalBytes;
 
-	OcclusionBufferTextureReadback[0] = renderSystem.CreateBuffer(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_READBACK), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr);
-	OcclusionBufferTextureReadback[1] = renderSystem.CreateBuffer(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_READBACK), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr);
+	OcclusionBufferTextureReadback[0] = renderDevice.CreateBuffer(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_READBACK), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr);
+	OcclusionBufferTextureReadback[1] = renderDevice.CreateBuffer(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_READBACK), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr);
 	
 	SIZE_T OcclusionBufferPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("OcclusionBuffer");
 	ScopedMemoryBlockArray<BYTE> OcclusionBufferPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(OcclusionBufferPixelShaderByteCodeLength);
@@ -71,7 +71,7 @@ void OcclusionBufferPass::Init(RenderSystem& renderSystem)
 	GraphicsPipelineStateDesc.NodeMask = 0;
 	GraphicsPipelineStateDesc.NumRenderTargets = 1;
 	GraphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE::D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	GraphicsPipelineStateDesc.pRootSignature = renderSystem.GetGraphicsRootSignature();
+	GraphicsPipelineStateDesc.pRootSignature = renderDevice.GetGraphicsRootSignature();
 	GraphicsPipelineStateDesc.PS.BytecodeLength = OcclusionBufferPixelShaderByteCodeLength;
 	GraphicsPipelineStateDesc.PS.pShaderBytecode = OcclusionBufferPixelShaderByteCodeData;
 	GraphicsPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_BACK;
@@ -80,27 +80,27 @@ void OcclusionBufferPass::Init(RenderSystem& renderSystem)
 	GraphicsPipelineStateDesc.SampleDesc.Count = 1;
 	GraphicsPipelineStateDesc.SampleDesc.Quality = 0;
 	GraphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
-	GraphicsPipelineStateDesc.VS = renderSystem.GetFullScreenQuadVertexShader();
+	GraphicsPipelineStateDesc.VS = renderDevice.GetFullScreenQuadVertexShader();
 
-	SAFE_DX(renderSystem.GetDevice()->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(OcclusionBufferPipelineState)));
+	SAFE_DX(renderDevice.GetDevice()->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(OcclusionBufferPipelineState)));
 
-	OcclusionBufferPassSRTable = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetGraphicsRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::PIXEL_SHADER_SHADER_RESOURCES]);
+	OcclusionBufferPassSRTable = renderDevice.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderDevice.GetGraphicsRootSignature().GetRootSignatureDesc().pParameters[RenderDeviceD3D12::PIXEL_SHADER_SHADER_RESOURCES]);
 }
 
-void OcclusionBufferPass::Execute(RenderSystem& renderSystem)
+void OcclusionBufferPass::Execute(RenderDeviceD3D12& renderDevice)
 {
 	OcclusionBufferPassSRTable[0] = ResolvedDepthBufferTextureSRV;
 	OcclusionBufferPassSRTable.SetTableSize(1);
 	OcclusionBufferPassSRTable.UpdateDescriptorTable();
 
-	renderSystem.SwitchResourceState(*ResolvedDepthBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	renderSystem.SwitchResourceState(OcclusionBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
+	renderDevice.SwitchResourceState(*ResolvedDepthBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	renderDevice.SwitchResourceState(OcclusionBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-	renderSystem.ApplyPendingBarriers();
+	renderDevice.ApplyPendingBarriers();
 
-	renderSystem.GetCommandList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	renderDevice.GetCommandList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-	renderSystem.GetCommandList()->OMSetRenderTargets(1, &OcclusionBufferTextureRTV, TRUE, nullptr);
+	renderDevice.GetCommandList()->OMSetRenderTargets(1, &OcclusionBufferTextureRTV, TRUE, nullptr);
 
 	D3D12_VIEWPORT Viewport;
 	Viewport.Height = 144.0f;
@@ -110,7 +110,7 @@ void OcclusionBufferPass::Execute(RenderSystem& renderSystem)
 	Viewport.TopLeftY = 0.0f;
 	Viewport.Width = 256.0f;
 
-	renderSystem.GetCommandList()->RSSetViewports(1, &Viewport);
+	renderDevice.GetCommandList()->RSSetViewports(1, &Viewport);
 
 	D3D12_RECT ScissorRect;
 	ScissorRect.bottom = 144;
@@ -118,21 +118,21 @@ void OcclusionBufferPass::Execute(RenderSystem& renderSystem)
 	ScissorRect.right = 256;
 	ScissorRect.top = 0;
 
-	renderSystem.GetCommandList()->RSSetScissorRects(1, &ScissorRect);
+	renderDevice.GetCommandList()->RSSetScissorRects(1, &ScissorRect);
 
-	renderSystem.GetCommandList()->DiscardResource(OcclusionBufferTexture.DXTexture, nullptr);
+	renderDevice.GetCommandList()->DiscardResource(OcclusionBufferTexture.DXTexture, nullptr);
 
-	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(RenderSystem::PIXEL_SHADER_SAMPLERS, renderSystem.GetMinSamplerTable());
+	renderDevice.GetCommandList()->SetGraphicsRootDescriptorTable(RenderDeviceD3D12::PIXEL_SHADER_SAMPLERS, renderDevice.GetMinSamplerTable());
 
-	renderSystem.GetCommandList()->SetPipelineState(OcclusionBufferPipelineState);
+	renderDevice.GetCommandList()->SetPipelineState(OcclusionBufferPipelineState);
 
-	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(RenderSystem::PIXEL_SHADER_SHADER_RESOURCES, OcclusionBufferPassSRTable);
+	renderDevice.GetCommandList()->SetGraphicsRootDescriptorTable(RenderDeviceD3D12::PIXEL_SHADER_SHADER_RESOURCES, OcclusionBufferPassSRTable);
 
-	renderSystem.GetCommandList()->DrawInstanced(4, 1, 0, 0);
+	renderDevice.GetCommandList()->DrawInstanced(4, 1, 0, 0);
 
-	renderSystem.SwitchResourceState(OcclusionBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_SOURCE);
+	renderDevice.SwitchResourceState(OcclusionBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_SOURCE);
 
-	renderSystem.ApplyPendingBarriers();
+	renderDevice.ApplyPendingBarriers();
 
 	D3D12_RESOURCE_DESC ResourceDesc = OcclusionBufferTexture.DXTexture->GetDesc();
 
@@ -141,7 +141,7 @@ void OcclusionBufferPass::Execute(RenderSystem& renderSystem)
 	UINT NumRows;
 	UINT64 RowSizeInBytes, TotalBytes;
 
-	renderSystem.GetDevice()->GetCopyableFootprints(&ResourceDesc, 0, 1, 0, &PlacedSubResourceFootPrint, &NumRows, &RowSizeInBytes, &TotalBytes);
+	renderDevice.GetDevice()->GetCopyableFootprints(&ResourceDesc, 0, 1, 0, &PlacedSubResourceFootPrint, &NumRows, &RowSizeInBytes, &TotalBytes);
 
 	D3D12_TEXTURE_COPY_LOCATION SourceTextureCopyLocation, DestTextureCopyLocation;
 
@@ -150,12 +150,12 @@ void OcclusionBufferPass::Execute(RenderSystem& renderSystem)
 	SourceTextureCopyLocation.Type = D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 
 	DestTextureCopyLocation.PlacedFootprint = PlacedSubResourceFootPrint;
-	DestTextureCopyLocation.pResource = OcclusionBufferTextureReadback[renderSystem.GetCurrentFrameIndex()].DXBuffer;
+	DestTextureCopyLocation.pResource = OcclusionBufferTextureReadback[renderDevice.GetCurrentFrameIndex()].DXBuffer;
 	DestTextureCopyLocation.Type = D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 
-	renderSystem.GetCommandList()->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
+	renderDevice.GetCommandList()->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
 
-	float *OcclusionBufferData = renderSystem.GetCullingSubSystem().GetOcclusionBufferData();
+	float *OcclusionBufferData = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetOcclusionBufferData();
 
 	D3D12_RANGE ReadRange, WrittenRange;
 	ReadRange.Begin = 0;
@@ -166,12 +166,12 @@ void OcclusionBufferPass::Execute(RenderSystem& renderSystem)
 
 	void *MappedData;
 
-	SAFE_DX(OcclusionBufferTextureReadback[renderSystem.GetCurrentFrameIndex()].DXBuffer->Map(0, &ReadRange, &MappedData));
+	SAFE_DX(OcclusionBufferTextureReadback[renderDevice.GetCurrentFrameIndex()].DXBuffer->Map(0, &ReadRange, &MappedData));
 
 	for (UINT i = 0; i < NumRows; i++)
 	{
 		memcpy((BYTE*)OcclusionBufferData + i * RowSizeInBytes, (BYTE*)MappedData + i * PlacedSubResourceFootPrint.Footprint.RowPitch, RowSizeInBytes);
 	}
 
-	OcclusionBufferTextureReadback[renderSystem.GetCurrentFrameIndex()].DXBuffer->Unmap(0, &WrittenRange);
+	OcclusionBufferTextureReadback[renderDevice.GetCurrentFrameIndex()].DXBuffer->Unmap(0, &WrittenRange);
 }

@@ -2,7 +2,7 @@
 
 #include "../RenderPass.h"
 
-#include "../RenderSystem.h"
+#include "../RenderDeviceD3D12.h"
 
 #include <Containers/COMRCPtr.h>
 
@@ -13,8 +13,8 @@ class ShadowResolvePass : public RenderPass
 		Texture* GetShadowMaskTexture() { return &ShadowMaskTexture; }
 		D3D12_CPU_DESCRIPTOR_HANDLE GetShadowMaskTextureSRV() { return ShadowMaskTextureSRV; }
 
-		virtual void Init(RenderSystem& renderSystem) override;
-		virtual void Execute(RenderSystem& renderSystem) override;
+		virtual void Init(RenderDeviceD3D12& renderDevice) override;
+		virtual void Execute(RenderDeviceD3D12& renderDevice) override;
 
 		virtual const char* GetName() override { return "ShadowResolvePass"; }
 

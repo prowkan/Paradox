@@ -2,7 +2,7 @@
 
 #include "../RenderPass.h"
 
-#include "../RenderSystem.h"
+#include "../RenderDeviceD3D12.h"
 
 #include <Containers/COMRCPtr.h>
 
@@ -13,8 +13,8 @@ class HDRSceneColorResolvePass : public RenderPass
 		Texture* GetResolvedHDRSceneColorTexture() { return &ResolvedHDRSceneColorTexture; }
 		D3D12_CPU_DESCRIPTOR_HANDLE GetResolvedHDRSceneColorTextureSRV() { return ResolvedHDRSceneColorTextureSRV; }
 
-		virtual void Init(RenderSystem& renderSystem) override;
-		virtual void Execute(RenderSystem& renderSystem) override;
+		virtual void Init(RenderDeviceD3D12& renderDevice) override;
+		virtual void Execute(RenderDeviceD3D12& renderDevice) override;
 
 		virtual const char* GetName() override { return "HDRSceneColorResolvePass"; }
 

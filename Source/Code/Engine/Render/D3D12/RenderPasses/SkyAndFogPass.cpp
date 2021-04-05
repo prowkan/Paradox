@@ -6,7 +6,7 @@
 #include "GBufferOpaquePass.h"
 #include "DeferredLightingPass.h"
 
-#include "../RenderSystem.h"
+#include "../RenderDeviceD3D12.h"
 
 #include <Engine/Engine.h>
 
@@ -25,13 +25,13 @@ struct SunConstantBuffer
 	XMFLOAT3 SunPosition;
 };
 
-void SkyAndFogPass::Init(RenderSystem& renderSystem)
+void SkyAndFogPass::Init(RenderDeviceD3D12& renderDevice)
 {
-	HDRSceneColorTextureRTV = ((DeferredLightingPass*)renderSystem.GetRenderPass("DeferredLightingPass"))->GetHDRSceneColorTextureRTV();
+	HDRSceneColorTextureRTV = ((DeferredLightingPass*)renderDevice.GetRenderPass("DeferredLightingPass"))->GetHDRSceneColorTextureRTV();
 
-	DepthBufferTexture = ((GBufferOpaquePass*)renderSystem.GetRenderPass("GBufferOpaquePass"))->GetDepthBufferTexture();
-	DepthBufferTextureDSV = ((GBufferOpaquePass*)renderSystem.GetRenderPass("GBufferOpaquePass"))->GetDepthBufferTextureDSV();
-	DepthBufferTextureSRV = ((GBufferOpaquePass*)renderSystem.GetRenderPass("GBufferOpaquePass"))->GetDepthBufferTextureSRV();
+	DepthBufferTexture = ((GBufferOpaquePass*)renderDevice.GetRenderPass("GBufferOpaquePass"))->GetDepthBufferTexture();
+	DepthBufferTextureDSV = ((GBufferOpaquePass*)renderDevice.GetRenderPass("GBufferOpaquePass"))->GetDepthBufferTextureDSV();
+	DepthBufferTextureSRV = ((GBufferOpaquePass*)renderDevice.GetRenderPass("GBufferOpaquePass"))->GetDepthBufferTextureSRV();
 	
 	UINT SkyMeshVertexCount = 1 + 25 * 100 + 1;
 	UINT SkyMeshIndexCount = 300 + 24 * 600 + 300;
@@ -91,12 +91,12 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 	D3D12_RESOURCE_DESC ResourceDesc = DX12Helpers::CreateDXResourceDescBuffer(sizeof(Vertex) * SkyMeshVertexCount);
 	D3D12_HEAP_PROPERTIES HeapProperties = DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT);
 
-	SAFE_DX(renderSystem.GetDevice()->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(SkyVertexBuffer)));
+	SAFE_DX(renderDevice.GetDevice()->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(SkyVertexBuffer)));
 
 	ResourceDesc = DX12Helpers::CreateDXResourceDescBuffer(sizeof(WORD) * SkyMeshIndexCount);
 	HeapProperties = DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT);
 
-	SAFE_DX(renderSystem.GetDevice()->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(SkyIndexBuffer)));
+	SAFE_DX(renderDevice.GetDevice()->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(SkyIndexBuffer)));
 
 	void *MappedData;
 
@@ -107,16 +107,16 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 	WrittenRange.Begin = 0;
 	WrittenRange.End = sizeof(Vertex) * SkyMeshVertexCount;
 
-	SAFE_DX(renderSystem.GetUploadBuffer()->Map(0, &ReadRange, &MappedData));
+	SAFE_DX(renderDevice.GetUploadBuffer()->Map(0, &ReadRange, &MappedData));
 	memcpy((BYTE*)MappedData, SkyMeshVertices, sizeof(Vertex) * SkyMeshVertexCount);
 	memcpy((BYTE*)MappedData + sizeof(Vertex) * SkyMeshVertexCount, SkyMeshIndices, sizeof(WORD) * SkyMeshIndexCount);
-	renderSystem.GetUploadBuffer()->Unmap(0, &WrittenRange);
+	renderDevice.GetUploadBuffer()->Unmap(0, &WrittenRange);
 
-	SAFE_DX(renderSystem.GetCommandAllocator(0)->Reset());
-	SAFE_DX(renderSystem.GetCommandList()->Reset(renderSystem.GetCommandAllocator(0), nullptr));
+	SAFE_DX(renderDevice.GetCommandAllocator(0)->Reset());
+	SAFE_DX(renderDevice.GetCommandList()->Reset(renderDevice.GetCommandAllocator(0), nullptr));
 
-	renderSystem.GetCommandList()->CopyBufferRegion(SkyVertexBuffer, 0, renderSystem.GetUploadBuffer(), 0, sizeof(Vertex) * SkyMeshVertexCount);
-	renderSystem.GetCommandList()->CopyBufferRegion(SkyIndexBuffer, 0, renderSystem.GetUploadBuffer(), sizeof(Vertex) * SkyMeshVertexCount, sizeof(WORD) * SkyMeshIndexCount);
+	renderDevice.GetCommandList()->CopyBufferRegion(SkyVertexBuffer, 0, renderDevice.GetUploadBuffer(), 0, sizeof(Vertex) * SkyMeshVertexCount);
+	renderDevice.GetCommandList()->CopyBufferRegion(SkyIndexBuffer, 0, renderDevice.GetUploadBuffer(), sizeof(Vertex) * SkyMeshVertexCount, sizeof(WORD) * SkyMeshIndexCount);
 
 	D3D12_RESOURCE_BARRIER ResourceBarriers[2];
 	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
@@ -132,37 +132,37 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 	ResourceBarriers[1].Transition.Subresource = 0;
 	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	renderSystem.GetCommandList()->ResourceBarrier(2, ResourceBarriers);
+	renderDevice.GetCommandList()->ResourceBarrier(2, ResourceBarriers);
 
-	SAFE_DX(renderSystem.GetCommandList()->Close());
+	SAFE_DX(renderDevice.GetCommandList()->Close());
 
-	renderSystem.GetCommandQueue()->ExecuteCommandLists(1, (ID3D12CommandList**)&renderSystem.GetCommandList());
+	renderDevice.GetCommandQueue()->ExecuteCommandLists(1, (ID3D12CommandList**)&renderDevice.GetCommandList());
 
-	SAFE_DX(renderSystem.GetCommandQueue()->Signal(renderSystem.GetCopySyncFence(), 1));
+	SAFE_DX(renderDevice.GetCommandQueue()->Signal(renderDevice.GetCopySyncFence(), 1));
 
-	if (renderSystem.GetCopySyncFence()->GetCompletedValue() != 1)
+	if (renderDevice.GetCopySyncFence()->GetCompletedValue() != 1)
 	{
-		SAFE_DX(renderSystem.GetCopySyncFence()->SetEventOnCompletion(1, renderSystem.GetCopySyncEvent()));
-		DWORD WaitResult = WaitForSingleObject(renderSystem.GetCopySyncEvent(), INFINITE);
+		SAFE_DX(renderDevice.GetCopySyncFence()->SetEventOnCompletion(1, renderDevice.GetCopySyncEvent()));
+		DWORD WaitResult = WaitForSingleObject(renderDevice.GetCopySyncEvent(), INFINITE);
 	}
 
-	SAFE_DX(renderSystem.GetCopySyncFence()->Signal(0));
+	SAFE_DX(renderDevice.GetCopySyncFence()->Signal(0));
 
 	SkyVertexBufferAddress = SkyVertexBuffer->GetGPUVirtualAddress();
 	SkyIndexBufferAddress = SkyIndexBuffer->GetGPUVirtualAddress();
 
-	GPUSkyConstantBuffer = renderSystem.CreateBuffer(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, DX12Helpers::CreateDXResourceDescBuffer(256), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr);
+	GPUSkyConstantBuffer = renderDevice.CreateBuffer(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, DX12Helpers::CreateDXResourceDescBuffer(256), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr);
 
-	CPUSkyConstantBuffers[0] = renderSystem.CreateBuffer(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, DX12Helpers::CreateDXResourceDescBuffer(256), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr);
-	CPUSkyConstantBuffers[1] = renderSystem.CreateBuffer(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, DX12Helpers::CreateDXResourceDescBuffer(256), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr);
+	CPUSkyConstantBuffers[0] = renderDevice.CreateBuffer(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, DX12Helpers::CreateDXResourceDescBuffer(256), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr);
+	CPUSkyConstantBuffers[1] = renderDevice.CreateBuffer(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, DX12Helpers::CreateDXResourceDescBuffer(256), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr);
 	
 	D3D12_CONSTANT_BUFFER_VIEW_DESC CBVDesc;
 	CBVDesc.BufferLocation = GPUSkyConstantBuffer.DXBuffer->GetGPUVirtualAddress();
 	CBVDesc.SizeInBytes = 256;
 
-	SkyConstantBufferCBV = renderSystem.GetCBSRUADescriptorHeap().AllocateDescriptor();
+	SkyConstantBufferCBV = renderDevice.GetCBSRUADescriptorHeap().AllocateDescriptor();
 
-	renderSystem.GetDevice()->CreateConstantBufferView(&CBVDesc, SkyConstantBufferCBV);
+	renderDevice.GetDevice()->CreateConstantBufferView(&CBVDesc, SkyConstantBufferCBV);
 
 	SIZE_T SkyVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("SkyVertexShader");
 	ScopedMemoryBlockArray<BYTE> SkyVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(SkyVertexShaderByteCodeLength);
@@ -223,7 +223,7 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 	GraphicsPipelineStateDesc.NodeMask = 0;
 	GraphicsPipelineStateDesc.NumRenderTargets = 1;
 	GraphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE::D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	GraphicsPipelineStateDesc.pRootSignature = renderSystem.GetGraphicsRootSignature();
+	GraphicsPipelineStateDesc.pRootSignature = renderDevice.GetGraphicsRootSignature();
 	GraphicsPipelineStateDesc.PS.BytecodeLength = SkyPixelShaderByteCodeLength;
 	GraphicsPipelineStateDesc.PS.pShaderBytecode = SkyPixelShaderByteCodeData;
 	GraphicsPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_BACK;
@@ -235,7 +235,7 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 	GraphicsPipelineStateDesc.VS.BytecodeLength = SkyVertexShaderByteCodeLength;
 	GraphicsPipelineStateDesc.VS.pShaderBytecode = SkyVertexShaderByteCodeData;
 
-	SAFE_DX(renderSystem.GetDevice()->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(SkyPipelineState)));
+	SAFE_DX(renderDevice.GetDevice()->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(SkyPipelineState)));
 
 	ScopedMemoryBlockArray<Texel> SkyTextureTexels = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<Texel>(2048 * 2048);
 
@@ -258,14 +258,14 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 	ResourceDesc = DX12Helpers::CreateDXResourceDescTexture2D(2048, 2048, DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
 	HeapProperties = DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT);
 
-	SAFE_DX(renderSystem.GetDevice()->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(SkyTexture)));
+	SAFE_DX(renderDevice.GetDevice()->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(SkyTexture)));
 
 	D3D12_PLACED_SUBRESOURCE_FOOTPRINT PlacedSubResourceFootPrint;
 
 	UINT NumRows;
 	UINT64 RowSizeInBytes, TotalBytes;
 
-	renderSystem.GetDevice()->GetCopyableFootprints(&ResourceDesc, 0, 1, 0, &PlacedSubResourceFootPrint, &NumRows, &RowSizeInBytes, &TotalBytes);
+	renderDevice.GetDevice()->GetCopyableFootprints(&ResourceDesc, 0, 1, 0, &PlacedSubResourceFootPrint, &NumRows, &RowSizeInBytes, &TotalBytes);
 
 	ReadRange.Begin = 0;
 	ReadRange.End = 0;
@@ -273,7 +273,7 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 	WrittenRange.Begin = 0;
 	WrittenRange.End = TotalBytes;
 
-	SAFE_DX(renderSystem.GetUploadBuffer()->Map(0, &ReadRange, &MappedData));
+	SAFE_DX(renderDevice.GetUploadBuffer()->Map(0, &ReadRange, &MappedData));
 
 	BYTE *TexelData = (BYTE*)SkyTextureTexels;
 
@@ -282,14 +282,14 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 		memcpy((BYTE*)MappedData + PlacedSubResourceFootPrint.Offset + j * PlacedSubResourceFootPrint.Footprint.RowPitch, (BYTE*)TexelData + j * RowSizeInBytes, RowSizeInBytes);
 	}
 
-	renderSystem.GetUploadBuffer()->Unmap(0, &WrittenRange);
+	renderDevice.GetUploadBuffer()->Unmap(0, &WrittenRange);
 
-	SAFE_DX(renderSystem.GetCommandAllocator(0)->Reset());
-	SAFE_DX(renderSystem.GetCommandList()->Reset(renderSystem.GetCommandAllocator(0), nullptr));
+	SAFE_DX(renderDevice.GetCommandAllocator(0)->Reset());
+	SAFE_DX(renderDevice.GetCommandList()->Reset(renderDevice.GetCommandAllocator(0), nullptr));
 
 	D3D12_TEXTURE_COPY_LOCATION SourceTextureCopyLocation, DestTextureCopyLocation;
 
-	SourceTextureCopyLocation.pResource = renderSystem.GetUploadBuffer();
+	SourceTextureCopyLocation.pResource = renderDevice.GetUploadBuffer();
 	SourceTextureCopyLocation.Type = D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 
 	DestTextureCopyLocation.pResource = SkyTexture;
@@ -298,7 +298,7 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 	SourceTextureCopyLocation.PlacedFootprint = PlacedSubResourceFootPrint;
 	DestTextureCopyLocation.SubresourceIndex = 0;
 
-	renderSystem.GetCommandList()->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
+	renderDevice.GetCommandList()->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
 
 	D3D12_RESOURCE_BARRIER ResourceBarrier;
 	ResourceBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
@@ -308,21 +308,21 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 	ResourceBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 	ResourceBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	renderSystem.GetCommandList()->ResourceBarrier(1, &ResourceBarrier);
+	renderDevice.GetCommandList()->ResourceBarrier(1, &ResourceBarrier);
 
-	SAFE_DX(renderSystem.GetCommandList()->Close());
+	SAFE_DX(renderDevice.GetCommandList()->Close());
 
-	renderSystem.GetCommandQueue()->ExecuteCommandLists(1, (ID3D12CommandList**)&renderSystem.GetCommandList());
+	renderDevice.GetCommandQueue()->ExecuteCommandLists(1, (ID3D12CommandList**)&renderDevice.GetCommandList());
 
-	SAFE_DX(renderSystem.GetCommandQueue()->Signal(renderSystem.GetCopySyncFence(), 1));
+	SAFE_DX(renderDevice.GetCommandQueue()->Signal(renderDevice.GetCopySyncFence(), 1));
 
-	if (renderSystem.GetCopySyncFence()->GetCompletedValue() != 1)
+	if (renderDevice.GetCopySyncFence()->GetCompletedValue() != 1)
 	{
-		SAFE_DX(renderSystem.GetCopySyncFence()->SetEventOnCompletion(1, renderSystem.GetCopySyncEvent()));
-		DWORD WaitResult = WaitForSingleObject(renderSystem.GetCopySyncEvent(), INFINITE);
+		SAFE_DX(renderDevice.GetCopySyncFence()->SetEventOnCompletion(1, renderDevice.GetCopySyncEvent()));
+		DWORD WaitResult = WaitForSingleObject(renderDevice.GetCopySyncEvent(), INFINITE);
 	}
 
-	SAFE_DX(renderSystem.GetCopySyncFence()->Signal(0));
+	SAFE_DX(renderDevice.GetCopySyncFence()->Signal(0));
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
 	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
@@ -333,9 +333,9 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 	SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 	SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
-	SkyTextureSRV = renderSystem.GetTexturesDescriptorHeap().AllocateDescriptor();
+	SkyTextureSRV = renderDevice.GetTexturesDescriptorHeap().AllocateDescriptor();
 
-	renderSystem.GetDevice()->CreateShaderResourceView(SkyTexture, &SRVDesc, SkyTextureSRV);
+	renderDevice.GetDevice()->CreateShaderResourceView(SkyTexture, &SRVDesc, SkyTextureSRV);
 
 	UINT SunMeshVertexCount = 4;
 	UINT SunMeshIndexCount = 6;
@@ -356,12 +356,12 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 	ResourceDesc = DX12Helpers::CreateDXResourceDescBuffer(sizeof(Vertex) * SunMeshVertexCount);
 	HeapProperties = DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT);
 
-	SAFE_DX(renderSystem.GetDevice()->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(SunVertexBuffer)));
+	SAFE_DX(renderDevice.GetDevice()->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(SunVertexBuffer)));
 
 	ResourceDesc = DX12Helpers::CreateDXResourceDescBuffer(sizeof(WORD) * SunMeshIndexCount);
 	HeapProperties = DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT);
 
-	SAFE_DX(renderSystem.GetDevice()->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(SunIndexBuffer)));
+	SAFE_DX(renderDevice.GetDevice()->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(SunIndexBuffer)));
 
 	ReadRange.Begin = 0;
 	ReadRange.End = 0;
@@ -369,16 +369,16 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 	WrittenRange.Begin = 0;
 	WrittenRange.End = sizeof(Vertex) * SunMeshVertexCount + sizeof(WORD) * SunMeshIndexCount;
 
-	SAFE_DX(renderSystem.GetUploadBuffer()->Map(0, &ReadRange, &MappedData));
+	SAFE_DX(renderDevice.GetUploadBuffer()->Map(0, &ReadRange, &MappedData));
 	memcpy((BYTE*)MappedData, SunMeshVertices, sizeof(Vertex) * SunMeshVertexCount);
 	memcpy((BYTE*)MappedData + sizeof(Vertex) * SunMeshVertexCount, SunMeshIndices, sizeof(WORD) * SunMeshIndexCount);
-	renderSystem.GetUploadBuffer()->Unmap(0, &WrittenRange);
+	renderDevice.GetUploadBuffer()->Unmap(0, &WrittenRange);
 
-	SAFE_DX(renderSystem.GetCommandAllocator(0)->Reset());
-	SAFE_DX(renderSystem.GetCommandList()->Reset(renderSystem.GetCommandAllocator(0), nullptr));
+	SAFE_DX(renderDevice.GetCommandAllocator(0)->Reset());
+	SAFE_DX(renderDevice.GetCommandList()->Reset(renderDevice.GetCommandAllocator(0), nullptr));
 
-	renderSystem.GetCommandList()->CopyBufferRegion(SunVertexBuffer, 0, renderSystem.GetUploadBuffer(), 0, sizeof(Vertex) * SunMeshVertexCount);
-	renderSystem.GetCommandList()->CopyBufferRegion(SunIndexBuffer, 0, renderSystem.GetUploadBuffer(), sizeof(Vertex) * SunMeshVertexCount, sizeof(WORD) * SunMeshIndexCount);
+	renderDevice.GetCommandList()->CopyBufferRegion(SunVertexBuffer, 0, renderDevice.GetUploadBuffer(), 0, sizeof(Vertex) * SunMeshVertexCount);
+	renderDevice.GetCommandList()->CopyBufferRegion(SunIndexBuffer, 0, renderDevice.GetUploadBuffer(), sizeof(Vertex) * SunMeshVertexCount, sizeof(WORD) * SunMeshIndexCount);
 
 	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarriers[0].Transition.pResource = SunVertexBuffer;
@@ -393,36 +393,36 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 	ResourceBarriers[1].Transition.Subresource = 0;
 	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	renderSystem.GetCommandList()->ResourceBarrier(2, ResourceBarriers);
+	renderDevice.GetCommandList()->ResourceBarrier(2, ResourceBarriers);
 
-	SAFE_DX(renderSystem.GetCommandList()->Close());
+	SAFE_DX(renderDevice.GetCommandList()->Close());
 
-	renderSystem.GetCommandQueue()->ExecuteCommandLists(1, (ID3D12CommandList**)&renderSystem.GetCommandList());
+	renderDevice.GetCommandQueue()->ExecuteCommandLists(1, (ID3D12CommandList**)&renderDevice.GetCommandList());
 
-	SAFE_DX(renderSystem.GetCommandQueue()->Signal(renderSystem.GetCopySyncFence(), 1));
+	SAFE_DX(renderDevice.GetCommandQueue()->Signal(renderDevice.GetCopySyncFence(), 1));
 
-	if (renderSystem.GetCopySyncFence()->GetCompletedValue() != 1)
+	if (renderDevice.GetCopySyncFence()->GetCompletedValue() != 1)
 	{
-		SAFE_DX(renderSystem.GetCopySyncFence()->SetEventOnCompletion(1, renderSystem.GetCopySyncEvent()));
-		DWORD WaitResult = WaitForSingleObject(renderSystem.GetCopySyncEvent(), INFINITE);
+		SAFE_DX(renderDevice.GetCopySyncFence()->SetEventOnCompletion(1, renderDevice.GetCopySyncEvent()));
+		DWORD WaitResult = WaitForSingleObject(renderDevice.GetCopySyncEvent(), INFINITE);
 	}
 
-	SAFE_DX(renderSystem.GetCopySyncFence()->Signal(0));
+	SAFE_DX(renderDevice.GetCopySyncFence()->Signal(0));
 
 	SunVertexBufferAddress = SunVertexBuffer->GetGPUVirtualAddress();
 	SunIndexBufferAddress = SunIndexBuffer->GetGPUVirtualAddress();
 
-	GPUSunConstantBuffer = renderSystem.CreateBuffer(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, DX12Helpers::CreateDXResourceDescBuffer(256), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr);
+	GPUSunConstantBuffer = renderDevice.CreateBuffer(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, DX12Helpers::CreateDXResourceDescBuffer(256), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr);
 
-	CPUSunConstantBuffers[0] = renderSystem.CreateBuffer(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, DX12Helpers::CreateDXResourceDescBuffer(256), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr);
-	CPUSunConstantBuffers[1] = renderSystem.CreateBuffer(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, DX12Helpers::CreateDXResourceDescBuffer(256), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr);
+	CPUSunConstantBuffers[0] = renderDevice.CreateBuffer(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, DX12Helpers::CreateDXResourceDescBuffer(256), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr);
+	CPUSunConstantBuffers[1] = renderDevice.CreateBuffer(DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, DX12Helpers::CreateDXResourceDescBuffer(256), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr);
 
 	CBVDesc.BufferLocation = GPUSunConstantBuffer.DXBuffer->GetGPUVirtualAddress();
 	CBVDesc.SizeInBytes = 256;
 
-	SunConstantBufferCBV = renderSystem.GetCBSRUADescriptorHeap().AllocateDescriptor();
+	SunConstantBufferCBV = renderDevice.GetCBSRUADescriptorHeap().AllocateDescriptor();
 
-	renderSystem.GetDevice()->CreateConstantBufferView(&CBVDesc, SunConstantBufferCBV);
+	renderDevice.GetDevice()->CreateConstantBufferView(&CBVDesc, SunConstantBufferCBV);
 
 	SIZE_T SunVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("SunVertexShader");
 	ScopedMemoryBlockArray<BYTE> SunVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(SunVertexShaderByteCodeLength);
@@ -488,7 +488,7 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 	GraphicsPipelineStateDesc.NodeMask = 0;
 	GraphicsPipelineStateDesc.NumRenderTargets = 1;
 	GraphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE::D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	GraphicsPipelineStateDesc.pRootSignature = renderSystem.GetGraphicsRootSignature();
+	GraphicsPipelineStateDesc.pRootSignature = renderDevice.GetGraphicsRootSignature();
 	GraphicsPipelineStateDesc.PS.BytecodeLength = SunPixelShaderByteCodeLength;
 	GraphicsPipelineStateDesc.PS.pShaderBytecode = SunPixelShaderByteCodeData;
 	GraphicsPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_BACK;
@@ -500,7 +500,7 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 	GraphicsPipelineStateDesc.VS.BytecodeLength = SunVertexShaderByteCodeLength;
 	GraphicsPipelineStateDesc.VS.pShaderBytecode = SunVertexShaderByteCodeData;
 
-	SAFE_DX(renderSystem.GetDevice()->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(SunPipelineState)));
+	SAFE_DX(renderDevice.GetDevice()->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(SunPipelineState)));
 
 	ScopedMemoryBlockArray<Texel> SunTextureTexels = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<Texel>(512 * 512);
 
@@ -523,9 +523,9 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 	ResourceDesc = DX12Helpers::CreateDXResourceDescTexture2D(512, 512, DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
 	HeapProperties = DX12Helpers::CreateDXHeapProperties(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT);
 
-	SAFE_DX(renderSystem.GetDevice()->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(SunTexture)));
+	SAFE_DX(renderDevice.GetDevice()->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(SunTexture)));
 
-	renderSystem.GetDevice()->GetCopyableFootprints(&ResourceDesc, 0, 1, 0, &PlacedSubResourceFootPrint, &NumRows, &RowSizeInBytes, &TotalBytes);
+	renderDevice.GetDevice()->GetCopyableFootprints(&ResourceDesc, 0, 1, 0, &PlacedSubResourceFootPrint, &NumRows, &RowSizeInBytes, &TotalBytes);
 
 	ReadRange.Begin = 0;
 	ReadRange.End = 0;
@@ -533,7 +533,7 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 	WrittenRange.Begin = 0;
 	WrittenRange.End = TotalBytes;
 
-	SAFE_DX(renderSystem.GetUploadBuffer()->Map(0, &ReadRange, &MappedData));
+	SAFE_DX(renderDevice.GetUploadBuffer()->Map(0, &ReadRange, &MappedData));
 
 	TexelData = (BYTE*)SunTextureTexels;
 
@@ -542,12 +542,12 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 		memcpy((BYTE*)MappedData + PlacedSubResourceFootPrint.Offset + j * PlacedSubResourceFootPrint.Footprint.RowPitch, (BYTE*)TexelData + j * RowSizeInBytes, RowSizeInBytes);
 	}
 
-	renderSystem.GetUploadBuffer()->Unmap(0, &WrittenRange);
+	renderDevice.GetUploadBuffer()->Unmap(0, &WrittenRange);
 
-	SAFE_DX(renderSystem.GetCommandAllocator(0)->Reset());
-	SAFE_DX(renderSystem.GetCommandList()->Reset(renderSystem.GetCommandAllocator(0), nullptr));
+	SAFE_DX(renderDevice.GetCommandAllocator(0)->Reset());
+	SAFE_DX(renderDevice.GetCommandList()->Reset(renderDevice.GetCommandAllocator(0), nullptr));
 
-	SourceTextureCopyLocation.pResource = renderSystem.GetUploadBuffer();
+	SourceTextureCopyLocation.pResource = renderDevice.GetUploadBuffer();
 	SourceTextureCopyLocation.Type = D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 
 	DestTextureCopyLocation.pResource = SunTexture;
@@ -556,7 +556,7 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 	SourceTextureCopyLocation.PlacedFootprint = PlacedSubResourceFootPrint;
 	DestTextureCopyLocation.SubresourceIndex = 0;
 
-	renderSystem.GetCommandList()->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
+	renderDevice.GetCommandList()->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
 
 	ResourceBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarrier.Transition.pResource = SunTexture;
@@ -565,21 +565,21 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 	ResourceBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 	ResourceBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	renderSystem.GetCommandList()->ResourceBarrier(1, &ResourceBarrier);
+	renderDevice.GetCommandList()->ResourceBarrier(1, &ResourceBarrier);
 
-	SAFE_DX(renderSystem.GetCommandList()->Close());
+	SAFE_DX(renderDevice.GetCommandList()->Close());
 
-	renderSystem.GetCommandQueue()->ExecuteCommandLists(1, (ID3D12CommandList**)&renderSystem.GetCommandList());
+	renderDevice.GetCommandQueue()->ExecuteCommandLists(1, (ID3D12CommandList**)&renderDevice.GetCommandList());
 
-	SAFE_DX(renderSystem.GetCommandQueue()->Signal(renderSystem.GetCopySyncFence(), 1));
+	SAFE_DX(renderDevice.GetCommandQueue()->Signal(renderDevice.GetCopySyncFence(), 1));
 
-	if (renderSystem.GetCopySyncFence()->GetCompletedValue() != 1)
+	if (renderDevice.GetCopySyncFence()->GetCompletedValue() != 1)
 	{
-		SAFE_DX(renderSystem.GetCopySyncFence()->SetEventOnCompletion(1, renderSystem.GetCopySyncEvent()));
-		DWORD WaitResult = WaitForSingleObject(renderSystem.GetCopySyncEvent(), INFINITE);
+		SAFE_DX(renderDevice.GetCopySyncFence()->SetEventOnCompletion(1, renderDevice.GetCopySyncEvent()));
+		DWORD WaitResult = WaitForSingleObject(renderDevice.GetCopySyncEvent(), INFINITE);
 	}
 
-	SAFE_DX(renderSystem.GetCopySyncFence()->Signal(0));
+	SAFE_DX(renderDevice.GetCopySyncFence()->Signal(0));
 
 	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 	SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -589,9 +589,9 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 	SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 	SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
-	SunTextureSRV = renderSystem.GetTexturesDescriptorHeap().AllocateDescriptor();
+	SunTextureSRV = renderDevice.GetTexturesDescriptorHeap().AllocateDescriptor();
 
-	renderSystem.GetDevice()->CreateShaderResourceView(SunTexture, &SRVDesc, SunTextureSRV);
+	renderDevice.GetDevice()->CreateShaderResourceView(SunTexture, &SRVDesc, SunTextureSRV);
 
 	SIZE_T FogPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("Fog");
 	ScopedMemoryBlockArray<BYTE> FogPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(FogPixelShaderByteCodeLength);
@@ -612,7 +612,7 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 	GraphicsPipelineStateDesc.NodeMask = 0;
 	GraphicsPipelineStateDesc.NumRenderTargets = 1;
 	GraphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE::D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	GraphicsPipelineStateDesc.pRootSignature = renderSystem.GetGraphicsRootSignature();
+	GraphicsPipelineStateDesc.pRootSignature = renderDevice.GetGraphicsRootSignature();
 	GraphicsPipelineStateDesc.PS.BytecodeLength = FogPixelShaderByteCodeLength;
 	GraphicsPipelineStateDesc.PS.pShaderBytecode = FogPixelShaderByteCodeData;
 	GraphicsPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_BACK;
@@ -621,20 +621,20 @@ void SkyAndFogPass::Init(RenderSystem& renderSystem)
 	GraphicsPipelineStateDesc.SampleDesc.Count = 8;
 	GraphicsPipelineStateDesc.SampleDesc.Quality = 0;
 	GraphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
-	GraphicsPipelineStateDesc.VS = renderSystem.GetFullScreenQuadVertexShader();
+	GraphicsPipelineStateDesc.VS = renderDevice.GetFullScreenQuadVertexShader();
 
-	SAFE_DX(renderSystem.GetDevice()->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(FogPipelineState)));
+	SAFE_DX(renderDevice.GetDevice()->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(FogPipelineState)));
 
-	FogSRTable = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetGraphicsRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::PIXEL_SHADER_SHADER_RESOURCES]);
+	FogSRTable = renderDevice.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderDevice.GetGraphicsRootSignature().GetRootSignatureDesc().pParameters[RenderDeviceD3D12::PIXEL_SHADER_SHADER_RESOURCES]);
 
-	SkyCBTable = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetGraphicsRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::VERTEX_SHADER_CONSTANT_BUFFERS]);
-	SkySRTable = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetGraphicsRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::PIXEL_SHADER_SHADER_RESOURCES]);
+	SkyCBTable = renderDevice.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderDevice.GetGraphicsRootSignature().GetRootSignatureDesc().pParameters[RenderDeviceD3D12::VERTEX_SHADER_CONSTANT_BUFFERS]);
+	SkySRTable = renderDevice.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderDevice.GetGraphicsRootSignature().GetRootSignatureDesc().pParameters[RenderDeviceD3D12::PIXEL_SHADER_SHADER_RESOURCES]);
 
-	SunCBTable = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetGraphicsRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::VERTEX_SHADER_CONSTANT_BUFFERS]);
-	SunSRTable = renderSystem.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderSystem.GetGraphicsRootSignature().GetRootSignatureDesc().pParameters[RenderSystem::PIXEL_SHADER_SHADER_RESOURCES]);
+	SunCBTable = renderDevice.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderDevice.GetGraphicsRootSignature().GetRootSignatureDesc().pParameters[RenderDeviceD3D12::VERTEX_SHADER_CONSTANT_BUFFERS]);
+	SunSRTable = renderDevice.GetFrameResourcesDescriptorHeap().AllocateDescriptorTable(renderDevice.GetGraphicsRootSignature().GetRootSignatureDesc().pParameters[RenderDeviceD3D12::PIXEL_SHADER_SHADER_RESOURCES]);
 }
 
-void SkyAndFogPass::Execute(RenderSystem& renderSystem)
+void SkyAndFogPass::Execute(RenderDeviceD3D12& renderDevice)
 {
 	GameFramework& gameFramework = Engine::GetEngine().GetGameFramework();
 
@@ -655,7 +655,7 @@ void SkyAndFogPass::Execute(RenderSystem& renderSystem)
 
 	void *ConstantBufferData;
 
-	SAFE_DX(CPUSkyConstantBuffers[renderSystem.GetCurrentFrameIndex()].DXBuffer->Map(0, &ReadRange, &ConstantBufferData));
+	SAFE_DX(CPUSkyConstantBuffers[renderDevice.GetCurrentFrameIndex()].DXBuffer->Map(0, &ReadRange, &ConstantBufferData));
 
 	SkyConstantBuffer& skyConstantBuffer = *((SkyConstantBuffer*)((BYTE*)ConstantBufferData));
 
@@ -664,11 +664,11 @@ void SkyAndFogPass::Execute(RenderSystem& renderSystem)
 	WrittenRange.Begin = 0;
 	WrittenRange.End = 256;
 
-	CPUSkyConstantBuffers[renderSystem.GetCurrentFrameIndex()].DXBuffer->Unmap(0, &WrittenRange);
+	CPUSkyConstantBuffers[renderDevice.GetCurrentFrameIndex()].DXBuffer->Unmap(0, &WrittenRange);
 
 	XMFLOAT3 SunPosition(-500.0f + CameraLocation.x, 500.0f + CameraLocation.y, -500.f + CameraLocation.z);
 
-	SAFE_DX(CPUSunConstantBuffers[renderSystem.GetCurrentFrameIndex()].DXBuffer->Map(0, &ReadRange, &ConstantBufferData));
+	SAFE_DX(CPUSunConstantBuffers[renderDevice.GetCurrentFrameIndex()].DXBuffer->Map(0, &ReadRange, &ConstantBufferData));
 
 	SunConstantBuffer& sunConstantBuffer = *((SunConstantBuffer*)((BYTE*)ConstantBufferData));
 
@@ -679,78 +679,78 @@ void SkyAndFogPass::Execute(RenderSystem& renderSystem)
 	WrittenRange.Begin = 0;
 	WrittenRange.End = 256;
 
-	CPUSunConstantBuffers[renderSystem.GetCurrentFrameIndex()].DXBuffer->Unmap(0, &WrittenRange);
+	CPUSunConstantBuffers[renderDevice.GetCurrentFrameIndex()].DXBuffer->Unmap(0, &WrittenRange);
 
-	renderSystem.SwitchResourceState(GPUSkyConstantBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
-	renderSystem.SwitchResourceState(GPUSunConstantBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
+	renderDevice.SwitchResourceState(GPUSkyConstantBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
+	renderDevice.SwitchResourceState(GPUSunConstantBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
 
-	renderSystem.ApplyPendingBarriers();
+	renderDevice.ApplyPendingBarriers();
 
-	renderSystem.GetCommandList()->CopyBufferRegion(GPUSkyConstantBuffer.DXBuffer, 0, CPUSkyConstantBuffers[renderSystem.GetCurrentFrameIndex()].DXBuffer, 0, 256);
-	renderSystem.GetCommandList()->CopyBufferRegion(GPUSunConstantBuffer.DXBuffer, 0, CPUSunConstantBuffers[renderSystem.GetCurrentFrameIndex()].DXBuffer, 0, 256);
+	renderDevice.GetCommandList()->CopyBufferRegion(GPUSkyConstantBuffer.DXBuffer, 0, CPUSkyConstantBuffers[renderDevice.GetCurrentFrameIndex()].DXBuffer, 0, 256);
+	renderDevice.GetCommandList()->CopyBufferRegion(GPUSunConstantBuffer.DXBuffer, 0, CPUSunConstantBuffers[renderDevice.GetCurrentFrameIndex()].DXBuffer, 0, 256);
 
-	renderSystem.SwitchResourceState(GPUSkyConstantBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
-	renderSystem.SwitchResourceState(GPUSunConstantBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+	renderDevice.SwitchResourceState(GPUSkyConstantBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+	renderDevice.SwitchResourceState(GPUSunConstantBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 
-	renderSystem.ApplyPendingBarriers();
+	renderDevice.ApplyPendingBarriers();
 
-	renderSystem.GetCommandList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	renderDevice.GetCommandList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-	renderSystem.GetCommandList()->OMSetRenderTargets(1, &HDRSceneColorTextureRTV, TRUE, nullptr);
+	renderDevice.GetCommandList()->OMSetRenderTargets(1, &HDRSceneColorTextureRTV, TRUE, nullptr);
 
 	D3D12_VIEWPORT Viewport;
-	Viewport.Height = float(renderSystem.GetResolutionHeight());
+	Viewport.Height = float(renderDevice.GetResolutionHeight());
 	Viewport.MaxDepth = 1.0f;
 	Viewport.MinDepth = 0.0f;
 	Viewport.TopLeftX = 0.0f;
 	Viewport.TopLeftY = 0.0f;
-	Viewport.Width = float(renderSystem.GetResolutionWidth());
+	Viewport.Width = float(renderDevice.GetResolutionWidth());
 
-	renderSystem.GetCommandList()->RSSetViewports(1, &Viewport);
+	renderDevice.GetCommandList()->RSSetViewports(1, &Viewport);
 
 	D3D12_RECT ScissorRect;
-	ScissorRect.bottom = renderSystem.GetResolutionHeight();
+	ScissorRect.bottom = renderDevice.GetResolutionHeight();
 	ScissorRect.left = 0;
-	ScissorRect.right = renderSystem.GetResolutionWidth();
+	ScissorRect.right = renderDevice.GetResolutionWidth();
 	ScissorRect.top = 0;
 
-	renderSystem.GetCommandList()->RSSetScissorRects(1, &ScissorRect);
+	renderDevice.GetCommandList()->RSSetScissorRects(1, &ScissorRect);
 
 	FogSRTable[0] = DepthBufferTextureSRV;
 	FogSRTable.SetTableSize(1);
 	FogSRTable.UpdateDescriptorTable();
 
-	renderSystem.GetCommandList()->SetPipelineState(FogPipelineState);
+	renderDevice.GetCommandList()->SetPipelineState(FogPipelineState);
 
-	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(RenderSystem::PIXEL_SHADER_SHADER_RESOURCES, FogSRTable);
+	renderDevice.GetCommandList()->SetGraphicsRootDescriptorTable(RenderDeviceD3D12::PIXEL_SHADER_SHADER_RESOURCES, FogSRTable);
 
-	renderSystem.GetCommandList()->DrawInstanced(4, 1, 0, 0);
+	renderDevice.GetCommandList()->DrawInstanced(4, 1, 0, 0);
 
-	renderSystem.SwitchResourceState(*DepthBufferTexture, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE);
+	renderDevice.SwitchResourceState(*DepthBufferTexture, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
-	renderSystem.ApplyPendingBarriers();
+	renderDevice.ApplyPendingBarriers();
 
-	renderSystem.GetCommandList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	renderDevice.GetCommandList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	renderSystem.GetCommandList()->OMSetRenderTargets(1, &HDRSceneColorTextureRTV, TRUE, &DepthBufferTextureDSV);
+	renderDevice.GetCommandList()->OMSetRenderTargets(1, &HDRSceneColorTextureRTV, TRUE, &DepthBufferTextureDSV);
 
-	Viewport.Height = float(renderSystem.GetResolutionHeight());
+	Viewport.Height = float(renderDevice.GetResolutionHeight());
 	Viewport.MaxDepth = 1.0f;
 	Viewport.MinDepth = 0.0f;
 	Viewport.TopLeftX = 0.0f;
 	Viewport.TopLeftY = 0.0f;
-	Viewport.Width = float(renderSystem.GetResolutionWidth());
+	Viewport.Width = float(renderDevice.GetResolutionWidth());
 
-	renderSystem.GetCommandList()->RSSetViewports(1, &Viewport);
+	renderDevice.GetCommandList()->RSSetViewports(1, &Viewport);
 
-	ScissorRect.bottom = renderSystem.GetResolutionHeight();
+	ScissorRect.bottom = renderDevice.GetResolutionHeight();
 	ScissorRect.left = 0;
-	ScissorRect.right = renderSystem.GetResolutionWidth();
+	ScissorRect.right = renderDevice.GetResolutionWidth();
 	ScissorRect.top = 0;
 
-	renderSystem.GetCommandList()->RSSetScissorRects(1, &ScissorRect);
+	renderDevice.GetCommandList()->RSSetScissorRects(1, &ScissorRect);
 
-	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(RenderSystem::PIXEL_SHADER_SAMPLERS, renderSystem.GetTextureSamplerTable());
+	renderDevice.GetCommandList()->SetGraphicsRootDescriptorTable(RenderDeviceD3D12::PIXEL_SHADER_SAMPLERS, renderDevice.GetTextureSamplerTable());
 
 	D3D12_VERTEX_BUFFER_VIEW VertexBufferView;
 	VertexBufferView.BufferLocation = SkyVertexBufferAddress;
@@ -770,15 +770,15 @@ void SkyAndFogPass::Execute(RenderSystem& renderSystem)
 	SkySRTable.SetTableSize(1);
 	SkySRTable.UpdateDescriptorTable();
 
-	renderSystem.GetCommandList()->IASetVertexBuffers(0, 1, &VertexBufferView);
-	renderSystem.GetCommandList()->IASetIndexBuffer(&IndexBufferView);
+	renderDevice.GetCommandList()->IASetVertexBuffers(0, 1, &VertexBufferView);
+	renderDevice.GetCommandList()->IASetIndexBuffer(&IndexBufferView);
 
-	renderSystem.GetCommandList()->SetPipelineState(SkyPipelineState);
+	renderDevice.GetCommandList()->SetPipelineState(SkyPipelineState);
 
-	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(RenderSystem::VERTEX_SHADER_CONSTANT_BUFFERS, SkyCBTable);
-	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(RenderSystem::PIXEL_SHADER_SHADER_RESOURCES, SkySRTable);
+	renderDevice.GetCommandList()->SetGraphicsRootDescriptorTable(RenderDeviceD3D12::VERTEX_SHADER_CONSTANT_BUFFERS, SkyCBTable);
+	renderDevice.GetCommandList()->SetGraphicsRootDescriptorTable(RenderDeviceD3D12::PIXEL_SHADER_SHADER_RESOURCES, SkySRTable);
 
-	renderSystem.GetCommandList()->DrawIndexedInstanced(300 + 24 * 600 + 300, 1, 0, 0, 0);
+	renderDevice.GetCommandList()->DrawIndexedInstanced(300 + 24 * 600 + 300, 1, 0, 0, 0);
 
 	VertexBufferView.BufferLocation = SunVertexBufferAddress;
 	VertexBufferView.SizeInBytes = sizeof(Vertex) * 4;
@@ -796,13 +796,13 @@ void SkyAndFogPass::Execute(RenderSystem& renderSystem)
 	SunSRTable.SetTableSize(1);
 	SunSRTable.UpdateDescriptorTable();
 
-	renderSystem.GetCommandList()->IASetVertexBuffers(0, 1, &VertexBufferView);
-	renderSystem.GetCommandList()->IASetIndexBuffer(&IndexBufferView);
+	renderDevice.GetCommandList()->IASetVertexBuffers(0, 1, &VertexBufferView);
+	renderDevice.GetCommandList()->IASetIndexBuffer(&IndexBufferView);
 
-	renderSystem.GetCommandList()->SetPipelineState(SunPipelineState);
+	renderDevice.GetCommandList()->SetPipelineState(SunPipelineState);
 
-	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(RenderSystem::VERTEX_SHADER_CONSTANT_BUFFERS, SunCBTable);
-	renderSystem.GetCommandList()->SetGraphicsRootDescriptorTable(RenderSystem::PIXEL_SHADER_SHADER_RESOURCES, SunSRTable);
+	renderDevice.GetCommandList()->SetGraphicsRootDescriptorTable(RenderDeviceD3D12::VERTEX_SHADER_CONSTANT_BUFFERS, SunCBTable);
+	renderDevice.GetCommandList()->SetGraphicsRootDescriptorTable(RenderDeviceD3D12::PIXEL_SHADER_SHADER_RESOURCES, SunSRTable);
 
-	renderSystem.GetCommandList()->DrawIndexedInstanced(6, 1, 0, 0, 0);
+	renderDevice.GetCommandList()->DrawIndexedInstanced(6, 1, 0, 0, 0);
 }
