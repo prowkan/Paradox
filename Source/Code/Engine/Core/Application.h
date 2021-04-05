@@ -21,6 +21,9 @@ class Application
 
 		static void SetLevelRenderCanvasHandle(HWND LevelRenderCanvasHandle) { Application::LevelRenderCanvasHandle = LevelRenderCanvasHandle; }
 		static void SetAppExitFlag(bool Value) { Application::AppExitFlag = Value; }
+
+		static UINT EditorViewportWidth;
+		static UINT EditorViewportHeight;
 #endif
 
 	private:

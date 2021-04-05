@@ -33,7 +33,9 @@ extern "C" __declspec(dllexport) void SetAppExitFlag(bool Value)
 
 extern "C" __declspec(dllexport) void SetEditorViewportSize(UINT Width, UINT Height)
 {
-	Engine::GetEngine().GetRenderSystem().SetEditorViewportSize(Width, Height);
+	//Engine::GetEngine().GetRenderSystem().SetEditorViewportSize(Width, Height);
+	Application::EditorViewportWidth = Width;
+	Application::EditorViewportHeight = Height;
 }
 
 extern "C" __declspec(dllexport) void RotateCamera(int MouseDeltaX, int MouseDeltaY)

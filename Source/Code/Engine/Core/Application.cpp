@@ -10,6 +10,8 @@ bool Application::AppExitFlag;
 HWND Application::MainWindowHandle;
 HWND Application::LevelRenderCanvasHandle;
 atomic<bool> Application::ExceptionFlag;
+UINT Application::EditorViewportWidth;
+UINT Application::EditorViewportHeight;
 
 LRESULT CALLBACK Application::MainWindowProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 {

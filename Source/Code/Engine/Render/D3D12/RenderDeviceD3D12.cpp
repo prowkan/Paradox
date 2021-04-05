@@ -178,6 +178,9 @@ void RenderDeviceD3D12::InitDevice()
 #if WITH_EDITOR
 	if (Application::IsEditor())
 	{
+		EditorViewportWidth = Application::EditorViewportWidth;
+		EditorViewportHeight = Application::EditorViewportHeight;
+
 		ResolutionWidth = EditorViewportWidth;
 		ResolutionHeight = EditorViewportHeight;
 	}
