@@ -83,3 +83,31 @@ SWFRect SWFFile::ReadRect()
 
 	return Rect;
 }
+
+bool SWFFile::ReadTag(uint32_t& TagCode, uint32_t& TagLength, void*& TagData)
+{
+	if (CurrentByte >= SWFFileSize)
+	{
+		TagData = nullptr;
+		return false;
+	}
+
+	uint16_t TagCodeAndlength = Read<uint16_t>();
+
+	TagCode = (TagCodeAndlength & (0b1111111111 << 6)) >> 6;
+	TagLength = TagCodeAndlength & 0b111111;
+
+	if (TagLength == 63)
+	{
+		TagLength = Read<uint32_t>();
+	}
+
+	TagData = malloc(TagLength);
+
+	for (uint32_t i = 0; i < TagLength; i++)
+	{
+		*((uint8_t*)TagData + i) = Read<uint8_t>();
+	}
+
+	return true;
+}

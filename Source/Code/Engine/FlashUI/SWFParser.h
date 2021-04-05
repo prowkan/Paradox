@@ -9,4 +9,6 @@ class SWFParser
 		static void ParseFile(SWFFile& File);
 
 	private:
+
+		static void ProcessTag(uint32_t TagCode, uint32_t TagLength, void* TagData);
 };

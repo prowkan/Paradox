@@ -20,6 +20,8 @@ class SWFFile
 
 		SWFRect ReadRect();
 
+		bool ReadTag(uint32_t& TagCode, uint32_t& TagLength, void*& TagData);
+
 	private:
 
 		BYTE *SWFFileData;

@@ -27,4 +27,19 @@ void SWFParser::ParseFile(SWFFile& File)
 	float FrameRate = (float)FrameRateParts[1];
 
 	uint16_t FramesCount = File.Read<uint16_t>();
+
+	uint32_t TagCode;
+	uint32_t TagLength;
+	void *TagData;
+
+	while (File.ReadTag(TagCode, TagLength, TagData))
+	{
+		ProcessTag(TagCode, TagLength, TagData);
+		free(TagData);
+	}
+}
+
+void SWFParser::ProcessTag(uint32_t TagCode, uint32_t TagLength, void* TagData)
+{
+	cout << TagCode << " " << TagLength << endl;
 }
