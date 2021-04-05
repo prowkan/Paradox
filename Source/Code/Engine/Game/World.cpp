@@ -187,7 +187,8 @@ void World::UnLoadWorld()
 
 Entity* World::SpawnEntity(MetaClass* metaClass)
 {
-	void *entityPtr = Engine::GetEngine().GetMemoryManager().AllocateEntity(metaClass);
+	//void *entityPtr = Engine::GetEngine().GetMemoryManager().AllocateEntity(metaClass);
+	void *entityPtr = malloc(metaClass->GetClassSize());
 	metaClass->ObjectConstructorFunc(entityPtr);
 	Entity *entity = (Entity*)entityPtr;
 	string EntityName = string(metaClass->GetClassName()) + "_" + to_string(metaClass->InstancesCount);
