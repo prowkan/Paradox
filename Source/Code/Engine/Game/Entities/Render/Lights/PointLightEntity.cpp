@@ -29,7 +29,8 @@ void PointLightEntity::LoadFromFile(HANDLE File)
 
 		MetaClass *metaClass = Engine::GetEngine().GetGameFramework().GetMetaClassesTable()[ComponentClassName];
 
-		void *componentPtr = Engine::GetEngine().GetMemoryManager().AllocateComponent(metaClass);
+		//void *componentPtr = Engine::GetEngine().GetMemoryManager().AllocateComponent(metaClass);
+		void *componentPtr = malloc(metaClass->GetClassSize());
 		metaClass->ObjectConstructorFunc(componentPtr);
 		Component *component = (Component*)componentPtr;
 		component->SetMetaClass(metaClass);

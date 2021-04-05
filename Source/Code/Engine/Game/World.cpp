@@ -167,9 +167,14 @@ void World::LoadWorld()
 
 		MetaClass *metaClass = Engine::GetEngine().GetGameFramework().GetMetaClassesTable()[EntityClassName];
 
-		void *entityPtr = Engine::GetEngine().GetMemoryManager().AllocateEntity(metaClass);
+		//void *entityPtr = Engine::GetEngine().GetMemoryManager().AllocateEntity(metaClass);
+		void *entityPtr = malloc(metaClass->GetClassSize());
 		metaClass->ObjectConstructorFunc(entityPtr);
 		Entity *entity = (Entity*)entityPtr;
+		string EntityName = string(metaClass->GetClassName()) + "_" + to_string(metaClass->InstancesCount);
+		metaClass->InstancesCount++;
+		entity->EntityName = new char[EntityName.length() + 1];
+		strcpy((char*)entity->EntityName, EntityName.c_str());
 		entity->SetMetaClass(metaClass);
 		entity->SetWorld(this);
 		entity->LoadFromFile(LevelFile);
