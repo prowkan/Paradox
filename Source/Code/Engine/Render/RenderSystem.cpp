@@ -8,26 +8,39 @@
 #include "D3D12/RenderDeviceD3D12.h"
 #include "Vulkan/RenderDeviceVulkan.h"
 
+#include <Engine/Engine.h>
+
 void RenderSystem::InitSystem()
 {
 	clusterizationSubSystem.PreComputeClustersPlanes();
 
-	//renderDevice = new RenderDeviceD3D12();
-	renderDevice = new RenderDeviceVulkan();
+	string GraphicsAPI = Engine::GetEngine().GetConfigSystem().GetRenderConfigValueString("System", "GraphicsAPI");
+
+	if (GraphicsAPI == "D3D12")
+		renderDevice = new RenderDeviceD3D12();
+	else if (GraphicsAPI == "Vulkan")
+		renderDevice = new RenderDeviceVulkan();
+	else
+		renderDevice = nullptr;
+
 	renderDevice->InitDevice();
 }
 
 void RenderSystem::ShutdownSystem()
 {
 	renderDevice->ShutdownDevice();
-	//delete (RenderDeviceD3D12*)renderDevice;
-	delete (RenderDeviceVulkan*)renderDevice;
+
+	string GraphicsAPI = Engine::GetEngine().GetConfigSystem().GetRenderConfigValueString("System", "GraphicsAPI");
+		
+	if (GraphicsAPI == "D3D12")
+		delete (RenderDeviceD3D12*)renderDevice;
+	else if (GraphicsAPI == "Vulkan")
+		delete (RenderDeviceVulkan*)renderDevice;
 }
 
 void RenderSystem::TickSystem(float DeltaTime)
 {
-	renderDevice->TickDevice(DeltaTime);
-	
+	renderDevice->TickDevice(DeltaTime);	
 }
 
 RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMeshCreateInfo)
