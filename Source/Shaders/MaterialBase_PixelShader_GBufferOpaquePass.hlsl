@@ -1,22 +1,30 @@
+#ifdef SPIRV
+#define VK_LOCATION(Index) [[vk::location(Index)]]
+#define VK_BINDING(Binding, Set) [[vk::binding(Binding, Set)]]
+#else
+#define VK_LOCATION(Index)
+#define VK_BINDING(Binding, Set)
+#endif
+
 struct PSInput
 {
 	float4 Position : SV_Position;
-	[[vk::location(0)]] float2 TexCoord : TEXCOORD;
-	[[vk::location(1)]] float3 Normal : NORMAL;
-	[[vk::location(2)]] float3 Tangent : TANGENT;
-	[[vk::location(3)]] float3 Binormal : BINORMAL;
+	VK_LOCATION(0) float2 TexCoord : TEXCOORD;
+	VK_LOCATION(1) float3 Normal : NORMAL;
+	VK_LOCATION(2) float3 Tangent : TANGENT;
+	VK_LOCATION(3) float3 Binormal : BINORMAL;
 };
 
 struct PSOutput
 {
-	[[vk::location(0)]] float4 GBuffer0 : SV_Target0;
-	[[vk::location(1)]] float4 GBuffer1 : SV_Target1;
+	VK_LOCATION(0) float4 GBuffer0 : SV_Target0;
+	VK_LOCATION(1) float4 GBuffer1 : SV_Target1;
 };
 
-[[vk::binding(0, 1)]] Texture2D DiffuseMap : register(t0);
-[[vk::binding(1, 1)]] Texture2D NormalMap : register(t1);
+VK_BINDING(0, 1) Texture2D DiffuseMap : register(t0);
+VK_BINDING(1, 1) Texture2D NormalMap : register(t1);
 
-[[vk::binding(0, 2)]] SamplerState Sampler : register(s0);
+VK_BINDING(0, 2) SamplerState Sampler : register(s0);
 
 PSOutput PS(PSInput PixelShaderInput)
 {

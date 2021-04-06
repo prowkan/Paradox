@@ -49,4 +49,4 @@ def PackFilesIntoArchive(FilesFolder, ArchiveName):
 
 PackFilesIntoArchive("F:/Paradox/Build/GameContent/Objects", "Objects")
 PackFilesIntoArchive("F:/Paradox/Build/GameContent/Textures", "Textures")
-PackFilesIntoArchive("F:/Paradox/Build/GameContent/Shaders", "Shaders")
+PackFilesIntoArchive("F:/Paradox/Build/GameContent/Shaders/ShaderModel51", "Shaders")

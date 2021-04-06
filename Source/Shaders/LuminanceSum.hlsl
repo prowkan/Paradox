@@ -1,5 +1,13 @@
-[[vk::binding(0, 0)]] Texture2D<float> InputLuminanceTexture : register(t0);
-[[vk::binding(1, 0)]] RWTexture2D<float> OutputLuminanceTexture : register(u0);
+#ifdef SPIRV
+#define VK_LOCATION(Index) [[vk::location(Index)]]
+#define VK_BINDING(Binding, Set) [[vk::binding(Binding, Set)]]
+#else
+#define VK_LOCATION(Index)
+#define VK_BINDING(Binding, Set)
+#endif
+
+VK_BINDING(0, 0) Texture2D<float> InputLuminanceTexture : register(t0);
+VK_BINDING(1, 0) RWTexture2D<float> OutputLuminanceTexture : register(u0);
 
 groupshared float LocalLuminances[16][16];
 

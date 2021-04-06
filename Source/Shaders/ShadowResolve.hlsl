@@ -1,7 +1,15 @@
+#ifdef SPIRV
+#define VK_LOCATION(Index) [[vk::location(Index)]]
+#define VK_BINDING(Binding, Set) [[vk::binding(Binding, Set)]]
+#else
+#define VK_LOCATION(Index)
+#define VK_BINDING(Binding, Set)
+#endif
+
 struct PSInput
 {
 	float4 Position : SV_Position;
-	[[vk::location(0)]] float2 TexCoord : TEXCOORD;
+	VK_LOCATION(0) float2 TexCoord : TEXCOORD;
 };
 
 struct PSConstants
@@ -9,16 +17,16 @@ struct PSConstants
 	float4x4 ReProjMatrices[4];
 };
 
-[[vk::binding(0, 0)]] ConstantBuffer<PSConstants> PixelShaderConstants : register(b0);
+VK_BINDING(0, 0) ConstantBuffer<PSConstants> PixelShaderConstants : register(b0);
 
-[[vk::binding(1, 0)]] Texture2D<float> DepthBufferTexture : register(t0);
-[[vk::binding(2, 0)]] Texture2D<float> CascadedShadowMaps[4] : register(t1);
+VK_BINDING(1, 0) Texture2D<float> DepthBufferTexture : register(t0);
+VK_BINDING(2, 0) Texture2D<float> CascadedShadowMaps[4] : register(t1);
 
-[[vk::binding(3, 0)]] SamplerComparisonState ShadowMapSampler : register(s0);
+VK_BINDING(3, 0) SamplerComparisonState ShadowMapSampler : register(s0);
 
-float4 PS(PSInput PixelShaderInput) : SV_Target
+VK_LOCATION(0) float4 PS(PSInput PixelShaderInput) : SV_Target
 {
-	int2 Coords = PixelShaderInput.Position.xy - 0.5f;
+	int2 Coords = trunc(PixelShaderInput.Position.xy);
 
 	float4 Position;
 

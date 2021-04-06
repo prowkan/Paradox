@@ -29,7 +29,6 @@
 #include <ResourceManager/Resources/Render/Materials/MaterialResource.h>
 #include <ResourceManager/Resources/Render/Textures/Texture2DResource.h>
 
-
 DescriptorHeap::DescriptorHeap(ID3D12Device *DXDevice, const D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType, const UINT DescriptorsCount)
 {
 	D3D12_DESCRIPTOR_HEAP_DESC DescriptorHeapDesc;
