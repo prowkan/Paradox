@@ -1,5 +1,6 @@
 import os
 import glob
+import sys
 
 class FileRecord:
 
@@ -17,14 +18,15 @@ class FileRecord:
         return Bytes
 
 def PackFilesIntoArchive(FilesFolder, ArchiveName):
-    FileList = glob.glob(FilesFolder + "/*.*")
+    FileList = glob.glob(FilesFolder + "/**/*.*", recursive = True)
     FileRecordArray = []
 
     Offset = 4 + len(FileList) * (1024 + 8 + 8)
 
     for FilePath in FileList:
         fileRecord = FileRecord()
-        fileRecord.FileName = FilePath[FilePath.rfind('\\') + 1:FilePath.rfind('.')]
+        fileRecord.FileName = FilePath[FilePath.find('\\') + 1:FilePath.rfind('.')]
+        fileRecord.FileName = fileRecord.FileName.replace('\\', '.')
         fileRecord.FileSize = os.stat(FilePath).st_size
         fileRecord.FileOffset = Offset
         Offset = Offset + fileRecord.FileSize
@@ -42,11 +44,10 @@ def PackFilesIntoArchive(FilesFolder, ArchiveName):
     os.chdir(FilesFolder)
 
     for FilePath in FileList:
-        f1 = open(FilePath[FilePath.rfind('\\') + 1:], "rb")
+        f1 = open(FilePath[FilePath.find('\\') + 1:], "rb")
         f.write(f1.read())
 
     f.close()
 
-PackFilesIntoArchive("F:/Paradox/Build/GameContent/Objects", "Objects")
-PackFilesIntoArchive("F:/Paradox/Build/GameContent/Textures", "Textures")
-PackFilesIntoArchive("F:/Paradox/Build/GameContent/Shaders/ShaderModel51", "Shaders")
+if __name__ == "__main__":
+    PackFilesIntoArchive(sys.argv[1], sys.argv[2])

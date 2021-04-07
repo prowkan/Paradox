@@ -67,21 +67,21 @@ void PostProcessBloomPass::Init(RenderDeviceD3D12& renderDevice)
 		renderDevice.GetDevice()->CreateShaderResourceView(BloomTextures[2][i].DXTexture, &SRVDesc, BloomTexturesSRVs[2][i]);
 	}
 
-	SIZE_T BrightPassPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("BrightPass");
+	SIZE_T BrightPassPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("ShaderModel51.BrightPass");
 	ScopedMemoryBlockArray<BYTE> BrightPassPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(BrightPassPixelShaderByteCodeLength);
-	Engine::GetEngine().GetFileSystem().LoadFile("BrightPass", BrightPassPixelShaderByteCodeData);
+	Engine::GetEngine().GetFileSystem().LoadFile("ShaderModel51.BrightPass", BrightPassPixelShaderByteCodeData);
 
-	SIZE_T ImageResamplePixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("ImageResample");
+	SIZE_T ImageResamplePixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("ShaderModel51.ImageResample");
 	ScopedMemoryBlockArray<BYTE> ImageResamplePixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(ImageResamplePixelShaderByteCodeLength);
-	Engine::GetEngine().GetFileSystem().LoadFile("ImageResample", ImageResamplePixelShaderByteCodeData);
+	Engine::GetEngine().GetFileSystem().LoadFile("ShaderModel51.ImageResample", ImageResamplePixelShaderByteCodeData);
 
-	SIZE_T HorizontalBlurPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("HorizontalBlur");
+	SIZE_T HorizontalBlurPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("ShaderModel51.HorizontalBlur");
 	ScopedMemoryBlockArray<BYTE> HorizontalBlurPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(HorizontalBlurPixelShaderByteCodeLength);
-	Engine::GetEngine().GetFileSystem().LoadFile("HorizontalBlur", HorizontalBlurPixelShaderByteCodeData);
+	Engine::GetEngine().GetFileSystem().LoadFile("ShaderModel51.HorizontalBlur", HorizontalBlurPixelShaderByteCodeData);
 
-	SIZE_T VerticalBlurPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("VerticalBlur");
+	SIZE_T VerticalBlurPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("ShaderModel51.VerticalBlur");
 	ScopedMemoryBlockArray<BYTE> VerticalBlurPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(VerticalBlurPixelShaderByteCodeLength);
-	Engine::GetEngine().GetFileSystem().LoadFile("VerticalBlur", VerticalBlurPixelShaderByteCodeData);
+	Engine::GetEngine().GetFileSystem().LoadFile("ShaderModel51.VerticalBlur", VerticalBlurPixelShaderByteCodeData);
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC GraphicsPipelineStateDesc;
 	ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));

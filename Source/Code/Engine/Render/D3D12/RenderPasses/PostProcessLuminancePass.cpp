@@ -77,17 +77,17 @@ void PostProcessLuminancePass::Init(RenderDeviceD3D12& renderDevice)
 
 	renderDevice.GetDevice()->CreateShaderResourceView(AverageLuminanceTexture.DXTexture, &SRVDesc, AverageLuminanceTextureSRV);
 
-	SIZE_T LuminanceCalcComputeShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("LuminanceCalc");
+	SIZE_T LuminanceCalcComputeShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("ShaderModel51.LuminanceCalc");
 	ScopedMemoryBlockArray<BYTE> LuminanceCalcComputeShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(LuminanceCalcComputeShaderByteCodeLength);
-	Engine::GetEngine().GetFileSystem().LoadFile("LuminanceCalc", LuminanceCalcComputeShaderByteCodeData);
+	Engine::GetEngine().GetFileSystem().LoadFile("ShaderModel51.LuminanceCalc", LuminanceCalcComputeShaderByteCodeData);
 
-	SIZE_T LuminanceSumComputeShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("LuminanceSum");
+	SIZE_T LuminanceSumComputeShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("ShaderModel51.LuminanceSum");
 	ScopedMemoryBlockArray<BYTE> LuminanceSumComputeShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(LuminanceSumComputeShaderByteCodeLength);
-	Engine::GetEngine().GetFileSystem().LoadFile("LuminanceSum", LuminanceSumComputeShaderByteCodeData);
+	Engine::GetEngine().GetFileSystem().LoadFile("ShaderModel51.LuminanceSum", LuminanceSumComputeShaderByteCodeData);
 
-	SIZE_T LuminanceAvgComputeShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("LuminanceAvg");
+	SIZE_T LuminanceAvgComputeShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("ShaderModel51.LuminanceAvg");
 	ScopedMemoryBlockArray<BYTE> LuminanceAvgComputeShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(LuminanceAvgComputeShaderByteCodeLength);
-	Engine::GetEngine().GetFileSystem().LoadFile("LuminanceAvg", LuminanceAvgComputeShaderByteCodeData);
+	Engine::GetEngine().GetFileSystem().LoadFile("ShaderModel51.LuminanceAvg", LuminanceAvgComputeShaderByteCodeData);
 
 	D3D12_COMPUTE_PIPELINE_STATE_DESC ComputePipelineStateDesc;
 	ZeroMemory(&ComputePipelineStateDesc, sizeof(D3D12_COMPUTE_PIPELINE_STATE_DESC));

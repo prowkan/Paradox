@@ -384,9 +384,9 @@ void RenderDeviceD3D12::InitDevice()
 
 	// ===============================================================================================================
 
-	FullScreenQuadVertexShader.BytecodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("FullScreenQuad");
+	FullScreenQuadVertexShader.BytecodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("ShaderModel51.FullScreenQuad");
 	ScopedMemoryBlockArray<BYTE> FullScreenQuadVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(FullScreenQuadVertexShader.BytecodeLength);
-	Engine::GetEngine().GetFileSystem().LoadFile("FullScreenQuad", FullScreenQuadVertexShaderByteCodeData);
+	Engine::GetEngine().GetFileSystem().LoadFile("ShaderModel51.FullScreenQuad", FullScreenQuadVertexShaderByteCodeData);
 	FullScreenQuadVertexShader.pShaderBytecode = FullScreenQuadVertexShaderByteCodeData;
 
 	{

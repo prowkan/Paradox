@@ -15,10 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="CleanShaders.py" />
-    <None Include="CompileShaders.py" />
-  </ItemGroup>
-  <ItemGroup>
     <FxCompile Include="DeferredLighting.hlsl" />
     <FxCompile Include="FullScreenQuad.hlsl" />
     <FxCompile Include="HDRToneMapping.hlsl" />

@@ -34,9 +34,9 @@ void PostProcessHDRToneMappingPass::Init(RenderDeviceD3D12& renderDevice)
 
 	renderDevice.GetDevice()->CreateRenderTargetView(ToneMappedImageTexture.DXTexture, &RTVDesc, ToneMappedImageTextureRTV);
 
-	SIZE_T HDRToneMappingPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("HDRToneMapping");
+	SIZE_T HDRToneMappingPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("ShaderModel51.HDRToneMapping");
 	ScopedMemoryBlockArray<BYTE> HDRToneMappingPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(HDRToneMappingPixelShaderByteCodeLength);
-	Engine::GetEngine().GetFileSystem().LoadFile("HDRToneMapping", HDRToneMappingPixelShaderByteCodeData);
+	Engine::GetEngine().GetFileSystem().LoadFile("ShaderModel51.HDRToneMapping", HDRToneMappingPixelShaderByteCodeData);
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC GraphicsPipelineStateDesc;
 	ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));

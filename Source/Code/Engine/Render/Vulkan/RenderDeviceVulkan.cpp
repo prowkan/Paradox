@@ -521,17 +521,14 @@ void RenderDeviceVulkan::InitDevice()
 		SAFE_VK(vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, &TexturesSets[1][i]));
 	}
 
-	HANDLE FullScreenQuadVertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SPIRV/FullScreenQuad.spv", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-	LARGE_INTEGER FullScreenQuadVertexShaderByteCodeLength;
-	BOOL Result = GetFileSizeEx(FullScreenQuadVertexShaderFile, &FullScreenQuadVertexShaderByteCodeLength);
-	ScopedMemoryBlockArray<BYTE> FullScreenQuadVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(FullScreenQuadVertexShaderByteCodeLength.QuadPart);
-	Result = ReadFile(FullScreenQuadVertexShaderFile, FullScreenQuadVertexShaderByteCodeData, (DWORD)FullScreenQuadVertexShaderByteCodeLength.QuadPart, NULL, NULL);
-	Result = CloseHandle(FullScreenQuadVertexShaderFile);
-
+	SIZE_T FullScreenQuadVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("SPIRV.FullScreenQuad");
+	ScopedMemoryBlockArray<BYTE> FullScreenQuadVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(FullScreenQuadVertexShaderByteCodeLength);
+	Engine::GetEngine().GetFileSystem().LoadFile("SPIRV.FullScreenQuad", FullScreenQuadVertexShaderByteCodeData);
+	
 	VkShaderModule FullScreenQuadShaderModule;
 
 	VkShaderModuleCreateInfo ShaderModuleCreateInfo;
-	ShaderModuleCreateInfo.codeSize = FullScreenQuadVertexShaderByteCodeLength.QuadPart;
+	ShaderModuleCreateInfo.codeSize = FullScreenQuadVertexShaderByteCodeLength;
 	ShaderModuleCreateInfo.flags = 0;
 	ShaderModuleCreateInfo.pCode = FullScreenQuadVertexShaderByteCodeData;
 	ShaderModuleCreateInfo.pNext = nullptr;
@@ -1341,15 +1338,12 @@ void RenderDeviceVulkan::InitDevice()
 
 		VkShaderModule OcclusionBufferShaderModule;
 
-		HANDLE OcclusionBufferPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SPIRV/OcclusionBuffer.spv", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-		LARGE_INTEGER OcclusionBufferPixelShaderByteCodeLength;
-		BOOL Result = GetFileSizeEx(OcclusionBufferPixelShaderFile, &OcclusionBufferPixelShaderByteCodeLength);
-		ScopedMemoryBlockArray<BYTE> OcclusionBufferPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(OcclusionBufferPixelShaderByteCodeLength.QuadPart);
-		Result = ReadFile(OcclusionBufferPixelShaderFile, OcclusionBufferPixelShaderByteCodeData, (DWORD)OcclusionBufferPixelShaderByteCodeLength.QuadPart, NULL, NULL);
-		Result = CloseHandle(OcclusionBufferPixelShaderFile);
+		SIZE_T OcclusionBufferPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("SPIRV.OcclusionBuffer");
+		ScopedMemoryBlockArray<BYTE> OcclusionBufferPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(OcclusionBufferPixelShaderByteCodeLength);
+		Engine::GetEngine().GetFileSystem().LoadFile("SPIRV.OcclusionBuffer", OcclusionBufferPixelShaderByteCodeData);
 
 		VkShaderModuleCreateInfo ShaderModuleCreateInfo;
-		ShaderModuleCreateInfo.codeSize = OcclusionBufferPixelShaderByteCodeLength.QuadPart;
+		ShaderModuleCreateInfo.codeSize = OcclusionBufferPixelShaderByteCodeLength;
 		ShaderModuleCreateInfo.flags = 0;
 		ShaderModuleCreateInfo.pCode = OcclusionBufferPixelShaderByteCodeData;
 		ShaderModuleCreateInfo.pNext = nullptr;
@@ -1958,15 +1952,12 @@ void RenderDeviceVulkan::InitDevice()
 
 		VkShaderModule ShadowResolveShaderModule;
 
-		HANDLE ShadowResolvePixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SPIRV/ShadowResolve.spv", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-		LARGE_INTEGER ShadowResolvePixelShaderByteCodeLength;
-		BOOL Result = GetFileSizeEx(ShadowResolvePixelShaderFile, &ShadowResolvePixelShaderByteCodeLength);
-		ScopedMemoryBlockArray<BYTE> ShadowResolvePixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(ShadowResolvePixelShaderByteCodeLength.QuadPart);
-		Result = ReadFile(ShadowResolvePixelShaderFile, ShadowResolvePixelShaderByteCodeData, (DWORD)ShadowResolvePixelShaderByteCodeLength.QuadPart, NULL, NULL);
-		Result = CloseHandle(ShadowResolvePixelShaderFile);
+		SIZE_T ShadowResolvePixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("SPIRV.ShadowResolve");
+		ScopedMemoryBlockArray<BYTE> ShadowResolvePixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(ShadowResolvePixelShaderByteCodeLength);
+		Engine::GetEngine().GetFileSystem().LoadFile("SPIRV.ShadowResolve", ShadowResolvePixelShaderByteCodeData);
 
 		VkShaderModuleCreateInfo ShaderModuleCreateInfo;
-		ShaderModuleCreateInfo.codeSize = ShadowResolvePixelShaderByteCodeLength.QuadPart;
+		ShaderModuleCreateInfo.codeSize = ShadowResolvePixelShaderByteCodeLength;
 		ShaderModuleCreateInfo.flags = 0;
 		ShaderModuleCreateInfo.pCode = ShadowResolvePixelShaderByteCodeData;
 		ShaderModuleCreateInfo.pNext = nullptr;
@@ -2457,15 +2448,12 @@ void RenderDeviceVulkan::InitDevice()
 
 		VkShaderModule DeferredLightingShaderModule;
 
-		HANDLE DeferredLightingPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SPIRV/DeferredLighting.spv", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-		LARGE_INTEGER DeferredLightingPixelShaderByteCodeLength;
-		BOOL Result = GetFileSizeEx(DeferredLightingPixelShaderFile, &DeferredLightingPixelShaderByteCodeLength);
-		ScopedMemoryBlockArray<BYTE> DeferredLightingPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(DeferredLightingPixelShaderByteCodeLength.QuadPart);
-		Result = ReadFile(DeferredLightingPixelShaderFile, DeferredLightingPixelShaderByteCodeData, (DWORD)DeferredLightingPixelShaderByteCodeLength.QuadPart, NULL, NULL);
-		Result = CloseHandle(DeferredLightingPixelShaderFile);
+		SIZE_T DeferredLightingPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("SPIRV.DeferredLighting");
+		ScopedMemoryBlockArray<BYTE> DeferredLightingPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(DeferredLightingPixelShaderByteCodeLength);
+		Engine::GetEngine().GetFileSystem().LoadFile("SPIRV.DeferredLighting", DeferredLightingPixelShaderByteCodeData);
 
 		VkShaderModuleCreateInfo ShaderModuleCreateInfo;
-		ShaderModuleCreateInfo.codeSize = DeferredLightingPixelShaderByteCodeLength.QuadPart;
+		ShaderModuleCreateInfo.codeSize = DeferredLightingPixelShaderByteCodeLength;
 		ShaderModuleCreateInfo.flags = 0;
 		ShaderModuleCreateInfo.pCode = DeferredLightingPixelShaderByteCodeData;
 		ShaderModuleCreateInfo.pNext = nullptr;
@@ -3374,38 +3362,26 @@ void RenderDeviceVulkan::InitDevice()
 
 		SAFE_VK(vkResetFences(Device, 1, &CopySyncFence));
 
-		HANDLE SkyVertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SPIRV/SkyVertexShader.spv", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-		LARGE_INTEGER SkyVertexShaderByteCodeLength;
-		Result = GetFileSizeEx(SkyVertexShaderFile, &SkyVertexShaderByteCodeLength);
-		ScopedMemoryBlockArray<BYTE> SkyVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(SkyVertexShaderByteCodeLength.QuadPart);
-		Result = ReadFile(SkyVertexShaderFile, SkyVertexShaderByteCodeData, (DWORD)SkyVertexShaderByteCodeLength.QuadPart, NULL, NULL);
-		Result = CloseHandle(SkyVertexShaderFile);
+		SIZE_T SkyVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("SPIRV.SkyVertexShader");
+		ScopedMemoryBlockArray<BYTE> SkyVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(SkyVertexShaderByteCodeLength);
+		Engine::GetEngine().GetFileSystem().LoadFile("SPIRV.SkyVertexShader", SkyVertexShaderByteCodeData);
 
-		HANDLE SkyPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SPIRV/SkyPixelShader.spv", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-		LARGE_INTEGER SkyPixelShaderByteCodeLength;
-		Result = GetFileSizeEx(SkyPixelShaderFile, &SkyPixelShaderByteCodeLength);
-		ScopedMemoryBlockArray<BYTE> SkyPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(SkyPixelShaderByteCodeLength.QuadPart);
-		Result = ReadFile(SkyPixelShaderFile, SkyPixelShaderByteCodeData, (DWORD)SkyPixelShaderByteCodeLength.QuadPart, NULL, NULL);
-		Result = CloseHandle(SkyPixelShaderFile);
+		SIZE_T SkyPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("SPIRV.SkyPixelShader");
+		ScopedMemoryBlockArray<BYTE> SkyPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(SkyPixelShaderByteCodeLength);
+		Engine::GetEngine().GetFileSystem().LoadFile("SPIRV.SkyPixelShader", SkyPixelShaderByteCodeData);
 
-		HANDLE SunVertexShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SPIRV/SunVertexShader.spv", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-		LARGE_INTEGER SunVertexShaderByteCodeLength;
-		Result = GetFileSizeEx(SunVertexShaderFile, &SunVertexShaderByteCodeLength);
-		ScopedMemoryBlockArray<BYTE> SunVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(SunVertexShaderByteCodeLength.QuadPart);
-		Result = ReadFile(SunVertexShaderFile, SunVertexShaderByteCodeData, (DWORD)SunVertexShaderByteCodeLength.QuadPart, NULL, NULL);
-		Result = CloseHandle(SunVertexShaderFile);
+		SIZE_T SunVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("SPIRV.SunVertexShader");
+		ScopedMemoryBlockArray<BYTE> SunVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(SunVertexShaderByteCodeLength);
+		Engine::GetEngine().GetFileSystem().LoadFile("SPIRV.SunVertexShader", SunVertexShaderByteCodeData);
 
-		HANDLE SunPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SPIRV/SunPixelShader.spv", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-		LARGE_INTEGER SunPixelShaderByteCodeLength;
-		Result = GetFileSizeEx(SunPixelShaderFile, &SunPixelShaderByteCodeLength);
-		ScopedMemoryBlockArray<BYTE> SunPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(SunPixelShaderByteCodeLength.QuadPart);
-		Result = ReadFile(SunPixelShaderFile, SunPixelShaderByteCodeData, (DWORD)SunPixelShaderByteCodeLength.QuadPart, NULL, NULL);
-		Result = CloseHandle(SunPixelShaderFile);
+		SIZE_T SunPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("SPIRV.SunPixelShader");
+		ScopedMemoryBlockArray<BYTE> SunPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(SunPixelShaderByteCodeLength);
+		Engine::GetEngine().GetFileSystem().LoadFile("SPIRV.SunPixelShader", SunPixelShaderByteCodeData);
 
 		VkShaderModule SkyVertexShaderModule, SkyPixelShaderModule, SunVertexShaderModule, SunPixelShaderModule;
 
 		VkShaderModuleCreateInfo ShaderModuleCreateInfo;
-		ShaderModuleCreateInfo.codeSize = SkyVertexShaderByteCodeLength.QuadPart;
+		ShaderModuleCreateInfo.codeSize = SkyVertexShaderByteCodeLength;
 		ShaderModuleCreateInfo.flags = 0;
 		ShaderModuleCreateInfo.pCode = SkyVertexShaderByteCodeData;
 		ShaderModuleCreateInfo.pNext = nullptr;
@@ -3413,7 +3389,7 @@ void RenderDeviceVulkan::InitDevice()
 
 		SAFE_VK(vkCreateShaderModule(Device, &ShaderModuleCreateInfo, nullptr, &SkyVertexShaderModule));
 
-		ShaderModuleCreateInfo.codeSize = SkyPixelShaderByteCodeLength.QuadPart;
+		ShaderModuleCreateInfo.codeSize = SkyPixelShaderByteCodeLength;
 		ShaderModuleCreateInfo.flags = 0;
 		ShaderModuleCreateInfo.pCode = SkyPixelShaderByteCodeData;
 		ShaderModuleCreateInfo.pNext = nullptr;
@@ -3421,7 +3397,7 @@ void RenderDeviceVulkan::InitDevice()
 
 		SAFE_VK(vkCreateShaderModule(Device, &ShaderModuleCreateInfo, nullptr, &SkyPixelShaderModule));
 
-		ShaderModuleCreateInfo.codeSize = SunVertexShaderByteCodeLength.QuadPart;
+		ShaderModuleCreateInfo.codeSize = SunVertexShaderByteCodeLength;
 		ShaderModuleCreateInfo.flags = 0;
 		ShaderModuleCreateInfo.pCode = SunVertexShaderByteCodeData;
 		ShaderModuleCreateInfo.pNext = nullptr;
@@ -3429,7 +3405,7 @@ void RenderDeviceVulkan::InitDevice()
 
 		SAFE_VK(vkCreateShaderModule(Device, &ShaderModuleCreateInfo, nullptr, &SunVertexShaderModule));
 
-		ShaderModuleCreateInfo.codeSize = SunPixelShaderByteCodeLength.QuadPart;
+		ShaderModuleCreateInfo.codeSize = SunPixelShaderByteCodeLength;
 		ShaderModuleCreateInfo.flags = 0;
 		ShaderModuleCreateInfo.pCode = SunPixelShaderByteCodeData;
 		ShaderModuleCreateInfo.pNext = nullptr;
@@ -3740,14 +3716,11 @@ void RenderDeviceVulkan::InitDevice()
 
 		VkShaderModule FogShaderModule;
 
-		HANDLE FogPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SPIRV/Fog.spv", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-		LARGE_INTEGER FogPixelShaderByteCodeLength;
-		Result = GetFileSizeEx(FogPixelShaderFile, &FogPixelShaderByteCodeLength);
-		ScopedMemoryBlockArray<BYTE> FogPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(FogPixelShaderByteCodeLength.QuadPart);
-		Result = ReadFile(FogPixelShaderFile, FogPixelShaderByteCodeData, (DWORD)FogPixelShaderByteCodeLength.QuadPart, NULL, NULL);
-		Result = CloseHandle(FogPixelShaderFile);
+		SIZE_T FogPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("SPIRV.Fog");
+		ScopedMemoryBlockArray<BYTE> FogPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(FogPixelShaderByteCodeLength);
+		Engine::GetEngine().GetFileSystem().LoadFile("SPIRV.Fog", FogPixelShaderByteCodeData);
 
-		ShaderModuleCreateInfo.codeSize = FogPixelShaderByteCodeLength.QuadPart;
+		ShaderModuleCreateInfo.codeSize = FogPixelShaderByteCodeLength;
 		ShaderModuleCreateInfo.flags = 0;
 		ShaderModuleCreateInfo.pCode = FogPixelShaderByteCodeData;
 		ShaderModuleCreateInfo.pNext = nullptr;
@@ -4165,31 +4138,22 @@ void RenderDeviceVulkan::InitDevice()
 		SAFE_VK(vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, &LuminancePassSets[3][1]));
 		SAFE_VK(vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, &LuminancePassSets[4][1]));
 
-		HANDLE LuminanceCalcComputeShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SPIRV/LuminanceCalc.spv", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-		LARGE_INTEGER LuminanceCalcComputeShaderByteCodeLength;
-		Result = GetFileSizeEx(LuminanceCalcComputeShaderFile, &LuminanceCalcComputeShaderByteCodeLength);
-		ScopedMemoryBlockArray<BYTE> LuminanceCalcComputeShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(LuminanceCalcComputeShaderByteCodeLength.QuadPart);
-		Result = ReadFile(LuminanceCalcComputeShaderFile, LuminanceCalcComputeShaderByteCodeData, (DWORD)LuminanceCalcComputeShaderByteCodeLength.QuadPart, NULL, NULL);
-		Result = CloseHandle(LuminanceCalcComputeShaderFile);
+		SIZE_T LuminanceCalcComputeShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("SPIRV.LuminanceCalc");
+		ScopedMemoryBlockArray<BYTE> LuminanceCalcComputeShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(LuminanceCalcComputeShaderByteCodeLength);
+		Engine::GetEngine().GetFileSystem().LoadFile("SPIRV.LuminanceCalc", LuminanceCalcComputeShaderByteCodeData);
 
-		HANDLE LuminanceSumComputeShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SPIRV/LuminanceSum.spv", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-		LARGE_INTEGER LuminanceSumComputeShaderByteCodeLength;
-		Result = GetFileSizeEx(LuminanceSumComputeShaderFile, &LuminanceSumComputeShaderByteCodeLength);
-		ScopedMemoryBlockArray<BYTE> LuminanceSumComputeShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(LuminanceSumComputeShaderByteCodeLength.QuadPart);
-		Result = ReadFile(LuminanceSumComputeShaderFile, LuminanceSumComputeShaderByteCodeData, (DWORD)LuminanceSumComputeShaderByteCodeLength.QuadPart, NULL, NULL);
-		Result = CloseHandle(LuminanceSumComputeShaderFile);
+		SIZE_T LuminanceSumComputeShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("SPIRV.LuminanceSum");
+		ScopedMemoryBlockArray<BYTE> LuminanceSumComputeShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(LuminanceSumComputeShaderByteCodeLength);
+		Engine::GetEngine().GetFileSystem().LoadFile("SPIRV.LuminanceSum", LuminanceSumComputeShaderByteCodeData);
 
-		HANDLE LuminanceAvgComputeShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SPIRV/LuminanceAvg.spv", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-		LARGE_INTEGER LuminanceAvgComputeShaderByteCodeLength;
-		Result = GetFileSizeEx(LuminanceAvgComputeShaderFile, &LuminanceAvgComputeShaderByteCodeLength);
-		ScopedMemoryBlockArray<BYTE> LuminanceAvgComputeShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(LuminanceAvgComputeShaderByteCodeLength.QuadPart);
-		Result = ReadFile(LuminanceAvgComputeShaderFile, LuminanceAvgComputeShaderByteCodeData, (DWORD)LuminanceAvgComputeShaderByteCodeLength.QuadPart, NULL, NULL);
-		Result = CloseHandle(LuminanceAvgComputeShaderFile);
+		SIZE_T LuminanceAvgComputeShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("SPIRV.LuminanceAvg");
+		ScopedMemoryBlockArray<BYTE> LuminanceAvgComputeShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(LuminanceAvgComputeShaderByteCodeLength);
+		Engine::GetEngine().GetFileSystem().LoadFile("SPIRV.LuminanceAvg", LuminanceAvgComputeShaderByteCodeData);
 
 		VkShaderModule LuminanceCalcComputeShaderModule, LuminanceSumComputeShaderModule, LuminanceAvgComputeShaderModule;
 
 		VkShaderModuleCreateInfo ShaderModuleCreateInfo;
-		ShaderModuleCreateInfo.codeSize = LuminanceCalcComputeShaderByteCodeLength.QuadPart;
+		ShaderModuleCreateInfo.codeSize = LuminanceCalcComputeShaderByteCodeLength;
 		ShaderModuleCreateInfo.flags = 0;
 		ShaderModuleCreateInfo.pCode = LuminanceCalcComputeShaderByteCodeData;
 		ShaderModuleCreateInfo.pNext = nullptr;
@@ -4197,7 +4161,7 @@ void RenderDeviceVulkan::InitDevice()
 
 		SAFE_VK(vkCreateShaderModule(Device, &ShaderModuleCreateInfo, nullptr, &LuminanceCalcComputeShaderModule));
 
-		ShaderModuleCreateInfo.codeSize = LuminanceSumComputeShaderByteCodeLength.QuadPart;
+		ShaderModuleCreateInfo.codeSize = LuminanceSumComputeShaderByteCodeLength;
 		ShaderModuleCreateInfo.flags = 0;
 		ShaderModuleCreateInfo.pCode = LuminanceSumComputeShaderByteCodeData;
 		ShaderModuleCreateInfo.pNext = nullptr;
@@ -4205,7 +4169,7 @@ void RenderDeviceVulkan::InitDevice()
 
 		SAFE_VK(vkCreateShaderModule(Device, &ShaderModuleCreateInfo, nullptr, &LuminanceSumComputeShaderModule));
 
-		ShaderModuleCreateInfo.codeSize = LuminanceAvgComputeShaderByteCodeLength.QuadPart;
+		ShaderModuleCreateInfo.codeSize = LuminanceAvgComputeShaderByteCodeLength;
 		ShaderModuleCreateInfo.flags = 0;
 		ShaderModuleCreateInfo.pCode = LuminanceAvgComputeShaderByteCodeData;
 		ShaderModuleCreateInfo.pNext = nullptr;
@@ -4494,37 +4458,25 @@ void RenderDeviceVulkan::InitDevice()
 		SAFE_VK(vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, &BloomPassSets3[4][1]));
 		SAFE_VK(vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, &BloomPassSets3[5][1]));
 
-		HANDLE BrightPassPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SPIRV/BrightPass.spv", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-		LARGE_INTEGER BrightPassPixelShaderByteCodeLength;
-		Result = GetFileSizeEx(BrightPassPixelShaderFile, &BrightPassPixelShaderByteCodeLength);
-		ScopedMemoryBlockArray<BYTE> BrightPassPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(BrightPassPixelShaderByteCodeLength.QuadPart);
-		Result = ReadFile(BrightPassPixelShaderFile, BrightPassPixelShaderByteCodeData, (DWORD)BrightPassPixelShaderByteCodeLength.QuadPart, NULL, NULL);
-		Result = CloseHandle(BrightPassPixelShaderFile);
+		SIZE_T BrightPassPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("SPIRV.BrightPass");
+		ScopedMemoryBlockArray<BYTE> BrightPassPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(BrightPassPixelShaderByteCodeLength);
+		Engine::GetEngine().GetFileSystem().LoadFile("SPIRV.BrightPass", BrightPassPixelShaderByteCodeData);
 
-		HANDLE ImageResamplePixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SPIRV/ImageResample.spv", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-		LARGE_INTEGER ImageResamplePixelShaderByteCodeLength;
-		Result = GetFileSizeEx(ImageResamplePixelShaderFile, &ImageResamplePixelShaderByteCodeLength);
-		ScopedMemoryBlockArray<BYTE> ImageResamplePixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(ImageResamplePixelShaderByteCodeLength.QuadPart);
-		Result = ReadFile(ImageResamplePixelShaderFile, ImageResamplePixelShaderByteCodeData, (DWORD)ImageResamplePixelShaderByteCodeLength.QuadPart, NULL, NULL);
-		Result = CloseHandle(ImageResamplePixelShaderFile);
+		SIZE_T ImageResamplePixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("SPIRV.ImageResample");
+		ScopedMemoryBlockArray<BYTE> ImageResamplePixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(ImageResamplePixelShaderByteCodeLength);
+		Engine::GetEngine().GetFileSystem().LoadFile("SPIRV.ImageResample", ImageResamplePixelShaderByteCodeData);
 
-		HANDLE HorizontalBlurPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SPIRV/HorizontalBlur.spv", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-		LARGE_INTEGER HorizontalBlurPixelShaderByteCodeLength;
-		Result = GetFileSizeEx(HorizontalBlurPixelShaderFile, &HorizontalBlurPixelShaderByteCodeLength);
-		ScopedMemoryBlockArray<BYTE> HorizontalBlurPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(HorizontalBlurPixelShaderByteCodeLength.QuadPart);
-		Result = ReadFile(HorizontalBlurPixelShaderFile, HorizontalBlurPixelShaderByteCodeData, (DWORD)HorizontalBlurPixelShaderByteCodeLength.QuadPart, NULL, NULL);
-		Result = CloseHandle(HorizontalBlurPixelShaderFile);
+		SIZE_T HorizontalBlurPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("SPIRV.HorizontalBlur");
+		ScopedMemoryBlockArray<BYTE> HorizontalBlurPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(HorizontalBlurPixelShaderByteCodeLength);
+		Engine::GetEngine().GetFileSystem().LoadFile("SPIRV.HorizontalBlur", HorizontalBlurPixelShaderByteCodeData);
 
-		HANDLE VerticalBlurPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SPIRV/VerticalBlur.spv", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-		LARGE_INTEGER VerticalBlurPixelShaderByteCodeLength;
-		Result = GetFileSizeEx(VerticalBlurPixelShaderFile, &VerticalBlurPixelShaderByteCodeLength);
-		ScopedMemoryBlockArray<BYTE> VerticalBlurPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(VerticalBlurPixelShaderByteCodeLength.QuadPart);
-		Result = ReadFile(VerticalBlurPixelShaderFile, VerticalBlurPixelShaderByteCodeData, (DWORD)VerticalBlurPixelShaderByteCodeLength.QuadPart, NULL, NULL);
-		Result = CloseHandle(VerticalBlurPixelShaderFile);
+		SIZE_T VerticalBlurPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("SPIRV.VerticalBlur");
+		ScopedMemoryBlockArray<BYTE> VerticalBlurPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(VerticalBlurPixelShaderByteCodeLength);
+		Engine::GetEngine().GetFileSystem().LoadFile("SPIRV.VerticalBlur", VerticalBlurPixelShaderByteCodeData);
 
 		VkShaderModule BrightPassPixelShaderModule, ImageResamplePixelShaderModule, HorizontalBlurPixelShaderModule, VerticalBlurPixelShaderModule;
 
-		ShaderModuleCreateInfo.codeSize = BrightPassPixelShaderByteCodeLength.QuadPart;
+		ShaderModuleCreateInfo.codeSize = BrightPassPixelShaderByteCodeLength;
 		ShaderModuleCreateInfo.flags = 0;
 		ShaderModuleCreateInfo.pCode = BrightPassPixelShaderByteCodeData;
 		ShaderModuleCreateInfo.pNext = nullptr;
@@ -4532,7 +4484,7 @@ void RenderDeviceVulkan::InitDevice()
 
 		SAFE_VK(vkCreateShaderModule(Device, &ShaderModuleCreateInfo, nullptr, &BrightPassPixelShaderModule));
 
-		ShaderModuleCreateInfo.codeSize = ImageResamplePixelShaderByteCodeLength.QuadPart;
+		ShaderModuleCreateInfo.codeSize = ImageResamplePixelShaderByteCodeLength;
 		ShaderModuleCreateInfo.flags = 0;
 		ShaderModuleCreateInfo.pCode = ImageResamplePixelShaderByteCodeData;
 		ShaderModuleCreateInfo.pNext = nullptr;
@@ -4540,7 +4492,7 @@ void RenderDeviceVulkan::InitDevice()
 
 		SAFE_VK(vkCreateShaderModule(Device, &ShaderModuleCreateInfo, nullptr, &ImageResamplePixelShaderModule));
 
-		ShaderModuleCreateInfo.codeSize = HorizontalBlurPixelShaderByteCodeLength.QuadPart;
+		ShaderModuleCreateInfo.codeSize = HorizontalBlurPixelShaderByteCodeLength;
 		ShaderModuleCreateInfo.flags = 0;
 		ShaderModuleCreateInfo.pCode = HorizontalBlurPixelShaderByteCodeData;
 		ShaderModuleCreateInfo.pNext = nullptr;
@@ -4548,7 +4500,7 @@ void RenderDeviceVulkan::InitDevice()
 
 		SAFE_VK(vkCreateShaderModule(Device, &ShaderModuleCreateInfo, nullptr, &HorizontalBlurPixelShaderModule));
 
-		ShaderModuleCreateInfo.codeSize = VerticalBlurPixelShaderByteCodeLength.QuadPart;
+		ShaderModuleCreateInfo.codeSize = VerticalBlurPixelShaderByteCodeLength;
 		ShaderModuleCreateInfo.flags = 0;
 		ShaderModuleCreateInfo.pCode = VerticalBlurPixelShaderByteCodeData;
 		ShaderModuleCreateInfo.pNext = nullptr;
@@ -4855,16 +4807,13 @@ void RenderDeviceVulkan::InitDevice()
 		DescriptorSetAllocateInfo.descriptorPool = DescriptorPools[1];
 		SAFE_VK(vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, &HDRToneMappingSets[1]));
 
-		HANDLE HDRToneMappingPixelShaderFile = CreateFile((const wchar_t*)u"GameContent/Shaders/SPIRV/HDRToneMapping.spv", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-		LARGE_INTEGER HDRToneMappingPixelShaderByteCodeLength;
-		Result = GetFileSizeEx(HDRToneMappingPixelShaderFile, &HDRToneMappingPixelShaderByteCodeLength);
-		ScopedMemoryBlockArray<BYTE> HDRToneMappingPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(HDRToneMappingPixelShaderByteCodeLength.QuadPart);
-		Result = ReadFile(HDRToneMappingPixelShaderFile, HDRToneMappingPixelShaderByteCodeData, (DWORD)HDRToneMappingPixelShaderByteCodeLength.QuadPart, NULL, NULL);
-		Result = CloseHandle(HDRToneMappingPixelShaderFile);
+		SIZE_T HDRToneMappingPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("SPIRV.HDRToneMapping");
+		ScopedMemoryBlockArray<BYTE> HDRToneMappingPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(HDRToneMappingPixelShaderByteCodeLength);
+		Engine::GetEngine().GetFileSystem().LoadFile("SPIRV.HDRToneMapping", HDRToneMappingPixelShaderByteCodeData);
 
 		VkShaderModule HDRToneMappingPixelShaderModule;
 
-		ShaderModuleCreateInfo.codeSize = HDRToneMappingPixelShaderByteCodeLength.QuadPart;
+		ShaderModuleCreateInfo.codeSize = HDRToneMappingPixelShaderByteCodeLength;
 		ShaderModuleCreateInfo.flags = 0;
 		ShaderModuleCreateInfo.pCode = HDRToneMappingPixelShaderByteCodeData;
 		ShaderModuleCreateInfo.pNext = nullptr;

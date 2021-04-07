@@ -74,31 +74,31 @@
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
-    <NMakeBuildCommandLine>CompileShaders.py</NMakeBuildCommandLine>
-    <NMakeReBuildCommandLine>CompileShaders.py</NMakeReBuildCommandLine>
-    <NMakeCleanCommandLine>CleanShaders.py</NMakeCleanCommandLine>
+    <NMakeBuildCommandLine>rundll32 F:\Paradox\Build\EditorEngine.NET.dll,CompileShaders Compile</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>rundll32 F:\Paradox\Build\EditorEngine.NET.dll,CompileShaders Compile</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>rundll32 F:\Paradox\Build\EditorEngine.NET.dll,CompileShaders Clean</NMakeCleanCommandLine>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
-    <NMakeBuildCommandLine>CompileShaders.py</NMakeBuildCommandLine>
-    <NMakeReBuildCommandLine>CompileShaders.py</NMakeReBuildCommandLine>
-    <NMakeCleanCommandLine>CleanShaders.py</NMakeCleanCommandLine>
+    <NMakeBuildCommandLine>rundll32 F:\Paradox\Build\EditorEngine.NET.dll,CompileShaders Compile</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>rundll32 F:\Paradox\Build\EditorEngine.NET.dll,CompileShaders Compile</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>rundll32 F:\Paradox\Build\EditorEngine.NET.dll,CompileShaders Clean</NMakeCleanCommandLine>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
-    <NMakeBuildCommandLine>CompileShaders.py</NMakeBuildCommandLine>
-    <NMakeReBuildCommandLine>CompileShaders.py</NMakeReBuildCommandLine>
-    <NMakeCleanCommandLine>CleanShaders.py</NMakeCleanCommandLine>
+    <NMakeBuildCommandLine>rundll32 F:\Paradox\Build\EditorEngine.NET.dll,CompileShaders Compile</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>rundll32 F:\Paradox\Build\EditorEngine.NET.dll,CompileShaders Compile</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>rundll32 F:\Paradox\Build\EditorEngine.NET.dll,CompileShaders Clean</NMakeCleanCommandLine>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <NMakeBuildCommandLine>CompileShaders.py</NMakeBuildCommandLine>
-    <NMakeReBuildCommandLine>CompileShaders.py</NMakeReBuildCommandLine>
-    <NMakeCleanCommandLine>CleanShaders.py</NMakeCleanCommandLine>
+    <NMakeBuildCommandLine>rundll32 F:\Paradox\Build\EditorEngine.NET.dll,CompileShaders Compile</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>rundll32 F:\Paradox\Build\EditorEngine.NET.dll,CompileShaders Compile</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>rundll32 F:\Paradox\Build\EditorEngine.NET.dll,CompileShaders Clean</NMakeCleanCommandLine>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
   </PropertyGroup>
@@ -158,10 +158,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <None Include="CleanShaders.py" />
-    <None Include="CompileShaders.py" />
-  </ItemGroup>
   <ItemGroup>
     <FxCompile Include="BrightPass.hlsl" />
     <FxCompile Include="DeferredLighting.hlsl" />

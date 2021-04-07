@@ -76,9 +76,9 @@ void ShadowResolvePass::Init(RenderDeviceD3D12& renderDevice)
 
 	renderDevice.GetDevice()->CreateConstantBufferView(&CBVDesc, ShadowResolveConstantBufferCBV);
 
-	SIZE_T ShadowResolvePixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("ShadowResolve");
+	SIZE_T ShadowResolvePixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("ShaderModel51.ShadowResolve");
 	ScopedMemoryBlockArray<BYTE> ShadowResolvePixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(ShadowResolvePixelShaderByteCodeLength);
-	Engine::GetEngine().GetFileSystem().LoadFile("ShadowResolve", ShadowResolvePixelShaderByteCodeData);
+	Engine::GetEngine().GetFileSystem().LoadFile("ShaderModel51.ShadowResolve", ShadowResolvePixelShaderByteCodeData);
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC GraphicsPipelineStateDesc;
 	ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
