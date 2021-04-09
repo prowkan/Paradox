@@ -537,6 +537,11 @@ void RenderDeviceD3D12::ShutdownDevice()
 	BOOL Result;
 
 	Result = CloseHandle(FrameSyncEvent);
+
+	for (RenderPass* renderPass : RenderPasses)
+	{
+		delete renderPass;
+	}
 }
 
 void RenderDeviceD3D12::TickDevice(float DeltaTime)

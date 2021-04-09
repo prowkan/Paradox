@@ -11,5 +11,7 @@ class RenderPass
 
 		virtual const char* GetName() = 0;
 
+		virtual ~RenderPass() {};
+
 	private:
 };
