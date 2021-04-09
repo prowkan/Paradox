@@ -5,8 +5,10 @@
 
 #include <Engine/Engine.h>
 
-void MaterialResource::CreateResource(const void* ResourceData)
+void MaterialResource::CreateResource(const string& ResourceName, const void* ResourceData)
 {
+	Resource::CreateResource(ResourceName, ResourceData);
+
 	MaterialResourceCreateInfo& materialResourceCreateInfo = *(MaterialResourceCreateInfo*)ResourceData;
 
 	Textures = materialResourceCreateInfo.Textures;

@@ -15,7 +15,7 @@ class StaticMeshResource : public Resource
 {
 	public:
 
-		virtual void CreateResource(const void* ResourceData) override;
+		virtual void CreateResource(const string& ResourceName, const void* ResourceData) override;
 		virtual void DestroyResource() override;
 
 		RenderMesh* GetRenderMesh() { return renderMesh; }

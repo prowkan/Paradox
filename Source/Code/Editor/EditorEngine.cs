@@ -91,6 +91,12 @@ namespace Editor
         public static extern float GetComponentFloatProperty(IntPtr component, string PropertyName);
 
         [DllImport("EditorEngine.NET.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern IntPtr GetComponentResourceReferenceProperty(IntPtr component, string PropertyName);
+
+        [DllImport("EditorEngine.NET.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern IntPtr GetResourceName(IntPtr Resource);
+
+        [DllImport("EditorEngine.NET.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern void CompileShaders(string Action);
 
         private IntPtr LevelRenderCanvasHandle;

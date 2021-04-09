@@ -10,7 +10,7 @@ class ResourceManager
 		void AddResource(const string& ResourceName, const void* ResourceData)
 		{
 			T* resource = new T();
-			resource->CreateResource(ResourceData);
+			resource->CreateResource(ResourceName, ResourceData);
 			ResourceTable.emplace(ResourceName, resource);
 		}
 

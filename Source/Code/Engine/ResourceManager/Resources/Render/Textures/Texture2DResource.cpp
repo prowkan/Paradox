@@ -5,8 +5,10 @@
 
 #include <Engine/Engine.h>
 
-void Texture2DResource::CreateResource(const void* ResourceData)
+void Texture2DResource::CreateResource(const string& ResourceName, const void* ResourceData)
 {
+	Resource::CreateResource(ResourceName, ResourceData);
+
 	Texture2DResourceCreateInfo& texture2DResourceCreateInfo = *(Texture2DResourceCreateInfo*)ResourceData;
 
 	RenderTextureCreateInfo renderTextureCreateInfo;

@@ -5,8 +5,10 @@
 
 #include <Engine/Engine.h>
 
-void StaticMeshResource::CreateResource(const void* ResourceData)
+void StaticMeshResource::CreateResource(const string& ResourceName, const void* ResourceData)
 {
+	Resource::CreateResource(ResourceName, ResourceData);
+
 	StaticMeshResourceCreateInfo& staticMeshResourceCreateInfo = *(StaticMeshResourceCreateInfo*)ResourceData;
 
 	RenderMeshCreateInfo renderMeshCreateInfo;

@@ -69,7 +69,7 @@ void GameFramework::InitFramework()
 	StaticMeshComponent::GetMetaClassStatic()->ClassProperties["StaticMesh"]->ValueOffset = 32;
 	StaticMeshComponent::GetMetaClassStatic()->ClassProperties.emplace("Material", new ClassProperty());
 	StaticMeshComponent::GetMetaClassStatic()->ClassProperties["Material"]->PropertyType = ClassPropertyType::ResourceReference;
-	StaticMeshComponent::GetMetaClassStatic()->ClassProperties["Material"]->ValueOffset = 44;
+	StaticMeshComponent::GetMetaClassStatic()->ClassProperties["Material"]->ValueOffset = 40;
 
 	PointLightComponent::GetMetaClassStatic()->ClassProperties.emplace("Brightness", new ClassProperty());
 	PointLightComponent::GetMetaClassStatic()->ClassProperties["Brightness"]->PropertyType = ClassPropertyType::Float;

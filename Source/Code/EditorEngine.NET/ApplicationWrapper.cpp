@@ -120,22 +120,61 @@ extern "C" __declspec(dllexport) ClassPropertyType GetComponentPropertyType(Comp
 	return component->GetPropertyType(PropertyIndex);
 }
 
-extern "C" __declspec(dllexport) XMFLOAT3 GetComponentVectorProperty(Component* component, const char* PropertyName)
+extern "C"
 {
-	return component->GetVectorProperty(PropertyName);
+	struct Vector3
+	{
+		float X, Y, Z;
+	};
 }
 
-extern "C" __declspec(dllexport) XMFLOAT3 GetComponentRotatorProperty(Component* component, const char* PropertyName)
+extern "C" __declspec(dllexport) Vector3 GetComponentVectorProperty(Component* component, const char* PropertyName)
 {
-	return component->GetRotatorProperty(PropertyName);
+	XMFLOAT3 Value = component->GetVectorProperty(PropertyName);
+
+	Vector3 Vector;
+	Vector.X = Value.x;
+	Vector.Y = Value.y;
+	Vector.Z = Value.z;
+
+	return Vector;
 }
 
-extern "C" __declspec(dllexport) XMFLOAT3 GetComponentColorProperty(Component* component, const char* PropertyName)
+extern "C" __declspec(dllexport) Vector3 GetComponentRotatorProperty(Component* component, const char* PropertyName)
 {
-	return component->GetColorProperty(PropertyName);
+	XMFLOAT3 Value = component->GetRotatorProperty(PropertyName);
+
+	Vector3 Vector;
+	Vector.X = Value.x;
+	Vector.Y = Value.y;
+	Vector.Z = Value.z;
+
+	return Vector;
+}
+
+extern "C" __declspec(dllexport) Vector3 GetComponentColorProperty(Component* component, const char* PropertyName)
+{
+	XMFLOAT3 Value = component->GetColorProperty(PropertyName);
+
+	Vector3 Vector;
+	Vector.X = Value.x;
+	Vector.Y = Value.y;
+	Vector.Z = Value.z;
+
+	return Vector;
 }
 
 extern "C" __declspec(dllexport) float GetComponentFloatProperty(Component* component, const char* PropertyName)
 {
 	return component->GetFloatProperty(PropertyName);
+}
+
+extern "C" __declspec(dllexport) void* GetComponentResourceReferenceProperty(Component* component, const char* PropertyName)
+{
+	return component->GetResourceReferenceProperty(PropertyName);
+}
+
+extern "C" __declspec(dllexport) const char* GetResourceName(Resource* resource)
+{
+	return resource->GetResourceName().c_str();
 }

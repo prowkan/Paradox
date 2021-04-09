@@ -23,7 +23,7 @@ class MaterialResource : public Resource
 {
 	public:
 
-		virtual void CreateResource(const void* ResourceData) override;
+		virtual void CreateResource(const string& ResourceName, const void* ResourceData) override;
 		virtual void DestroyResource() override;
 
 		Texture2DResource* GetTexture(UINT Index) { return Textures[Index]; }
