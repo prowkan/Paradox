@@ -74,31 +74,31 @@
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
-    <NMakeBuildCommandLine>rundll32 F:\Paradox\Build\EditorEngine.NET.dll,CompileShaders Compile</NMakeBuildCommandLine>
-    <NMakeReBuildCommandLine>rundll32 F:\Paradox\Build\EditorEngine.NET.dll,CompileShaders Compile</NMakeReBuildCommandLine>
-    <NMakeCleanCommandLine>rundll32 F:\Paradox\Build\EditorEngine.NET.dll,CompileShaders Clean</NMakeCleanCommandLine>
+    <NMakeBuildCommandLine>F:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>F:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>F:/Paradox/Build/Editor.exe CompileShaders Clean</NMakeCleanCommandLine>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
-    <NMakeBuildCommandLine>rundll32 F:\Paradox\Build\EditorEngine.NET.dll,CompileShaders Compile</NMakeBuildCommandLine>
-    <NMakeReBuildCommandLine>rundll32 F:\Paradox\Build\EditorEngine.NET.dll,CompileShaders Compile</NMakeReBuildCommandLine>
-    <NMakeCleanCommandLine>rundll32 F:\Paradox\Build\EditorEngine.NET.dll,CompileShaders Clean</NMakeCleanCommandLine>
+    <NMakeBuildCommandLine>F:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>F:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>F:/Paradox/Build/Editor.exe CompileShaders Clean</NMakeCleanCommandLine>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
-    <NMakeBuildCommandLine>rundll32 F:\Paradox\Build\EditorEngine.NET.dll,CompileShaders Compile</NMakeBuildCommandLine>
-    <NMakeReBuildCommandLine>rundll32 F:\Paradox\Build\EditorEngine.NET.dll,CompileShaders Compile</NMakeReBuildCommandLine>
-    <NMakeCleanCommandLine>rundll32 F:\Paradox\Build\EditorEngine.NET.dll,CompileShaders Clean</NMakeCleanCommandLine>
+    <NMakeBuildCommandLine>F:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>F:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>F:/Paradox/Build/Editor.exe CompileShaders Clean</NMakeCleanCommandLine>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <NMakeBuildCommandLine>rundll32 F:\Paradox\Build\EditorEngine.NET.dll,CompileShaders Compile</NMakeBuildCommandLine>
-    <NMakeReBuildCommandLine>rundll32 F:\Paradox\Build\EditorEngine.NET.dll,CompileShaders Compile</NMakeReBuildCommandLine>
-    <NMakeCleanCommandLine>rundll32 F:\Paradox\Build\EditorEngine.NET.dll,CompileShaders Clean</NMakeCleanCommandLine>
+    <NMakeBuildCommandLine>F:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>F:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>F:/Paradox/Build/Editor.exe CompileShaders Clean</NMakeCleanCommandLine>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
   </PropertyGroup>

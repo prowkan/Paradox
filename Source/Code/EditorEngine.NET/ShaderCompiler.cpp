@@ -1,12 +1,6 @@
-extern "C" __declspec(dllexport) void CALLBACK CompileShaders(HWND hWnd, HINSTANCE hInst, LPSTR lpszCmdLine, int nCmdShow)
+extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 {
-	BOOL Result;
-
-	Result = AllocConsole();
-	Result = SetConsoleTitle((wchar_t*)u"Shader Compiling...");
-	freopen("CONOUT$", "w", stdout);
-
-	if (strcmp(lpszCmdLine, "Compile") == 0)
+	if (strcmp(Action, "Compile") == 0)
 	{
 		const char16_t* FXCompiler = u"C:/Program Files (x86)/Windows Kits/10/bin/10.0.19041.0/x64/fxc.exe";
 		const char16_t* DXCompiler = u"C:/VulkanSDK/1.2.170.0/Bin/dxc.exe";
@@ -56,10 +50,14 @@ extern "C" __declspec(dllexport) void CALLBACK CompileShaders(HWND hWnd, HINSTAN
 			STARTUPINFO StartupInfo;
 			ZeroMemory(&StartupInfo, sizeof(STARTUPINFO));
 			StartupInfo.cb = sizeof(STARTUPINFO);
+			StartupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+			StartupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+			StartupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+			StartupInfo.dwFlags = STARTF_USESTDHANDLES;
 
 			PROCESS_INFORMATION ProcessInformation;
 			
-			BOOL Result = CreateProcess(NULL, (wchar_t*)FXCompilerArgs, NULL, NULL, FALSE, 0, NULL, NULL, &StartupInfo, &ProcessInformation);
+			BOOL Result = CreateProcess(NULL, (wchar_t*)FXCompilerArgs, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &StartupInfo, &ProcessInformation);
 			
 			Result = WaitForSingleObject(ProcessInformation.hProcess, INFINITE);
 
@@ -69,8 +67,12 @@ extern "C" __declspec(dllexport) void CALLBACK CompileShaders(HWND hWnd, HINSTAN
 
 			ZeroMemory(&StartupInfo, sizeof(STARTUPINFO));
 			StartupInfo.cb = sizeof(STARTUPINFO);
+			StartupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+			StartupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+			StartupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+			StartupInfo.dwFlags = STARTF_USESTDHANDLES;
 
-			Result = CreateProcess(NULL, (wchar_t*)DXCompilerArgs, NULL, NULL, FALSE, 0, NULL, NULL, &StartupInfo, &ProcessInformation);
+			Result = CreateProcess(NULL, (wchar_t*)DXCompilerArgs, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &StartupInfo, &ProcessInformation);
 			
 			Result = WaitForSingleObject(ProcessInformation.hProcess, INFINITE);
 		}
@@ -84,10 +86,14 @@ extern "C" __declspec(dllexport) void CALLBACK CompileShaders(HWND hWnd, HINSTAN
 			STARTUPINFO StartupInfo;
 			ZeroMemory(&StartupInfo, sizeof(STARTUPINFO));
 			StartupInfo.cb = sizeof(STARTUPINFO);
+			StartupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+			StartupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+			StartupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+			StartupInfo.dwFlags = STARTF_USESTDHANDLES;
 
 			PROCESS_INFORMATION ProcessInformation;
 
-			BOOL Result = CreateProcess(NULL, (wchar_t*)FXCompilerArgs, NULL, NULL, TRUE, 0, NULL, NULL, &StartupInfo, &ProcessInformation);
+			BOOL Result = CreateProcess(NULL, (wchar_t*)FXCompilerArgs, NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &StartupInfo, &ProcessInformation);
 
 			Result = WaitForSingleObject(ProcessInformation.hProcess, INFINITE);
 
@@ -97,8 +103,12 @@ extern "C" __declspec(dllexport) void CALLBACK CompileShaders(HWND hWnd, HINSTAN
 
 			ZeroMemory(&StartupInfo, sizeof(STARTUPINFO));
 			StartupInfo.cb = sizeof(STARTUPINFO);
+			StartupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+			StartupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+			StartupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+			StartupInfo.dwFlags = STARTF_USESTDHANDLES;
 
-			Result = CreateProcess(NULL, (wchar_t*)DXCompilerArgs, NULL, NULL, TRUE, 0, NULL, NULL, &StartupInfo, &ProcessInformation);
+			Result = CreateProcess(NULL, (wchar_t*)DXCompilerArgs, NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &StartupInfo, &ProcessInformation);
 
 			Result = WaitForSingleObject(ProcessInformation.hProcess, INFINITE);
 		}
@@ -112,10 +122,14 @@ extern "C" __declspec(dllexport) void CALLBACK CompileShaders(HWND hWnd, HINSTAN
 			STARTUPINFO StartupInfo;
 			ZeroMemory(&StartupInfo, sizeof(STARTUPINFO));
 			StartupInfo.cb = sizeof(STARTUPINFO);
-
+			StartupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+			StartupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+			StartupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+			StartupInfo.dwFlags = STARTF_USESTDHANDLES;
+			
 			PROCESS_INFORMATION ProcessInformation;
 
-			BOOL Result = CreateProcess(NULL, (wchar_t*)FXCompilerArgs, NULL, NULL, TRUE, 0, NULL, NULL, &StartupInfo, &ProcessInformation);
+			BOOL Result = CreateProcess(NULL, (wchar_t*)FXCompilerArgs, NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &StartupInfo, &ProcessInformation);
 
 			Result = WaitForSingleObject(ProcessInformation.hProcess, INFINITE);
 
@@ -125,19 +139,34 @@ extern "C" __declspec(dllexport) void CALLBACK CompileShaders(HWND hWnd, HINSTAN
 
 			ZeroMemory(&StartupInfo, sizeof(STARTUPINFO));
 			StartupInfo.cb = sizeof(STARTUPINFO);
+			StartupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+			StartupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+			StartupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+			StartupInfo.dwFlags = STARTF_USESTDHANDLES;
 
-			Result = CreateProcess(NULL, (wchar_t*)DXCompilerArgs, NULL, NULL, TRUE, 0, NULL, NULL, &StartupInfo, &ProcessInformation);
+			Result = CreateProcess(NULL, (wchar_t*)DXCompilerArgs, NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &StartupInfo, &ProcessInformation);
 
 			Result = WaitForSingleObject(ProcessInformation.hProcess, INFINITE);
 		}
 
-		HINSTANCE SEResult = ShellExecute(NULL, (const wchar_t*)u"open", (const wchar_t*)u"F:/Paradox/BundleContent.py", (const wchar_t*)u"F:/Paradox/Build/GameContent/Shaders Shaders", NULL, SW_SHOW);
+		STARTUPINFO StartupInfo;
+		ZeroMemory(&StartupInfo, sizeof(STARTUPINFO));
+		StartupInfo.cb = sizeof(STARTUPINFO);
+		StartupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+		StartupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+		StartupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+		StartupInfo.dwFlags = STARTF_USESTDHANDLES;
 
+		PROCESS_INFORMATION ProcessInformation;
+
+		char16_t ScriptCommandLine[] = u"C:/Windows/py.exe \"F:/Paradox/BundleContent.py\" \"F:/Paradox/Build/GameContent/Shaders\" \"Shaders\"";
+
+		BOOL Result = CreateProcess(NULL, (wchar_t*)ScriptCommandLine, NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &StartupInfo, &ProcessInformation);
+
+		Result = WaitForSingleObject(ProcessInformation.hProcess, INFINITE);
 	}
-	else if (strcmp(lpszCmdLine, "Clean") == 0)
+	else if (strcmp(Action, "Clean") == 0)
 	{
 
 	}
-
-	//system("PAUSE.EXE");
 }
