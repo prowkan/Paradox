@@ -20,6 +20,9 @@ struct ClassProperty
 	ClassPropertyType PropertyType;
 
 	size_t ValueOffset;
+
+	ClassProperty() {}
+	ClassProperty(ClassPropertyType PropertyType, size_t ValueOffset) : PropertyType(PropertyType), ValueOffset(ValueOffset) {}
 };
 
 class MetaClass
