@@ -43,6 +43,30 @@ class StringTemplate
 			strcpy(StringData, Arg);
 		}
 
+		StringTemplate(int Number)
+		{
+			StringLength = 0;
+
+			int NumberCopy = Number;
+
+			while (NumberCopy > 0)
+			{
+				StringLength++;
+				NumberCopy = NumberCopy / 10;
+			}
+
+			StringData = (char*)Allocator::AllocateMemory(sizeof(char) * (StringLength + 1));
+
+			size_t Index = StringLength;
+
+			while (Number > 0)
+			{
+				StringData[Index] = (Number % 10) - '0';
+				Index--;
+				Number = Number / 10;
+			}
+		}
+
 		~StringTemplate()
 		{
 			Allocator::FreeMemory(StringData);
@@ -66,6 +90,55 @@ class StringTemplate
 		const size_t GetLength() const { return StringLength; }
 
 		const char operator[](size_t Index) const { return StringData[Index]; }
+
+		size_t FindFirst(const char Ch)
+		{
+			for (size_t i = 0; i < StringLength; i++)
+			{
+				if (StringData[i] == Ch) return i;
+			}
+
+			return -1;
+		}
+
+		size_t FindLast(const char Ch)
+		{
+			for (size_t i = 0; i < StringLength; i++)
+			{
+				if (StringData[i] == Ch) return i;
+			}
+
+			return -1;
+		}
+
+		StringTemplate operator+=(const StringTemplate& OtherString)
+		{
+			char* OldStringData = StringData;
+			size_t OldStringLength = StringLength;
+
+			StringLength += OtherString.StringLength;
+
+			StringData = (char*)Allocator::AllocateMemory(sizeof(char) * (StringLength + 1));
+			strcpy(StringData, OldStringData);
+			strcpy(StringData + OldStringLength, OtherString.StringData);
+
+			Allocator::FreeMemory(OldStringData);
+
+			return *this;
+		}
+
+		StringTemplate operator+(const StringTemplate& OtherString)
+		{
+			StringTemplate NewString;
+
+			NewString.StringLength = StringLength + OtherString.StringLength;
+			NewString.StringData = (char*)Allocator::AllocateMemory(sizeof(char) * (NewString.StringLength + 1));
+
+			strcpy(NewString.StringData, StringData);
+			strcpy(NewString.StringData + StringLength, OtherString.StringData);
+
+			return NewString;
+		}
 
 	private:
 
