@@ -2,6 +2,8 @@
 
 #include "../RenderDevice.h"
 
+#include <Containers/DynamicArray.h>
+
 struct RenderMeshVulkan : public RenderMesh
 {
 	VkBuffer MeshBuffer;
@@ -295,9 +297,9 @@ class RenderDeviceVulkan : public RenderDevice
 
 		// ===============================================================================================================
 
-		vector<RenderMesh*> RenderMeshDestructionQueue;
-		vector<RenderMaterial*> RenderMaterialDestructionQueue;
-		vector<RenderTexture*> RenderTextureDestructionQueue;
+		DynamicArray<RenderMesh*> RenderMeshDestructionQueue;
+		DynamicArray<RenderMaterial*> RenderMaterialDestructionQueue;
+		DynamicArray<RenderTexture*> RenderTextureDestructionQueue;
 
 		inline void CheckVulkanCallResult(VkResult Result, const char16_t* Function);
 		inline const char16_t* GetVulkanErrorMessageFromVkResult(VkResult Result);

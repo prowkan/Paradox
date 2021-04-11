@@ -5,7 +5,7 @@
 
 #include <Engine/Engine.h>
 
-void Texture2DResource::CreateResource(const string& ResourceName, const void* ResourceData)
+void Texture2DResource::CreateResource(const String& ResourceName, const void* ResourceData)
 {
 	Resource::CreateResource(ResourceName, ResourceData);
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Containers/Queue.h>
+
 template<typename T>
 class ThreadSafeQueue
 {
@@ -19,15 +21,15 @@ class ThreadSafeQueue
 		void Push(T& Item)
 		{
 			QueueMutex.lock();
-			Queue.push(Item);
-			if (Queue.size() > 0) BOOL Result = SetEvent(QueueEvent);
+			Queue.Push(Item);
+			if (Queue.GetSize() > 0) BOOL Result = SetEvent(QueueEvent);
 			QueueMutex.unlock();
 		}
 
 		bool Pop(T& Item)
 		{
 			QueueMutex.lock();
-			if (Queue.size() == 0)
+			if (Queue.GetSize() == 0)
 			{
 				BOOL Result = ResetEvent(QueueEvent);
 				QueueMutex.unlock();
@@ -35,8 +37,7 @@ class ThreadSafeQueue
 			}
 			else
 			{
-				Item = Queue.front();
-				Queue.pop();
+				Item = Queue.Pop();
 				QueueMutex.unlock();
 				return true;
 			}
@@ -46,7 +47,7 @@ class ThreadSafeQueue
 
 	private:
 
-		queue<T> Queue;
+		Queue<T> Queue;
 		mutex QueueMutex;
 		HANDLE QueueEvent;
 };

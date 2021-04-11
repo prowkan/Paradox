@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Containers/DynamicArray.h>
+
 class PointLightComponent;
 
 struct LightCluster
@@ -18,7 +20,7 @@ class ClusterizationSubSystem
 
 		void PreComputeClustersPlanes();
 
-		void ClusterizeLights(const vector<PointLightComponent*>& InputPointLights, const XMMATRIX& ViewMatrix);
+		void ClusterizeLights(const DynamicArray<PointLightComponent*>& InputPointLights, const XMMATRIX& ViewMatrix);
 
 		static const UINT CLUSTERS_COUNT_X = 32;
 		static const UINT CLUSTERS_COUNT_Y = 18;

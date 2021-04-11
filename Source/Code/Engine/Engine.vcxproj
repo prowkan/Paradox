@@ -181,6 +181,14 @@
   <ItemGroup>
     <ClInclude Include="Config\ConfigSystem.h" />
     <ClInclude Include="Containers\COMRCPtr.h" />
+    <ClInclude Include="Containers\DefaultAllocator.h" />
+    <ClInclude Include="Containers\DynamicArray.h" />
+    <ClInclude Include="Containers\FixedSizeString.h" />
+    <ClInclude Include="Containers\Hash.h" />
+    <ClInclude Include="Containers\HashTable.h" />
+    <ClInclude Include="Containers\Queue.h" />
+    <ClInclude Include="Containers\StaticArray.h" />
+    <ClInclude Include="Containers\String.h" />
     <ClInclude Include="Core\Application.h" />
     <ClInclude Include="Engine\Engine.h" />
     <ClInclude Include="FileSystem\FileSystem.h" />
@@ -238,6 +246,13 @@
   <ItemGroup>
     <ClCompile Include="Config\ConfigSystem.cpp" />
     <ClCompile Include="Containers\COMRCPtr.cpp" />
+    <ClCompile Include="Containers\DynamicArray.cpp" />
+    <ClCompile Include="Containers\FixedSizeString.cpp" />
+    <ClCompile Include="Containers\Hash.cpp" />
+    <ClCompile Include="Containers\HashTable.cpp" />
+    <ClCompile Include="Containers\Queue.cpp" />
+    <ClCompile Include="Containers\StaticArray.cpp" />
+    <ClCompile Include="Containers\String.cpp" />
     <ClCompile Include="Core\Application.cpp" />
     <ClCompile Include="Engine\Engine.cpp" />
     <ClCompile Include="FileSystem\FileSystem.cpp" />

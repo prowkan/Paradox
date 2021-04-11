@@ -3,9 +3,11 @@
 
 #include "ConfigSystem.h"
 
-string Trim(const string& InputString)
+#include <Containers/DynamicArray.h>
+
+String Trim(const String& InputString)
 {
-	string OutputString = InputString;
+	String OutputString = InputString;
 
 	size_t i = 0;
 
@@ -19,13 +21,13 @@ string Trim(const string& InputString)
 		else break;
 	}
 
-	i = OutputString.length();
+	i = OutputString.GetLength();
 
 	while (true)
 	{
 		if (OutputString[i] == ' ')
 		{
-			OutputString = OutputString.substr(0, OutputString.length() - 1);
+			OutputString = OutputString.substr(0, OutputString.GetLength() - 1);
 			i--;
 		}
 		else break;
@@ -45,13 +47,13 @@ void ConfigSystem::InitSystem()
 
 	size_t FilePointer = 0;
 
-	vector<string> ConfigFileLines;
+	DynamicArray<String> ConfigFileLines;
 
 	while (true)
 	{
 		if (FilePointer >= RenderConfigFileSize.QuadPart) break;
 
-		string CurrentLine = "";
+		String CurrentLine = "";
 
 		while (true)
 		{
@@ -67,34 +69,37 @@ void ConfigSystem::InitSystem()
 
 		CurrentLine = Trim(CurrentLine);
 
-		ConfigFileLines.push_back(CurrentLine);
+		ConfigFileLines.Add(CurrentLine);
 
 		//cout << CurrentLine << endl;
 	}
 
-	string CurrentSection;
+	String CurrentSection;
 
-	for (const string& ConfigLine : ConfigFileLines)
+	//for (const String& ConfigLine : ConfigFileLines)
+	for (size_t i = 0; i < ConfigFileLines.GetLength(); i++)
 	{
+		String& ConfigLine = ConfigFileLines[i];
+
 		if (ConfigLine[0] == '[')
 		{
-			string SectionName = ConfigLine;
+			String SectionName = ConfigLine;
 			SectionName = SectionName.substr(1);
-			SectionName = SectionName.substr(0, SectionName.length() - 1);
+			SectionName = SectionName.substr(0, SectionName.GetLength() - 1);
 
 			SectionName = Trim(SectionName);
 
-			RenderConfig.emplace(SectionName, map<string, string>());
+			RenderConfig.Insert(SectionName, HashTable<String, String>());
 
 			CurrentSection = SectionName;
 		}
 		else
 		{
-			string ParamAndValueString = ConfigLine;
-			string Param = Trim(ParamAndValueString.substr(0, ParamAndValueString.find('=')));
-			string Value = Trim(ParamAndValueString.substr(ParamAndValueString.find('=') + 1));
+			String ParamAndValueString = ConfigLine;
+			String Param = Trim(ParamAndValueString.substr(0, ParamAndValueString.find('=')));
+			String Value = Trim(ParamAndValueString.substr(ParamAndValueString.find('=') + 1));
 
-			RenderConfig[CurrentSection].emplace(Param, Value);
+			RenderConfig[CurrentSection].Insert(Param, Value);
 		}
 	}
 }
@@ -104,18 +109,18 @@ void ConfigSystem::ShutdownSystem()
 
 }
 
-string ConfigSystem::GetRenderConfigValueString(const string& Section, const string& Param)
+String ConfigSystem::GetRenderConfigValueString(const String& Section, const String& Param)
 {
 	return RenderConfig[Section][Param];
 }
 
-int ConfigSystem::GetRenderConfigValueInt(const string& Section, const string& Param)
+int ConfigSystem::GetRenderConfigValueInt(const String& Section, const String& Param)
 {
-	string StrValue = RenderConfig[Section][Param];
+	String StrValue = RenderConfig[Section][Param];
 
 	int Value = 0;
 
-	for (int i = 0; i < StrValue.length(); i++)
+	for (int i = 0; i < StrValue.GetLength(); i++)
 	{
 		Value = Value * 10 + (StrValue[i] - '0');
 	}

@@ -63,7 +63,7 @@ void ClusterizationSubSystem::PreComputeClustersPlanes()
 	}
 }
 
-void ClusterizationSubSystem::ClusterizeLights(const vector<PointLightComponent*>& InputPointLights, const XMMATRIX& ViewMatrix)
+void ClusterizationSubSystem::ClusterizeLights(const DynamicArray<PointLightComponent*>& InputPointLights, const XMMATRIX& ViewMatrix)
 {
 	TotalIndexCount = 0;
 
@@ -73,7 +73,7 @@ void ClusterizationSubSystem::ClusterizeLights(const vector<PointLightComponent*
 		LightClustersData[i].Offset = 0;
 	}
 
-	size_t PointLightsCount = InputPointLights.size();
+	size_t PointLightsCount = InputPointLights.GetLength();
 
 	for (size_t i = 0; i < PointLightsCount; i++)
 	{

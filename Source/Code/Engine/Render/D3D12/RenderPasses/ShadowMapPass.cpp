@@ -139,9 +139,9 @@ void ShadowMapPass::Execute(RenderDeviceD3D12& renderDevice)
 	{
 		SIZE_T ConstantBufferOffset = 0;
 
-		vector<StaticMeshComponent*> AllStaticMeshComponents = Engine::GetEngine().GetGameFramework().GetWorld().GetRenderScene().GetStaticMeshComponents();
-		vector<StaticMeshComponent*> VisbleStaticMeshComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ShadowViewProjMatrices[i], false);
-		size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.size();
+		DynamicArray<StaticMeshComponent*> AllStaticMeshComponents = Engine::GetEngine().GetGameFramework().GetWorld().GetRenderScene().GetStaticMeshComponents();
+		DynamicArray<StaticMeshComponent*> VisbleStaticMeshComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ShadowViewProjMatrices[i], false);
+		size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.GetLength();
 
 		D3D12_RANGE ReadRange, WrittenRange;
 		ReadRange.Begin = 0;

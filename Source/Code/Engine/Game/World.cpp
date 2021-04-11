@@ -116,7 +116,7 @@ void World::LoadWorld()
 
 	for (int k = 0; k < 4000; k++)
 	{
-		string GraphicsAPI = Engine::GetEngine().GetConfigSystem().GetRenderConfigValueString("System", "GraphicsAPI");
+		String GraphicsAPI = Engine::GetEngine().GetConfigSystem().GetRenderConfigValueString("System", "GraphicsAPI");
 
 		if (GraphicsAPI == "D3D12")
 		{
@@ -141,7 +141,8 @@ void World::LoadWorld()
 			materialResourceCreateInfo.ShadowMapPassPixelShaderByteCodeLength = 0;
 			materialResourceCreateInfo.ShadowMapPassVertexShaderByteCodeData = ShadowMapPassVertexShaderByteCodeData;
 			materialResourceCreateInfo.ShadowMapPassVertexShaderByteCodeLength = ShadowMapPassVertexShaderByteCodeLength;
-			materialResourceCreateInfo.Textures.resize(2);
+			materialResourceCreateInfo.Textures.Add(nullptr);
+			materialResourceCreateInfo.Textures.Add(nullptr);
 
 			char MaterialResourceName[255];
 
@@ -179,7 +180,8 @@ void World::LoadWorld()
 			materialResourceCreateInfo.ShadowMapPassPixelShaderByteCodeLength = 0;
 			materialResourceCreateInfo.ShadowMapPassVertexShaderByteCodeData = ShadowMapPassVertexShaderByteCodeData;
 			materialResourceCreateInfo.ShadowMapPassVertexShaderByteCodeLength = ShadowMapPassVertexShaderByteCodeLength;
-			materialResourceCreateInfo.Textures.resize(2);
+			materialResourceCreateInfo.Textures.Add(nullptr);
+			materialResourceCreateInfo.Textures.Add(nullptr);
 
 			char MaterialResourceName[255];
 
@@ -214,15 +216,15 @@ void World::LoadWorld()
 		void *entityPtr = malloc(metaClass->GetClassSize());
 		metaClass->ObjectConstructorFunc(entityPtr);
 		Entity *entity = (Entity*)entityPtr;
-		string EntityName = string(metaClass->GetClassName()) + "_" + to_string(metaClass->InstancesCount);
+		String EntityName = String(metaClass->GetClassName()) + "_" + to_string(metaClass->InstancesCount);
 		metaClass->InstancesCount++;
-		entity->EntityName = new char[EntityName.length() + 1];
-		strcpy((char*)entity->EntityName, EntityName.c_str());
+		entity->EntityName = new char[EntityName.GetLength() + 1];
+		strcpy((char*)entity->EntityName, EntityName.GetData());
 		entity->SetMetaClass(metaClass);
 		entity->SetWorld(this);
 		entity->LoadFromFile(LevelFile);
 
-		Entities.push_back(entity);
+		Entities.Add(entity);
 	}
 
 	Result = CloseHandle(LevelFile);
@@ -239,21 +241,23 @@ Entity* World::SpawnEntity(MetaClass* metaClass)
 	void *entityPtr = malloc(metaClass->GetClassSize());
 	metaClass->ObjectConstructorFunc(entityPtr);
 	Entity *entity = (Entity*)entityPtr;
-	string EntityName = string(metaClass->GetClassName()) + "_" + to_string(metaClass->InstancesCount);
+	String EntityName = String(metaClass->GetClassName()) + "_" + to_string(metaClass->InstancesCount);
 	metaClass->InstancesCount++;
-	entity->EntityName = new char[EntityName.length() + 1];
-	strcpy((char*)entity->EntityName, EntityName.c_str());
+	entity->EntityName = new char[EntityName.GetLength() + 1];
+	strcpy((char*)entity->EntityName, EntityName.GetData());
 	entity->SetMetaClass(metaClass);
 	entity->SetWorld(this);
 	entity->InitDefaultProperties();
-	Entities.push_back(entity);
+	Entities.Add(entity);
 	return entity;
 }
 
 Entity* World::FindEntityByName(const char* EntityName)
 {
-	for (Entity* entity : Entities)
+	//for (Entity* entity : Entities)
+	for (size_t i = 0; i < Entities.GetLength(); i++)
 	{
+		Entity* entity = Entities[i];
 		if (strcmp(entity->EntityName, EntityName) == 0) return entity;
 	}
 

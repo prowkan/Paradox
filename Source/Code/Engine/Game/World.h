@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Containers/DynamicArray.h>
+
 #include <Render/RenderScene.h>
 
 class MetaClass;
@@ -18,7 +20,7 @@ class World
 		template<typename T>
 		T* SpawnEntity();
 
-		vector<Entity*>& GetEntities() { return Entities; }
+		DynamicArray<Entity*>& GetEntities() { return Entities; }
 
 		RenderScene& GetRenderScene() { return renderScene; }
 
@@ -26,7 +28,7 @@ class World
 
 	private:
 
-		vector<Entity*> Entities;
+		DynamicArray<Entity*> Entities;
 
 		RenderScene renderScene;
 };

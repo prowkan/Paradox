@@ -5,6 +5,8 @@
 
 #include "../RenderDeviceD3D12.h"
 
+#include <Containers/DynamicArray.h>
+
 #include <Engine/Engine.h>
 
 #include <Game/Components/Common/TransformComponent.h>
@@ -123,9 +125,9 @@ void GBufferOpaquePass::Execute(RenderDeviceD3D12& renderDevice)
 	XMMATRIX ProjMatrix = camera.GetProjMatrix();
 	XMMATRIX ViewProjMatrix = camera.GetViewProjMatrix();
 
-	vector<StaticMeshComponent*> AllStaticMeshComponents = renderScene.GetStaticMeshComponents();
-	vector<StaticMeshComponent*> VisbleStaticMeshComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ViewProjMatrix, true);
-	size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.size();
+	DynamicArray<StaticMeshComponent*> AllStaticMeshComponents = renderScene.GetStaticMeshComponents();
+	DynamicArray<StaticMeshComponent*> VisbleStaticMeshComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ViewProjMatrix, true);
+	size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.GetLength();
 
 	renderDevice.SwitchResourceState(GBufferTextures[0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 	renderDevice.SwitchResourceState(GBufferTextures[1], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);

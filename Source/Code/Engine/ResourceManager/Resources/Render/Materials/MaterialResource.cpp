@@ -5,7 +5,7 @@
 
 #include <Engine/Engine.h>
 
-void MaterialResource::CreateResource(const string& ResourceName, const void* ResourceData)
+void MaterialResource::CreateResource(const String& ResourceName, const void* ResourceData)
 {
 	Resource::CreateResource(ResourceName, ResourceData);
 

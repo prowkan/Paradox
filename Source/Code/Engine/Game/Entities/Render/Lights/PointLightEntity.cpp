@@ -39,7 +39,7 @@ void PointLightEntity::LoadFromFile(HANDLE File)
 		component->LoadFromFile(File);
 		component->RegisterComponent();
 
-		Components.push_back(component);
+		Components.Add(component);
 	}
 
 	transformComponent = GetComponent<TransformComponent>();

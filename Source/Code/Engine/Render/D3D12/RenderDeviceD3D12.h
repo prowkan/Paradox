@@ -3,6 +3,8 @@
 #include "../RenderDevice.h"
 
 #include <Containers/COMRCPtr.h>
+#include <Containers/DynamicArray.h>
+#include <Containers/String.h>
 
 struct RenderMeshD3D12 : public RenderMesh
 {
@@ -374,7 +376,7 @@ class RenderDeviceD3D12 : public RenderDevice
 
 		ID3D12CommandAllocator* GetCommandAllocator(UINT Index) { return CommandAllocators[Index]; }
 
-		RenderPass* GetRenderPass(const string& RenderPassName);
+		RenderPass* GetRenderPass(const String& RenderPassName);
 
 	private:
 
@@ -425,9 +427,9 @@ class RenderDeviceD3D12 : public RenderDevice
 		COMRCPtr<ID3D12Resource> UploadBuffer;
 		size_t UploadBufferOffset = 0;
 
-		vector<RenderMesh*> RenderMeshDestructionQueue;
-		vector<RenderMaterial*> RenderMaterialDestructionQueue;
-		vector<RenderTexture*> RenderTextureDestructionQueue;
+		DynamicArray<RenderMesh*> RenderMeshDestructionQueue;
+		DynamicArray<RenderMaterial*> RenderMaterialDestructionQueue;
+		DynamicArray<RenderTexture*> RenderTextureDestructionQueue;
 
 		inline void CheckDXCallResult(HRESULT hr, const char16_t* Function);
 		inline const char16_t* GetDXErrorMessageFromHRESULT(HRESULT hr);
@@ -461,6 +463,6 @@ class RenderDeviceD3D12 : public RenderDevice
 		void ApplyPendingBarriers();
 
 	private:
-		vector<RenderPass*> RenderPasses;
+		DynamicArray<RenderPass*> RenderPasses;
 
 };

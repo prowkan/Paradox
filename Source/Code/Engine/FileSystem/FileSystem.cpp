@@ -10,7 +10,7 @@ struct FileRecord
 	UINT64 FileOffset;
 };
 
-void FileSystem::MountPackage(const string& PackageName, const char16_t* FileName)
+void FileSystem::MountPackage(const String& PackageName, const char16_t* FileName)
 {
 	HANDLE FileHandle = CreateFile((const wchar_t*)FileName, GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 
@@ -23,12 +23,12 @@ void FileSystem::MountPackage(const string& PackageName, const char16_t* FileNam
 
 	for (UINT i = 0; i < FileRecordsCount; i++)
 	{
-		GlobalFileTable.emplace(FileRecords[i].FileName, FileTableEntry{ FileHandle, FileRecords[i].FileSize, FileRecords[i].FileOffset });
+		GlobalFileTable.Insert(FileRecords[i].FileName, FileTableEntry{ FileHandle, FileRecords[i].FileSize, FileRecords[i].FileOffset });
 	}
 
 	delete[] FileRecords;
 
-	ArchiveFiles.emplace(PackageName, FileHandle);
+	ArchiveFiles.Insert(PackageName, FileHandle);
 }
 
 void FileSystem::InitSystem()
@@ -43,12 +43,12 @@ void FileSystem::ShutdownSystem()
 
 }
 
-size_t FileSystem::GetFileSize(const string& FileName)
+size_t FileSystem::GetFileSize(const String& FileName)
 {
 	return GlobalFileTable[FileName].Size;
 }
 
-void FileSystem::LoadFile(const string& FileName, void *PointerToWrite)
+void FileSystem::LoadFile(const String& FileName, void *PointerToWrite)
 {
 	BOOL Result;
 	LARGE_INTEGER FileOffset;

@@ -484,21 +484,23 @@ void RenderDeviceD3D12::InitDevice()
 		SAFE_DX(Device->CreatePlacedResource(UploadHeap, 0, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(UploadBuffer)));
 	}
 
-	RenderPasses.push_back(new GBufferOpaquePass);
-	RenderPasses.push_back(new MSAADepthBufferResolvePass);
-	RenderPasses.push_back(new OcclusionBufferPass);
-	RenderPasses.push_back(new ShadowMapPass);
-	RenderPasses.push_back(new ShadowResolvePass);
-	RenderPasses.push_back(new DeferredLightingPass);
-	RenderPasses.push_back(new SkyAndFogPass);
-	RenderPasses.push_back(new HDRSceneColorResolvePass);
-	RenderPasses.push_back(new PostProcessLuminancePass);
-	RenderPasses.push_back(new PostProcessBloomPass);
-	RenderPasses.push_back(new PostProcessHDRToneMappingPass);
-	RenderPasses.push_back(new BackBufferResolvePass);
+	RenderPasses.Add(new GBufferOpaquePass);
+	RenderPasses.Add(new MSAADepthBufferResolvePass);
+	RenderPasses.Add(new OcclusionBufferPass);
+	RenderPasses.Add(new ShadowMapPass);
+	RenderPasses.Add(new ShadowResolvePass);
+	RenderPasses.Add(new DeferredLightingPass);
+	RenderPasses.Add(new SkyAndFogPass);
+	RenderPasses.Add(new HDRSceneColorResolvePass);
+	RenderPasses.Add(new PostProcessLuminancePass);
+	RenderPasses.Add(new PostProcessBloomPass);
+	RenderPasses.Add(new PostProcessHDRToneMappingPass);
+	RenderPasses.Add(new BackBufferResolvePass);
 
-	for (RenderPass* renderPass : RenderPasses)
+	//for (RenderPass* renderPass : RenderPasses)
+	for (size_t i = 0; i < RenderPasses.GetLength(); i++)
 	{
+		RenderPass* renderPass = RenderPasses[i];
 		renderPass->Init(*this);
 	}
 }
@@ -513,33 +515,41 @@ void RenderDeviceD3D12::ShutdownDevice()
 		DWORD WaitResult = WaitForSingleObject(FrameSyncEvent, INFINITE);
 	}
 
-	for (RenderMesh* renderMesh : RenderMeshDestructionQueue)
+	//for (RenderMesh* renderMesh : RenderMeshDestructionQueue)
+	for (size_t i = 0; i < RenderMeshDestructionQueue.GetLength(); i++)
 	{
+		RenderMesh* renderMesh = RenderMeshDestructionQueue[i];
 		delete (RenderMeshD3D12*)renderMesh;
 	}
 
-	RenderMeshDestructionQueue.clear();
+	//RenderMeshDestructionQueue.clear();
 
-	for (RenderMaterial* renderMaterial : RenderMaterialDestructionQueue)
+	//for (RenderMaterial* renderMaterial : RenderMaterialDestructionQueue)
+	for (size_t i = 0; i < RenderMeshDestructionQueue.GetLength(); i++) 
 	{
+		RenderMaterial* renderMaterial = RenderMaterialDestructionQueue[i];
 		delete (RenderMaterialD3D12*)renderMaterial;
 	}
 
-	RenderMaterialDestructionQueue.clear();
+	//RenderMaterialDestructionQueue.clear();
 
-	for (RenderTexture* renderTexture : RenderTextureDestructionQueue)
+	//for (RenderTexture* renderTexture : RenderTextureDestructionQueue)
+	for (size_t i = 0; i < RenderMeshDestructionQueue.GetLength(); i++)
 	{
+		RenderTexture* renderTexture = RenderTextureDestructionQueue[i];
 		delete (RenderTextureD3D12*)renderTexture;
 	}
 
-	RenderTextureDestructionQueue.clear();
+	//RenderTextureDestructionQueue.clear();
 
 	BOOL Result;
 
 	Result = CloseHandle(FrameSyncEvent);
 
-	for (RenderPass* renderPass : RenderPasses)
+	//for (RenderPass* renderPass : RenderPasses)
+	for (size_t i = 0; i < RenderPasses.GetLength(); i++)
 	{
+		RenderPass* renderPass = RenderPasses[i];
 		delete renderPass;
 	}
 }
@@ -591,8 +601,10 @@ void RenderDeviceD3D12::TickDevice(float DeltaTime)
 	MinSamplerTable.SetTableSize(1);
 	MinSamplerTable.UpdateDescriptorTable();
 
-	for (RenderPass* renderPass : RenderPasses)
+	//for (RenderPass* renderPass : RenderPasses)
+	for (size_t i = 0; i < RenderPasses.GetLength(); i++)
 	{
+		RenderPass* renderPass = RenderPasses[i];
 		renderPass->Execute(*this);
 	}
 
@@ -717,10 +729,12 @@ void RenderDeviceD3D12::ApplyPendingBarriers()
 	}
 }
 
-RenderPass* RenderDeviceD3D12::GetRenderPass(const string& RenderPassName)
+RenderPass* RenderDeviceD3D12::GetRenderPass(const String& RenderPassName)
 {
-	for (RenderPass* renderPass : RenderPasses)
+	//for (RenderPass* renderPass : RenderPasses)
+	for (size_t i = 0; i < RenderPasses.GetLength(); i++)
 	{
+		RenderPass* renderPass = RenderPasses[i];
 		if (renderPass->GetName() == RenderPassName)
 		{
 			return renderPass;
@@ -1133,17 +1147,17 @@ RenderMaterial* RenderDeviceD3D12::CreateRenderMaterial(const RenderMaterialCrea
 
 void RenderDeviceD3D12::DestroyRenderMesh(RenderMesh* renderMesh)
 {
-	RenderMeshDestructionQueue.push_back(renderMesh);
+	RenderMeshDestructionQueue.Add(renderMesh);
 }
 
 void RenderDeviceD3D12::DestroyRenderTexture(RenderTexture* renderTexture)
 {
-	RenderTextureDestructionQueue.push_back(renderTexture);
+	RenderTextureDestructionQueue.Add(renderTexture);
 }
 
 void RenderDeviceD3D12::DestroyRenderMaterial(RenderMaterial* renderMaterial)
 {
-	RenderMaterialDestructionQueue.push_back(renderMaterial);
+	RenderMaterialDestructionQueue.Add(renderMaterial);
 }
 
 Buffer RenderDeviceD3D12::CreateBuffer(const D3D12_HEAP_PROPERTIES& HeapProperties, D3D12_HEAP_FLAGS HeapFlags, const D3D12_RESOURCE_DESC& ResourceDesc, D3D12_RESOURCE_STATES InitialState, const D3D12_CLEAR_VALUE* ClearValue)

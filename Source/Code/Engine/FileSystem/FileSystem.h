@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Containers/HashTable.h>
+
 struct FileTableEntry
 {
 	HANDLE ArchiveFileHandle;
@@ -14,14 +16,14 @@ class FileSystem
 		void InitSystem();
 		void ShutdownSystem();
 
-		size_t GetFileSize(const string& FileName);
-		void LoadFile(const string& FileName, void *PointerToWrite);
+		size_t GetFileSize(const String& FileName);
+		void LoadFile(const String& FileName, void *PointerToWrite);
 
 	private:
 
-		void MountPackage(const string& PackageName, const char16_t* FileName);
+		void MountPackage(const String& PackageName, const char16_t* FileName);
 
-		map<string, HANDLE> ArchiveFiles;
+		HashTable<String, HANDLE> ArchiveFiles;
 
-		map<string, FileTableEntry> GlobalFileTable;
+		HashTable<String, FileTableEntry> GlobalFileTable;
 };

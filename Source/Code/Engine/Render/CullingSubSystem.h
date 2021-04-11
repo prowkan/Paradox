@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Containers/DynamicArray.h>
+
 class StaticMeshComponent;
 class PointLightComponent;
 
@@ -7,8 +9,8 @@ class CullingSubSystem
 {
 	public:
 
-		vector<StaticMeshComponent*> GetVisibleStaticMeshesInFrustum(const vector<StaticMeshComponent*>& InputStaticMeshes, const XMMATRIX& ViewProjMatrix, const bool DoOcclusionTest);
-		vector<PointLightComponent*> GetVisiblePointLightsInFrustum(const vector<PointLightComponent*>& InputPointLights, const XMMATRIX& ViewProjMatrix);
+		DynamicArray<StaticMeshComponent*> GetVisibleStaticMeshesInFrustum(const DynamicArray<StaticMeshComponent*>& InputStaticMeshes, const XMMATRIX& ViewProjMatrix, const bool DoOcclusionTest);
+		DynamicArray<PointLightComponent*> GetVisiblePointLightsInFrustum(const DynamicArray<PointLightComponent*>& InputPointLights, const XMMATRIX& ViewProjMatrix);
 
 		float* GetOcclusionBufferData() { return OcclusionBufferData; }
 

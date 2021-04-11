@@ -12,11 +12,11 @@
 #include <Game/Components/Render/Meshes/StaticMeshComponent.h>
 #include <Game/Components/Render/Lights/PointLightComponent.h>
 
-vector<StaticMeshComponent*> CullingSubSystem::GetVisibleStaticMeshesInFrustum(const vector<StaticMeshComponent*>& InputStaticMeshes, const XMMATRIX& ViewProjMatrix, const bool DoOcclusionTest)
+DynamicArray<StaticMeshComponent*> CullingSubSystem::GetVisibleStaticMeshesInFrustum(const DynamicArray<StaticMeshComponent*>& InputStaticMeshes, const XMMATRIX& ViewProjMatrix, const bool DoOcclusionTest)
 {
 	OPTICK_EVENT("Frustum Culling")
 
-	vector<StaticMeshComponent*> OutputStaticMeshes;
+	DynamicArray<StaticMeshComponent*> OutputStaticMeshes;
 
 	XMVECTOR FrustumPlanes[6];
 
@@ -57,8 +57,9 @@ vector<StaticMeshComponent*> CullingSubSystem::GetVisibleStaticMeshesInFrustum(c
 	for (UINT i = 0; i < 20; i++)
 	{
 		FrustumCullingTasks[i].WaitForFinish();
-		vector<StaticMeshComponent*>& LocalTaskResult = FrustumCullingTasks[i].GetOutputData();
-		OutputStaticMeshes.insert(OutputStaticMeshes.end(), LocalTaskResult.begin(), LocalTaskResult.end());
+		DynamicArray<StaticMeshComponent*>& LocalTaskResult = FrustumCullingTasks[i].GetOutputData();
+		//OutputStaticMeshes.insert(OutputStaticMeshes.end(), LocalTaskResult.begin(), LocalTaskResult.end());
+		OutputStaticMeshes.Append(LocalTaskResult);
 		FrustumCullingTasks[i].~FrustumCullingTask();
 	}
 
@@ -66,21 +67,21 @@ vector<StaticMeshComponent*> CullingSubSystem::GetVisibleStaticMeshesInFrustum(c
 }
 
 
-vector<PointLightComponent*> CullingSubSystem::GetVisiblePointLightsInFrustum(const vector<PointLightComponent*>& InputPointLights, const XMMATRIX& ViewProjMatrix)
+DynamicArray<PointLightComponent*> CullingSubSystem::GetVisiblePointLightsInFrustum(const DynamicArray<PointLightComponent*>& InputPointLights, const XMMATRIX& ViewProjMatrix)
 {
-	vector<PointLightComponent*> OutputPointLights;
+	DynamicArray<PointLightComponent*> OutputPointLights;
 
 	XMVECTOR FrustumPlanes[6];
 
 	ExtractFrustumPlanesFromViewProjMatrix(ViewProjMatrix, FrustumPlanes);
 
-	for (int i = 0; i < InputPointLights.size(); i++)
+	for (int i = 0; i < InputPointLights.GetLength(); i++)
 	{
 		XMFLOAT3 Location = InputPointLights[i]->GetTransformComponent()->GetLocation();
 		XMVECTOR SphereCenter = XMVectorSet(Location.x, Location.y, Location.z, 1.0f);
 		float SphereRadius = InputPointLights[i]->GetRadius();		
 
-		if (CullSphereVsFrustum(SphereCenter, SphereRadius, FrustumPlanes)) OutputPointLights.push_back(InputPointLights[i]);
+		if (CullSphereVsFrustum(SphereCenter, SphereRadius, FrustumPlanes)) OutputPointLights.Add(InputPointLights[i]);
 	}
 
 	return OutputPointLights;

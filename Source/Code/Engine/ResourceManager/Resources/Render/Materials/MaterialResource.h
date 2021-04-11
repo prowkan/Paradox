@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Containers/DynamicArray.h>
+
 #include "../../../Resource.h"
 
 struct RenderMaterial;
@@ -16,14 +18,14 @@ struct MaterialResourceCreateInfo
 	void *ShadowMapPassPixelShaderByteCodeData;
 	size_t ShadowMapPassVertexShaderByteCodeLength;
 	size_t ShadowMapPassPixelShaderByteCodeLength;
-	vector<Texture2DResource*> Textures;
+	DynamicArray<Texture2DResource*> Textures;
 };
 
 class MaterialResource : public Resource
 {
 	public:
 
-		virtual void CreateResource(const string& ResourceName, const void* ResourceData) override;
+		virtual void CreateResource(const String& ResourceName, const void* ResourceData) override;
 		virtual void DestroyResource() override;
 
 		Texture2DResource* GetTexture(UINT Index) { return Textures[Index]; }
@@ -34,5 +36,5 @@ class MaterialResource : public Resource
 
 		RenderMaterial *renderMaterial;
 
-		vector<Texture2DResource*> Textures;
+		DynamicArray<Texture2DResource*> Textures;
 };

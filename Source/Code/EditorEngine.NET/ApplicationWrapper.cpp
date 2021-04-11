@@ -176,5 +176,5 @@ extern "C" __declspec(dllexport) void* GetComponentResourceReferenceProperty(Com
 
 extern "C" __declspec(dllexport) const char* GetResourceName(Resource* resource)
 {
-	return resource->GetResourceName().c_str();
+	return resource->GetResourceName().GetData();
 }

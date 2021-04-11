@@ -2,6 +2,8 @@
 
 #undef GetClassName
 
+#include <Containers/HashTable.h>
+
 class Entity;
 class Component;
 
@@ -50,7 +52,7 @@ class MetaClass
 
 		uint32_t InstancesCount = 0;
 
-		map<string, ClassProperty*> ClassProperties;
+		HashTable<String, ClassProperty*> ClassProperties;
 
 	private:
 

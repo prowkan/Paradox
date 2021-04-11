@@ -20,7 +20,7 @@ class Texture2DResource : public Resource
 {
 	public:
 
-		virtual void CreateResource(const string& ResourceName, const void* ResourceData) override;
+		virtual void CreateResource(const String& ResourceName, const void* ResourceData) override;
 		virtual void DestroyResource() override;
 
 		RenderTexture* GetRenderTexture() { return renderTexture; }

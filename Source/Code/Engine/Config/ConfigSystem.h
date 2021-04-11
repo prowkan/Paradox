@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Containers/HashTable.h>
+
 class ConfigSystem
 {
 	public:
@@ -7,10 +9,10 @@ class ConfigSystem
 		void InitSystem();
 		void ShutdownSystem();
 
-		string GetRenderConfigValueString(const string& Section, const string& Param);
-		int GetRenderConfigValueInt(const string& Section, const string& Param);
+		String GetRenderConfigValueString(const String& Section, const String& Param);
+		int GetRenderConfigValueInt(const String& Section, const String& Param);
 
 	private:
 
-		map<string, map<string, string>> RenderConfig;
+	HashTable<String, HashTable<String, String>> RenderConfig;
 };

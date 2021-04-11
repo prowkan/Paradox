@@ -5029,34 +5029,43 @@ void RenderDeviceVulkan::ShutdownDevice()
 
 	SAFE_VK(vkWaitForFences(Device, 1, &FrameSyncFences[CurrentFrameIndex], VK_FALSE, UINT64_MAX));
 
-	for (RenderMesh* renderMesh : RenderMeshDestructionQueue)
+	//for (RenderMesh* renderMesh : RenderMeshDestructionQueue)
+	for (size_t i = 0; i < RenderMeshDestructionQueue.GetLength(); i++)
 	{
+		RenderMesh* renderMesh = RenderMeshDestructionQueue[i];
+
 		vkDestroyBuffer(Device, ((RenderMeshVulkan*)renderMesh)->MeshBuffer, nullptr);
 
 		delete (RenderMeshVulkan*)renderMesh;
 	}
 
-	RenderMeshDestructionQueue.clear();
+	//RenderMeshDestructionQueue.clear();
 
-	for (RenderMaterial* renderMaterial : RenderMaterialDestructionQueue)
+	//for (RenderMaterial* renderMaterial : RenderMaterialDestructionQueue)
+	for (size_t i = 0; i < RenderMeshDestructionQueue.GetLength(); i++)
 	{
+		RenderMaterial* renderMaterial = RenderMaterialDestructionQueue[i];
+
 		vkDestroyPipeline(Device, ((RenderMaterialVulkan*)renderMaterial)->GBufferOpaquePassPipeline, nullptr);
 		vkDestroyPipeline(Device, ((RenderMaterialVulkan*)renderMaterial)->ShadowMapPassPipeline, nullptr);
 
 		delete (RenderMaterialVulkan*)renderMaterial;
 	}
+	
+	//RenderMaterialDestructionQueue.clear();
 
-	RenderMaterialDestructionQueue.clear();
-
-	for (RenderTexture* renderTexture : RenderTextureDestructionQueue)
+	//for (RenderTexture* renderTexture : RenderTextureDestructionQueue)
+	for (size_t i = 0; i < RenderMeshDestructionQueue.GetLength(); i++)
 	{
+		RenderTexture* renderTexture = RenderTextureDestructionQueue[i];
+
 		vkDestroyImageView(Device, ((RenderTextureVulkan*)renderTexture)->TextureView, nullptr);
 		vkDestroyImage(Device, ((RenderTextureVulkan*)renderTexture)->Texture, nullptr);
 
 		delete (RenderTextureVulkan*)renderTexture;
 	}
 
-	RenderTextureDestructionQueue.clear();
+	//RenderTextureDestructionQueue.clear();
 
 	for (int i = 0; i < MAX_MEMORY_HEAPS_COUNT; i++)
 	{
@@ -5400,26 +5409,29 @@ void RenderDeviceVulkan::TickDevice(float DeltaTime)
 
 	RenderScene& renderScene = gameFramework.GetWorld().GetRenderScene();
 
-	vector<StaticMeshComponent*> AllStaticMeshComponents = renderScene.GetStaticMeshComponents();
-	vector<StaticMeshComponent*> VisbleStaticMeshComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ViewProjMatrix, true);
-	size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.size();
+	DynamicArray<StaticMeshComponent*> AllStaticMeshComponents = renderScene.GetStaticMeshComponents();
+	DynamicArray<StaticMeshComponent*> VisbleStaticMeshComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ViewProjMatrix, true);
+	size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.GetLength();
 
-	vector<PointLightComponent*> AllPointLightComponents = renderScene.GetPointLightComponents();
-	vector<PointLightComponent*> VisblePointLightComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisiblePointLightsInFrustum(AllPointLightComponents, ViewProjMatrix);
+	DynamicArray<PointLightComponent*> AllPointLightComponents = renderScene.GetPointLightComponents();
+	DynamicArray<PointLightComponent*> VisblePointLightComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisiblePointLightsInFrustum(AllPointLightComponents, ViewProjMatrix);
 
 	Engine::GetEngine().GetRenderSystem().GetClusterizationSubSystem().ClusterizeLights(VisblePointLightComponents, ViewMatrix);
 
-	vector<PointLight> PointLights;
+	DynamicArray<PointLight> PointLights;
 
-	for (PointLightComponent *pointLightComponent : VisblePointLightComponents)
+	//for (PointLightComponent *pointLightComponent : VisblePointLightComponents)
+	for (size_t i = 0; i < VisblePointLightComponents.GetLength(); i++)
 	{
+		PointLightComponent *pointLightComponent = VisblePointLightComponents[i];
+
 		PointLight pointLight;
 		pointLight.Brightness = pointLightComponent->GetBrightness();
 		pointLight.Color = pointLightComponent->GetColor();
 		pointLight.Position = pointLightComponent->GetTransformComponent()->GetLocation();
 		pointLight.Radius = pointLightComponent->GetRadius();
 
-		PointLights.push_back(pointLight);
+		PointLights.Add(pointLight);
 	}
 
 	SAFE_VK(vkWaitForFences(Device, 1, &FrameSyncFences[CurrentFrameIndex], VK_FALSE, UINT64_MAX));
@@ -6001,9 +6013,9 @@ void RenderDeviceVulkan::TickDevice(float DeltaTime)
 
 		for (int i = 0; i < 4; i++)
 		{
-			vector<StaticMeshComponent*> AllStaticMeshComponents = Engine::GetEngine().GetGameFramework().GetWorld().GetRenderScene().GetStaticMeshComponents();
-			vector<StaticMeshComponent*> VisbleStaticMeshComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ShadowViewProjMatrices[i], false);
-			size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.size();
+			DynamicArray<StaticMeshComponent*> AllStaticMeshComponents = Engine::GetEngine().GetGameFramework().GetWorld().GetRenderScene().GetStaticMeshComponents();
+			DynamicArray<StaticMeshComponent*> VisbleStaticMeshComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ShadowViewProjMatrices[i], false);
+			size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.GetLength();
 
 			void *ConstantBufferData;
 			size_t ConstantBufferOffset = 0;
@@ -6491,7 +6503,7 @@ void RenderDeviceVulkan::TickDevice(float DeltaTime)
 
 		SAFE_VK(vkMapMemory(Device, CPUMemory6, DynamicBuffersOffsets[2][CurrentFrameIndex], VK_WHOLE_SIZE, 0, &DynamicBufferData));
 
-		memcpy(DynamicBufferData, PointLights.data(), PointLights.size() * sizeof(PointLight));
+		memcpy(DynamicBufferData, PointLights.GetData(), PointLights.GetLength() * sizeof(PointLight));
 
 		vkUnmapMemory(Device, CPUMemory6);
 
@@ -6546,7 +6558,7 @@ void RenderDeviceVulkan::TickDevice(float DeltaTime)
 		vkCmdCopyBuffer(CommandBuffers[CurrentFrameIndex], CPULightClustersBuffers[CurrentFrameIndex], GPULightClustersBuffer, 1, &BufferCopy);
 		BufferCopy.size = Engine::GetEngine().GetRenderSystem().GetClusterizationSubSystem().GetTotalIndexCount() * sizeof(uint16_t);
 		vkCmdCopyBuffer(CommandBuffers[CurrentFrameIndex], CPULightIndicesBuffers[CurrentFrameIndex], GPULightIndicesBuffer, 1, &BufferCopy);
-		BufferCopy.size = PointLights.size() * sizeof(PointLight);
+		BufferCopy.size = PointLights.GetLength() * sizeof(PointLight);
 		vkCmdCopyBuffer(CommandBuffers[CurrentFrameIndex], CPUPointLightsBuffers[CurrentFrameIndex], GPUPointLightsBuffer, 1, &BufferCopy);
 
 		BufferMemoryBarriers[0].buffer = GPUDeferredLightingConstantBuffer;
@@ -8864,17 +8876,17 @@ RenderMaterial* RenderDeviceVulkan::CreateRenderMaterial(const RenderMaterialCre
 
 void RenderDeviceVulkan::DestroyRenderMesh(RenderMesh* renderMesh)
 {
-	RenderMeshDestructionQueue.push_back(renderMesh);
+	RenderMeshDestructionQueue.Add(renderMesh);
 }
 
 void RenderDeviceVulkan::DestroyRenderTexture(RenderTexture* renderTexture)
 {
-	RenderTextureDestructionQueue.push_back(renderTexture);
+	RenderTextureDestructionQueue.Add(renderTexture);
 }
 
 void RenderDeviceVulkan::DestroyRenderMaterial(RenderMaterial* renderMaterial)
 {
-	RenderMaterialDestructionQueue.push_back(renderMaterial);
+	RenderMaterialDestructionQueue.Add(renderMaterial);
 }
 
 inline void RenderDeviceVulkan::CheckVulkanCallResult(VkResult Result, const char16_t* Function)

@@ -181,22 +181,25 @@ void DeferredLightingPass::Execute(RenderDeviceD3D12& renderDevice)
 
 	XMFLOAT3 CameraLocation = camera.GetCameraLocation();
 
-	vector<PointLightComponent*> AllPointLightComponents = renderScene.GetPointLightComponents();
-	vector<PointLightComponent*> VisblePointLightComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisiblePointLightsInFrustum(AllPointLightComponents, ViewProjMatrix);
+	DynamicArray<PointLightComponent*> AllPointLightComponents = renderScene.GetPointLightComponents();
+	DynamicArray<PointLightComponent*> VisblePointLightComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisiblePointLightsInFrustum(AllPointLightComponents, ViewProjMatrix);
 
 	Engine::GetEngine().GetRenderSystem().GetClusterizationSubSystem().ClusterizeLights(VisblePointLightComponents, ViewMatrix);
 
-	vector<PointLight> PointLights;
+	DynamicArray<PointLight> PointLights;
 
-	for (PointLightComponent *pointLightComponent : VisblePointLightComponents)
+	//for (PointLightComponent *pointLightComponent : VisblePointLightComponents)
+	for (size_t i = 0; i < VisblePointLightComponents.GetLength(); i++)
 	{
+		PointLightComponent *pointLightComponent = VisblePointLightComponents[i];
+
 		PointLight pointLight;
 		pointLight.Brightness = pointLightComponent->GetBrightness();
 		pointLight.Color = pointLightComponent->GetColor();
 		pointLight.Position = pointLightComponent->GetTransformComponent()->GetLocation();
 		pointLight.Radius = pointLightComponent->GetRadius();
 
-		PointLights.push_back(pointLight);
+		PointLights.Add(pointLight);
 	}
 
 	renderDevice.SwitchResourceState(*GBufferTextures[0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
@@ -246,10 +249,10 @@ void DeferredLightingPass::Execute(RenderDeviceD3D12& renderDevice)
 
 	SAFE_DX(CPUPointLightsBuffers[renderDevice.GetCurrentFrameIndex()].DXBuffer->Map(0, &ReadRange, &DynamicBufferData));
 
-	memcpy(DynamicBufferData, PointLights.data(), PointLights.size() * sizeof(PointLight));
+	memcpy(DynamicBufferData, PointLights.GetData(), PointLights.GetLength() * sizeof(PointLight));
 
 	WrittenRange.Begin = 0;
-	WrittenRange.End = PointLights.size() * sizeof(PointLight);
+	WrittenRange.End = PointLights.GetLength() * sizeof(PointLight);
 
 	CPUPointLightsBuffers[renderDevice.GetCurrentFrameIndex()].DXBuffer->Unmap(0, &WrittenRange);
 
@@ -263,7 +266,7 @@ void DeferredLightingPass::Execute(RenderDeviceD3D12& renderDevice)
 	renderDevice.GetCommandList()->CopyBufferRegion(GPUDeferredLightingConstantBuffer.DXBuffer, 0, CPUDeferredLightingConstantBuffers[renderDevice.GetCurrentFrameIndex()].DXBuffer, 0, 256);
 	renderDevice.GetCommandList()->CopyBufferRegion(GPULightClustersBuffer.DXBuffer, 0, CPULightClustersBuffers[renderDevice.GetCurrentFrameIndex()].DXBuffer, 0, ClusterizationSubSystem::CLUSTERS_COUNT_X * ClusterizationSubSystem::CLUSTERS_COUNT_Y * ClusterizationSubSystem::CLUSTERS_COUNT_Z * sizeof(LightCluster));
 	renderDevice.GetCommandList()->CopyBufferRegion(GPULightIndicesBuffer.DXBuffer, 0, CPULightIndicesBuffers[renderDevice.GetCurrentFrameIndex()].DXBuffer, 0, Engine::GetEngine().GetRenderSystem().GetClusterizationSubSystem().GetTotalIndexCount() * sizeof(uint16_t));
-	renderDevice.GetCommandList()->CopyBufferRegion(GPUPointLightsBuffer.DXBuffer, 0, CPUPointLightsBuffers[renderDevice.GetCurrentFrameIndex()].DXBuffer, 0, PointLights.size() * sizeof(PointLight));
+	renderDevice.GetCommandList()->CopyBufferRegion(GPUPointLightsBuffer.DXBuffer, 0, CPUPointLightsBuffers[renderDevice.GetCurrentFrameIndex()].DXBuffer, 0, PointLights.GetLength() * sizeof(PointLight));
 
 	renderDevice.SwitchResourceState(GPUDeferredLightingConstantBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 	renderDevice.SwitchResourceState(GPULightClustersBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);

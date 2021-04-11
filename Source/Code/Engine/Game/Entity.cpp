@@ -20,6 +20,6 @@ Component* Entity::CreateDefaultComponent(MetaClass* metaClass)
 	component->SetOwner(this);
 	component->InitComponentDefaultProperties();
 	component->RegisterComponent();
-	Components.push_back(component);
+	Components.Add(component);
 	return component;
 }

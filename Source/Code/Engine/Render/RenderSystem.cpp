@@ -14,7 +14,7 @@ void RenderSystem::InitSystem()
 {
 	clusterizationSubSystem.PreComputeClustersPlanes();
 
-	string GraphicsAPI = Engine::GetEngine().GetConfigSystem().GetRenderConfigValueString("System", "GraphicsAPI");
+	String GraphicsAPI = Engine::GetEngine().GetConfigSystem().GetRenderConfigValueString("System", "GraphicsAPI");
 
 	if (GraphicsAPI == "D3D12")
 		renderDevice = new RenderDeviceD3D12();
@@ -30,7 +30,7 @@ void RenderSystem::ShutdownSystem()
 {
 	renderDevice->ShutdownDevice();
 
-	string GraphicsAPI = Engine::GetEngine().GetConfigSystem().GetRenderConfigValueString("System", "GraphicsAPI");
+	String GraphicsAPI = Engine::GetEngine().GetConfigSystem().GetRenderConfigValueString("System", "GraphicsAPI");
 		
 	if (GraphicsAPI == "D3D12")
 		delete (RenderDeviceD3D12*)renderDevice;
