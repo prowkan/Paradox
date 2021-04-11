@@ -43,6 +43,30 @@ class StringTemplate
 			strcpy(StringData, Arg);
 		}
 
+		StringTemplate(int Number)
+		{
+			StringLength = 0;
+
+			int NumberCopy = Number;
+
+			while (NumberCopy > 0)
+			{
+				StringLength++;
+				NumberCopy = NumberCopy / 10;
+			}
+
+			StringData = (char*)Allocator::AllocateMemory(sizeof(char) * (StringLength + 1));
+
+			size_t Index = StringLength;
+
+			while (Number > 0)
+			{
+				StringData[Index] = (Number % 10) - '0';
+				Index--;
+				Number = Number / 10;
+			}
+		}
+
 		~StringTemplate()
 		{
 			Allocator::FreeMemory(StringData);
@@ -68,6 +92,74 @@ class StringTemplate
 		const char operator[](size_t Index) const { return StringData[Index]; }
 
 		const char* GetData() const { return StringData; }
+
+		size_t FindFirst(const char Ch)
+		{
+			for (size_t i = 0; i < StringLength; i++)
+			{
+				if (StringData[i] == Ch) return i;
+			}
+
+			return -1;
+		}
+
+		size_t FindLast(const char Ch)
+		{
+			for (size_t i = 0; i < StringLength; i++)
+			{
+				if (StringData[i] == Ch) return i;
+			}
+
+			return -1;
+		}
+
+		StringTemplate operator+=(const StringTemplate& OtherString)
+		{
+			char* OldStringData = StringData;
+			size_t OldStringLength = StringLength;
+
+			StringLength += OtherString.StringLength;
+
+			StringData = (char*)Allocator::AllocateMemory(sizeof(char) * (StringLength + 1));
+			strcpy(StringData, OldStringData);
+			strcpy(StringData + OldStringLength, OtherString.StringData);
+
+			Allocator::FreeMemory(OldStringData);
+
+			return *this;
+		}
+
+		StringTemplate operator+(const StringTemplate& OtherString)
+		{
+			StringTemplate NewString;
+
+			NewString.StringLength = StringLength + OtherString.StringLength;
+			NewString.StringData = (char*)Allocator::AllocateMemory(sizeof(char) * (NewString.StringLength + 1));
+
+			strcpy(NewString.StringData, StringData);
+			strcpy(NewString.StringData + StringLength, OtherString.StringData);
+
+			return NewString;
+		}
+
+		StringTemplate GetSubString(size_t First, size_t Length = -1)
+		{
+			StringTemplate NewString;
+
+			if (Length == -1)
+			{
+				NewString.StringLength = StringLength - First;
+			}
+			else
+			{
+				NewString.StringLength = Length;
+			}
+
+			NewString.StringData = (char*)Allocator::AllocateMemory(sizeof(char) * (NewString.StringLength + 1));
+			memcpy(NewString.StringData, (char*)StringData + First, NewString.StringLength);
+
+			return NewString;
+		}
 
 	private:
 

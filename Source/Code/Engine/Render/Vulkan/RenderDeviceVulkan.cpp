@@ -5039,7 +5039,7 @@ void RenderDeviceVulkan::ShutdownDevice()
 		delete (RenderMeshVulkan*)renderMesh;
 	}
 
-	//RenderMeshDestructionQueue.clear();
+	RenderMeshDestructionQueue.Clear();
 
 	//for (RenderMaterial* renderMaterial : RenderMaterialDestructionQueue)
 	for (size_t i = 0; i < RenderMeshDestructionQueue.GetLength(); i++)
@@ -5052,7 +5052,7 @@ void RenderDeviceVulkan::ShutdownDevice()
 		delete (RenderMaterialVulkan*)renderMaterial;
 	}
 	
-	//RenderMaterialDestructionQueue.clear();
+	RenderMaterialDestructionQueue.Clear();
 
 	//for (RenderTexture* renderTexture : RenderTextureDestructionQueue)
 	for (size_t i = 0; i < RenderMeshDestructionQueue.GetLength(); i++)
@@ -5065,7 +5065,7 @@ void RenderDeviceVulkan::ShutdownDevice()
 		delete (RenderTextureVulkan*)renderTexture;
 	}
 
-	//RenderTextureDestructionQueue.clear();
+	RenderTextureDestructionQueue.Clear();
 
 	for (int i = 0; i < MAX_MEMORY_HEAPS_COUNT; i++)
 	{

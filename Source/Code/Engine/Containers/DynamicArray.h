@@ -145,6 +145,16 @@ class DynamicArray
 			return ArrayData;
 		}
 
+		void Clear()
+		{
+			for (int i = 0; i < ArrayLength; i++)
+			{
+				ArrayData[i].~T();
+			}
+
+			ArrayLength = 0;
+		}
+
 	private:
 
 		T *ArrayData;

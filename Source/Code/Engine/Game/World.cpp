@@ -216,7 +216,7 @@ void World::LoadWorld()
 		void *entityPtr = malloc(metaClass->GetClassSize());
 		metaClass->ObjectConstructorFunc(entityPtr);
 		Entity *entity = (Entity*)entityPtr;
-		String EntityName = String(metaClass->GetClassName()) + "_" + to_string(metaClass->InstancesCount);
+		String EntityName = String(metaClass->GetClassName()) + "_" + String(metaClass->InstancesCount);
 		metaClass->InstancesCount++;
 		entity->EntityName = new char[EntityName.GetLength() + 1];
 		strcpy((char*)entity->EntityName, EntityName.GetData());
@@ -241,7 +241,7 @@ Entity* World::SpawnEntity(MetaClass* metaClass)
 	void *entityPtr = malloc(metaClass->GetClassSize());
 	metaClass->ObjectConstructorFunc(entityPtr);
 	Entity *entity = (Entity*)entityPtr;
-	String EntityName = String(metaClass->GetClassName()) + "_" + to_string(metaClass->InstancesCount);
+	String EntityName = String(metaClass->GetClassName()) + "_" + String(metaClass->InstancesCount);
 	metaClass->InstancesCount++;
 	entity->EntityName = new char[EntityName.GetLength() + 1];
 	strcpy((char*)entity->EntityName, EntityName.GetData());

@@ -15,7 +15,7 @@ String Trim(const String& InputString)
 	{
 		if (OutputString[i] == ' ')
 		{
-			OutputString = OutputString.substr(1);
+			OutputString = OutputString.GetSubString(1);
 			i++;
 		}
 		else break;
@@ -27,7 +27,7 @@ String Trim(const String& InputString)
 	{
 		if (OutputString[i] == ' ')
 		{
-			OutputString = OutputString.substr(0, OutputString.GetLength() - 1);
+			OutputString = OutputString.GetSubString(0, OutputString.GetLength() - 1);
 			i--;
 		}
 		else break;
@@ -84,8 +84,8 @@ void ConfigSystem::InitSystem()
 		if (ConfigLine[0] == '[')
 		{
 			String SectionName = ConfigLine;
-			SectionName = SectionName.substr(1);
-			SectionName = SectionName.substr(0, SectionName.GetLength() - 1);
+			SectionName = SectionName.GetSubString(1);
+			SectionName = SectionName.GetSubString(0, SectionName.GetLength() - 1);
 
 			SectionName = Trim(SectionName);
 
@@ -96,8 +96,8 @@ void ConfigSystem::InitSystem()
 		else
 		{
 			String ParamAndValueString = ConfigLine;
-			String Param = Trim(ParamAndValueString.substr(0, ParamAndValueString.find('=')));
-			String Value = Trim(ParamAndValueString.substr(ParamAndValueString.find('=') + 1));
+			String Param = Trim(ParamAndValueString.GetSubString(0, ParamAndValueString.FindFirst('=')));
+			String Value = Trim(ParamAndValueString.GetSubString(ParamAndValueString.FindFirst('=') + 1));
 
 			RenderConfig[CurrentSection].Insert(Param, Value);
 		}

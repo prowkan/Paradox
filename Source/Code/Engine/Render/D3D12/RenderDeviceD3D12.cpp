@@ -522,7 +522,7 @@ void RenderDeviceD3D12::ShutdownDevice()
 		delete (RenderMeshD3D12*)renderMesh;
 	}
 
-	//RenderMeshDestructionQueue.clear();
+	RenderMeshDestructionQueue.Clear();
 
 	//for (RenderMaterial* renderMaterial : RenderMaterialDestructionQueue)
 	for (size_t i = 0; i < RenderMeshDestructionQueue.GetLength(); i++) 
@@ -531,7 +531,7 @@ void RenderDeviceD3D12::ShutdownDevice()
 		delete (RenderMaterialD3D12*)renderMaterial;
 	}
 
-	//RenderMaterialDestructionQueue.clear();
+	RenderMaterialDestructionQueue.Clear();
 
 	//for (RenderTexture* renderTexture : RenderTextureDestructionQueue)
 	for (size_t i = 0; i < RenderMeshDestructionQueue.GetLength(); i++)
@@ -540,7 +540,7 @@ void RenderDeviceD3D12::ShutdownDevice()
 		delete (RenderTextureD3D12*)renderTexture;
 	}
 
-	//RenderTextureDestructionQueue.clear();
+	RenderTextureDestructionQueue.Clear();
 
 	BOOL Result;
 
@@ -735,7 +735,7 @@ RenderPass* RenderDeviceD3D12::GetRenderPass(const String& RenderPassName)
 	for (size_t i = 0; i < RenderPasses.GetLength(); i++)
 	{
 		RenderPass* renderPass = RenderPasses[i];
-		if (renderPass->GetName() == RenderPassName)
+		if (String(renderPass->GetName()) == RenderPassName)
 		{
 			return renderPass;
 		}
