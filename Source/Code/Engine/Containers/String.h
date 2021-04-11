@@ -140,6 +140,25 @@ class StringTemplate
 			return NewString;
 		}
 
+		StringTemplate GetSubString(size_t First, size_t Length = -1)
+		{
+			StringTemplate NewString;
+
+			if (Length == -1)
+			{
+				NewString.StringLength = StringLength - First;
+			}
+			else
+			{
+				NewString.StringLength = Length;
+			}
+
+			NewString.StringData = (char*)Allocator::AllocateMemory(sizeof(char) * (NewString.StringLength + 1));
+			memcpy(NewString.StringData, (char*)StringData + First, NewString.StringLength);
+
+			return NewString;
+		}
+
 	private:
 
 		char *StringData;
