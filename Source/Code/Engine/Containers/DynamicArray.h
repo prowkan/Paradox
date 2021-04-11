@@ -72,10 +72,12 @@ class DynamicArray
 
 				for (size_t i = 0; i < ArrayLength; i++)
 				{
+					new (&ArrayData[i]) T();
 					ArrayData[i] = OldArrayData[i];
 					OldArrayData[i].~T();
 				}
 
+				new (&ArrayData[ArrayLength]) T();
 				ArrayData[ArrayLength] = Element;
 
 				Allocator::FreeMemory(OldArrayData);

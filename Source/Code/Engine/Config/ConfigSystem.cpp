@@ -63,7 +63,7 @@ void ConfigSystem::InitSystem()
 				break;
 			}
 
-			CurrentLine += RenderConfigFileData[FilePointer];
+			CurrentLine += String((char)RenderConfigFileData[FilePointer]);
 			++FilePointer;
 		}
 

@@ -43,9 +43,27 @@ class StringTemplate
 			strcpy(StringData, Arg);
 		}
 
+		StringTemplate(char ch)
+		{
+			StringLength = 1;
+			StringData = (char*)Allocator::AllocateMemory(sizeof(char) * 2);
+			StringData[0] = ch;
+			StringData[1] = 0;
+		}
+
 		StringTemplate(int Number)
 		{
 			StringLength = 0;
+
+			if (Number == 0)
+			{
+				StringLength = 1;
+				StringData = (char*)Allocator::AllocateMemory(sizeof(char) * (StringLength + 1));
+				StringData[0] = '0';
+				StringData[StringLength] = 0;
+
+				return;
+			}
 
 			int NumberCopy = Number;
 
@@ -57,14 +75,16 @@ class StringTemplate
 
 			StringData = (char*)Allocator::AllocateMemory(sizeof(char) * (StringLength + 1));
 
-			size_t Index = StringLength;
+			size_t Index = StringLength - 1;
 
 			while (Number > 0)
 			{
-				StringData[Index] = (Number % 10) - '0';
+				StringData[Index] = (Number % 10) + '0';
 				Index--;
 				Number = Number / 10;
 			}
+
+			StringData[StringLength] = 0;
 		}
 
 		~StringTemplate()
@@ -157,6 +177,7 @@ class StringTemplate
 
 			NewString.StringData = (char*)Allocator::AllocateMemory(sizeof(char) * (NewString.StringLength + 1));
 			memcpy(NewString.StringData, (char*)StringData + First, NewString.StringLength);
+			NewString.StringData[NewString.StringLength] = 0;
 
 			return NewString;
 		}

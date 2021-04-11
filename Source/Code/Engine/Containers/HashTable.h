@@ -8,6 +8,42 @@ class HashTable
 {
 	public:
 
+		HashTable()
+		{
+		
+		}
+
+		HashTable(const HashTable& OtherHashTable)
+		{
+			for (size_t i = 0; i < TableSize; i++)
+			{
+				Node *OldTableNode = OtherHashTable.Nodes[i];
+				Node *LastCurrentNode = nullptr;
+
+				while (OldTableNode)
+				{
+					Node *NewNode = (Node*)Allocator::AllocateMemory(sizeof(Node));
+					new (NewNode) Node;
+					NewNode->Key = OldTableNode->Key;
+					NewNode->Value = OldTableNode->Value;
+					NewNode->Next = nullptr;
+
+					if (LastCurrentNode)
+					{
+						LastCurrentNode->Next = NewNode;
+					}
+					else
+					{
+						Nodes[i] = NewNode;
+					}
+
+					LastCurrentNode = NewNode;
+
+					OldTableNode = OldTableNode->Next;
+				}
+			}
+		}
+
 		void Insert(const KeyType& Key, const ValueType& Value)
 		{
 			uint64_t Hash = HashFunc(Key) % TableSize;
@@ -39,7 +75,7 @@ class HashTable
 			}
 		}
 
-		ValueType operator[](const KeyType& Key)
+		ValueType& operator[](const KeyType& Key)
 		{
 			uint64_t Hash = HashFunc(Key) % TableSize;
 
@@ -58,7 +94,7 @@ class HashTable
 				}
 			}
 
-			return ValueType();
+			return *(ValueType*)nullptr;
 		}
 
 	private:
