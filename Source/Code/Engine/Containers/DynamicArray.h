@@ -66,7 +66,15 @@ class DynamicArray
 			{
 				T *OldArrayData = ArrayData;
 
-				ArrayCapacity++;
+				//ArrayCapacity++;
+				if (ArrayCapacity == 0)
+				{
+					ArrayCapacity = 1;
+				}
+				else
+				{
+					ArrayCapacity = ArrayCapacity * 2;
+				}
 
 				ArrayData = (T*)Allocator::AllocateMemory(sizeof(T) * ArrayCapacity);
 
@@ -87,6 +95,7 @@ class DynamicArray
 			}
 			else
 			{
+				new (&ArrayData[ArrayLength]) T();
 				ArrayData[ArrayLength] = Element;
 
 				ArrayLength++;
