@@ -35,11 +35,11 @@ class Component
 		const char* GetComponentName() { return ComponentName; }
 		const char *ComponentName;
 
-		uint32_t GetPropertiesCount() { /*return (uint32_t)metaClass->ClassProperties.size();*/ return 0; }
+		uint32_t GetPropertiesCount() {	return (uint32_t)metaClass->ClassProperties.GetSize(); }
 
 		const char* GetPropertyName(uint32_t PropertyIndex)
 		{
-			/*auto PropertyIterator = metaClass->ClassProperties.begin();
+			HashTable<String, ClassProperty*>::Iterator PropertyIterator = metaClass->ClassProperties.Begin();
 
 			while (PropertyIndex > 0)
 			{
@@ -47,13 +47,12 @@ class Component
 				--PropertyIndex;
 			}
 
-			return (*PropertyIterator).first.c_str();*/
-			return nullptr;
+			return PropertyIterator.GetTableNode()->Key.GetData();
 		}
 
 		ClassPropertyType GetPropertyType(uint32_t PropertyIndex)
 		{
-			/*auto PropertyIterator = metaClass->ClassProperties.begin();
+			HashTable<String, ClassProperty*>::Iterator PropertyIterator = metaClass->ClassProperties.Begin();
 
 			while (PropertyIndex > 0)
 			{
@@ -61,9 +60,7 @@ class Component
 				--PropertyIndex;
 			}
 
-			return (*PropertyIterator).second->PropertyType;*/
-
-			return (ClassPropertyType)0;
+			return PropertyIterator.GetTableNode()->Value->PropertyType;
 		}
 
 		float GetFloatProperty(const String& PropertyName) { return *(float*)((BYTE*)this + metaClass->ClassProperties[PropertyName]->ValueOffset); }

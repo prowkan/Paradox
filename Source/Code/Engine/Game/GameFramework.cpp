@@ -28,12 +28,19 @@ void GameFramework::InitFramework()
 	PointLightComponent::InitMetaClass();
 
 #ifdef _DEBUG
-	StaticMeshEntity::GetMetaClassStatic()->ClassProperties.Insert("TransformComponent", new ClassProperty(ClassPropertyType::ComponentReference, 64));
+	/*StaticMeshEntity::GetMetaClassStatic()->ClassProperties.Insert("TransformComponent", new ClassProperty(ClassPropertyType::ComponentReference, 64));
 	StaticMeshEntity::GetMetaClassStatic()->ClassProperties.Insert("BoundingBoxComponent", new ClassProperty(ClassPropertyType::ComponentReference, 72));
 	StaticMeshEntity::GetMetaClassStatic()->ClassProperties.Insert("StaticMeshComponent", new ClassProperty(ClassPropertyType::ComponentReference, 80));
 	
 	PointLightEntity::GetMetaClassStatic()->ClassProperties.Insert("TransformComponent", new ClassProperty(ClassPropertyType::ComponentReference, 64));
-	PointLightEntity::GetMetaClassStatic()->ClassProperties.Insert("PoingLightComponent", new ClassProperty(ClassPropertyType::ComponentReference, 72));
+	PointLightEntity::GetMetaClassStatic()->ClassProperties.Insert("PoingLightComponent", new ClassProperty(ClassPropertyType::ComponentReference, 72));*/
+
+	StaticMeshEntity::GetMetaClassStatic()->ClassProperties.Insert("TransformComponent", new ClassProperty(ClassPropertyType::ComponentReference, 56));
+	StaticMeshEntity::GetMetaClassStatic()->ClassProperties.Insert("BoundingBoxComponent", new ClassProperty(ClassPropertyType::ComponentReference, 64));
+	StaticMeshEntity::GetMetaClassStatic()->ClassProperties.Insert("StaticMeshComponent", new ClassProperty(ClassPropertyType::ComponentReference, 72));
+
+	PointLightEntity::GetMetaClassStatic()->ClassProperties.Insert("TransformComponent", new ClassProperty(ClassPropertyType::ComponentReference, 56));
+	PointLightEntity::GetMetaClassStatic()->ClassProperties.Insert("PoingLightComponent", new ClassProperty(ClassPropertyType::ComponentReference, 64));
 #else
 	StaticMeshEntity::GetMetaClassStatic()->ClassProperties.Insert("TransformComponent", new ClassProperty(ClassPropertyType::ComponentReference, 56));
 	StaticMeshEntity::GetMetaClassStatic()->ClassProperties.Insert("BoundingBoxComponent", new ClassProperty(ClassPropertyType::ComponentReference, 64));
