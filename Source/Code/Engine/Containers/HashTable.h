@@ -121,7 +121,7 @@ class HashTable
 
 				NodeType* GetTableNode() { return TableNode; }
 
-				Iterator operator++()
+				Iterator& operator++()
 				{
 					if (TableNode->Next)
 					{

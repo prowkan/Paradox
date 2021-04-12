@@ -76,10 +76,10 @@ void ConfigSystem::InitSystem()
 
 	String CurrentSection;
 
-	//for (const String& ConfigLine : ConfigFileLines)
-	for (size_t i = 0; i < ConfigFileLines.GetLength(); i++)
+	for (const String& ConfigLine : ConfigFileLines)
+	//for (size_t i = 0; i < ConfigFileLines.GetLength(); i++)
 	{
-		String& ConfigLine = ConfigFileLines[i];
+		//String& ConfigLine = ConfigFileLines[i];
 
 		if (ConfigLine[0] == '[')
 		{

@@ -166,10 +166,59 @@ class DynamicArray
 			ArrayLength = 0;
 		}
 
+		struct Iterator
+		{
+			T* ArrayData;
+			size_t Index;
+
+			Iterator(T* ArrayData, const size_t Index) : ArrayData(ArrayData), Index(Index)
+			{
+
+			}
+
+			Iterator& operator++()
+			{
+				++Index;
+				return *this;
+			}
+
+			bool operator!=(Iterator& OtherIterator)
+			{
+				return Index != OtherIterator.Index;
+			}
+
+			T& operator*()
+			{
+				return ArrayData[Index];
+			}
+		};
+
+		Iterator Begin()
+		{
+			return Iterator(ArrayData, 0);
+		}
+
+		Iterator End()
+		{
+			return Iterator(ArrayData, ArrayLength);
+		}		
+
 	private:
 
 		T *ArrayData;
 
 		size_t ArrayLength;
-		size_t ArrayCapacity;
+		size_t ArrayCapacity;		
 };
+
+template<typename T>
+typename DynamicArray<T>::Iterator begin(DynamicArray<T>& Array)
+{
+	return Array.Begin();
+}
+
+template<typename T>
+typename DynamicArray<T>::Iterator end(DynamicArray<T>& Array)
+{
+	return Array.End();
+}

@@ -254,10 +254,10 @@ Entity* World::SpawnEntity(MetaClass* metaClass)
 
 Entity* World::FindEntityByName(const char* EntityName)
 {
-	//for (Entity* entity : Entities)
-	for (size_t i = 0; i < Entities.GetLength(); i++)
+	for (Entity* entity : Entities)
+	//for (size_t i = 0; i < Entities.GetLength(); i++)
 	{
-		Entity* entity = Entities[i];
+		//Entity* entity = Entities[i];
 		if (strcmp(entity->EntityName, EntityName) == 0) return entity;
 	}
 
