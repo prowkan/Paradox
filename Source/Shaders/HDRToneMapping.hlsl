@@ -12,7 +12,7 @@ struct PSInput
 	VK_LOCATION(0) float2 TexCoord : TEXCOORD;
 };
 
-VK_BINDING(0, 0) Texture2DMS<float4> HDRFrameBufferTexture : register(t0);
+VK_BINDING(0, 0) Texture2DMS<float4> HDRSceneColorTexture : register(t0);
 VK_BINDING(1, 0) Texture2D HDRBloomTexture : register(t1);
 
 float3 ACESToneMappingOperator(float3 Color)
@@ -30,7 +30,7 @@ VK_LOCATION(0) float4 PS(PSInput PixelShaderInput, uint SampleIndex : SV_SampleI
 {
 	int2 Coords = trunc(PixelShaderInput.Position.xy);
 
-	float3 HDRColor = HDRFrameBufferTexture.Load(Coords, SampleIndex).rgb;
+	float3 HDRColor = HDRSceneColorTexture.Load(Coords, SampleIndex).rgb;
 	float3 BloomColor = HDRBloomTexture.Load(int3(Coords, 0)).rgb;
 	float3 ToneMappedColor = ACESToneMappingOperator(HDRColor + BloomColor);
 

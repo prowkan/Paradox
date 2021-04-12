@@ -24,7 +24,8 @@ class DynamicArray
 
 			for (int i = 0; i < ArrayLength; i++)
 			{
-				ArrayData[i] = OtherArray.ArrayData[i];
+				//ArrayData[i] = OtherArray.ArrayData[i];
+				new (&ArrayData[i]) T(OtherArray.ArrayData[i]);
 			}
 		}
 
@@ -44,7 +45,8 @@ class DynamicArray
 
 			for (int i = 0; i < ArrayLength; i++)
 			{
-				ArrayData[i] = OtherArray.ArrayData[i];
+				/*ArrayData[i] = OtherArray.ArrayData[i];*/
+				new (&ArrayData[i]) T(OtherArray.ArrayData[i]);
 			}
 
 			return *this;
@@ -80,13 +82,15 @@ class DynamicArray
 
 				for (size_t i = 0; i < ArrayLength; i++)
 				{
-					new (&ArrayData[i]) T();
-					ArrayData[i] = OldArrayData[i];
+					/*new (&ArrayData[i]) T();
+					ArrayData[i] = OldArrayData[i];*/
+					new (&ArrayData[i]) T(OldArrayData[i]);
 					OldArrayData[i].~T();
 				}
 
-				new (&ArrayData[ArrayLength]) T();
-				ArrayData[ArrayLength] = Element;
+				/*new (&ArrayData[ArrayLength]) T();
+				ArrayData[ArrayLength] = Element;*/
+				new (&ArrayData[ArrayLength]) T(Element);
 
 				Allocator::FreeMemory(OldArrayData);
 
@@ -95,8 +99,9 @@ class DynamicArray
 			}
 			else
 			{
-				new (&ArrayData[ArrayLength]) T();
-				ArrayData[ArrayLength] = Element;
+				/*new (&ArrayData[ArrayLength]) T();
+				ArrayData[ArrayLength] = Element;*/
+				new (&ArrayData[ArrayLength]) T(Element);
 
 				ArrayLength++;
 			}
