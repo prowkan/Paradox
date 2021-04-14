@@ -14,6 +14,7 @@ struct RenderTexture
 {
 	COMRCPtr<ID3D12Resource> Texture;
 	D3D12_CPU_DESCRIPTOR_HANDLE TextureSRV;
+	uint32_t Index;
 };
 
 struct RenderMaterial
@@ -130,6 +131,8 @@ class RenderSystem
 		void DestroyRenderTexture(RenderTexture* renderTexture);
 		void DestroyRenderMaterial(RenderMaterial* renderMaterial);
 
+		void PrepareData();
+
 	private:
 
 		COMRCPtr<ID3D12Device> Device;
@@ -149,7 +152,7 @@ class RenderSystem
 
 		COMRCPtr<ID3D12DescriptorHeap> RTDescriptorHeap, DSDescriptorHeap, CBSRUADescriptorHeap, SamplersDescriptorHeap;
 		COMRCPtr<ID3D12DescriptorHeap> ConstantBufferDescriptorHeap, TexturesDescriptorHeap;
-		COMRCPtr<ID3D12DescriptorHeap> FrameResourcesDescriptorHeaps[2], FrameSamplersDescriptorHeaps[2];
+		COMRCPtr<ID3D12DescriptorHeap> FrameResourcesDescriptorHeap, FrameSamplersDescriptorHeap;
 
 		UINT TexturesDescriptorsCount = 0;
 
@@ -161,8 +164,14 @@ class RenderSystem
 		COMRCPtr<ID3D12Resource> DepthBufferTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE DepthBufferDSV;
 
-		COMRCPtr<ID3D12Resource> GPUConstantBuffer, CPUConstantBuffers[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs[20000];
+		COMRCPtr<ID3D12Resource> GPUCameraConstantBuffer, CPUCameraConstantBuffers[2];
+		D3D12_CPU_DESCRIPTOR_HANDLE CameraConstantBufferCBV;
+
+		COMRCPtr<ID3D12Resource> GPUObjectsConstantBuffer, CPUObjectsConstantBuffers[2];
+		D3D12_CPU_DESCRIPTOR_HANDLE ObjectsConstantBufferCBVs[20000];
+
+		COMRCPtr<ID3D12Resource> GPUObjectDataIndicesConstantBuffer, CPUObjectDataIndicesConstantBuffers[2];
+		COMRCPtr<ID3D12Resource> GPUMaterialDataIndicesConstantBuffer, CPUMaterialDataIndicesConstantBuffers[2];
 
 		D3D12_CPU_DESCRIPTOR_HANDLE Sampler;
 

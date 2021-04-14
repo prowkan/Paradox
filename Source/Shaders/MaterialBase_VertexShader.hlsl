@@ -10,18 +10,37 @@ struct VSOutput
 	float2 TexCoord : TEXCOORD;
 };
 
-struct VSConstants
+struct VSObjectDataIndicesConstants
 {
-	float4x4 WVPMatrix;
+	uint ObjectIndex;
 };
 
-ConstantBuffer<VSConstants> VertexShaderConstants : register(b0);
+struct VSMaterialDataIndicesConstants
+{
+	uint TextureIndex;
+};
+
+struct VSCameraConstants
+{
+	float4x4 ViewProjMatrix;
+};
+
+struct VSObjectConstants
+{
+	float4x4 WorldMatrix;
+};
+
+ConstantBuffer<VSObjectDataIndicesConstants> VertexShaderObjectDataIndicesConstants : register(b0, space0);
+ConstantBuffer<VSMaterialDataIndicesConstants> VertexShaderMaterialDataIndicesConstants : register(b0, space1);
+ConstantBuffer<VSCameraConstants> VertexShaderCameraConstants : register(b0, space2);
+ConstantBuffer<VSObjectConstants> VertexShaderObjectsConstants[] : register(b0, space3);
 
 VSOutput VS(VSInput VertexShaderInput)
 {
 	VSOutput VertexShaderOutput;
 
-	VertexShaderOutput.Position = mul(float4(VertexShaderInput.Position, 1.0f), VertexShaderConstants.WVPMatrix);
+	float4x4 WVPMatrix = mul(VertexShaderObjectsConstants[VertexShaderObjectDataIndicesConstants.ObjectIndex].WorldMatrix, VertexShaderCameraConstants.ViewProjMatrix);
+	VertexShaderOutput.Position = mul(float4(VertexShaderInput.Position, 1.0f), WVPMatrix);
 	VertexShaderOutput.TexCoord = VertexShaderInput.TexCoord;
 
 	return VertexShaderOutput;
