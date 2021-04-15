@@ -5,8 +5,8 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 		const char16_t* FXCompiler = u"C:/Program Files (x86)/Windows Kits/10/bin/10.0.19041.0/x64/fxc.exe";
 		const char16_t* DXCompiler = u"C:/VulkanSDK/1.2.170.0/Bin/dxc.exe";
 
-		const char16_t* OutputDirSM1 = u"./../../Build/GameContent/Shaders/ShaderModel51/";
-		const char16_t* OutputDirSPV = u"./../../Build/GameContent/Shaders/SPIRV/";
+		const char16_t* OutputDirSM1 = u"./../../Build/Shaders/ShaderModel51/";
+		const char16_t* OutputDirSPV = u"./../../Build/Shaders/SPIRV/";
 
 		const char16_t* VertexShaders[] =
 		{
@@ -149,7 +149,7 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 			Result = WaitForSingleObject(ProcessInformation.hProcess, INFINITE);
 		}
 
-		STARTUPINFO StartupInfo;
+		/*STARTUPINFO StartupInfo;
 		ZeroMemory(&StartupInfo, sizeof(STARTUPINFO));
 		StartupInfo.cb = sizeof(STARTUPINFO);
 		StartupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
@@ -163,7 +163,7 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 
 		BOOL Result = CreateProcess(NULL, (wchar_t*)ScriptCommandLine, NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &StartupInfo, &ProcessInformation);
 
-		Result = WaitForSingleObject(ProcessInformation.hProcess, INFINITE);
+		Result = WaitForSingleObject(ProcessInformation.hProcess, INFINITE);*/
 	}
 	else if (strcmp(Action, "Clean") == 0)
 	{
