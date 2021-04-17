@@ -164,14 +164,12 @@ void SkyAndFogPass::Init(RenderDeviceD3D12& renderDevice)
 
 	renderDevice.GetDevice()->CreateConstantBufferView(&CBVDesc, SkyConstantBufferCBV);
 
-	SIZE_T SkyVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("ShaderModel51.SkyVertexShader");
-	ScopedMemoryBlockArray<BYTE> SkyVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(SkyVertexShaderByteCodeLength);
-	Engine::GetEngine().GetFileSystem().LoadFile("ShaderModel51.SkyVertexShader", SkyVertexShaderByteCodeData);
+	void *SkyVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.SkyVertexShader");
+	SIZE_T SkyVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.SkyVertexShader");
 
-	SIZE_T SkyPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("ShaderModel51.SkyPixelShader");
-	ScopedMemoryBlockArray<BYTE> SkyPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(SkyPixelShaderByteCodeLength);
-	Engine::GetEngine().GetFileSystem().LoadFile("ShaderModel51.SkyPixelShader", SkyPixelShaderByteCodeData);
-
+	void *SkyPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.SkyPixelShader");
+	SIZE_T SkyPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.SkyPixelShader");
+	
 	D3D12_INPUT_ELEMENT_DESC InputElementDescs[5];
 	ZeroMemory(InputElementDescs, 5 * sizeof(D3D12_INPUT_ELEMENT_DESC));
 	InputElementDescs[0].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
@@ -424,13 +422,11 @@ void SkyAndFogPass::Init(RenderDeviceD3D12& renderDevice)
 
 	renderDevice.GetDevice()->CreateConstantBufferView(&CBVDesc, SunConstantBufferCBV);
 
-	SIZE_T SunVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("ShaderModel51.SunVertexShader");
-	ScopedMemoryBlockArray<BYTE> SunVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(SunVertexShaderByteCodeLength);
-	Engine::GetEngine().GetFileSystem().LoadFile("ShaderModel51.SunVertexShader", SunVertexShaderByteCodeData);
+	void *SunVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.SunVertexShader");
+	SIZE_T SunVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.SunVertexShader");
 
-	SIZE_T SunPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("ShaderModel51.SunPixelShader");
-	ScopedMemoryBlockArray<BYTE> SunPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(SunPixelShaderByteCodeLength);
-	Engine::GetEngine().GetFileSystem().LoadFile("ShaderModel51.SunPixelShader", SunPixelShaderByteCodeData);
+	void *SunPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.SunPixelShader");
+	SIZE_T SunPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.SunPixelShader");
 
 	ZeroMemory(InputElementDescs, 5 * sizeof(D3D12_INPUT_ELEMENT_DESC));
 	InputElementDescs[0].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
@@ -593,9 +589,8 @@ void SkyAndFogPass::Init(RenderDeviceD3D12& renderDevice)
 
 	renderDevice.GetDevice()->CreateShaderResourceView(SunTexture, &SRVDesc, SunTextureSRV);
 
-	SIZE_T FogPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("ShaderModel51.Fog");
-	ScopedMemoryBlockArray<BYTE> FogPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(FogPixelShaderByteCodeLength);
-	Engine::GetEngine().GetFileSystem().LoadFile("ShaderModel51.Fog", FogPixelShaderByteCodeData);
+	void *FogPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.Fog");
+	SIZE_T FogPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.Fog");
 
 	ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
 	GraphicsPipelineStateDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE::D3D12_COLOR_WRITE_ENABLE_ALL;

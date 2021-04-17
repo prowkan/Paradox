@@ -25,6 +25,14 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EditorEngine.NET", "..\Code
 		{3C0DAC16-19F9-4A42-9F27-FE81471EB5E7} = {3C0DAC16-19F9-4A42-9F27-FE81471EB5E7}
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{68058D90-D4D6-4D9E-8A35-F0F92E690305}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\BundleContent.py = ..\..\BundleContent.py
+		..\..\BundlePaks.py = ..\..\BundlePaks.py
+		..\..\GenerateContent.py = ..\..\GenerateContent.py
+		..\..\GenerateLevel.py = ..\..\GenerateLevel.py
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64

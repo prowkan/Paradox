@@ -76,10 +76,9 @@ void ShadowResolvePass::Init(RenderDeviceD3D12& renderDevice)
 
 	renderDevice.GetDevice()->CreateConstantBufferView(&CBVDesc, ShadowResolveConstantBufferCBV);
 
-	SIZE_T ShadowResolvePixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("ShaderModel51.ShadowResolve");
-	ScopedMemoryBlockArray<BYTE> ShadowResolvePixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(ShadowResolvePixelShaderByteCodeLength);
-	Engine::GetEngine().GetFileSystem().LoadFile("ShaderModel51.ShadowResolve", ShadowResolvePixelShaderByteCodeData);
-
+	void *ShadowResolvePixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.ShadowResolve");
+	SIZE_T ShadowResolvePixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.ShadowResolve");
+	
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC GraphicsPipelineStateDesc;
 	ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
 	GraphicsPipelineStateDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE::D3D12_COLOR_WRITE_ENABLE_ALL;

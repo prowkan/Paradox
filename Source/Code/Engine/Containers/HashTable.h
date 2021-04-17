@@ -96,6 +96,10 @@ class HashTable
 				{
 					CurrentNode = CurrentNode->Next;
 				}
+				else
+				{
+					break;
+				}
 			}
 
 			return *(ValueType*)nullptr;

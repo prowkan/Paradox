@@ -43,7 +43,7 @@ void World::LoadWorld()
 	for (int k = 0; k < 4000; k++)
 	{
 		char StaticMeshFileName[255];
-		sprintf(StaticMeshFileName, "SM_Cube_%d", k);
+		sprintf(StaticMeshFileName, "Objects.SM_Cube_%d", k);
 
 		ScopedMemoryBlockArray<BYTE> StaticMeshData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(Engine::GetEngine().GetFileSystem().GetFileSize(StaticMeshFileName));
 		Engine::GetEngine().GetFileSystem().LoadFile(StaticMeshFileName, StaticMeshData);
@@ -65,7 +65,7 @@ void World::LoadWorld()
 	for (int k = 0; k < 4000; k++)
 	{
 		char Texture2DFileName[255];
-		sprintf(Texture2DFileName, "T_Default_%d_D", k);
+		sprintf(Texture2DFileName, "Textures.T_Default_%d_D", k);
 
 		ScopedMemoryBlockArray<BYTE> TextureData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(Engine::GetEngine().GetFileSystem().GetFileSize(Texture2DFileName));
 		Engine::GetEngine().GetFileSystem().LoadFile(Texture2DFileName, TextureData);
@@ -91,7 +91,7 @@ void World::LoadWorld()
 	for (int k = 0; k < 4000; k++)
 	{
 		char Texture2DFileName[255];
-		sprintf(Texture2DFileName, "T_Default_%d_N", k);
+		sprintf(Texture2DFileName, "Textures.T_Default_%d_N", k);
 
 		ScopedMemoryBlockArray<BYTE> TextureData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(Engine::GetEngine().GetFileSystem().GetFileSize(Texture2DFileName));
 		Engine::GetEngine().GetFileSystem().LoadFile(Texture2DFileName, TextureData);
@@ -120,18 +120,15 @@ void World::LoadWorld()
 
 		if (GraphicsAPI == "D3D12")
 		{
-			SIZE_T GBufferOpaquePassVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("ShaderModel51.MaterialBase_VertexShader_GBufferOpaquePass");
-			ScopedMemoryBlockArray<BYTE> GBufferOpaquePassVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(GBufferOpaquePassVertexShaderByteCodeLength);
-			Engine::GetEngine().GetFileSystem().LoadFile("ShaderModel51.MaterialBase_VertexShader_GBufferOpaquePass", GBufferOpaquePassVertexShaderByteCodeData);
+			void *GBufferOpaquePassVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.MaterialBase_VertexShader_GBufferOpaquePass");
+			SIZE_T GBufferOpaquePassVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.MaterialBase_VertexShader_GBufferOpaquePass");
 
-			SIZE_T GBufferOpaquePassPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("ShaderModel51.MaterialBase_PixelShader_GBufferOpaquePass");
-			ScopedMemoryBlockArray<BYTE> GBufferOpaquePassPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(GBufferOpaquePassPixelShaderByteCodeLength);
-			Engine::GetEngine().GetFileSystem().LoadFile("ShaderModel51.MaterialBase_PixelShader_GBufferOpaquePass", GBufferOpaquePassPixelShaderByteCodeData);
-
-			SIZE_T ShadowMapPassVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("ShaderModel51.MaterialBase_VertexShader_ShadowMapPass");
-			ScopedMemoryBlockArray<BYTE> ShadowMapPassVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(ShadowMapPassVertexShaderByteCodeLength);
-			Engine::GetEngine().GetFileSystem().LoadFile("ShaderModel51.MaterialBase_VertexShader_ShadowMapPass", ShadowMapPassVertexShaderByteCodeData);
-
+			void *GBufferOpaquePassPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.MaterialBase_PixelShader_GBufferOpaquePass");
+			SIZE_T GBufferOpaquePassPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.MaterialBase_PixelShader_GBufferOpaquePass");
+			
+			void *ShadowMapPassVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.MaterialBase_VertexShader_ShadowMapPass");
+			SIZE_T ShadowMapPassVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.MaterialBase_VertexShader_ShadowMapPass");
+			
 			MaterialResourceCreateInfo materialResourceCreateInfo; 
 			materialResourceCreateInfo.GBufferOpaquePassPixelShaderByteCodeData = GBufferOpaquePassPixelShaderByteCodeData;
 			materialResourceCreateInfo.GBufferOpaquePassPixelShaderByteCodeLength = GBufferOpaquePassPixelShaderByteCodeLength;
@@ -159,17 +156,14 @@ void World::LoadWorld()
 		}
 		else if (GraphicsAPI == "Vulkan")
 		{
-			SIZE_T GBufferOpaquePassVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("SPIRV.MaterialBase_VertexShader_GBufferOpaquePass");
-			ScopedMemoryBlockArray<BYTE> GBufferOpaquePassVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(GBufferOpaquePassVertexShaderByteCodeLength);
-			Engine::GetEngine().GetFileSystem().LoadFile("SPIRV.MaterialBase_VertexShader_GBufferOpaquePass", GBufferOpaquePassVertexShaderByteCodeData);
+			void *GBufferOpaquePassVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("SPIRV.MaterialBase_VertexShader_GBufferOpaquePass");
+			SIZE_T GBufferOpaquePassVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("SPIRV.MaterialBase_VertexShader_GBufferOpaquePass");
 
-			SIZE_T GBufferOpaquePassPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("SPIRV.MaterialBase_PixelShader_GBufferOpaquePass");
-			ScopedMemoryBlockArray<BYTE> GBufferOpaquePassPixelShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(GBufferOpaquePassPixelShaderByteCodeLength);
-			Engine::GetEngine().GetFileSystem().LoadFile("SPIRV.MaterialBase_PixelShader_GBufferOpaquePass", GBufferOpaquePassPixelShaderByteCodeData);
+			void *GBufferOpaquePassPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("SPIRV.MaterialBase_PixelShader_GBufferOpaquePass");
+			SIZE_T GBufferOpaquePassPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("SPIRV.MaterialBase_PixelShader_GBufferOpaquePass");
 
-			SIZE_T ShadowMapPassVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetFileSize("SPIRV.MaterialBase_VertexShader_ShadowMapPass");
-			ScopedMemoryBlockArray<BYTE> ShadowMapPassVertexShaderByteCodeData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(ShadowMapPassVertexShaderByteCodeLength);
-			Engine::GetEngine().GetFileSystem().LoadFile("SPIRV.MaterialBase_VertexShader_ShadowMapPass", ShadowMapPassVertexShaderByteCodeData);
+			void *ShadowMapPassVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("SPIRV.MaterialBase_VertexShader_ShadowMapPass");
+			SIZE_T ShadowMapPassVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("SPIRV.MaterialBase_VertexShader_ShadowMapPass");
 
 			MaterialResourceCreateInfo materialResourceCreateInfo; 
 			materialResourceCreateInfo.GBufferOpaquePassPixelShaderByteCodeData = GBufferOpaquePassPixelShaderByteCodeData;
@@ -198,7 +192,7 @@ void World::LoadWorld()
 		}				
 	}
 
-	HANDLE LevelFile = CreateFile((const wchar_t*)u"WorldChunks/000.worldchunk", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+	HANDLE LevelFile = CreateFile((const wchar_t*)u"GameContent/Maps/000.dmap", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER LevelFileSize;
 	
 	UINT EntitiesCount;
