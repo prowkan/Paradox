@@ -22,12 +22,17 @@ class ResourceManager
 
 		void DestroyAllResources()
 		{
-			/*for (auto& It : ResourceTable)
+			int i = 0;
+
+			for (auto& It : ResourceTable)
 			{
-				It.second->DestroyResource();
+				It->Value->DestroyResource();
+				i++;
 			}
 
-			ResourceTable.clear();*/
+			int a = i;
+
+			//ResourceTable.clear();
 		}
 
 	private:
