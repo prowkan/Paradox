@@ -141,45 +141,6 @@
     <ClInclude Include="MemoryManager\Stack.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Render\D3D12\RenderPass.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Render\D3D12\RenderPasses\GBufferOpaquePass.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Render\D3D12\RenderPasses\ShadowMapPass.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Render\D3D12\RenderPasses\ShadowResolvePass.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Render\D3D12\RenderPasses\DeferredLightingPass.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Render\D3D12\RenderPasses\SkyAndFogPass.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Render\D3D12\RenderPasses\PostProcessLuminancePass.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Render\D3D12\RenderPasses\PostProcessBloomPass.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Render\D3D12\RenderPasses\PostProcessHDRToneMappingPass.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Render\D3D12\RenderPasses\OcclusionBufferPass.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Render\D3D12\RenderPasses\MSAADepthBufferResolvePass.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Render\D3D12\RenderPasses\HDRSceneColorResolvePass.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Render\D3D12\RenderPasses\BackBufferResolvePass.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Config\ConfigSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -369,45 +330,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="FileSystem\FileSystem.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Render\D3D12\RenderPass.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Render\D3D12\RenderPasses\GBufferOpaquePass.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Render\D3D12\RenderPasses\ShadowMapPass.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Render\D3D12\RenderPasses\ShadowResolvePass.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Render\D3D12\RenderPasses\DeferredLightingPass.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Render\D3D12\RenderPasses\SkyAndFogPass.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Render\D3D12\RenderPasses\PostProcessLuminancePass.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Render\D3D12\RenderPasses\PostProcessBloomPass.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Render\D3D12\RenderPasses\PostProcessHDRToneMappingPass.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Render\D3D12\RenderPasses\OcclusionBufferPass.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Render\D3D12\RenderPasses\MSAADepthBufferResolvePass.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Render\D3D12\RenderPasses\HDRSceneColorResolvePass.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Render\D3D12\RenderPasses\BackBufferResolvePass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Config\ConfigSystem.cpp">
