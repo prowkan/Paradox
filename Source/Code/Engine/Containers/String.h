@@ -135,14 +135,14 @@ class StringTemplate
 
 			StringData = (CharType*)Allocator::AllocateMemory(sizeof(CharType) * (StringLength + 1));
 
-			for (size_t i = 0; i < StringLength; i++)
+			for (size_t i = 0; i < OldStringLength; i++)
 			{
 				StringData[i] = OldStringData[i];
 			}
 
 			for (size_t i = 0; i < OtherString.StringLength; i++)
 			{
-				StringData[StringLength + i] = OtherString.StringData[i];
+				StringData[OldStringLength + i] = OtherString.StringData[i];
 			}
 
 			StringData[StringLength] = 0;
@@ -188,7 +188,12 @@ class StringTemplate
 			}
 
 			NewString.StringData = (CharType*)Allocator::AllocateMemory(sizeof(CharType) * (NewString.StringLength + 1));
-			memcpy(NewString.StringData, (CharType*)StringData + First, NewString.StringLength);
+			
+			for (size_t i = 0; i < NewString.StringLength; i++)
+			{
+				NewString.StringData[i] = StringData[i + First];
+			}
+
 			NewString.StringData[NewString.StringLength] = 0;
 
 			return NewString;
