@@ -2,10 +2,10 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 {
 	if (strcmp(Action, "Compile") == 0)
 	{
-		const char16_t* FXCompiler = u"C:/Program Files (x86)/Windows Kits/10/bin/10.0.19041.0/x64/fxc.exe";
+		//const char16_t* FXCompiler = u"C:/Program Files (x86)/Windows Kits/10/bin/10.0.19041.0/x64/fxc.exe";
 		const char16_t* DXCompiler = u"C:/VulkanSDK/1.2.170.0/Bin/dxc.exe";
 
-		const char16_t* OutputDirSM1 = u"./../../Build/Shaders/ShaderModel51/";
+		//const char16_t* OutputDirSM1 = u"./../../Build/Shaders/ShaderModel51/";
 		const char16_t* OutputDirSPV = u"./../../Build/Shaders/SPIRV/";
 
 		const char16_t* VertexShaders[] =
@@ -43,9 +43,9 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 
 		for (auto VertexShader : VertexShaders)
 		{
-			char16_t FXCompilerArgs[8192];
+			//char16_t FXCompilerArgs[8192];
 
-			wsprintf((wchar_t*)FXCompilerArgs, (const wchar_t*)u"%s -T vs_5_1 -E VS -Zpr -Fo %s%s.dxbc %s.hlsl", FXCompiler, OutputDirSM1, VertexShader, VertexShader);
+			//wsprintf((wchar_t*)FXCompilerArgs, (const wchar_t*)u"%s -T vs_5_1 -E VS -Zpr -Fo %s%s.dxbc %s.hlsl", FXCompiler, OutputDirSM1, VertexShader, VertexShader);
 			
 			STARTUPINFO StartupInfo;
 			ZeroMemory(&StartupInfo, sizeof(STARTUPINFO));
@@ -57,9 +57,9 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 
 			PROCESS_INFORMATION ProcessInformation;
 			
-			BOOL Result = CreateProcess(NULL, (wchar_t*)FXCompilerArgs, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &StartupInfo, &ProcessInformation);
+			//BOOL Result = CreateProcess(NULL, (wchar_t*)FXCompilerArgs, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &StartupInfo, &ProcessInformation);
 			
-			Result = WaitForSingleObject(ProcessInformation.hProcess, INFINITE);
+			//Result = WaitForSingleObject(ProcessInformation.hProcess, INFINITE);
 
 			char16_t DXCompilerArgs[8192];
 
@@ -72,16 +72,16 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 			StartupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
 			StartupInfo.dwFlags = STARTF_USESTDHANDLES;
 
-			Result = CreateProcess(NULL, (wchar_t*)DXCompilerArgs, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &StartupInfo, &ProcessInformation);
+			BOOL Result = CreateProcess(NULL, (wchar_t*)DXCompilerArgs, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &StartupInfo, &ProcessInformation);
 			
 			Result = WaitForSingleObject(ProcessInformation.hProcess, INFINITE);
 		}
 
 		for (auto PixelShader : PixelShaders)
 		{
-			char16_t FXCompilerArgs[8192];
+			//char16_t FXCompilerArgs[8192];
 
-			wsprintf((wchar_t*)FXCompilerArgs, (const wchar_t*)u"%s -T ps_5_1 -E PS -Zpr -Fo %s%s.dxbc %s.hlsl", FXCompiler, OutputDirSM1, PixelShader, PixelShader);
+			//wsprintf((wchar_t*)FXCompilerArgs, (const wchar_t*)u"%s -T ps_5_1 -E PS -Zpr -Fo %s%s.dxbc %s.hlsl", FXCompiler, OutputDirSM1, PixelShader, PixelShader);
 
 			STARTUPINFO StartupInfo;
 			ZeroMemory(&StartupInfo, sizeof(STARTUPINFO));
@@ -93,9 +93,9 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 
 			PROCESS_INFORMATION ProcessInformation;
 
-			BOOL Result = CreateProcess(NULL, (wchar_t*)FXCompilerArgs, NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &StartupInfo, &ProcessInformation);
+			//BOOL Result = CreateProcess(NULL, (wchar_t*)FXCompilerArgs, NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &StartupInfo, &ProcessInformation);
 
-			Result = WaitForSingleObject(ProcessInformation.hProcess, INFINITE);
+			//Result = WaitForSingleObject(ProcessInformation.hProcess, INFINITE);
 
 			char16_t DXCompilerArgs[8192];
 
@@ -108,16 +108,16 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 			StartupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
 			StartupInfo.dwFlags = STARTF_USESTDHANDLES;
 
-			Result = CreateProcess(NULL, (wchar_t*)DXCompilerArgs, NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &StartupInfo, &ProcessInformation);
+			BOOL Result = CreateProcess(NULL, (wchar_t*)DXCompilerArgs, NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &StartupInfo, &ProcessInformation);
 
 			Result = WaitForSingleObject(ProcessInformation.hProcess, INFINITE);
 		}
 
 		for (auto ComputeShader : ComputeShaders)
 		{
-			char16_t FXCompilerArgs[8192];
+			//char16_t FXCompilerArgs[8192];
 
-			wsprintf((wchar_t*)FXCompilerArgs, (const wchar_t*)u"%s -T cs_5_1 -E CS -Zpr -Fo %s%s.dxbc %s.hlsl", FXCompiler, OutputDirSM1, ComputeShader, ComputeShader);
+			//wsprintf((wchar_t*)FXCompilerArgs, (const wchar_t*)u"%s -T cs_5_1 -E CS -Zpr -Fo %s%s.dxbc %s.hlsl", FXCompiler, OutputDirSM1, ComputeShader, ComputeShader);
 
 			STARTUPINFO StartupInfo;
 			ZeroMemory(&StartupInfo, sizeof(STARTUPINFO));
@@ -129,9 +129,9 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 			
 			PROCESS_INFORMATION ProcessInformation;
 
-			BOOL Result = CreateProcess(NULL, (wchar_t*)FXCompilerArgs, NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &StartupInfo, &ProcessInformation);
+			//BOOL Result = CreateProcess(NULL, (wchar_t*)FXCompilerArgs, NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &StartupInfo, &ProcessInformation);
 
-			Result = WaitForSingleObject(ProcessInformation.hProcess, INFINITE);
+			//Result = WaitForSingleObject(ProcessInformation.hProcess, INFINITE);
 
 			char16_t DXCompilerArgs[8192];
 
@@ -144,7 +144,7 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 			StartupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
 			StartupInfo.dwFlags = STARTF_USESTDHANDLES;
 
-			Result = CreateProcess(NULL, (wchar_t*)DXCompilerArgs, NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &StartupInfo, &ProcessInformation);
+			BOOL Result = CreateProcess(NULL, (wchar_t*)DXCompilerArgs, NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &StartupInfo, &ProcessInformation);
 
 			Result = WaitForSingleObject(ProcessInformation.hProcess, INFINITE);
 		}
