@@ -3,6 +3,8 @@
 
 #include "MemoryManager.h"
 
+#include "SystemAllocator.h"
+
 #include <Game/MetaClass.h>
 
 #include <Game/Entities/Render/Meshes/StaticMeshEntity.h>
@@ -15,6 +17,8 @@
 
 void MemoryManager::InitManager()
 {
+	SystemAllocator::ProcessHeap = GetProcessHeap();
+
 	EntitiesHeap.CreateHeap(20000 * sizeof(StaticMeshEntity) + 10000 * sizeof(PointLightEntity));
 
 	TransformComponentsPool.CreatePool(sizeof(TransformComponent), 30000);
