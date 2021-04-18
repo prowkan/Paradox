@@ -3,6 +3,8 @@
 #include "Camera.h"
 #include "World.h"
 
+#include <Containers/HashTable.h>
+
 class GameFramework
 {
 	public:
@@ -14,12 +16,12 @@ class GameFramework
 		Camera& GetCamera() { return camera; }
 		World& GetWorld() { return world; }
 
-		map<string, MetaClass*>& GetMetaClassesTable() { return MetaClassesTable; }
+		HashTable<String, MetaClass*>& GetMetaClassesTable() { return MetaClassesTable; }
 
 	private:
 
 		Camera camera;
 		World world;
 
-		map<string, MetaClass*> MetaClassesTable;
+		HashTable<String, MetaClass*> MetaClassesTable;
 };
