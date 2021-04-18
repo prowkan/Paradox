@@ -2,26 +2,10 @@
 
 #include "DefaultAllocator.h"
 
-template<typename Allocator = DefaultAllocator>
+template<typename CharType, typename Allocator = DefaultAllocator>
 class StringTemplate
 {
 	public:
-
-		/*template<int N>
-		String(const char16_t (&StringLiteral)[N])
-		{
-			StringData = (char16_t*)StringLiteral;
-		}*/
-
-		/*operator wchar_t*()
-		{
-			return (wchar_t*)StringData;
-		}
-
-		operator const wchar_t*() const
-		{
-			return (const wchar_t*)StringData;
-		}*/
 
 		StringTemplate()
 		{
@@ -31,22 +15,38 @@ class StringTemplate
 
 		StringTemplate(const StringTemplate& OtherString)
 		{
-			StringLength = strlen(OtherString.StringData);
-			StringData = (char*)Allocator::AllocateMemory(sizeof(char) * (StringLength + 1));
-			strcpy(StringData, OtherString.StringData);
+			StringLength = OtherString.StringLength;
+
+			StringData = (CharType*)Allocator::AllocateMemory(sizeof(CharType) * (StringLength + 1));
+
+			for (size_t i = 0; i < StringLength; i++)
+			{
+				StringData[i] = OtherString.StringData[i];
+			}
+
+			StringData[StringLength] = 0;
 		}
 
-		StringTemplate(const char* Arg)
+		StringTemplate(const CharType* Arg)
 		{
-			StringLength = strlen(Arg);
-			StringData = (char*)Allocator::AllocateMemory(sizeof(char) * (StringLength + 1));
-			strcpy(StringData, Arg);
+			StringLength = 0;
+
+			for (int i = 0; Arg[i] != 0; i++) StringLength++;
+
+			StringData = (CharType*)Allocator::AllocateMemory(sizeof(CharType) * (StringLength + 1));
+
+			for (size_t i = 0; i < StringLength; i++)
+			{
+				StringData[i] = Arg[i];
+			}
+
+			StringData[StringLength] = 0;
 		}
 
-		StringTemplate(char ch)
+		StringTemplate(CharType ch)
 		{
 			StringLength = 1;
-			StringData = (char*)Allocator::AllocateMemory(sizeof(char) * 2);
+			StringData = (CharType*)Allocator::AllocateMemory(sizeof(CharType) * 2);
 			StringData[0] = ch;
 			StringData[1] = 0;
 		}
@@ -73,7 +73,7 @@ class StringTemplate
 				NumberCopy = NumberCopy / 10;
 			}
 
-			StringData = (char*)Allocator::AllocateMemory(sizeof(char) * (StringLength + 1));
+			StringData = (CharType*)Allocator::AllocateMemory(sizeof(CharType) * (StringLength + 1));
 
 			size_t Index = StringLength - 1;
 
@@ -95,25 +95,40 @@ class StringTemplate
 		StringTemplate& operator=(const StringTemplate& OtherString)
 		{
 			Allocator::FreeMemory(StringData);
-			StringLength = strlen(OtherString.StringData);
-			StringData = (char*)Allocator::AllocateMemory(sizeof(char) * (StringLength + 1));
-			strcpy(StringData, OtherString.StringData);
+
+			StringLength = OtherString.StringLength;
+
+			StringData = (CharType*)Allocator::AllocateMemory(sizeof(CharType) * (StringLength + 1));
+
+			for (size_t i = 0; i < StringLength; i++)
+			{
+				StringData[i] = OtherString.StringData[i];
+			}
+
+			StringData[StringLength] = 0;
 
 			return *this;
 		}
 
 		bool operator==(const StringTemplate& OtherString)
 		{
-			return strcmp(StringData, OtherString.StringData) == 0;
+			if (StringLength != OtherString.StringLength) return false;
+
+			for (size_t i = 0; i < StringLength; i++)
+			{
+				if (StringData[i] != OtherString.StringData[i]) return false;
+			}
+
+			return true;
 		}
 
 		const size_t GetLength() const { return StringLength; }
 
-		const char operator[](size_t Index) const { return StringData[Index]; }
+		const CharType operator[](size_t Index) const { return StringData[Index]; }
 
-		const char* GetData() const { return StringData; }
+		const CharType* GetData() const { return StringData; }
 
-		size_t FindFirst(const char Ch)
+		size_t FindFirst(const CharType Ch)
 		{
 			for (size_t i = 0; i < StringLength; i++)
 			{
@@ -123,7 +138,7 @@ class StringTemplate
 			return -1;
 		}
 
-		size_t FindLast(const char Ch)
+		size_t FindLast(const CharType Ch)
 		{
 			for (size_t i = 0; i < StringLength; i++)
 			{
@@ -135,14 +150,24 @@ class StringTemplate
 
 		StringTemplate operator+=(const StringTemplate& OtherString)
 		{
-			char* OldStringData = StringData;
+			CharType* OldStringData = StringData;
 			size_t OldStringLength = StringLength;
 
 			StringLength += OtherString.StringLength;
 
-			StringData = (char*)Allocator::AllocateMemory(sizeof(char) * (StringLength + 1));
-			strcpy(StringData, OldStringData);
-			strcpy(StringData + OldStringLength, OtherString.StringData);
+			StringData = (CharType*)Allocator::AllocateMemory(sizeof(CharType) * (StringLength + 1));
+
+			for (size_t i = 0; i < OldStringLength; i++)
+			{
+				StringData[i] = OldStringData[i];
+			}
+
+			for (size_t i = 0; i < OtherString.StringLength; i++)
+			{
+				StringData[OldStringLength + i] = OtherString.StringData[i];
+			}
+
+			StringData[StringLength] = 0;
 
 			Allocator::FreeMemory(OldStringData);
 
@@ -154,10 +179,19 @@ class StringTemplate
 			StringTemplate NewString;
 
 			NewString.StringLength = StringLength + OtherString.StringLength;
-			NewString.StringData = (char*)Allocator::AllocateMemory(sizeof(char) * (NewString.StringLength + 1));
+			NewString.StringData = (CharType*)Allocator::AllocateMemory(sizeof(CharType) * (NewString.StringLength + 1));
 
-			strcpy(NewString.StringData, StringData);
-			strcpy(NewString.StringData + StringLength, OtherString.StringData);
+			for (size_t i = 0; i < StringLength; i++)
+			{
+				NewString.StringData[i] = StringData[i];
+			}
+
+			for (size_t i = 0; i < OtherString.StringLength; i++)
+			{
+				NewString.StringData[StringLength + i] = OtherString.StringData[i];
+			}
+
+			NewString.StringData[NewString.StringLength] = 0;
 
 			return NewString;
 		}
@@ -175,8 +209,8 @@ class StringTemplate
 				NewString.StringLength = Length;
 			}
 
-			NewString.StringData = (char*)Allocator::AllocateMemory(sizeof(char) * (NewString.StringLength + 1));
-			memcpy(NewString.StringData, (char*)StringData + First, NewString.StringLength);
+			NewString.StringData = (CharType*)Allocator::AllocateMemory(sizeof(CharType) * (NewString.StringLength + 1));
+			memcpy(NewString.StringData, (CharType*)StringData + First, NewString.StringLength);
 			NewString.StringData[NewString.StringLength] = 0;
 
 			return NewString;
@@ -184,8 +218,9 @@ class StringTemplate
 
 	private:
 
-		char *StringData;
+		CharType *StringData;
 		size_t StringLength;
 };
 
-using String = StringTemplate<>;
+using String = StringTemplate<char>;
+using UTF16String = StringTemplate<char16_t>;
