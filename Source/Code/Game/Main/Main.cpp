@@ -3,8 +3,6 @@
 
 #include "Main.h"
 
-#include "../../Engine/Containers/String.h"
-
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	Application::StartApplication(u"Paradox", hInstance);
