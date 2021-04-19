@@ -9,6 +9,8 @@
 
 #include <Engine/Engine.h>
 
+#include <MemoryManager/SystemAllocator.h>
+
 DEFINE_METACLASS_VARIABLE(StaticMeshEntity)
 
 void StaticMeshEntity::InitDefaultProperties()
@@ -32,7 +34,7 @@ void StaticMeshEntity::LoadFromFile(HANDLE File)
 		MetaClass *metaClass = Engine::GetEngine().GetGameFramework().GetMetaClassesTable()[ComponentClassName];
 
 		//void *componentPtr = Engine::GetEngine().GetMemoryManager().AllocateComponent(metaClass);
-		void *componentPtr = malloc(metaClass->GetClassSize()); 
+		void *componentPtr = SystemAllocator::AllocateMemory(metaClass->GetClassSize());
 		metaClass->ObjectConstructorFunc(componentPtr);
 		Component *component = (Component*)componentPtr;
 		component->SetMetaClass(metaClass);

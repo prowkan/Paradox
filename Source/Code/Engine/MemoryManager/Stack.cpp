@@ -3,13 +3,15 @@
 
 #include "Stack.h"
 
+#include "SystemAllocator.h"
+
 void Stack::CreateStack(const size_t StackSize)
 {
-	StackData = HeapAlloc(GetProcessHeap(), 0, StackSize);
+	StackData = SystemAllocator::AllocateMemory(StackSize);
 }
 
 void Stack::DestroyStack()
 {
-	BOOL Result = HeapFree(GetProcessHeap(), 0, StackData);
+	SystemAllocator::FreeMemory(StackData);
 	StackData = nullptr;
 }

@@ -8,12 +8,14 @@
 
 #include <Engine/Engine.h>
 
+#include <MemoryManager/SystemAllocator.h>
+
 DEFINE_METACLASS_VARIABLE(Entity)
 
 Component* Entity::CreateDefaultComponent(MetaClass* metaClass)
 {
 	//void *componentPtr = Engine::GetEngine().GetMemoryManager().AllocateComponent(metaClass);
-	void *componentPtr = malloc(metaClass->GetClassSize());
+	void *componentPtr = SystemAllocator::AllocateMemory(metaClass->GetClassSize());
 	metaClass->ObjectConstructorFunc(componentPtr);
 	Component *component = (Component*)componentPtr;
 	component->SetMetaClass(metaClass);
