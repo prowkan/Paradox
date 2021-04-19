@@ -22,7 +22,7 @@ class DynamicArray
 
 			ArrayData = (T*)Allocator::AllocateMemory(sizeof(T) * ArrayCapacity);
 
-			for (int i = 0; i < ArrayLength; i++)
+			for (size_t i = 0; i < ArrayLength; i++)
 			{
 				ArrayData[i] = OtherArray.ArrayData[i];
 			}
@@ -30,7 +30,7 @@ class DynamicArray
 
 		DynamicArray& operator=(const DynamicArray& OtherArray)
 		{
-			for (int i = 0; i < ArrayLength; i++)
+			for (size_t i = 0; i < ArrayLength; i++)
 			{
 				ArrayData[i].~T();
 			}
@@ -42,7 +42,7 @@ class DynamicArray
 
 			ArrayData = (T*)Allocator::AllocateMemory(sizeof(T) * ArrayCapacity);
 
-			for (int i = 0; i < ArrayLength; i++)
+			for (size_t i = 0; i < ArrayLength; i++)
 			{
 				ArrayData[i] = OtherArray.ArrayData[i];
 			}
@@ -52,7 +52,7 @@ class DynamicArray
 
 		~DynamicArray()
 		{
-			for (int i = 0; i < ArrayLength; i++)
+			for (size_t i = 0; i < ArrayLength; i++)
 			{
 				ArrayData[i].~T();
 			}
@@ -120,13 +120,13 @@ class DynamicArray
 
 			ArrayData = (T*)Allocator::AllocateMemory(sizeof(T) * ArrayCapacity);
 
-			for (int i = 0; i < ArrayLength; i++)
+			for (size_t i = 0; i < ArrayLength; i++)
 			{
 				ArrayData[i] = OldArrayData[i];
 				OldArrayData[i].~T();
 			}
 
-			for (int i = 0; i < OtherArray.ArrayLength; i++)
+			for (size_t i = 0; i < OtherArray.ArrayLength; i++)
 			{
 				ArrayData[ArrayLength + i] = OtherArray.ArrayData[i];
 			}
@@ -158,7 +158,7 @@ class DynamicArray
 
 		void Clear()
 		{
-			for (int i = 0; i < ArrayLength; i++)
+			for (size_t i = 0; i < ArrayLength; i++)
 			{
 				ArrayData[i].~T();
 			}

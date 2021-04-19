@@ -8,6 +8,7 @@
 void Stack::CreateStack(const size_t StackSize)
 {
 	StackData = SystemAllocator::AllocateMemory(StackSize);
+	StackOffset = 0;
 }
 
 void Stack::DestroyStack()

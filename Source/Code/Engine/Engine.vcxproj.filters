@@ -144,9 +144,6 @@
     <ClInclude Include="Config\ConfigSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Render\RenderDevice.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Render\ClusterizationSubSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -220,6 +217,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Render\RenderPasses\ComputePass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\RenderGraph.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -347,9 +347,6 @@
     <ClCompile Include="Config\ConfigSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Render\RenderDevice.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Render\ClusterizationSubSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -420,6 +417,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Render\RenderPasses\ComputePass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Render\RenderGraph.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

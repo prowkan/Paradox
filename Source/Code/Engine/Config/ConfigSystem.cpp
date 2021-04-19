@@ -59,7 +59,7 @@ void ConfigSystem::InitSystem()
 
 		while (true)
 		{
-			if ((RenderConfigFileData[FilePointer] == '\r' && RenderConfigFileData[FilePointer + 1] == '\n') || (FilePointer >= RenderConfigFileSize.QuadPart))
+			if ((FilePointer >= RenderConfigFileSize.QuadPart) || (RenderConfigFileData[FilePointer] == '\r' && RenderConfigFileData[FilePointer + 1] == '\n'))
 			{
 				FilePointer += 2;
 				break;
@@ -119,7 +119,7 @@ int ConfigSystem::GetRenderConfigValueInt(const String& Section, const String& P
 
 	int Value = 0;
 
-	for (int i = 0; i < StrValue.GetLength(); i++)
+	for (size_t i = 0; i < StrValue.GetLength(); i++)
 	{
 		Value = Value * 10 + (StrValue[i] - '0');
 	}

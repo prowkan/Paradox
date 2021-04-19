@@ -31,7 +31,7 @@ class StringTemplate
 		{
 			StringLength = 0;
 
-			for (int i = 0; Arg[i] != 0; i++) StringLength++;
+			for (size_t i = 0; Arg[i] != 0; i++) StringLength++;
 
 			StringData = (CharType*)Allocator::AllocateMemory(sizeof(CharType) * (StringLength + 1));
 
@@ -140,7 +140,7 @@ class StringTemplate
 
 		size_t FindLast(const CharType Ch)
 		{
-			for (size_t i = 0; i < StringLength; i++)
+			for (size_t i = StringLength - 1; i >= 0 && i != -1; i++)
 			{
 				if (StringData[i] == Ch) return i;
 			}

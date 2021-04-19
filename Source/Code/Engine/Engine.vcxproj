@@ -219,7 +219,7 @@
     <ClInclude Include="MultiThreading\WorkerThread.h" />
     <ClInclude Include="Render\ClusterizationSubSystem.h" />
     <ClInclude Include="Render\CullingSubSystem.h" />
-    <ClInclude Include="Render\RenderDevice.h" />
+    <ClInclude Include="Render\RenderGraph.h" />
     <ClInclude Include="Render\RenderPass.h" />
     <ClInclude Include="Render\RenderPasses\ComputePass.h" />
     <ClInclude Include="Render\RenderPasses\FullScreenPass.h" />
@@ -286,7 +286,7 @@
     <ClCompile Include="MultiThreading\WorkerThread.cpp" />
     <ClCompile Include="Render\ClusterizationSubSystem.cpp" />
     <ClCompile Include="Render\CullingSubSystem.cpp" />
-    <ClCompile Include="Render\RenderDevice.cpp" />
+    <ClCompile Include="Render\RenderGraph.cpp" />
     <ClCompile Include="Render\RenderPass.cpp" />
     <ClCompile Include="Render\RenderPasses\ComputePass.cpp" />
     <ClCompile Include="Render\RenderPasses\FullScreenPass.cpp" />

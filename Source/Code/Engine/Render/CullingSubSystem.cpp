@@ -75,7 +75,7 @@ DynamicArray<PointLightComponent*> CullingSubSystem::GetVisiblePointLightsInFrus
 
 	ExtractFrustumPlanesFromViewProjMatrix(ViewProjMatrix, FrustumPlanes);
 
-	for (int i = 0; i < InputPointLights.GetLength(); i++)
+	for (size_t i = 0; i < InputPointLights.GetLength(); i++)
 	{
 		XMFLOAT3 Location = InputPointLights[i]->GetTransformComponent()->GetLocation();
 		XMVECTOR SphereCenter = XMVectorSet(Location.x, Location.y, Location.z, 1.0f);
