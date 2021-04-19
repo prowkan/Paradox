@@ -3,15 +3,17 @@
 
 #include "Heap.h"
 
+#include "SystemAllocator.h"
+
 void Heap::CreateHeap(const size_t HeapSize)
 {
-	HeapData = HeapAlloc(GetProcessHeap(), 0, HeapSize);
+	HeapData = SystemAllocator::AllocateMemory(HeapSize);
 	HeapOffset = 0;
 }
 
 void Heap::DestroyHeap()
 {
-	BOOL Result = HeapFree(GetProcessHeap(), 0, HeapData);
+	SystemAllocator::FreeMemory(HeapData);
 	HeapData = nullptr;
 	HeapOffset = 0;
 }

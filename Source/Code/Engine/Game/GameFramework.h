@@ -5,6 +5,8 @@
 #include "Camera.h"
 #include "World.h"
 
+#include <Containers/HashTable.h>
+
 class GameFramework
 {
 	public:

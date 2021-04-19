@@ -7,9 +7,9 @@ Engine Engine::engine;
 
 void Engine::InitEngine()
 {
+	memoryManager.InitManager();
 	configSystem.InitSystem();
 	multiThreadingSystem.InitSystem();
-	memoryManager.InitManager();
 	fileSystem.InitSystem();
 	inputSystem.InitSystem();
 	renderSystem.InitSystem();

@@ -137,6 +137,12 @@ class HashTable
 
 						while (true)
 						{
+							if (TableCellIndex >= TableSize)
+							{
+								TableNode = nullptr;
+								break;
+							}
+
 							if (TableNodes[TableCellIndex])
 							{
 								TableNode = TableNodes[TableCellIndex];
@@ -145,9 +151,19 @@ class HashTable
 
 							TableCellIndex++;
 						}
-					}
+					}					
 
 					return *this;
+				}
+
+				bool operator!=(Iterator& OtherIterator)
+				{
+					return TableNode != OtherIterator.TableNode;
+				}
+
+				NodeType*& operator*()
+				{
+					return TableNode;
 				}
 		};
 
@@ -164,7 +180,7 @@ class HashTable
 
 		Iterator End()
 		{
-
+			return Iterator(TableSize, Nodes, nullptr);
 		}
 
 	private:
@@ -182,3 +198,15 @@ class HashTable
 
 		int Size;
 };
+
+template<typename KeyType, typename ValueType>
+typename HashTable<KeyType, ValueType>::Iterator begin(HashTable<KeyType, ValueType>& Table)
+{
+	return Table.Begin();
+}
+
+template<typename KeyType, typename ValueType>
+typename HashTable<KeyType, ValueType>::Iterator end(HashTable<KeyType, ValueType>& Table)
+{
+	return Table.End();
+}
