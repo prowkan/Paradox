@@ -5,6 +5,8 @@
 
 #include <Containers/DynamicArray.h>
 
+#include <MemoryManager/SystemAllocator.h>
+
 struct FileRecord
 {
 	char FileName[1024];
@@ -51,8 +53,6 @@ void FileSystem::FindAssetsRecursively(const char16_t* BaseDirectory)
 	{
 		do
 		{
-			//wcout << FindData.cFileName << endl;
-
 			if (FindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY && wcscmp(FindData.cFileName, (const wchar_t*)u".") != 0 && wcscmp(FindData.cFileName, (const wchar_t*)u"..") != 0)
 			{
 				char16_t Directory[255] = { 0 };
@@ -84,8 +84,6 @@ void FileSystem::FindAssetsRecursively(const char16_t* BaseDirectory)
 			wcscat((wchar_t*)FileName, (const wchar_t*)BaseDirectory);
 			wcscat((wchar_t*)FileName, (const wchar_t*)u"/");
 			wcscat((wchar_t*)FileName, (const wchar_t*)FindData.cFileName);
-
-			//wcout << (const wchar_t*)FileName << endl;
 
 			u16string FileNameStr(FileName);
 			FileNameStr = FileNameStr.substr(FileNameStr.find('/') + 1);
@@ -164,7 +162,7 @@ void FileSystem::InitSystem()
 
 			ShadersTable.Insert(FileNameKey, ShaderData{});
 			ShadersTable[FileNameKey].Size = (size_t)FileSize.QuadPart;
-			ShadersTable[FileNameKey].Data = malloc(FileSize.QuadPart);
+			ShadersTable[FileNameKey].Data = SystemAllocator::AllocateMemory(FileSize.QuadPart);
 
 			Result = ReadFile(FileHandle, ShadersTable[FileNameKey].Data, (DWORD)FileSize.QuadPart, NULL, NULL);
 
@@ -213,7 +211,7 @@ void FileSystem::InitSystem()
 
 			ShadersTable.Insert(FileNameKey, ShaderData{});
 			ShadersTable[FileNameKey].Size = (size_t)FileSize.QuadPart;
-			ShadersTable[FileNameKey].Data = malloc(FileSize.QuadPart);
+			ShadersTable[FileNameKey].Data = SystemAllocator::AllocateMemory(FileSize.QuadPart);
 
 			Result = ReadFile(FileHandle, ShadersTable[FileNameKey].Data, (DWORD)FileSize.QuadPart, NULL, NULL);
 

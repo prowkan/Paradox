@@ -211,6 +211,7 @@
     <ClInclude Include="MemoryManager\ScopedMemoryBlock.h" />
     <ClInclude Include="MemoryManager\ScopedMemoryBlockBase.h" />
     <ClInclude Include="MemoryManager\Stack.h" />
+    <ClInclude Include="MemoryManager\SystemAllocator.h" />
     <ClInclude Include="MultiThreading\MultiThreadingSystem.h" />
     <ClInclude Include="MultiThreading\Task.h" />
     <ClInclude Include="MultiThreading\Tasks\FrustumCullingTask.h" />
@@ -272,6 +273,7 @@
     <ClCompile Include="MemoryManager\Pool.cpp" />
     <ClCompile Include="MemoryManager\ScopedMemoryBlockBase.cpp" />
     <ClCompile Include="MemoryManager\Stack.cpp" />
+    <ClCompile Include="MemoryManager\SystemAllocator.cpp" />
     <ClCompile Include="MultiThreading\MultiThreadingSystem.cpp" />
     <ClCompile Include="MultiThreading\Task.cpp" />
     <ClCompile Include="MultiThreading\Tasks\FrustumCullingTask.cpp" />
@@ -309,6 +311,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="Debug.natvis" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

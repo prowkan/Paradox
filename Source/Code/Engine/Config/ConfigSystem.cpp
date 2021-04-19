@@ -5,6 +5,8 @@
 
 #include <Containers/DynamicArray.h>
 
+#include <MemoryManager/SystemAllocator.h>
+
 String Trim(const String& InputString)
 {
 	String OutputString = InputString;
@@ -41,7 +43,7 @@ void ConfigSystem::InitSystem()
 	HANDLE RenderConfigFileHandle = CreateFile((const wchar_t*)u"Config/Render.cfg", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER RenderConfigFileSize;
 	BOOL Result = GetFileSizeEx(RenderConfigFileHandle, &RenderConfigFileSize);
-	BYTE *RenderConfigFileData = (BYTE*)malloc(RenderConfigFileSize.QuadPart);
+	BYTE *RenderConfigFileData = (BYTE*)SystemAllocator::AllocateMemory(RenderConfigFileSize.QuadPart);
 	Result = ReadFile(RenderConfigFileHandle, RenderConfigFileData, (DWORD)RenderConfigFileSize.QuadPart, NULL, NULL);
 	Result = CloseHandle(RenderConfigFileHandle);
 
@@ -70,17 +72,12 @@ void ConfigSystem::InitSystem()
 		CurrentLine = Trim(CurrentLine);
 
 		ConfigFileLines.Add(CurrentLine);
-
-		//cout << CurrentLine << endl;
 	}
 
 	String CurrentSection;
 
 	for (const String& ConfigLine : ConfigFileLines)
-	//for (size_t i = 0; i < ConfigFileLines.GetLength(); i++)
 	{
-		//String& ConfigLine = ConfigFileLines[i];
-
 		if (ConfigLine[0] == '[')
 		{
 			String SectionName = ConfigLine;
@@ -102,6 +99,8 @@ void ConfigSystem::InitSystem()
 			RenderConfig[CurrentSection].Insert(Param, Value);
 		}
 	}
+
+	SystemAllocator::FreeMemory(RenderConfigFileData);
 }
 
 void ConfigSystem::ShutdownSystem()

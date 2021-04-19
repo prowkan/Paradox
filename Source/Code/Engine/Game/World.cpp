@@ -21,6 +21,8 @@
 #include <ResourceManager/Resources/Render/Textures/Texture2DResource.h>
 #include <ResourceManager/Resources/Render/Materials/MaterialResource.h>
 
+#include <MemoryManager/SystemAllocator.h>
+
 void World::LoadWorld()
 {
 	struct StaticMeshFileHeader
@@ -166,7 +168,7 @@ void World::LoadWorld()
 		MetaClass *metaClass = Engine::GetEngine().GetGameFramework().GetMetaClassesTable()[EntityClassName];
 
 		//void *entityPtr = Engine::GetEngine().GetMemoryManager().AllocateEntity(metaClass);
-		void *entityPtr = malloc(metaClass->GetClassSize());
+		void *entityPtr = SystemAllocator::AllocateMemory(metaClass->GetClassSize());
 		metaClass->ObjectConstructorFunc(entityPtr);
 		Entity *entity = (Entity*)entityPtr;
 		String EntityName = String(metaClass->GetClassName()) + "_" + String((int)metaClass->InstancesCount);
@@ -191,7 +193,7 @@ void World::UnLoadWorld()
 Entity* World::SpawnEntity(MetaClass* metaClass)
 {
 	//void *entityPtr = Engine::GetEngine().GetMemoryManager().AllocateEntity(metaClass);
-	void *entityPtr = malloc(metaClass->GetClassSize());
+	void *entityPtr = SystemAllocator::AllocateMemory(metaClass->GetClassSize());
 	metaClass->ObjectConstructorFunc(entityPtr);
 	Entity *entity = (Entity*)entityPtr;
 	String EntityName = String(metaClass->GetClassName()) + "_" + String((int)metaClass->InstancesCount);
