@@ -2,6 +2,8 @@
 
 #include "../RenderStage.h"
 
+#include "../RenderPasses/ScenePass.h"
+
 class GBufferOpaqueStage : public RenderStage
 {
 	public:
@@ -12,5 +14,7 @@ class GBufferOpaqueStage : public RenderStage
 		virtual const char* GetName() override { return "GBufferOpaqueStage"; }
 
 	private:
+
+		ScenePass GBufferOpaquePass;
 
 };

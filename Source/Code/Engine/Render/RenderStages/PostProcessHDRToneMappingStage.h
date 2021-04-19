@@ -2,6 +2,8 @@
 
 #include "../RenderStage.h"
 
+#include "../RenderPasses/FullScreenPass.h"
+
 class PostProcessHDRToneMappingStage : public RenderStage
 {
 	public:
@@ -12,4 +14,6 @@ class PostProcessHDRToneMappingStage : public RenderStage
 		virtual const char* GetName() override { return "PostProcessHDRToneMappingStage"; }
 
 	private:
+
+		FullScreenPass PostProcessHDRToneMappingPass;
 };

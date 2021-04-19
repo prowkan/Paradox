@@ -2,6 +2,8 @@
 
 #include "../RenderStage.h"
 
+#include "../RenderPasses/FullScreenPass.h"
+
 class PostProcessBloomStage : public RenderStage
 {
 	public:
@@ -12,4 +14,6 @@ class PostProcessBloomStage : public RenderStage
 		virtual const char* GetName() override { return "PostProcessBloomStage"; }
 
 	private:
+
+		FullScreenPass *BloomPasses;
 };

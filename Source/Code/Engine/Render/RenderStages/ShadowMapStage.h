@@ -2,6 +2,8 @@
 
 #include "../RenderStage.h"
 
+#include "../RenderPasses/ScenePass.h"
+
 class ShadowMapStage : public RenderStage
 {
 	public:
@@ -12,4 +14,6 @@ class ShadowMapStage : public RenderStage
 		virtual const char* GetName() override { return "ShadowMapStage"; }
 
 	private:
+
+		ScenePass CascadedShadowMapPasses[4];
 };

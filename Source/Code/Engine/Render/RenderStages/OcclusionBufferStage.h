@@ -2,6 +2,8 @@
 
 #include "../RenderStage.h"
 
+#include "../RenderPasses/FullScreenPass.h"
+
 class OcclusionBufferStage : public RenderStage
 {
 	public:
@@ -13,4 +15,5 @@ class OcclusionBufferStage : public RenderStage
 
 	private:
 
+		FullScreenPass OcclusionBufferPass;
 };

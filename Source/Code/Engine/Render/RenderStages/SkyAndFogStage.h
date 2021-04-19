@@ -2,6 +2,9 @@
 
 #include "../RenderStage.h"
 
+#include "../RenderPasses/FullScreenPass.h"
+#include "../RenderPass.h"
+
 class SkyAndFogStage : public RenderStage
 {
 	public:
@@ -13,4 +16,6 @@ class SkyAndFogStage : public RenderStage
 
 	private:
 
+		FullScreenPass FogPass;
+		RenderPass SkyPass;
 };

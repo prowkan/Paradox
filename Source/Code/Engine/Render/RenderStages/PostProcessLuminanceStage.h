@@ -2,6 +2,8 @@
 
 #include "../RenderStage.h"
 
+#include "../RenderPasses/ComputePass.h"
+
 class PostProcessLuminanceStage : public RenderStage
 {
 	public:
@@ -13,4 +15,5 @@ class PostProcessLuminanceStage : public RenderStage
 
 	private:
 
+		ComputePass *SceneLuminancePasses;
 };

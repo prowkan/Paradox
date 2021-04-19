@@ -220,6 +220,11 @@
     <ClInclude Include="Render\ClusterizationSubSystem.h" />
     <ClInclude Include="Render\CullingSubSystem.h" />
     <ClInclude Include="Render\RenderDevice.h" />
+    <ClInclude Include="Render\RenderPass.h" />
+    <ClInclude Include="Render\RenderPasses\ComputePass.h" />
+    <ClInclude Include="Render\RenderPasses\FullScreenPass.h" />
+    <ClInclude Include="Render\RenderPasses\ResolvePass.h" />
+    <ClInclude Include="Render\RenderPasses\ScenePass.h" />
     <ClInclude Include="Render\RenderScene.h" />
     <ClInclude Include="Render\RenderStage.h" />
     <ClInclude Include="Render\RenderStages\BackBufferResolveStage.h" />
@@ -282,6 +287,11 @@
     <ClCompile Include="Render\ClusterizationSubSystem.cpp" />
     <ClCompile Include="Render\CullingSubSystem.cpp" />
     <ClCompile Include="Render\RenderDevice.cpp" />
+    <ClCompile Include="Render\RenderPass.cpp" />
+    <ClCompile Include="Render\RenderPasses\ComputePass.cpp" />
+    <ClCompile Include="Render\RenderPasses\FullScreenPass.cpp" />
+    <ClCompile Include="Render\RenderPasses\ResolvePass.cpp" />
+    <ClCompile Include="Render\RenderPasses\ScenePass.cpp" />
     <ClCompile Include="Render\RenderScene.cpp" />
     <ClCompile Include="Render\RenderStage.cpp" />
     <ClCompile Include="Render\RenderStages\BackBufferResolveStage.cpp" />

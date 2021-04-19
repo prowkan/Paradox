@@ -2,7 +2,7 @@
 
 #include "../RenderStage.h"
 
-#include <Containers/COMRCPtr.h>
+#include "../RenderPasses/ResolvePass.h"
 
 class BackBufferResolveStage : public RenderStage
 {
@@ -14,4 +14,6 @@ class BackBufferResolveStage : public RenderStage
 		virtual const char* GetName() override { return "BackBufferResolveStage"; }
 
 	private:
+
+		ResolvePass BackBufferResolvePass;
 };

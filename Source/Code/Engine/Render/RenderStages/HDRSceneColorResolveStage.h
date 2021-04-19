@@ -2,6 +2,8 @@
 
 #include "../RenderStage.h"
 
+#include "../RenderPasses/ResolvePass.h"
+
 class HDRSceneColorResolveStage : public RenderStage
 {
 	public:
@@ -12,4 +14,6 @@ class HDRSceneColorResolveStage : public RenderStage
 		virtual const char* GetName() override { return "HDRSceneColorResolveStage"; }
 
 	private:
+
+		ResolvePass HDRSceneColorResolvePass;
 };

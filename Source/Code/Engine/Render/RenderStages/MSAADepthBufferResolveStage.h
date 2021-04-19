@@ -2,6 +2,8 @@
 
 #include "../RenderStage.h"
 
+#include "../RenderPasses/ResolvePass.h"
+
 class MSAADepthBufferResolveStage : public RenderStage
 {
 	public:
@@ -13,4 +15,5 @@ class MSAADepthBufferResolveStage : public RenderStage
 
 	private:
 
+		ResolvePass MSAADepthBufferResolvePass;
 };

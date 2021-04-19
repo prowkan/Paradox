@@ -2,6 +2,8 @@
 
 #include "../RenderStage.h"
 
+#include "../RenderPasses/FullScreenPass.h"
+
 class ShadowResolveStage : public RenderStage
 {
 	public:
@@ -13,4 +15,5 @@ class ShadowResolveStage : public RenderStage
 
 	private:
 
+		FullScreenPass ShadowResolvePass;
 };

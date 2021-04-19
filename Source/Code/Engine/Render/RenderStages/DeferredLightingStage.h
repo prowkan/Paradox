@@ -2,6 +2,8 @@
 
 #include "../RenderStage.h"
 
+#include "../RenderPasses/FullScreenPass.h"
+
 class DeferredLightingStage : public RenderStage
 {
 	public:
@@ -13,4 +15,5 @@ class DeferredLightingStage : public RenderStage
 
 	private:
 
+		FullScreenPass DeferredLightingPass;
 };
