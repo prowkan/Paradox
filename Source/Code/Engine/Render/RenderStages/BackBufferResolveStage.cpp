@@ -3,12 +3,12 @@
 
 #include "BackBufferResolveStage.h"
 
-void BackBufferResolveStage::Init(RenderDevice* renderDevice)
+void BackBufferResolveStage::Init(RenderGraph* renderGraph)
 {
 	
 }
 
-void BackBufferResolveStage::Execute(RenderDevice* renderDevice)
+void BackBufferResolveStage::Execute()
 {
 	
 }

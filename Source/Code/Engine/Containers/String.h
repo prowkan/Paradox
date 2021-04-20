@@ -110,7 +110,7 @@ class StringTemplate
 			return *this;
 		}
 
-		bool operator==(const StringTemplate& OtherString)
+		bool operator==(const StringTemplate& OtherString) const
 		{
 			if (StringLength != OtherString.StringLength) return false;
 
@@ -128,7 +128,7 @@ class StringTemplate
 
 		const CharType* GetData() const { return StringData; }
 
-		size_t FindFirst(const CharType Ch)
+		size_t FindFirst(const CharType Ch) const
 		{
 			for (size_t i = 0; i < StringLength; i++)
 			{
@@ -138,7 +138,7 @@ class StringTemplate
 			return -1;
 		}
 
-		size_t FindLast(const CharType Ch)
+		size_t FindLast(const CharType Ch) const
 		{
 			for (size_t i = StringLength - 1; i >= 0 && i != -1; i++)
 			{
@@ -196,7 +196,7 @@ class StringTemplate
 			return NewString;
 		}
 
-		StringTemplate GetSubString(size_t First, size_t Length = -1)
+		StringTemplate GetSubString(size_t First, size_t Length = -1) const
 		{
 			StringTemplate NewString;
 

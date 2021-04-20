@@ -3,6 +3,9 @@
 #include "CullingSubSystem.h"
 #include "ClusterizationSubSystem.h"
 
+#include "RenderGraph.h"
+#include "RenderStage.h"
+
 struct RenderMesh
 {
 	VkBuffer MeshBuffer;
@@ -362,4 +365,7 @@ class RenderSystem
 		inline const char16_t* GetVulkanErrorMessageFromVkResult(VkResult Result);
 
 		static const UINT MAX_MIP_LEVELS_IN_TEXTURE = 16;
+
+		RenderGraph renderGraph;
+		DynamicArray<RenderStage*> RenderStages;
 };

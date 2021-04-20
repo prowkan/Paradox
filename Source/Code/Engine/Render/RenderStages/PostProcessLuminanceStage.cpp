@@ -3,12 +3,64 @@
 
 #include "PostProcessLuminanceStage.h"
 
-void PostProcessLuminanceStage::Init(RenderDevice* renderDevice)
+#include "../RenderGraph.h"
+
+void PostProcessLuminanceStage::Init(RenderGraph* renderGraph)
 {
-	
+	VkImageCreateInfo ImageCreateInfo;
+	ImageCreateInfo.arrayLayers = 1;
+	ImageCreateInfo.extent.depth = 1;
+	//ImageCreateInfo.extent.height = ResolutionHeight;
+	//ImageCreateInfo.extent.width = ResolutionWidth;
+	ImageCreateInfo.flags = 0;
+	ImageCreateInfo.format = VkFormat::VK_FORMAT_R32_SFLOAT;
+	ImageCreateInfo.imageType = VkImageType::VK_IMAGE_TYPE_2D;
+	ImageCreateInfo.initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
+	ImageCreateInfo.mipLevels = 1;
+	ImageCreateInfo.pNext = nullptr;
+	ImageCreateInfo.pQueueFamilyIndices = nullptr;
+	ImageCreateInfo.queueFamilyIndexCount = 0;
+	ImageCreateInfo.samples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
+	ImageCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
+	ImageCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	ImageCreateInfo.tiling = VkImageTiling::VK_IMAGE_TILING_OPTIMAL;
+	ImageCreateInfo.usage = VkImageUsageFlagBits::VK_IMAGE_USAGE_STORAGE_BIT | VkImageUsageFlagBits::VK_IMAGE_USAGE_SAMPLED_BIT;
+
+	int Widths[4] = { 1280, 80, 5, 1 };
+	int Heights[4] = { 720, 45, 3, 1 };
+
+	for (int i = 0; i < 4; i++)
+	{
+		ImageCreateInfo.extent.height = Heights[i];
+		ImageCreateInfo.extent.width = Widths[i];
+
+		//SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &SceneLuminanceTextures[i]));
+		renderGraph->CreateTexture(ImageCreateInfo, String("SceneLuminanceTexture") + String(i));
+	}
+
+	ImageCreateInfo.arrayLayers = 1;
+	ImageCreateInfo.extent.depth = 1;
+	ImageCreateInfo.extent.height = 1;
+	ImageCreateInfo.extent.width = 1;
+	ImageCreateInfo.flags = 0;
+	ImageCreateInfo.format = VkFormat::VK_FORMAT_R32_SFLOAT;
+	ImageCreateInfo.imageType = VkImageType::VK_IMAGE_TYPE_2D;
+	ImageCreateInfo.initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
+	ImageCreateInfo.mipLevels = 1;
+	ImageCreateInfo.pNext = nullptr;
+	ImageCreateInfo.pQueueFamilyIndices = nullptr;
+	ImageCreateInfo.queueFamilyIndexCount = 0;
+	ImageCreateInfo.samples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
+	ImageCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
+	ImageCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	ImageCreateInfo.tiling = VkImageTiling::VK_IMAGE_TILING_OPTIMAL;
+	ImageCreateInfo.usage = VkImageUsageFlagBits::VK_IMAGE_USAGE_STORAGE_BIT | VkImageUsageFlagBits::VK_IMAGE_USAGE_SAMPLED_BIT;
+
+	//SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &AverageLuminanceTexture));
+	renderGraph->CreateTexture(ImageCreateInfo, "AverageLuminanceTexture");
 }
 
-void PostProcessLuminanceStage::Execute(RenderDevice* renderDevice)
+void PostProcessLuminanceStage::Execute()
 {
 	
 }

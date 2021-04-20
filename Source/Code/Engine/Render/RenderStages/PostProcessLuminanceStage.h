@@ -8,12 +8,12 @@ class PostProcessLuminanceStage : public RenderStage
 {
 	public:
 
-		virtual void Init(RenderDevice* renderDevice) override;
-		virtual void Execute(RenderDevice* renderDevice) override;
+		virtual void Init(RenderGraph* renderGraph) override;
+		virtual void Execute() override;
 
 		virtual const char* GetName() override { return "PostProcessLuminanceStage"; }
 
 	private:
 
-		ComputePass *SceneLuminancePasses;
+		ComputePass **SceneLuminancePasses;
 };

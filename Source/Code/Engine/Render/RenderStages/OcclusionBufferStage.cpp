@@ -3,12 +3,12 @@
 
 #include "OcclusionBufferStage.h"
 
-void OcclusionBufferStage::Init(RenderDevice* renderDevice)
+void OcclusionBufferStage::Init(RenderGraph* renderGraph)
 {
 	
 }
 
-void OcclusionBufferStage::Execute(RenderDevice* renderDevice)
+void OcclusionBufferStage::Execute()
 {
 	
 }

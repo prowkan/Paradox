@@ -3,12 +3,12 @@
 
 #include "SkyAndFogStage.h"
 
-void SkyAndFogStage::Init(RenderDevice* renderDevice)
+void SkyAndFogStage::Init(RenderGraph* renderGraph)
 {
 	
 }
 
-void SkyAndFogStage::Execute(RenderDevice* renderDevice)
+void SkyAndFogStage::Execute()
 {
 	
 }

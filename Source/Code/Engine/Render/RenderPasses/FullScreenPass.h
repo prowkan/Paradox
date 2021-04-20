@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../RenderPass.h"
+#include "GraphicsPass.h"
 
-class FullScreenPass : public RenderPass
+class FullScreenPass : public GraphicsPass
 {
 
 };

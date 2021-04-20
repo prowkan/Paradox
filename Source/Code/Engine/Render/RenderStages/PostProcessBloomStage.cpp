@@ -3,12 +3,48 @@
 
 #include "PostProcessBloomStage.h"
 
-void PostProcessBloomStage::Init(RenderDevice* renderDevice)
+#include "../RenderGraph.h"
+
+void PostProcessBloomStage::Init(RenderGraph* renderGraph)
 {
-	
+	uint32_t ResolutionWidth = 1280;
+	uint32_t ResolutionHeight = 720;
+
+	VkImageCreateInfo ImageCreateInfo;
+	ImageCreateInfo.arrayLayers = 1;
+	ImageCreateInfo.extent.depth = 1;
+	//ImageCreateInfo.extent.height = ResolutionHeight;
+	//ImageCreateInfo.extent.width = ResolutionWidth;
+	ImageCreateInfo.flags = 0;
+	ImageCreateInfo.format = VkFormat::VK_FORMAT_R16G16B16A16_SFLOAT;
+	ImageCreateInfo.imageType = VkImageType::VK_IMAGE_TYPE_2D;
+	ImageCreateInfo.initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
+	ImageCreateInfo.mipLevels = 1;
+	ImageCreateInfo.pNext = nullptr;
+	ImageCreateInfo.pQueueFamilyIndices = nullptr;
+	ImageCreateInfo.queueFamilyIndexCount = 0;
+	ImageCreateInfo.samples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
+	ImageCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
+	ImageCreateInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	ImageCreateInfo.tiling = VkImageTiling::VK_IMAGE_TILING_OPTIMAL;
+	ImageCreateInfo.usage = VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VkImageUsageFlagBits::VK_IMAGE_USAGE_SAMPLED_BIT;
+
+	for (int i = 0; i < 7; i++)
+	{
+		ImageCreateInfo.extent.height = ResolutionHeight >> i;
+		ImageCreateInfo.extent.width = ResolutionWidth >> i;
+
+		/*SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &BloomTextures[0][i]));
+		SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &BloomTextures[1][i]));
+		SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &BloomTextures[2][i]));*/
+
+		renderGraph->CreateTexture(ImageCreateInfo, String("BloomTextures") + String(0) + String(i));
+		renderGraph->CreateTexture(ImageCreateInfo, String("BloomTextures") + String(1) + String(i));
+		renderGraph->CreateTexture(ImageCreateInfo, String("BloomTextures") + String(2) + String(i));
+	}
 }
 
-void PostProcessBloomStage::Execute(RenderDevice* renderDevice)
+void PostProcessBloomStage::Execute()
 {
 	
 }

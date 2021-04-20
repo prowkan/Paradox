@@ -3,6 +3,19 @@
 
 #include "RenderSystem.h"
 
+#include "RenderStages/GBufferOpaqueStage.h"
+#include "RenderStages/MSAADepthBufferResolveStage.h"
+#include "RenderStages/OcclusionBufferStage.h"
+#include "RenderStages/ShadowMapStage.h"
+#include "RenderStages/ShadowResolveStage.h"
+#include "RenderStages/DeferredLightingStage.h"
+#include "RenderStages/SkyAndFogStage.h"
+#include "RenderStages/HDRSceneColorResolveStage.h"
+#include "RenderStages/PostProcessLuminanceStage.h"
+#include "RenderStages/PostProcessBloomStage.h"
+#include "RenderStages/PostProcessHDRToneMappingStage.h"
+#include "RenderStages/BackBufferResolveStage.h"
+
 #include <Core/Application.h>
 
 #include <Engine/Engine.h>
@@ -5006,6 +5019,26 @@ void RenderSystem::InitSystem()
 	vkDestroyShaderModule(Device, FullScreenQuadShaderModule, nullptr);
 
 	clusterizationSubSystem.PreComputeClustersPlanes();
+
+	RenderStages.Add(new GBufferOpaqueStage());
+	RenderStages.Add(new MSAADepthBufferResolveStage());
+	RenderStages.Add(new OcclusionBufferStage());
+	RenderStages.Add(new ShadowMapStage());
+	RenderStages.Add(new ShadowResolveStage());
+	RenderStages.Add(new DeferredLightingStage());
+	RenderStages.Add(new SkyAndFogStage());
+	RenderStages.Add(new HDRSceneColorResolveStage());
+	RenderStages.Add(new PostProcessLuminanceStage());
+	RenderStages.Add(new PostProcessBloomStage());
+	RenderStages.Add(new PostProcessHDRToneMappingStage());
+	RenderStages.Add(new BackBufferResolveStage());
+
+	for (RenderStage* renderStage : RenderStages)
+	{
+		renderStage->Init(&renderGraph);
+	}
+
+	cout << "Render graph was built." << endl;
 }
 
 void RenderSystem::ShutdownSystem()
