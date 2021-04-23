@@ -13,7 +13,7 @@
 #include <Windows.h>
 #include <DbgHelp.h>
 
-#include <d3d12.h>
+#include "F:/D3D12SDK/d3d12.h"
 #include <dxgi1_6.h>
 
 #include "F:/DirectXMath/Inc/DirectXMath.h"

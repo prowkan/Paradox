@@ -3,6 +3,9 @@
 
 #include "Main.h"
 
+extern "C" { _declspec(dllexport) extern const UINT D3D12SDKVersion = 4; }
+extern "C" { _declspec(dllexport) extern const char* D3D12SDKPath = u8".\\"; }
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	Application::StartApplication(u"Paradox", hInstance);
