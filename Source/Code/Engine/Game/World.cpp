@@ -45,12 +45,12 @@ void World::LoadWorld()
 	for (int k = 0; k < 4000; k++)
 	{
 		char StaticMeshFileName[255];
-		sprintf(StaticMeshFileName, "Objects.SM_Cube_%d", k);
+		sprintf(StaticMeshFileName, "Test.SM_Cube_%d", k);
 
 		ScopedMemoryBlockArray<BYTE> StaticMeshData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(Engine::GetEngine().GetFileSystem().GetFileSize(StaticMeshFileName));
 		Engine::GetEngine().GetFileSystem().LoadFile(StaticMeshFileName, StaticMeshData);
 
-		StaticMeshFileHeader *staticMeshFileHeader = StaticMeshData;
+		StaticMeshFileHeader *staticMeshFileHeader = (StaticMeshFileHeader*)((BYTE*)StaticMeshData + 2);
 
 		StaticMeshResourceCreateInfo staticMeshResourceCreateInfo;
 		staticMeshResourceCreateInfo.VertexCount = staticMeshFileHeader->VertexCount;
@@ -67,12 +67,12 @@ void World::LoadWorld()
 	for (int k = 0; k < 4000; k++)
 	{
 		char Texture2DFileName[255];
-		sprintf(Texture2DFileName, "Textures.T_Default_%d_D", k);
+		sprintf(Texture2DFileName, "Test.T_Default_%d_D", k);
 
 		ScopedMemoryBlockArray<BYTE> TextureData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(Engine::GetEngine().GetFileSystem().GetFileSize(Texture2DFileName));
 		Engine::GetEngine().GetFileSystem().LoadFile(Texture2DFileName, TextureData);
 
-		TextureFileHeader *textureFileHeader = TextureData;
+		TextureFileHeader *textureFileHeader = (TextureFileHeader*)((BYTE*)TextureData + 2);
 
 		Texture2DResourceCreateInfo texture2DResourceCreateInfo;
 		texture2DResourceCreateInfo.Height = textureFileHeader->Height;
@@ -93,12 +93,12 @@ void World::LoadWorld()
 	for (int k = 0; k < 4000; k++)
 	{
 		char Texture2DFileName[255];
-		sprintf(Texture2DFileName, "Textures.T_Default_%d_N", k);
+		sprintf(Texture2DFileName, "Test.T_Default_%d_N", k);
 
 		ScopedMemoryBlockArray<BYTE> TextureData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(Engine::GetEngine().GetFileSystem().GetFileSize(Texture2DFileName));
 		Engine::GetEngine().GetFileSystem().LoadFile(Texture2DFileName, TextureData);
 
-		TextureFileHeader *textureFileHeader = TextureData;
+		TextureFileHeader *textureFileHeader = (TextureFileHeader*)((BYTE*)TextureData + 2);
 
 		Texture2DResourceCreateInfo texture2DResourceCreateInfo;
 		texture2DResourceCreateInfo.Height = textureFileHeader->Height;
