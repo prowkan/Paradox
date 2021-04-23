@@ -33,13 +33,14 @@ struct VSObjectConstants
 ConstantBuffer<VSObjectDataIndicesConstants> VertexShaderObjectDataIndicesConstants : register(b0, space0);
 ConstantBuffer<VSMaterialDataIndicesConstants> VertexShaderMaterialDataIndicesConstants : register(b0, space1);
 ConstantBuffer<VSCameraConstants> VertexShaderCameraConstants : register(b0, space2);
-ConstantBuffer<VSObjectConstants> VertexShaderObjectsConstants[] : register(b0, space3);
 
 VSOutput VS(VSInput VertexShaderInput)
 {
 	VSOutput VertexShaderOutput;
 
-	float4x4 WVPMatrix = mul(VertexShaderObjectsConstants[VertexShaderObjectDataIndicesConstants.ObjectIndex].WorldMatrix, VertexShaderCameraConstants.ViewProjMatrix);
+	ConstantBuffer<VSObjectConstants> VertexShaderObjectsConstants = ResourceDescriptorHeap[1 + VertexShaderObjectDataIndicesConstants.ObjectIndex];
+
+	float4x4 WVPMatrix = mul(VertexShaderObjectsConstants.WorldMatrix, VertexShaderCameraConstants.ViewProjMatrix);
 	VertexShaderOutput.Position = mul(float4(VertexShaderInput.Position, 1.0f), WVPMatrix);
 	VertexShaderOutput.TexCoord = VertexShaderInput.TexCoord;
 

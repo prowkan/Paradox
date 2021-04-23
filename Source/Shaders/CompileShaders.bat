@@ -1,4 +1,4 @@
 @echo off
 
-"C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\fxc.exe" -T vs_5_1 -E VS -Zpr -enable_unbounded_descriptor_tables -Fo .\..\..\Build\GameContent\Shaders\MaterialBase_VertexShader.dxbc MaterialBase_VertexShader.hlsl
-"C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\fxc.exe" -T ps_5_1 -E PS -Zpr -enable_unbounded_descriptor_tables -Fo .\..\..\Build\GameContent\Shaders\MaterialBase_PixelShader.dxbc MaterialBase_PixelShader.hlsl
+"F:\DXCompiler\bin\x64\dxc.exe" -T vs_6_6 -E VS -Zpr -Fo .\..\..\Build\GameContent\Shaders\MaterialBase_VertexShader.dxil MaterialBase_VertexShader.hlsl
+"F:\DXCompiler\bin\x64\dxc.exe" -T ps_6_6 -E PS -Zpr -Fo .\..\..\Build\GameContent\Shaders\MaterialBase_PixelShader.dxil MaterialBase_PixelShader.hlsl
