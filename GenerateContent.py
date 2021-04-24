@@ -76,6 +76,7 @@ class Texture:
 
     def SerializeBC1(self):
         TextureBytes = bytearray()
+        TextureBytes.extend(int(0).to_bytes(2, byteorder='little', signed=False))
         TextureBytes.extend(int(self.Width).to_bytes(4, byteorder='little', signed=False))
         TextureBytes.extend(int(self.Height).to_bytes(4, byteorder='little', signed=False))
         TextureBytes.extend(int(self.MIPLevels).to_bytes(4, byteorder='little', signed=False))
@@ -101,6 +102,7 @@ class Texture:
 
     def SerializeBC5(self):
         TextureBytes = bytearray()
+        TextureBytes.extend(int(0).to_bytes(2, byteorder='little', signed=False))
         TextureBytes.extend(int(self.Width).to_bytes(4, byteorder='little', signed=False))
         TextureBytes.extend(int(self.Height).to_bytes(4, byteorder='little', signed=False))
         TextureBytes.extend(int(self.MIPLevels).to_bytes(4, byteorder='little', signed=False))
@@ -499,7 +501,7 @@ NormalTexture = GenerateNormalTexture()
 CompressedNormalTexture = CompressTextureBC5(NormalTexture)
 NormalTextureData = CompressedNormalTexture.SerializeBC5()
 
-os.chdir("F:/Paradox/Build/GameContent/Textures")
+os.chdir("F:/Paradox/Build/GameContent/Test")
 
 i = 0
 while i < 4000:
@@ -656,6 +658,7 @@ for i in range(8):
         Indices[5 * 8 * 8 * 6 + 8 * 6 * i + 6 * j + 5] = 5 * 81 + 9 * (i + 1) + j + 1
 
 CubeMeshData = bytearray()
+CubeMeshData.extend(int(2).to_bytes(2, byteorder='little', signed=False))
 CubeMeshData.extend(int(VertexCount).to_bytes(4, byteorder='little', signed=False))
 CubeMeshData.extend(int(IndexCount).to_bytes(4, byteorder='little', signed=False))
 
@@ -671,7 +674,7 @@ for TS in TangentSpaces:
 for Idx in Indices:
     CubeMeshData.extend(int(Idx).to_bytes(2, byteorder='little', signed=False))
 
-os.chdir("F:/Paradox/Build/GameContent/Objects")
+os.chdir("F:/Paradox/Build/GameContent/Test")
 
 i = 0
 while i < 4000:
