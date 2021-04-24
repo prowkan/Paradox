@@ -682,3 +682,16 @@ while i < 4000:
     f.write(CubeMeshData)
     f.close()
     i = i + 1
+
+os.chdir("F:/Paradox/Build/GameContent/Test")
+i = 0
+while i < 4000:
+    f = open("M_Standart_" + str(i) + ".dasset", "wb")
+    f.write(int(1).to_bytes(2, byteorder='little', signed=False))
+    f.write(int(2).to_bytes(2, byteorder='little', signed=False))
+    f.write(("Checker_" + str(i)).encode())
+    f.write(b'\0' * (128 - len("Checker_" + str(i))))
+    f.write(("Normal_" + str(i)).encode())
+    f.write(b'\0' * (128 - len("Normal_" + str(i))))
+    f.close()
+    i = i + 1

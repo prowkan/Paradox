@@ -120,16 +120,29 @@ void World::LoadWorld()
 	{
 		String GraphicsAPI = Engine::GetEngine().GetConfigSystem().GetRenderConfigValueString("System", "GraphicsAPI");
 
+		char MaterialFileName[255];
+		sprintf(MaterialFileName, "Test.M_Standart_%d", k);
+
+		ScopedMemoryBlockArray<BYTE> MaterialData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(Engine::GetEngine().GetFileSystem().GetFileSize(MaterialFileName));
+		Engine::GetEngine().GetFileSystem().LoadFile(MaterialFileName, MaterialData);
+
 		if (GraphicsAPI == "D3D12")
 		{
-			void *GBufferOpaquePassVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.MaterialBase_VertexShader_GBufferOpaquePass");
-			SIZE_T GBufferOpaquePassVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.MaterialBase_VertexShader_GBufferOpaquePass");
+			char ShaderFileName[255];
+			sprintf(ShaderFileName, "ShaderModel51.%s.GBufferOpaquePass_VertexShader", MaterialFileName);
 
-			void *GBufferOpaquePassPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.MaterialBase_PixelShader_GBufferOpaquePass");
-			SIZE_T GBufferOpaquePassPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.MaterialBase_PixelShader_GBufferOpaquePass");
-			
-			void *ShadowMapPassVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.MaterialBase_VertexShader_ShadowMapPass");
-			SIZE_T ShadowMapPassVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.MaterialBase_VertexShader_ShadowMapPass");
+			void *GBufferOpaquePassVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData(ShaderFileName);
+			SIZE_T GBufferOpaquePassVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize(ShaderFileName);
+
+			sprintf(ShaderFileName, "ShaderModel51.%s.GBufferOpaquePass_PixelShader", MaterialFileName);
+
+			void *GBufferOpaquePassPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData(ShaderFileName);
+			SIZE_T GBufferOpaquePassPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize(ShaderFileName);
+
+			sprintf(ShaderFileName, "ShaderModel51.%s.ShadowMapPass_VertexShader", MaterialFileName);
+
+			void *ShadowMapPassVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData(ShaderFileName);
+			SIZE_T ShadowMapPassVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize(ShaderFileName);
 			
 			MaterialResourceCreateInfo materialResourceCreateInfo; 
 			materialResourceCreateInfo.GBufferOpaquePassPixelShaderByteCodeData = GBufferOpaquePassPixelShaderByteCodeData;
@@ -147,25 +160,28 @@ void World::LoadWorld()
 
 			sprintf(MaterialResourceName, "Standart_%d", k);
 
-			char Texture2DResourceName[255];
-
-			sprintf(Texture2DResourceName, "Checker_%d", k);
-			materialResourceCreateInfo.Textures[0] = resourceManager.GetResource<Texture2DResource>(Texture2DResourceName);
-			sprintf(Texture2DResourceName, "Normal_%d", k);
-			materialResourceCreateInfo.Textures[1] = resourceManager.GetResource<Texture2DResource>(Texture2DResourceName);
+			materialResourceCreateInfo.Textures[0] = resourceManager.GetResource<Texture2DResource>((char*)((BYTE*)MaterialData + 4));
+			materialResourceCreateInfo.Textures[1] = resourceManager.GetResource<Texture2DResource>((char*)((BYTE*)MaterialData + 4 + 128));
 
 			resourceManager.AddResource<MaterialResource>(MaterialResourceName, &materialResourceCreateInfo);
 		}
 		else if (GraphicsAPI == "Vulkan")
 		{
-			void *GBufferOpaquePassVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("SPIRV.MaterialBase_VertexShader_GBufferOpaquePass");
-			SIZE_T GBufferOpaquePassVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("SPIRV.MaterialBase_VertexShader_GBufferOpaquePass");
+			char ShaderFileName[255];
+			sprintf(ShaderFileName, "SPIRV.%s.GBufferOpaquePass_VertexShader", MaterialFileName);
 
-			void *GBufferOpaquePassPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("SPIRV.MaterialBase_PixelShader_GBufferOpaquePass");
-			SIZE_T GBufferOpaquePassPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("SPIRV.MaterialBase_PixelShader_GBufferOpaquePass");
+			void *GBufferOpaquePassVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData(ShaderFileName);
+			SIZE_T GBufferOpaquePassVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize(ShaderFileName);
 
-			void *ShadowMapPassVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("SPIRV.MaterialBase_VertexShader_ShadowMapPass");
-			SIZE_T ShadowMapPassVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("SPIRV.MaterialBase_VertexShader_ShadowMapPass");
+			sprintf(ShaderFileName, "SPIRV.%s.GBufferOpaquePass_PixelShader", MaterialFileName);
+			
+			void *GBufferOpaquePassPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData(ShaderFileName);
+			SIZE_T GBufferOpaquePassPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize(ShaderFileName);
+
+			sprintf(ShaderFileName, "SPIRV.%s.ShadowMapPass_VertexShader", MaterialFileName);
+			
+			void *ShadowMapPassVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData(ShaderFileName);
+			SIZE_T ShadowMapPassVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize(ShaderFileName);
 
 			MaterialResourceCreateInfo materialResourceCreateInfo; 
 			materialResourceCreateInfo.GBufferOpaquePassPixelShaderByteCodeData = GBufferOpaquePassPixelShaderByteCodeData;
@@ -183,12 +199,8 @@ void World::LoadWorld()
 
 			sprintf(MaterialResourceName, "Standart_%d", k);
 
-			char Texture2DResourceName[255];
-
-			sprintf(Texture2DResourceName, "Checker_%d", k);
-			materialResourceCreateInfo.Textures[0] = resourceManager.GetResource<Texture2DResource>(Texture2DResourceName);
-			sprintf(Texture2DResourceName, "Normal_%d", k);
-			materialResourceCreateInfo.Textures[1] = resourceManager.GetResource<Texture2DResource>(Texture2DResourceName);
+			materialResourceCreateInfo.Textures[0] = resourceManager.GetResource<Texture2DResource>((char*)((BYTE*)MaterialData + 4));
+			materialResourceCreateInfo.Textures[1] = resourceManager.GetResource<Texture2DResource>((char*)((BYTE*)MaterialData + 4 + 128));
 
 			resourceManager.AddResource<MaterialResource>(MaterialResourceName, &materialResourceCreateInfo);
 		}				
