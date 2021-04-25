@@ -188,10 +188,7 @@ void DeferredLightingPass::Execute(RenderDeviceD3D12& renderDevice)
 	DynamicArray<PointLight> PointLights;
 
 	for (PointLightComponent *pointLightComponent : VisblePointLightComponents)
-	//for (size_t i = 0; i < VisblePointLightComponents.GetLength(); i++)
 	{
-		//PointLightComponent *pointLightComponent = VisblePointLightComponents[i];
-
 		PointLight pointLight;
 		pointLight.Brightness = pointLightComponent->GetBrightness();
 		pointLight.Color = pointLightComponent->GetColor();

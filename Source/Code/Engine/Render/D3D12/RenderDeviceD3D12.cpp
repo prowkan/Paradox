@@ -496,9 +496,7 @@ void RenderDeviceD3D12::InitDevice()
 	RenderPasses.Add(new BackBufferResolvePass);
 
 	for (RenderPass* renderPass : RenderPasses)
-	//for (size_t i = 0; i < RenderPasses.GetLength(); i++)
 	{
-		//RenderPass* renderPass = RenderPasses[i];
 		renderPass->Init(*this);
 	}
 }
@@ -514,27 +512,21 @@ void RenderDeviceD3D12::ShutdownDevice()
 	}
 
 	for (RenderMesh* renderMesh : RenderMeshDestructionQueue)
-	//for (size_t i = 0; i < RenderMeshDestructionQueue.GetLength(); i++)
 	{
-		//RenderMesh* renderMesh = RenderMeshDestructionQueue[i];
 		delete (RenderMeshD3D12*)renderMesh;
 	}
 
 	RenderMeshDestructionQueue.Clear();
 
 	for (RenderMaterial* renderMaterial : RenderMaterialDestructionQueue)
-	//for (size_t i = 0; i < RenderMeshDestructionQueue.GetLength(); i++) 
 	{
-		//RenderMaterial* renderMaterial = RenderMaterialDestructionQueue[i];
 		delete (RenderMaterialD3D12*)renderMaterial;
 	}
 
 	RenderMaterialDestructionQueue.Clear();
 
 	for (RenderTexture* renderTexture : RenderTextureDestructionQueue)
-	//for (size_t i = 0; i < RenderMeshDestructionQueue.GetLength(); i++)
 	{
-		//RenderTexture* renderTexture = RenderTextureDestructionQueue[i];
 		delete (RenderTextureD3D12*)renderTexture;
 	}
 
@@ -545,9 +537,7 @@ void RenderDeviceD3D12::ShutdownDevice()
 	Result = CloseHandle(FrameSyncEvent);
 
 	for (RenderPass* renderPass : RenderPasses)
-	//for (size_t i = 0; i < RenderPasses.GetLength(); i++)
 	{
-		//RenderPass* renderPass = RenderPasses[i];
 		delete renderPass;
 	}
 }
@@ -600,9 +590,7 @@ void RenderDeviceD3D12::TickDevice(float DeltaTime)
 	MinSamplerTable.UpdateDescriptorTable();
 
 	for (RenderPass* renderPass : RenderPasses)
-	//for (size_t i = 0; i < RenderPasses.GetLength(); i++)
 	{
-		//RenderPass* renderPass = RenderPasses[i];
 		renderPass->Execute(*this);
 	}
 
@@ -730,9 +718,7 @@ void RenderDeviceD3D12::ApplyPendingBarriers()
 RenderPass* RenderDeviceD3D12::GetRenderPass(const String& RenderPassName)
 {
 	for (RenderPass* renderPass : RenderPasses)
-	//for (size_t i = 0; i < RenderPasses.GetLength(); i++)
 	{
-		//RenderPass* renderPass = RenderPasses[i];
 		if (String(renderPass->GetName()) == RenderPassName)
 		{
 			return renderPass;
