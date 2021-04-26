@@ -17,9 +17,9 @@
       <CustomListItems>
         <Variable Name="NodeIndex" InitialValue="0"/>
         <Variable Name="NodesCount" InitialValue="TableSize"/>
-        <Variable Name="NodePtr" InitialValue="Nodes[NodeIndex] == nullptr ? nullptr : Nodes[NodeIndex]"/>
+        <Variable Name="NodePtr" InitialValue="Nodes[NodeIndex]"/>
         <Loop>
-          <If Condition="Nodes[NodeIndex] != 0">
+          <If Condition="Nodes[NodeIndex] != nullptr">
             <Exec>NodePtr = Nodes[NodeIndex]</Exec>
             <Loop>
               <Item Name="[{NodePtr->Key.StringData,s}]">NodePtr->Value</Item>
