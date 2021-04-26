@@ -10,7 +10,7 @@ class TransformComponent : public Component
 
 		virtual void InitComponentDefaultProperties() override;
 
-		virtual void LoadFromFile(HANDLE File) override;
+		virtual void LoadFromFile(LevelFile& File) override;
 
 		XMFLOAT3 GetLocation() { return Location; }
 		void SetLocation(const XMFLOAT3& NewLocation) { Location = NewLocation; }

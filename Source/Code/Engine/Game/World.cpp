@@ -23,6 +23,8 @@
 
 #include <MemoryManager/SystemAllocator.h>
 
+#include <FileSystem/LevelFile.h>
+
 void World::LoadWorld()
 {
 	struct StaticMeshFileHeader
@@ -57,11 +59,7 @@ void World::LoadWorld()
 		staticMeshResourceCreateInfo.IndexCount = staticMeshFileHeader->IndexCount;
 		staticMeshResourceCreateInfo.MeshData = (BYTE*)staticMeshFileHeader + sizeof(StaticMeshFileHeader);
 
-		char StaticMeshResourceName[255];
-
-		sprintf(StaticMeshResourceName, "Cube_%d", k);
-
-		resourceManager.AddResource<StaticMeshResource>(StaticMeshResourceName, &staticMeshResourceCreateInfo);
+		resourceManager.AddResource<StaticMeshResource>(StaticMeshFileName, &staticMeshResourceCreateInfo);
 	}	
 
 	for (int k = 0; k < 4000; k++)
@@ -83,11 +81,7 @@ void World::LoadWorld()
 		texture2DResourceCreateInfo.TexelData = (BYTE*)textureFileHeader + sizeof(TextureFileHeader);
 		texture2DResourceCreateInfo.Width = textureFileHeader->Width;
 
-		char Texture2DResourceName[255];
-
-		sprintf(Texture2DResourceName, "Checker_%d", k);
-
-		resourceManager.AddResource<Texture2DResource>(Texture2DResourceName, &texture2DResourceCreateInfo);
+		resourceManager.AddResource<Texture2DResource>(Texture2DFileName, &texture2DResourceCreateInfo);
 	}	
 
 	for (int k = 0; k < 4000; k++)
@@ -109,11 +103,7 @@ void World::LoadWorld()
 		texture2DResourceCreateInfo.TexelData = (BYTE*)textureFileHeader + sizeof(TextureFileHeader);
 		texture2DResourceCreateInfo.Width = textureFileHeader->Width;
 
-		char Texture2DResourceName[255];
-
-		sprintf(Texture2DResourceName, "Normal_%d", k);
-
-		resourceManager.AddResource<Texture2DResource>(Texture2DResourceName, &texture2DResourceCreateInfo);
+		resourceManager.AddResource<Texture2DResource>(Texture2DFileName, &texture2DResourceCreateInfo);
 	}
 
 	for (int k = 0; k < 4000; k++)
@@ -156,14 +146,13 @@ void World::LoadWorld()
 			materialResourceCreateInfo.Textures.Add(nullptr);
 			materialResourceCreateInfo.Textures.Add(nullptr);
 
-			char MaterialResourceName[255];
+			String Texture0Name((char*)((BYTE*)MaterialData + 4));
+			String Texture1Name((char*)((BYTE*)MaterialData + 4 + Texture0Name.GetLength() + 1));
 
-			sprintf(MaterialResourceName, "Standart_%d", k);
+			materialResourceCreateInfo.Textures[0] = resourceManager.GetResource<Texture2DResource>(Texture0Name);
+			materialResourceCreateInfo.Textures[1] = resourceManager.GetResource<Texture2DResource>(Texture1Name);
 
-			materialResourceCreateInfo.Textures[0] = resourceManager.GetResource<Texture2DResource>((char*)((BYTE*)MaterialData + 4));
-			materialResourceCreateInfo.Textures[1] = resourceManager.GetResource<Texture2DResource>((char*)((BYTE*)MaterialData + 4 + 128));
-
-			resourceManager.AddResource<MaterialResource>(MaterialResourceName, &materialResourceCreateInfo);
+			resourceManager.AddResource<MaterialResource>(MaterialFileName, &materialResourceCreateInfo);
 		}
 		else if (GraphicsAPI == "Vulkan")
 		{
@@ -195,28 +184,24 @@ void World::LoadWorld()
 			materialResourceCreateInfo.Textures.Add(nullptr);
 			materialResourceCreateInfo.Textures.Add(nullptr);
 
-			char MaterialResourceName[255];
+			String Texture0Name((char*)((BYTE*)MaterialData + 4));
+			String Texture1Name((char*)((BYTE*)MaterialData + 4 + Texture0Name.GetLength() + 1));
 
-			sprintf(MaterialResourceName, "Standart_%d", k);
+			materialResourceCreateInfo.Textures[0] = resourceManager.GetResource<Texture2DResource>(Texture0Name);
+			materialResourceCreateInfo.Textures[1] = resourceManager.GetResource<Texture2DResource>(Texture1Name);
 
-			materialResourceCreateInfo.Textures[0] = resourceManager.GetResource<Texture2DResource>((char*)((BYTE*)MaterialData + 4));
-			materialResourceCreateInfo.Textures[1] = resourceManager.GetResource<Texture2DResource>((char*)((BYTE*)MaterialData + 4 + 128));
-
-			resourceManager.AddResource<MaterialResource>(MaterialResourceName, &materialResourceCreateInfo);
+			resourceManager.AddResource<MaterialResource>(MaterialFileName, &materialResourceCreateInfo);
 		}				
 	}
 
-	HANDLE LevelFile = CreateFile((const wchar_t*)u"GameContent/Maps/000.dmap", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-	LARGE_INTEGER LevelFileSize;
-	
-	UINT EntitiesCount;
-	BOOL Result = ReadFile(LevelFile, &EntitiesCount, sizeof(UINT), NULL, NULL);
+	LevelFile MapFile;
+	MapFile.OpenFile((const wchar_t*)u"GameContent/Maps/000.dmap");
+
+	UINT EntitiesCount = MapFile.Read<UINT>();
 
 	for (UINT i = 0; i < EntitiesCount; i++)
 	{
-		char EntityClassName[128];
-
-		Result = ReadFile(LevelFile, EntityClassName, 128, NULL, NULL);
+		String EntityClassName = MapFile.Read<String>();
 
 		MetaClass *metaClass = Engine::GetEngine().GetGameFramework().GetMetaClassesTable()[EntityClassName];
 
@@ -230,12 +215,12 @@ void World::LoadWorld()
 		strcpy((char*)entity->EntityName, EntityName.GetData());
 		entity->SetMetaClass(metaClass);
 		entity->SetWorld(this);
-		entity->LoadFromFile(LevelFile);
+		entity->LoadFromFile(MapFile);
 
 		Entities.Add(entity);
 	}
 
-	Result = CloseHandle(LevelFile);
+	MapFile.CloseFile();
 }
 
 void World::UnLoadWorld()
@@ -263,9 +248,7 @@ Entity* World::SpawnEntity(MetaClass* metaClass)
 Entity* World::FindEntityByName(const char* EntityName)
 {
 	for (Entity* entity : Entities)
-	//for (size_t i = 0; i < Entities.GetLength(); i++)
 	{
-		//Entity* entity = Entities[i];
 		if (strcmp(entity->EntityName, EntityName) == 0) return entity;
 	}
 

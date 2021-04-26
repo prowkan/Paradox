@@ -10,6 +10,8 @@
 
 #include <Engine/Engine.h>
 
+#include <FileSystem/LevelFile.h>
+
 DEFINE_METACLASS_VARIABLE(StaticMeshComponent)
 
 void StaticMeshComponent::InitComponentDefaultProperties()
@@ -27,15 +29,10 @@ void StaticMeshComponent::UnRegisterComponent()
 {
 }
 
-void StaticMeshComponent::LoadFromFile(HANDLE File)
+void StaticMeshComponent::LoadFromFile(LevelFile& File)
 {
-	BOOL Result;
-	
-	char StaticMeshResourceName[128];
-	char MaterialResourceName[128];
-
-	Result = ReadFile(File, StaticMeshResourceName, 128, NULL, NULL);
-	Result = ReadFile(File, MaterialResourceName, 128, NULL, NULL);
+	String StaticMeshResourceName = File.Read<String>();
+	String MaterialResourceName = File.Read<String>();
 
 	StaticMesh = Engine::GetEngine().GetResourceManager().GetResource<StaticMeshResource>(StaticMeshResourceName);
 	Material = Engine::GetEngine().GetResourceManager().GetResource<MaterialResource>(MaterialResourceName);

@@ -689,9 +689,9 @@ while i < 4000:
     f = open("M_Standart_" + str(i) + ".dasset", "wb")
     f.write(int(1).to_bytes(2, byteorder='little', signed=False))
     f.write(int(2).to_bytes(2, byteorder='little', signed=False))
-    f.write(("Checker_" + str(i)).encode())
-    f.write(b'\0' * (128 - len("Checker_" + str(i))))
-    f.write(("Normal_" + str(i)).encode())
-    f.write(b'\0' * (128 - len("Normal_" + str(i))))
+    f.write(("Test.T_Default_" + str(i) + "_D").encode())
+    f.write(b'\0')
+    f.write(("Test.T_Default_" + str(i) + "_N").encode())
+    f.write(b'\0')
     f.close()
     i = i + 1
