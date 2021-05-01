@@ -3,9 +3,12 @@
 
 #include "SkyAndFogStage.h"
 
+#include "../RenderGraph.h"
+
 void SkyAndFogStage::Init(RenderGraph* renderGraph)
 {
-	
+	SkyPass = renderGraph->CreateRenderPass<RenderPass>("Sky Pass");
+	FogPass = renderGraph->CreateRenderPass<FullScreenPass>("Fog Pass");
 }
 
 void SkyAndFogStage::Execute()

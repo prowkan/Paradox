@@ -37,8 +37,20 @@ class RenderGraph
 
 		RenderGraphResource* GetResource(const String& Name);
 
+		template<typename T>
+		T* CreateRenderPass(const String& Name);
+
 	private:
 
 		DynamicArray<RenderPass*> RenderPasses;
 		DynamicArray<RenderGraphResource*> RenderResources;
 };
+
+template<typename T>
+inline T* RenderGraph::CreateRenderPass(const String& Name)
+{
+	T* renderPass = new T();
+	renderPass->Name = Name;
+	RenderPasses.Add(renderPass);
+	return renderPass;
+}

@@ -30,6 +30,8 @@ void MSAADepthBufferResolveStage::Init(RenderGraph* renderGraph)
 	ImageCreateInfo.usage = VkImageUsageFlagBits::VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VkImageUsageFlagBits::VK_IMAGE_USAGE_SAMPLED_BIT;
 
 	renderGraph->CreateTexture(ImageCreateInfo, "ResolvedDepthBufferTexture");
+
+	MSAADepthBufferResolvePass = renderGraph->CreateRenderPass<ResolvePass>("MSAADepthBufferResolvePass");
 }
 
 void MSAADepthBufferResolveStage::Execute()

@@ -55,6 +55,8 @@ void GBufferOpaqueStage::Init(RenderGraph* renderGraph)
 	ImageCreateInfo.usage = VkImageUsageFlagBits::VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VkImageUsageFlagBits::VK_IMAGE_USAGE_SAMPLED_BIT;
 
 	renderGraph->CreateTexture(ImageCreateInfo, "DepthBufferTexture");
+
+	GBufferOpaquePass = renderGraph->CreateRenderPass<ScenePass>("GBufferOpaquePass");
 }
 
 void GBufferOpaqueStage::Execute()

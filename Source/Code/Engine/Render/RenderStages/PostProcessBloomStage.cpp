@@ -42,6 +42,13 @@ void PostProcessBloomStage::Init(RenderGraph* renderGraph)
 		renderGraph->CreateTexture(ImageCreateInfo, String("BloomTextures") + String(1) + String(i));
 		renderGraph->CreateTexture(ImageCreateInfo, String("BloomTextures") + String(2) + String(i));
 	}
+
+	BloomPasses = new FullScreenPass*[3 * 7 + 6];
+
+	for (int i = 0; i < 3 * 7 + 6; i++)
+	{
+		BloomPasses[i] = renderGraph->CreateRenderPass<FullScreenPass>(String("BloomPass") + String(i));
+	}
 }
 
 void PostProcessBloomStage::Execute()

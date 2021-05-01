@@ -35,6 +35,11 @@ void ShadowMapStage::Init(RenderGraph* renderGraph)
 	renderGraph->CreateTexture(ImageCreateInfo, "CascadedShadowMapTexture1");
 	renderGraph->CreateTexture(ImageCreateInfo, "CascadedShadowMapTexture2");
 	renderGraph->CreateTexture(ImageCreateInfo, "CascadedShadowMapTexture3");
+
+	CascadedShadowMapPasses[0] = renderGraph->CreateRenderPass<ScenePass>("CascadedShadowMapPass0");
+	CascadedShadowMapPasses[1] = renderGraph->CreateRenderPass<ScenePass>("CascadedShadowMapPass1");
+	CascadedShadowMapPasses[2] = renderGraph->CreateRenderPass<ScenePass>("CascadedShadowMapPass2");
+	CascadedShadowMapPasses[3] = renderGraph->CreateRenderPass<ScenePass>("CascadedShadowMapPass3");
 }
 
 void ShadowMapStage::Execute()

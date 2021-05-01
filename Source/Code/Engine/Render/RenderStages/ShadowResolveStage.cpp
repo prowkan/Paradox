@@ -30,6 +30,10 @@ void ShadowResolveStage::Init(RenderGraph* renderGraph)
 	ImageCreateInfo.usage = VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VkImageUsageFlagBits::VK_IMAGE_USAGE_SAMPLED_BIT;
 
 	//SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &ShadowMaskTexture));
+
+	renderGraph->CreateTexture(ImageCreateInfo, "ShadowMaskTexture");
+
+	ShadowResolvePass = renderGraph->CreateRenderPass<FullScreenPass>("ShadowResolvePass");
 }
 
 void ShadowResolveStage::Execute()

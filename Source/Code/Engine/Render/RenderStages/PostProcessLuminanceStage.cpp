@@ -58,6 +58,14 @@ void PostProcessLuminanceStage::Init(RenderGraph* renderGraph)
 
 	//SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &AverageLuminanceTexture));
 	renderGraph->CreateTexture(ImageCreateInfo, "AverageLuminanceTexture");
+
+	SceneLuminancePasses = new ComputePass*[5];
+
+	SceneLuminancePasses[0] = renderGraph->CreateRenderPass<ComputePass>("SceneLuminancePass0");
+	SceneLuminancePasses[1] = renderGraph->CreateRenderPass<ComputePass>("SceneLuminancePass1");
+	SceneLuminancePasses[2] = renderGraph->CreateRenderPass<ComputePass>("SceneLuminancePass2");
+	SceneLuminancePasses[3] = renderGraph->CreateRenderPass<ComputePass>("SceneLuminancePass3");
+	SceneLuminancePasses[4] = renderGraph->CreateRenderPass<ComputePass>("SceneLuminancePass4");
 }
 
 void PostProcessLuminanceStage::Execute()

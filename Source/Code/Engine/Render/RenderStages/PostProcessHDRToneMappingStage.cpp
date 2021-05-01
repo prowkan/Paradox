@@ -30,6 +30,8 @@ void PostProcessHDRToneMappingStage::Init(RenderGraph* renderGraph)
 	ImageCreateInfo.usage = VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
 	renderGraph->CreateTexture(ImageCreateInfo, "ToneMappedImageTexture");
+
+	PostProcessHDRToneMappingPass = renderGraph->CreateRenderPass<FullScreenPass>("PostProcessHDRToneMappingPass");
 }
 
 void PostProcessHDRToneMappingStage::Execute()
