@@ -9,6 +9,8 @@
 
 #include <Engine/Engine.h>
 
+#include <FileSystem/LevelFile.h>
+
 DEFINE_METACLASS_VARIABLE(PointLightComponent)
 
 void PointLightComponent::InitComponentDefaultProperties()
@@ -25,12 +27,11 @@ void PointLightComponent::UnRegisterComponent()
 {
 }
 
-void PointLightComponent::LoadFromFile(HANDLE File)
+void PointLightComponent::LoadFromFile(LevelFile& File)
 {
-	BOOL Result;
-	Result = ReadFile(File, &Brightness, sizeof(float), NULL, NULL);
-	Result = ReadFile(File, &Radius, sizeof(float), NULL, NULL);
-	Result = ReadFile(File, &Color, sizeof(XMFLOAT3), NULL, NULL);
+	File.Read(Brightness);
+	File.Read(Radius);
+	File.Read(Color);
 
 	transformComponent = Owner->GetComponent<TransformComponent>();
 }

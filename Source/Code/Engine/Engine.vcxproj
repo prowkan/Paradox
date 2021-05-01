@@ -192,6 +192,7 @@
     <ClInclude Include="Core\Application.h" />
     <ClInclude Include="Engine\Engine.h" />
     <ClInclude Include="FileSystem\FileSystem.h" />
+    <ClInclude Include="FileSystem\LevelFile.h" />
     <ClInclude Include="Game\Camera.h" />
     <ClInclude Include="Game\Component.h" />
     <ClInclude Include="Game\Components\Common\BoundingBoxComponent.h" />
@@ -261,6 +262,7 @@
     <ClCompile Include="Core\Application.cpp" />
     <ClCompile Include="Engine\Engine.cpp" />
     <ClCompile Include="FileSystem\FileSystem.cpp" />
+    <ClCompile Include="FileSystem\LevelFile.cpp" />
     <ClCompile Include="Game\Camera.cpp" />
     <ClCompile Include="Game\Component.cpp" />
     <ClCompile Include="Game\Components\Common\BoundingBoxComponent.cpp" />

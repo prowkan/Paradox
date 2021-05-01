@@ -178,3 +178,38 @@ extern "C" __declspec(dllexport) const char* GetResourceName(Resource* resource)
 {
 	return resource->GetResourceName().GetData();
 }
+
+extern "C" __declspec(dllexport) void SetComponentFloatProperty(Component* component, const char* PropertyName, const float NewValue)
+{
+	component->SetFloatProperty(PropertyName, NewValue);
+}
+
+extern "C" __declspec(dllexport) void SetComponentVectorProperty(Component* component, const char* PropertyName, const Vector3& NewValue)
+{
+	XMFLOAT3 Value;
+	Value.x = NewValue.X;
+	Value.x = NewValue.X;
+	Value.x = NewValue.X;
+
+	component->SetVectorProperty(PropertyName, Value);
+}
+
+extern "C" __declspec(dllexport) void SetComponentRotatorProperty(Component* component, const char* PropertyName, const Vector3& NewValue)
+{
+	XMFLOAT3 Value;
+	Value.x = NewValue.X;
+	Value.x = NewValue.X;
+	Value.x = NewValue.X;
+
+	component->SetRotatorProperty(PropertyName, Value);
+}
+
+extern "C" __declspec(dllexport) void SetComponentColorProperty(Component* component, const char* PropertyName, const Vector3& NewValue)
+{
+	XMFLOAT3 Value;
+	Value.x = NewValue.X;
+	Value.x = NewValue.X;
+	Value.x = NewValue.X;
+
+	component->SetColorProperty(PropertyName, Value);
+}

@@ -13,7 +13,7 @@ class PointLightEntity : public Entity
 
 		virtual void InitDefaultProperties() override;
 
-		virtual void LoadFromFile(HANDLE File) override;
+		virtual void LoadFromFile(LevelFile& File) override;
 
 		TransformComponent* GetTransformComponent() { return transformComponent; }
 		PointLightComponent* GetPointLightComponent() { return pointLightComponent; }

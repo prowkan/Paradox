@@ -4,6 +4,7 @@
 
 class Entity;
 class Resource;
+class LevelFile;
 
 class Component
 {
@@ -30,7 +31,7 @@ class Component
 			return nullptr;
 		}
 
-		virtual void LoadFromFile(HANDLE File) {}
+		virtual void LoadFromFile(LevelFile& File) {}
 
 		const char* GetComponentName() { return ComponentName; }
 		const char *ComponentName;

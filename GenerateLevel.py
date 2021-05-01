@@ -1,9 +1,9 @@
 import os
 import struct
 
-os.chdir("F:/Paradox/Build/WorldChunks")
+os.chdir("F:/Paradox/Build/GameContent/Maps")
 
-f = open("000.worldchunk", "wb")
+f = open("000.dmap", "wb")
 
 f.write(int(30000).to_bytes(4, 'little'))
 
@@ -18,12 +18,12 @@ while i < 50:
 
         Bytes = bytearray()
         Bytes.extend("StaticMeshEntity".encode())
-        Bytes += b'\0' * (128 - len("StaticMeshEntity"))
+        Bytes += b'\0'
 
         Bytes.extend(int(3).to_bytes(4, 'little'))
 
         Bytes.extend("TransformComponent".encode())
-        Bytes += b'\0' * (128 - len("TransformComponent"))
+        Bytes += b'\0'
 
         Bytes.extend(struct.pack("f", i * 5.0 + 2.5))
         Bytes.extend(struct.pack("f", 0.0))
@@ -42,7 +42,7 @@ while i < 50:
         Bytes.extend(struct.pack("f", 0.0))
         
         Bytes.extend("BoundingBoxComponent".encode())
-        Bytes += b'\0' * (128 - len("BoundingBoxComponent"))
+        Bytes += b'\0'
 
         Bytes.extend(struct.pack("f", 0.0))
         Bytes.extend(struct.pack("f", 0.0))
@@ -53,22 +53,22 @@ while i < 50:
         Bytes.extend(struct.pack("f", 1.0))
 
         Bytes.extend("StaticMeshComponent".encode())
-        Bytes += b'\0' * (128 - len("StaticMeshComponent"))
+        Bytes += b'\0'
 
-        Bytes.extend(("Cube_" + str(ResourceCounter)).encode())
-        Bytes += b'\0' * (128 - len("Cube_" + str(ResourceCounter)))
-        Bytes.extend(("Standart_" + str(ResourceCounter)).encode())
-        Bytes += b'\0' * (128 - len("Standart_" + str(ResourceCounter)))
+        Bytes.extend(("Test.SM_Cube_" + str(ResourceCounter)).encode())
+        Bytes += b'\0'
+        Bytes.extend(("Test.M_Standart_" + str(ResourceCounter)).encode())
+        Bytes += b'\0'
         
         ResourceCounter = (ResourceCounter + 1) % 4000
 
         Bytes.extend("StaticMeshEntity".encode())
-        Bytes += b'\0' * (128 - len("StaticMeshEntity"))
+        Bytes += b'\0'
 
         Bytes.extend(int(3).to_bytes(4, 'little'))
 
         Bytes.extend("TransformComponent".encode())
-        Bytes += b'\0' * (128 - len("TransformComponent"))
+        Bytes += b'\0'
 
         Bytes.extend(struct.pack("f", i * 10.0 + 5.0))
         Bytes.extend(struct.pack("f", -2.0))
@@ -87,7 +87,7 @@ while i < 50:
         Bytes.extend(struct.pack("f", 0.0))
 
         Bytes.extend("BoundingBoxComponent".encode())
-        Bytes += b'\0' * (128 - len("BoundingBoxComponent"))
+        Bytes += b'\0'
 
         Bytes.extend(struct.pack("f", 0.0))
         Bytes.extend(struct.pack("f", 0.0))
@@ -98,22 +98,22 @@ while i < 50:
         Bytes.extend(struct.pack("f", 1.0))
 
         Bytes.extend("StaticMeshComponent".encode())
-        Bytes += b'\0' * (128 - len("StaticMeshComponent"))
+        Bytes += b'\0'
 
-        Bytes.extend(("Cube_" + str(ResourceCounter)).encode())
-        Bytes += b'\0' * (128 - len("Cube_" + str(ResourceCounter)))
-        Bytes.extend(("Standart_" + str(ResourceCounter)).encode())
-        Bytes += b'\0' * (128 - len("Standart_" + str(ResourceCounter)))
+        Bytes.extend(("Test.SM_Cube_" + str(ResourceCounter)).encode())
+        Bytes += b'\0'
+        Bytes.extend(("Test.M_Standart_" + str(ResourceCounter)).encode())
+        Bytes += b'\0'
 
         ResourceCounter = (ResourceCounter + 1) % 4000
 
         Bytes.extend("PointLightEntity".encode())
-        Bytes += b'\0' * (128 - len("PointLightEntity"))
+        Bytes += b'\0'
 
         Bytes.extend(int(2).to_bytes(4, 'little'))
 
         Bytes.extend("TransformComponent".encode())
-        Bytes += b'\0' * (128 - len("TransformComponent"))
+        Bytes += b'\0'
 
         Bytes.extend(struct.pack("f", i * 10.0 + 5.0))
         Bytes.extend(struct.pack("f", 1.5))
@@ -132,7 +132,7 @@ while i < 50:
         Bytes.extend(struct.pack("f", 0.0))
 
         Bytes.extend("PointLightComponent".encode())
-        Bytes += b'\0' * (128 - len("PointLightComponent"))
+        Bytes += b'\0'
 
         Bytes.extend(struct.pack("f", 10.0))
         Bytes.extend(struct.pack("f", 5.0))
