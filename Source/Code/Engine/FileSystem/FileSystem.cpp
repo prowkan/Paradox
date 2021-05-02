@@ -119,6 +119,9 @@ void FileSystem::InitSystem()
 	MountPackage("Textures", u"AssetPackages/Textures.assetpackage");
 	MountPackage("Shaders", u"AssetPackages/Shaders.assetpackage");*/
 
+	GlobalAssetTable.ReHash(50000);
+	ShadersTable.ReHash(50000);
+
 	FindAssetsRecursively(u"GameContent");
 
 	WIN32_FIND_DATA FindData;

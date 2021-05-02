@@ -55,58 +55,63 @@ class HashTable
 			}
 		}
 
+		void ReHash(const size_t NewTableSize)
+		{
+			int OldTableSize = TableSize;
+			Node** OldNodes = Nodes;
+
+			TableSize = NewTableSize;
+
+			Nodes = (Node**)Allocator::AllocateMemory(sizeof(Node*) * TableSize);
+			ZeroMemory(Nodes, sizeof(Node*) * TableSize);
+
+			for (size_t i = 0; i < OldTableSize; i++)
+			{
+				if (OldNodes[i])
+				{
+					Node *CurrentNode = OldNodes[i];
+
+					while (CurrentNode)
+					{
+						uint64_t Hash = HashFunc(CurrentNode->Key) % TableSize;
+
+						if (!Nodes[Hash])
+						{
+							Nodes[Hash] = CurrentNode;
+							CurrentNode = CurrentNode->Next;
+							Nodes[Hash]->Next = nullptr;
+						}
+						else
+						{
+							Node *LastNodeInList = Nodes[Hash];
+
+							while (true)
+							{
+								if (!LastNodeInList->Next)
+								{
+									LastNodeInList->Next = CurrentNode;
+									CurrentNode = CurrentNode->Next;
+									LastNodeInList->Next->Next = nullptr;
+									break;
+								}
+
+								LastNodeInList = LastNodeInList->Next;
+							}
+						}
+					}
+				}
+			}
+
+			Allocator::FreeMemory(OldNodes);
+		}
+
 		void Insert(const KeyType& Key, const ValueType& Value)
 		{
 			float LoadFactor = (float)Size / (float)TableSize;
 
 			if (LoadFactor > 2.0f)
 			{
-				int OldTableSize = TableSize;
-				Node** OldNodes = Nodes;
-
-				TableSize++;
-
-				Nodes = (Node**)Allocator::AllocateMemory(sizeof(Node*) * TableSize);
-				ZeroMemory(Nodes, sizeof(Node*) * TableSize);
-
-				for (size_t i = 0; i < OldTableSize; i++)
-				{
-					if (OldNodes[i])
-					{
-						Node *CurrentNode = OldNodes[i];
-
-						while (CurrentNode)
-						{
-							uint64_t Hash = HashFunc(CurrentNode->Key) % TableSize;
-
-							if (!Nodes[Hash])
-							{
-								Nodes[Hash] = CurrentNode;
-								CurrentNode = CurrentNode->Next;
-								Nodes[Hash]->Next = nullptr;
-							}
-							else
-							{
-								Node *LastNodeInList = Nodes[Hash];
-
-								while (true)
-								{
-									if (!LastNodeInList->Next)
-									{
-										LastNodeInList->Next = CurrentNode;
-										CurrentNode = CurrentNode->Next;
-										LastNodeInList->Next->Next = nullptr;
-										break;
-									}
-
-									LastNodeInList = LastNodeInList->Next;
-								}
-							}							
-						}
-					}
-				}
-
-				Allocator::FreeMemory(OldNodes);
+				ReHash(TableSize + 1);
 			}
 
 			uint64_t Hash = HashFunc(Key) % TableSize;
