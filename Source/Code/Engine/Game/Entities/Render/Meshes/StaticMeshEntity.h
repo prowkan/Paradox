@@ -14,7 +14,7 @@ class StaticMeshEntity : public Entity
 
 		virtual void InitDefaultProperties() override;
 
-		virtual void LoadFromFile(HANDLE File) override;
+		virtual void LoadFromFile(LevelFile& File) override;
 
 		TransformComponent* GetTransformComponent() { return transformComponent; }
 		BoundingBoxComponent* GetBoundingBoxComponent() { return boundingBoxComponent; }

@@ -22,15 +22,10 @@ class ResourceManager
 
 		void DestroyAllResources()
 		{
-			int i = 0;
-
 			for (auto& It : ResourceTable)
 			{
 				It->Value->DestroyResource();
-				i++;
 			}
-
-			int a = i;
 
 			//ResourceTable.clear();
 		}

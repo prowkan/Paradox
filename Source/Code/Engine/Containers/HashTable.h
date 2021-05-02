@@ -11,11 +11,20 @@ class HashTable
 		HashTable()
 		{
 			Size = 0;
+
+			TableSize = 1;
+
+			Nodes = (Node**)Allocator::AllocateMemory(sizeof(Node*));
+			Nodes[0] = nullptr;
 		}
 
 		HashTable(const HashTable& OtherHashTable)
 		{
 			Size = OtherHashTable.Size;
+			TableSize = OtherHashTable.TableSize;
+
+			Allocator::FreeMemory(Nodes);
+			Nodes = (Node**)Allocator::AllocateMemory(sizeof(Node*) * TableSize);
 
 			for (size_t i = 0; i < TableSize; i++)
 			{
@@ -46,8 +55,65 @@ class HashTable
 			}
 		}
 
+		void ReHash(const size_t NewTableSize)
+		{
+			int OldTableSize = TableSize;
+			Node** OldNodes = Nodes;
+
+			TableSize = NewTableSize;
+
+			Nodes = (Node**)Allocator::AllocateMemory(sizeof(Node*) * TableSize);
+			ZeroMemory(Nodes, sizeof(Node*) * TableSize);
+
+			for (size_t i = 0; i < OldTableSize; i++)
+			{
+				if (OldNodes[i])
+				{
+					Node *CurrentNode = OldNodes[i];
+
+					while (CurrentNode)
+					{
+						uint64_t Hash = HashFunc(CurrentNode->Key) % TableSize;
+
+						if (!Nodes[Hash])
+						{
+							Nodes[Hash] = CurrentNode;
+							CurrentNode = CurrentNode->Next;
+							Nodes[Hash]->Next = nullptr;
+						}
+						else
+						{
+							Node *LastNodeInList = Nodes[Hash];
+
+							while (true)
+							{
+								if (!LastNodeInList->Next)
+								{
+									LastNodeInList->Next = CurrentNode;
+									CurrentNode = CurrentNode->Next;
+									LastNodeInList->Next->Next = nullptr;
+									break;
+								}
+
+								LastNodeInList = LastNodeInList->Next;
+							}
+						}
+					}
+				}
+			}
+
+			Allocator::FreeMemory(OldNodes);
+		}
+
 		void Insert(const KeyType& Key, const ValueType& Value)
 		{
+			float LoadFactor = (float)Size / (float)TableSize;
+
+			if (LoadFactor > 2.0f)
+			{
+				ReHash(TableSize + 1);
+			}
+
 			uint64_t Hash = HashFunc(Key) % TableSize;
 
 			Node *NewNode = (Node*)Allocator::AllocateMemory(sizeof(Node));
@@ -57,7 +123,7 @@ class HashTable
 			NewNode->Next = nullptr;
 
 			if (!Nodes[Hash])
-			{			
+			{
 				Nodes[Hash] = NewNode;
 			}
 			else
@@ -114,11 +180,12 @@ class HashTable
 				using NodeType = typename HashTable<KeyType, ValueType, Allocator, HashFunc>::Node;
 
 				int TableCellIndex;
+				int TableSize;
 				NodeType *TableNode, **TableNodes;
 
 			public:
 
-				Iterator(int TableCellIndex, NodeType** TableNodes, NodeType* TableNode) : TableCellIndex(TableCellIndex), TableNodes(TableNodes), TableNode(TableNode)
+				Iterator(int TableCellIndex, NodeType** TableNodes, NodeType* TableNode, int TableSize) : TableCellIndex(TableCellIndex), TableNodes(TableNodes), TableNode(TableNode), TableSize(TableSize)
 				{
 
 				}
@@ -151,7 +218,7 @@ class HashTable
 
 							TableCellIndex++;
 						}
-					}					
+					}
 
 					return *this;
 				}
@@ -173,28 +240,33 @@ class HashTable
 			{
 				if (Nodes[i])
 				{
-					return Iterator(i, Nodes, Nodes[i]);
+					return Iterator(i, Nodes, Nodes[i], TableSize);
 				}
 			}
 		}
 
 		Iterator End()
 		{
-			return Iterator(TableSize, Nodes, nullptr);
+			return Iterator(TableSize, Nodes, nullptr, TableSize);
 		}
 
 	private:
 
-		static const int TableSize = 50000;
+		int TableSize;
 
 		struct Node
 		{
 			KeyType Key;
 			ValueType Value;
 			Node *Next;
+
+			Node()
+			{
+				Next = nullptr;
+			}
 		};
 
-		Node *Nodes[TableSize] = { nullptr };
+		Node **Nodes = nullptr;
 
 		int Size;
 };

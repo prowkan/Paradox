@@ -58,7 +58,6 @@ DynamicArray<StaticMeshComponent*> CullingSubSystem::GetVisibleStaticMeshesInFru
 	{
 		FrustumCullingTasks[i].WaitForFinish();
 		DynamicArray<StaticMeshComponent*>& LocalTaskResult = FrustumCullingTasks[i].GetOutputData();
-		//OutputStaticMeshes.insert(OutputStaticMeshes.end(), LocalTaskResult.begin(), LocalTaskResult.end());
 		OutputStaticMeshes.Append(LocalTaskResult);
 		FrustumCullingTasks[i].~FrustumCullingTask();
 	}

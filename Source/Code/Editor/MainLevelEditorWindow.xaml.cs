@@ -107,6 +107,21 @@ namespace Editor
                         {
                             float Value = EditorEngine.GetComponentFloatProperty(ComponentReference, ComponentPropertyName);
                             TextBox textBox = new TextBox();
+                            textBox.TextChanged += (object Sender, TextChangedEventArgs Args) =>
+                            {
+                                string NewValueStr = ((TextBox)Sender).Text;
+
+                                try
+                                {
+                                    float NewValue = System.Convert.ToSingle(NewValueStr);
+
+                                    EditorEngine.SetComponentFloatProperty(ComponentReference, ComponentPropertyName, NewValue);
+                                }
+                                catch
+                                {
+
+                                }
+                            };
                             textBox.Text = Value.ToString();
                             textBox.Width = 50.0;
                             PropertyStackPanel.Children.Add(textBox);
@@ -123,6 +138,60 @@ namespace Editor
                             TextBox textBoxX = new TextBox();
                             TextBox textBoxY = new TextBox();
                             TextBox textBoxZ = new TextBox();
+                            textBoxX.TextChanged += (object Sender, TextChangedEventArgs Args) =>
+                            {
+                                string NewValueStr = ((TextBox)Sender).Text;
+
+                                try 
+                                {
+                                    EditorEngine.Float3 NewValue;
+                                    NewValue.X = System.Convert.ToSingle(NewValueStr);
+                                    NewValue.Y = System.Convert.ToSingle(textBoxY.Text);
+                                    NewValue.Z = System.Convert.ToSingle(textBoxZ.Text);
+
+                                    EditorEngine.SetComponentVectorProperty(ComponentReference, ComponentPropertyName, NewValue);
+                                }
+                                catch
+                                {
+
+                                }
+                            };
+                            textBoxY.TextChanged += (object Sender, TextChangedEventArgs Args) =>
+                            {
+                                string NewValueStr = ((TextBox)Sender).Text;
+
+                                try
+                                {
+                                    EditorEngine.Float3 NewValue;
+                                    NewValue.X = System.Convert.ToSingle(textBoxX.Text);
+                                    NewValue.Y = System.Convert.ToSingle(NewValueStr);
+                                    NewValue.Z = System.Convert.ToSingle(textBoxZ.Text);
+
+                                    EditorEngine.SetComponentVectorProperty(ComponentReference, ComponentPropertyName, NewValue);
+                                }
+                                catch
+                                {
+
+                                }
+                            };
+                            textBoxZ.TextChanged += (object Sender, TextChangedEventArgs Args) =>
+                            {
+                                string NewValueStr = ((TextBox)Sender).Text;
+
+                                try
+                                {
+                                    EditorEngine.Float3 NewValue;
+                                    NewValue.X = System.Convert.ToSingle(textBoxX.Text);
+                                    NewValue.Y = System.Convert.ToSingle(textBoxY.Text);
+                                    NewValue.Z = System.Convert.ToSingle(NewValueStr);
+
+                                    EditorEngine.SetComponentVectorProperty(ComponentReference, ComponentPropertyName, NewValue);
+                                }
+                                catch
+                                {
+
+                                }
+                            };
                             textBoxX.Text = Value.X.ToString();
                             textBoxX.Width = 50.0;
                             textBoxY.Text = Value.Y.ToString();
