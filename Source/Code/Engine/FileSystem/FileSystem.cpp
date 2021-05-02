@@ -45,11 +45,7 @@ void FileSystem::FindAssetsRecursively(const char16_t* BaseDirectory)
 
 	HANDLE FindHandle = FindFirstFile((const wchar_t*)AllFileMask, &FindData);
 
-	if (FindHandle == INVALID_HANDLE_VALUE)
-	{
-
-	}
-	else
+	if (FindHandle != INVALID_HANDLE_VALUE)
 	{
 		do
 		{
@@ -72,11 +68,7 @@ void FileSystem::FindAssetsRecursively(const char16_t* BaseDirectory)
 
 	FindHandle = FindFirstFile((const wchar_t*)AssetFileMask, &FindData);
 
-	if (FindHandle == INVALID_HANDLE_VALUE)
-	{
-
-	}
-	else
+	if (FindHandle != INVALID_HANDLE_VALUE)
 	{
 		do
 		{
@@ -119,17 +111,16 @@ void FileSystem::InitSystem()
 	MountPackage("Textures", u"AssetPackages/Textures.assetpackage");
 	MountPackage("Shaders", u"AssetPackages/Shaders.assetpackage");*/
 
+	GlobalAssetTable.ReHash(50000);
+	ShadersTable.ReHash(50000);
+
 	FindAssetsRecursively(u"GameContent");
 
 	WIN32_FIND_DATA FindData;
 	
 	HANDLE FindHandle = FindFirstFile((const wchar_t*)u"Shaders/ShaderModel51/*.dxbc", &FindData);
 
-	if (FindHandle == INVALID_HANDLE_VALUE)
-	{
-
-	}
-	else
+	if (FindHandle != INVALID_HANDLE_VALUE)
 	{
 		do
 		{
@@ -174,11 +165,7 @@ void FileSystem::InitSystem()
 
 	FindHandle = FindFirstFile((const wchar_t*)u"Shaders/SPIRV/*.spv", &FindData);
 
-	if (FindHandle == INVALID_HANDLE_VALUE)
-	{
-		
-	}
-	else
+	if (FindHandle != INVALID_HANDLE_VALUE)
 	{
 		do
 		{

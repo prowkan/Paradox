@@ -1,3 +1,6 @@
+#include "../Engine/Containers/COMRCPtr.h"
+#include "../Engine/Containers/DynamicArray.h"
+
 extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 {
 	if (strcmp(Action, "Compile") == 0)
@@ -10,8 +13,6 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 
 		const char16_t* VertexShaders[] =
 		{
-			u"MaterialBase_VertexShader_GBufferOpaquePass",
-			u"MaterialBase_VertexShader_ShadowMapPass",
 			u"SkyVertexShader",
 			u"SunVertexShader",
 			u"FullScreenQuad"
@@ -19,7 +20,6 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 
 		const char16_t* PixelShaders[] =
 		{
-			u"MaterialBase_PixelShader_GBufferOpaquePass",
 			u"SkyPixelShader",
 			u"SunPixelShader",
 			u"OcclusionBuffer",
@@ -164,6 +164,153 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 		BOOL Result = CreateProcess(NULL, (wchar_t*)ScriptCommandLine, NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &StartupInfo, &ProcessInformation);
 
 		Result = WaitForSingleObject(ProcessInformation.hProcess, INFINITE);*/
+
+		COMRCPtr<IDxcCompiler3> Compiler;
+
+		COMRCPtr<ID3DBlob> ShaderBlob, ErrorBlob;
+		COMRCPtr<IDxcOperationResult> OperationResult;
+		COMRCPtr<IDxcBlob> ShaderBlobDXC;
+
+		HRESULT hr = DxcCreateInstance(CLSID_DxcCompiler, __uuidof(IDxcCompiler3), (void**)&Compiler);
+		
+		for (int i = 0; i < 4000; i++)
+		{
+			HANDLE ShaderFile = CreateFile((const wchar_t*)L"MaterialBase_VertexShader_GBufferOpaquePass.hlsl", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+			LARGE_INTEGER ShaderFileSize;
+			BOOL Result = GetFileSizeEx(ShaderFile, &ShaderFileSize);
+			void *ShaderData = HeapAlloc(GetProcessHeap(), 0, ShaderFileSize.QuadPart);
+			Result = ReadFile(ShaderFile, ShaderData, (DWORD)ShaderFileSize.QuadPart, NULL, NULL);
+			Result = CloseHandle(ShaderFile);
+
+			hr = D3DCompile(ShaderData, ShaderFileSize.QuadPart, "MaterialBase_VertexShader_GBufferOpaquePass", NULL, NULL, "VS", "vs_5_1", D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &ShaderBlob, &ErrorBlob);
+
+			DxcBuffer dxcBuffer;
+			dxcBuffer.Encoding = 0;
+			dxcBuffer.Ptr = ShaderData;
+			dxcBuffer.Size = ShaderFileSize.QuadPart;
+
+			DynamicArray<const wchar_t*> DXCompilerArgs;
+			DXCompilerArgs.Clear();
+			DXCompilerArgs.Add(L"-E");
+			DXCompilerArgs.Add(L"VS");
+			DXCompilerArgs.Add(L"-T");
+			DXCompilerArgs.Add(L"vs_5_1");
+			DXCompilerArgs.Add(L"-Zpr");
+			DXCompilerArgs.Add(L"-D");
+			DXCompilerArgs.Add(L"SPIRV");
+			DXCompilerArgs.Add(L"-spirv");
+			DXCompilerArgs.Add(L"-fvk-invert-y");
+
+			Compiler->Compile(&dxcBuffer, (LPCWSTR*)DXCompilerArgs.GetData(), DXCompilerArgs.GetLength(), NULL, __uuidof(IDxcOperationResult), (void**)&OperationResult);
+
+			hr = OperationResult->GetResult(&ShaderBlobDXC);
+
+			Result = HeapFree(GetProcessHeap(), 0, ShaderData);
+
+			wchar_t OutputFileName[8192];
+
+			wsprintf(OutputFileName, L"./../../Build/Shaders/ShaderModel51/M_Standart_%d.GBufferOpaquePass_VertexShader.dxbc", i);
+
+			ShaderFile = CreateFile(OutputFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
+			ShaderFileSize.QuadPart = ShaderBlob->GetBufferSize();
+			Result = WriteFile(ShaderFile, ShaderBlob->GetBufferPointer(), ShaderFileSize.QuadPart, NULL, NULL);
+			CloseHandle(ShaderFile);
+
+			wsprintf(OutputFileName, L"./../../Build/Shaders/SPIRV/M_Standart_%d.GBufferOpaquePass_VertexShader.spv", i);
+
+			ShaderFile = CreateFile(OutputFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
+			ShaderFileSize.QuadPart = ShaderBlobDXC->GetBufferSize();
+			Result = WriteFile(ShaderFile, ShaderBlobDXC->GetBufferPointer(), ShaderFileSize.QuadPart, NULL, NULL);
+			CloseHandle(ShaderFile);
+
+			ShaderFile = CreateFile((const wchar_t*)L"MaterialBase_VertexShader_ShadowMapPass.hlsl", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+			Result = GetFileSizeEx(ShaderFile, &ShaderFileSize);
+			ShaderData = HeapAlloc(GetProcessHeap(), 0, ShaderFileSize.QuadPart);
+			Result = ReadFile(ShaderFile, ShaderData, (DWORD)ShaderFileSize.QuadPart, NULL, NULL);
+			Result = CloseHandle(ShaderFile);
+
+			hr = D3DCompile(ShaderData, ShaderFileSize.QuadPart, "MaterialBase_VertexShader_ShadowMapPass", NULL, NULL, "VS", "vs_5_1", D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &ShaderBlob, &ErrorBlob);
+
+			dxcBuffer.Encoding = 0;
+			dxcBuffer.Ptr = ShaderData;
+			dxcBuffer.Size = ShaderFileSize.QuadPart;
+
+			DXCompilerArgs.Clear();
+			DXCompilerArgs.Add(L"-E");
+			DXCompilerArgs.Add(L"VS");
+			DXCompilerArgs.Add(L"-T");
+			DXCompilerArgs.Add(L"vs_5_1");
+			DXCompilerArgs.Add(L"-Zpr");
+			DXCompilerArgs.Add(L"-D");
+			DXCompilerArgs.Add(L"SPIRV");
+			DXCompilerArgs.Add(L"-spirv");
+			DXCompilerArgs.Add(L"-fvk-invert-y");
+
+			Compiler->Compile(&dxcBuffer, (LPCWSTR*)DXCompilerArgs.GetData(), DXCompilerArgs.GetLength(), NULL, __uuidof(IDxcOperationResult), (void**)&OperationResult);
+
+			hr = OperationResult->GetResult(&ShaderBlobDXC);
+
+			Result = HeapFree(GetProcessHeap(), 0, ShaderData);
+
+			wsprintf(OutputFileName, L"./../../Build/Shaders/ShaderModel51/M_Standart_%d.ShadowMapPass_VertexShader.dxbc", i);
+
+			ShaderFile = CreateFile(OutputFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
+			ShaderFileSize.QuadPart = ShaderBlob->GetBufferSize();
+			Result = WriteFile(ShaderFile, ShaderBlob->GetBufferPointer(), ShaderFileSize.QuadPart, NULL, NULL);
+			CloseHandle(ShaderFile);
+
+			wsprintf(OutputFileName, L"./../../Build/Shaders/SPIRV/M_Standart_%d.ShadowMapPass_VertexShader.spv", i);
+
+			ShaderFile = CreateFile(OutputFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
+			ShaderFileSize.QuadPart = ShaderBlobDXC->GetBufferSize();
+			Result = WriteFile(ShaderFile, ShaderBlobDXC->GetBufferPointer(), ShaderFileSize.QuadPart, NULL, NULL);
+			CloseHandle(ShaderFile);
+
+			ShaderFile = CreateFile((const wchar_t*)L"MaterialBase_PixelShader_GBufferOpaquePass.hlsl", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+			Result = GetFileSizeEx(ShaderFile, &ShaderFileSize);
+			ShaderData = HeapAlloc(GetProcessHeap(), 0, ShaderFileSize.QuadPart);
+			Result = ReadFile(ShaderFile, ShaderData, (DWORD)ShaderFileSize.QuadPart, NULL, NULL);
+			Result = CloseHandle(ShaderFile);
+
+			hr = D3DCompile(ShaderData, ShaderFileSize.QuadPart, "MaterialBase_PixelShader_GBufferOpaquePass", NULL, NULL, "PS", "ps_5_1", D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &ShaderBlob, &ErrorBlob);
+
+			dxcBuffer.Encoding = 0;
+			dxcBuffer.Ptr = ShaderData;
+			dxcBuffer.Size = ShaderFileSize.QuadPart;
+
+			DXCompilerArgs.Clear();
+			DXCompilerArgs.Add(L"-E");
+			DXCompilerArgs.Add(L"PS");
+			DXCompilerArgs.Add(L"-T");
+			DXCompilerArgs.Add(L"ps_5_1");
+			DXCompilerArgs.Add(L"-Zpr");
+			DXCompilerArgs.Add(L"-D");
+			DXCompilerArgs.Add(L"SPIRV");
+			DXCompilerArgs.Add(L"-spirv");
+			DXCompilerArgs.Add(L"-fvk-use-dx-position-w");
+
+			Compiler->Compile(&dxcBuffer, (LPCWSTR*)DXCompilerArgs.GetData(), DXCompilerArgs.GetLength(), NULL, __uuidof(IDxcOperationResult), (void**)&OperationResult);
+
+			hr = OperationResult->GetResult(&ShaderBlobDXC);
+
+			Result = HeapFree(GetProcessHeap(), 0, ShaderData);
+
+			wsprintf(OutputFileName, L"./../../Build/Shaders/ShaderModel51/M_Standart_%d.GBufferOpaquePass_PixelShader.dxbc", i);
+
+			ShaderFile = CreateFile(OutputFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
+			ShaderFileSize.QuadPart = ShaderBlob->GetBufferSize();
+			Result = WriteFile(ShaderFile, ShaderBlob->GetBufferPointer(), ShaderFileSize.QuadPart, NULL, NULL);
+			CloseHandle(ShaderFile);
+
+			wsprintf(OutputFileName, L"./../../Build/Shaders/SPIRV/M_Standart_%d.GBufferOpaquePass_PixelShader.spv", i);
+
+			ShaderFile = CreateFile(OutputFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
+			ShaderFileSize.QuadPart = ShaderBlobDXC->GetBufferSize();
+			Result = WriteFile(ShaderFile, ShaderBlobDXC->GetBufferPointer(), ShaderFileSize.QuadPart, NULL, NULL);
+			CloseHandle(ShaderFile);
+
+			cout << (i + 1) << "/4000" << endl;
+		}
 	}
 	else if (strcmp(Action, "Clean") == 0)
 	{

@@ -99,6 +99,18 @@ namespace Editor
         [DllImport("EditorEngine.NET.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern void CompileShaders(string Action);
 
+        [DllImport("EditorEngine.NET.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetComponentFloatProperty(IntPtr component, string PropertyName, float PropertyValue);
+
+        [DllImport("EditorEngine.NET.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetComponentVectorProperty(IntPtr component, string PropertyName, Float3 PropertyValue);
+
+        [DllImport("EditorEngine.NET.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetComponentRotatorProperty(IntPtr component, string PropertyName, Rotator PropertyValue);
+
+        [DllImport("EditorEngine.NET.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetComponentColorProperty(IntPtr component, string PropertyName, Color PropertyValue);
+
         private IntPtr LevelRenderCanvasHandle;
         private Thread EngineThread;
         public uint EditorViewportWidth, EditorViewportHeight;

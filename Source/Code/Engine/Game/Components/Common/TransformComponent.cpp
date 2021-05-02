@@ -3,6 +3,8 @@
 
 #include "TransformComponent.h"
 
+#include <FileSystem/LevelFile.h>
+
 DEFINE_METACLASS_VARIABLE(TransformComponent)
 
 void TransformComponent::InitComponentDefaultProperties()
@@ -13,11 +15,10 @@ void TransformComponent::InitComponentDefaultProperties()
 	PivotPoint = XMFLOAT3(0.0f, 0.0f, 0.0f);
 }
 
-void TransformComponent::LoadFromFile(HANDLE File)
+void TransformComponent::LoadFromFile(LevelFile& File)
 {
-	BOOL Result;
-	Result = ReadFile(File, &Location, sizeof(XMFLOAT3), NULL, NULL);
-	Result = ReadFile(File, &Rotation, sizeof(XMFLOAT3), NULL, NULL);
-	Result = ReadFile(File, &Scale, sizeof(XMFLOAT3), NULL, NULL);
-	Result = ReadFile(File, &PivotPoint, sizeof(XMFLOAT3), NULL, NULL);
+	File.Read(Location);
+	File.Read(Rotation);
+	File.Read(Scale);
+	File.Read(PivotPoint);
 }

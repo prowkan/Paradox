@@ -23,6 +23,8 @@
 
 #include <MemoryManager/SystemAllocator.h>
 
+#include <FileSystem/LevelFile.h>
+
 void World::LoadWorld()
 {
 	struct StaticMeshFileHeader
@@ -57,11 +59,7 @@ void World::LoadWorld()
 		staticMeshResourceCreateInfo.IndexCount = staticMeshFileHeader->IndexCount;
 		staticMeshResourceCreateInfo.MeshData = (BYTE*)staticMeshFileHeader + sizeof(StaticMeshFileHeader);
 
-		char StaticMeshResourceName[255];
-
-		sprintf(StaticMeshResourceName, "Cube_%d", k);
-
-		resourceManager.AddResource<StaticMeshResource>(StaticMeshResourceName, &staticMeshResourceCreateInfo);
+		resourceManager.AddResource<StaticMeshResource>(StaticMeshFileName, &staticMeshResourceCreateInfo);
 	}	
 
 	for (int k = 0; k < 4000; k++)
@@ -83,11 +81,7 @@ void World::LoadWorld()
 		texture2DResourceCreateInfo.TexelData = (BYTE*)textureFileHeader + sizeof(TextureFileHeader);
 		texture2DResourceCreateInfo.Width = textureFileHeader->Width;
 
-		char Texture2DResourceName[255];
-
-		sprintf(Texture2DResourceName, "Checker_%d", k);
-
-		resourceManager.AddResource<Texture2DResource>(Texture2DResourceName, &texture2DResourceCreateInfo);
+		resourceManager.AddResource<Texture2DResource>(Texture2DFileName, &texture2DResourceCreateInfo);
 	}	
 
 	for (int k = 0; k < 4000; k++)
@@ -109,102 +103,75 @@ void World::LoadWorld()
 		texture2DResourceCreateInfo.TexelData = (BYTE*)textureFileHeader + sizeof(TextureFileHeader);
 		texture2DResourceCreateInfo.Width = textureFileHeader->Width;
 
-		char Texture2DResourceName[255];
-
-		sprintf(Texture2DResourceName, "Normal_%d", k);
-
-		resourceManager.AddResource<Texture2DResource>(Texture2DResourceName, &texture2DResourceCreateInfo);
+		resourceManager.AddResource<Texture2DResource>(Texture2DFileName, &texture2DResourceCreateInfo);
 	}
 
 	for (int k = 0; k < 4000; k++)
 	{
 		String GraphicsAPI = Engine::GetEngine().GetConfigSystem().GetRenderConfigValueString("System", "GraphicsAPI");
 
+		char MaterialFileName[255];
+		sprintf(MaterialFileName, "Test.M_Standart_%d", k);
+
+		ScopedMemoryBlockArray<BYTE> MaterialData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(Engine::GetEngine().GetFileSystem().GetFileSize(MaterialFileName));
+		Engine::GetEngine().GetFileSystem().LoadFile(MaterialFileName, MaterialData);
+
+		const char *ShaderModel = nullptr;
+
 		if (GraphicsAPI == "D3D12")
 		{
-			void *GBufferOpaquePassVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.MaterialBase_VertexShader_GBufferOpaquePass");
-			SIZE_T GBufferOpaquePassVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.MaterialBase_VertexShader_GBufferOpaquePass");
-
-			void *GBufferOpaquePassPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.MaterialBase_PixelShader_GBufferOpaquePass");
-			SIZE_T GBufferOpaquePassPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.MaterialBase_PixelShader_GBufferOpaquePass");
-			
-			void *ShadowMapPassVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.MaterialBase_VertexShader_ShadowMapPass");
-			SIZE_T ShadowMapPassVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.MaterialBase_VertexShader_ShadowMapPass");
-			
-			MaterialResourceCreateInfo materialResourceCreateInfo; 
-			materialResourceCreateInfo.GBufferOpaquePassPixelShaderByteCodeData = GBufferOpaquePassPixelShaderByteCodeData;
-			materialResourceCreateInfo.GBufferOpaquePassPixelShaderByteCodeLength = GBufferOpaquePassPixelShaderByteCodeLength;
-			materialResourceCreateInfo.GBufferOpaquePassVertexShaderByteCodeData = GBufferOpaquePassVertexShaderByteCodeData;
-			materialResourceCreateInfo.GBufferOpaquePassVertexShaderByteCodeLength = GBufferOpaquePassVertexShaderByteCodeLength;
-			materialResourceCreateInfo.ShadowMapPassPixelShaderByteCodeData = nullptr;
-			materialResourceCreateInfo.ShadowMapPassPixelShaderByteCodeLength = 0;
-			materialResourceCreateInfo.ShadowMapPassVertexShaderByteCodeData = ShadowMapPassVertexShaderByteCodeData;
-			materialResourceCreateInfo.ShadowMapPassVertexShaderByteCodeLength = ShadowMapPassVertexShaderByteCodeLength;
-			materialResourceCreateInfo.Textures.Add(nullptr);
-			materialResourceCreateInfo.Textures.Add(nullptr);
-
-			char MaterialResourceName[255];
-
-			sprintf(MaterialResourceName, "Standart_%d", k);
-
-			char Texture2DResourceName[255];
-
-			sprintf(Texture2DResourceName, "Checker_%d", k);
-			materialResourceCreateInfo.Textures[0] = resourceManager.GetResource<Texture2DResource>(Texture2DResourceName);
-			sprintf(Texture2DResourceName, "Normal_%d", k);
-			materialResourceCreateInfo.Textures[1] = resourceManager.GetResource<Texture2DResource>(Texture2DResourceName);
-
-			resourceManager.AddResource<MaterialResource>(MaterialResourceName, &materialResourceCreateInfo);
+			ShaderModel = "ShaderModel51";
 		}
 		else if (GraphicsAPI == "Vulkan")
 		{
-			void *GBufferOpaquePassVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("SPIRV.MaterialBase_VertexShader_GBufferOpaquePass");
-			SIZE_T GBufferOpaquePassVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("SPIRV.MaterialBase_VertexShader_GBufferOpaquePass");
+			ShaderModel = "SPIRV";
+		}
 
-			void *GBufferOpaquePassPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("SPIRV.MaterialBase_PixelShader_GBufferOpaquePass");
-			SIZE_T GBufferOpaquePassPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("SPIRV.MaterialBase_PixelShader_GBufferOpaquePass");
+		char ShaderFileName[255];
+		sprintf(ShaderFileName, "%s.%s.GBufferOpaquePass_VertexShader", ShaderModel, MaterialFileName);
 
-			void *ShadowMapPassVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("SPIRV.MaterialBase_VertexShader_ShadowMapPass");
-			SIZE_T ShadowMapPassVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("SPIRV.MaterialBase_VertexShader_ShadowMapPass");
+		void *GBufferOpaquePassVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData(ShaderFileName);
+		SIZE_T GBufferOpaquePassVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize(ShaderFileName);
 
-			MaterialResourceCreateInfo materialResourceCreateInfo; 
-			materialResourceCreateInfo.GBufferOpaquePassPixelShaderByteCodeData = GBufferOpaquePassPixelShaderByteCodeData;
-			materialResourceCreateInfo.GBufferOpaquePassPixelShaderByteCodeLength = GBufferOpaquePassPixelShaderByteCodeLength;
-			materialResourceCreateInfo.GBufferOpaquePassVertexShaderByteCodeData = GBufferOpaquePassVertexShaderByteCodeData;
-			materialResourceCreateInfo.GBufferOpaquePassVertexShaderByteCodeLength = GBufferOpaquePassVertexShaderByteCodeLength;
-			materialResourceCreateInfo.ShadowMapPassPixelShaderByteCodeData = nullptr;
-			materialResourceCreateInfo.ShadowMapPassPixelShaderByteCodeLength = 0;
-			materialResourceCreateInfo.ShadowMapPassVertexShaderByteCodeData = ShadowMapPassVertexShaderByteCodeData;
-			materialResourceCreateInfo.ShadowMapPassVertexShaderByteCodeLength = ShadowMapPassVertexShaderByteCodeLength;
-			materialResourceCreateInfo.Textures.Add(nullptr);
-			materialResourceCreateInfo.Textures.Add(nullptr);
+		sprintf(ShaderFileName, "%s.%s.GBufferOpaquePass_PixelShader", ShaderModel, MaterialFileName);
 
-			char MaterialResourceName[255];
+		void *GBufferOpaquePassPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData(ShaderFileName);
+		SIZE_T GBufferOpaquePassPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize(ShaderFileName);
 
-			sprintf(MaterialResourceName, "Standart_%d", k);
+		sprintf(ShaderFileName, "%s.%s.ShadowMapPass_VertexShader", ShaderModel, MaterialFileName);
 
-			char Texture2DResourceName[255];
+		void *ShadowMapPassVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData(ShaderFileName);
+		SIZE_T ShadowMapPassVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize(ShaderFileName);
+			
+		MaterialResourceCreateInfo materialResourceCreateInfo; 
+		materialResourceCreateInfo.GBufferOpaquePassPixelShaderByteCodeData = GBufferOpaquePassPixelShaderByteCodeData;
+		materialResourceCreateInfo.GBufferOpaquePassPixelShaderByteCodeLength = GBufferOpaquePassPixelShaderByteCodeLength;
+		materialResourceCreateInfo.GBufferOpaquePassVertexShaderByteCodeData = GBufferOpaquePassVertexShaderByteCodeData;
+		materialResourceCreateInfo.GBufferOpaquePassVertexShaderByteCodeLength = GBufferOpaquePassVertexShaderByteCodeLength;
+		materialResourceCreateInfo.ShadowMapPassPixelShaderByteCodeData = nullptr;
+		materialResourceCreateInfo.ShadowMapPassPixelShaderByteCodeLength = 0;
+		materialResourceCreateInfo.ShadowMapPassVertexShaderByteCodeData = ShadowMapPassVertexShaderByteCodeData;
+		materialResourceCreateInfo.ShadowMapPassVertexShaderByteCodeLength = ShadowMapPassVertexShaderByteCodeLength;
+		materialResourceCreateInfo.Textures.Add(nullptr);
+		materialResourceCreateInfo.Textures.Add(nullptr);
 
-			sprintf(Texture2DResourceName, "Checker_%d", k);
-			materialResourceCreateInfo.Textures[0] = resourceManager.GetResource<Texture2DResource>(Texture2DResourceName);
-			sprintf(Texture2DResourceName, "Normal_%d", k);
-			materialResourceCreateInfo.Textures[1] = resourceManager.GetResource<Texture2DResource>(Texture2DResourceName);
+		String Texture0Name((char*)((BYTE*)MaterialData + 4));
+		String Texture1Name((char*)((BYTE*)MaterialData + 4 + Texture0Name.GetLength() + 1));
 
-			resourceManager.AddResource<MaterialResource>(MaterialResourceName, &materialResourceCreateInfo);
-		}				
+		materialResourceCreateInfo.Textures[0] = resourceManager.GetResource<Texture2DResource>(Texture0Name);
+		materialResourceCreateInfo.Textures[1] = resourceManager.GetResource<Texture2DResource>(Texture1Name);
+
+		resourceManager.AddResource<MaterialResource>(MaterialFileName, &materialResourceCreateInfo);			
 	}
 
-	HANDLE LevelFile = CreateFile((const wchar_t*)u"GameContent/Maps/000.dmap", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-	LARGE_INTEGER LevelFileSize;
-	
-	UINT EntitiesCount;
-	BOOL Result = ReadFile(LevelFile, &EntitiesCount, sizeof(UINT), NULL, NULL);
+	LevelFile MapFile;
+	MapFile.OpenFile((const wchar_t*)u"GameContent/Maps/000.dmap");
+
+	UINT EntitiesCount = MapFile.Read<UINT>();
 
 	for (UINT i = 0; i < EntitiesCount; i++)
 	{
-		char EntityClassName[128];
-
-		Result = ReadFile(LevelFile, EntityClassName, 128, NULL, NULL);
+		String EntityClassName = MapFile.Read<String>();
 
 		MetaClass *metaClass = Engine::GetEngine().GetGameFramework().GetMetaClassesTable()[EntityClassName];
 
@@ -218,12 +185,12 @@ void World::LoadWorld()
 		strcpy((char*)entity->EntityName, EntityName.GetData());
 		entity->SetMetaClass(metaClass);
 		entity->SetWorld(this);
-		entity->LoadFromFile(LevelFile);
+		entity->LoadFromFile(MapFile);
 
 		Entities.Add(entity);
 	}
 
-	Result = CloseHandle(LevelFile);
+	MapFile.CloseFile();
 }
 
 void World::UnLoadWorld()
@@ -251,9 +218,7 @@ Entity* World::SpawnEntity(MetaClass* metaClass)
 Entity* World::FindEntityByName(const char* EntityName)
 {
 	for (Entity* entity : Entities)
-	//for (size_t i = 0; i < Entities.GetLength(); i++)
 	{
-		//Entity* entity = Entities[i];
 		if (strcmp(entity->EntityName, EntityName) == 0) return entity;
 	}
 

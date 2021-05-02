@@ -11,6 +11,8 @@
 
 #include <MemoryManager/SystemAllocator.h>
 
+#include <FileSystem/LevelFile.h>
+
 DEFINE_METACLASS_VARIABLE(StaticMeshEntity)
 
 void StaticMeshEntity::InitDefaultProperties()
@@ -20,16 +22,13 @@ void StaticMeshEntity::InitDefaultProperties()
 	staticMeshComponent = Component::DynamicCast<StaticMeshComponent>(CreateDefaultComponent(StaticMeshComponent::GetMetaClassStatic()));
 }
 
-void StaticMeshEntity::LoadFromFile(HANDLE File)
+void StaticMeshEntity::LoadFromFile(LevelFile& File)
 {
-	UINT ComponentsCount;
-	BOOL Result = ReadFile(File, &ComponentsCount, sizeof(UINT), NULL, NULL);
+	UINT ComponentsCount = File.Read<UINT>();
 
 	for (UINT i = 0; i < ComponentsCount; i++)
 	{
-		char ComponentClassName[128];
-
-		Result = ReadFile(File, ComponentClassName, 128, NULL, NULL);
+		String ComponentClassName = File.Read<String>();
 
 		MetaClass *metaClass = Engine::GetEngine().GetGameFramework().GetMetaClassesTable()[ComponentClassName];
 

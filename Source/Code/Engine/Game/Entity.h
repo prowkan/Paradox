@@ -7,6 +7,7 @@
 class Component;
 class World;
 class Resource;
+class LevelFile;
 
 class Entity
 {
@@ -27,16 +28,9 @@ class Entity
 		template<typename T>
 		T* GetComponent()
 		{
-			/*for (Component* component : Components)
+			for (Component* component : Components)
 			{
 				T* ConcreteComponent = Component::DynamicCast<T>(component);
-
-				if (ConcreteComponent != nullptr) return ConcreteComponent;
-			}*/
-
-			for (int i = 0; i < Components.GetLength(); i++)
-			{
-				T* ConcreteComponent = Component::DynamicCast<T>(Components[i]);
 
 				if (ConcreteComponent != nullptr) return ConcreteComponent;
 			}
@@ -52,7 +46,7 @@ class Entity
 			return nullptr;
 		}
 
-		virtual void LoadFromFile(HANDLE File) {}
+		virtual void LoadFromFile(LevelFile& File) {}
 
 		const char* GetEntityName() { return EntityName; }
 		const char *EntityName;

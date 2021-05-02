@@ -3,6 +3,8 @@
 
 #include "BoundingBoxComponent.h"
 
+#include <FileSystem/LevelFile.h>
+
 DEFINE_METACLASS_VARIABLE(BoundingBoxComponent)
 
 void BoundingBoxComponent::InitComponentDefaultProperties()
@@ -11,9 +13,8 @@ void BoundingBoxComponent::InitComponentDefaultProperties()
 	HalfSize = XMFLOAT3(1.0f, 1.0f, 1.0f);
 }
 
-void BoundingBoxComponent::LoadFromFile(HANDLE File)
+void BoundingBoxComponent::LoadFromFile(LevelFile& File)
 {
-	BOOL Result;
-	Result = ReadFile(File, &Center, sizeof(XMFLOAT3), NULL, NULL);
-	Result = ReadFile(File, &HalfSize, sizeof(XMFLOAT3), NULL, NULL);
+	File.Read(Center);
+	File.Read(HalfSize);
 }
