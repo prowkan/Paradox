@@ -5013,10 +5013,7 @@ void RenderDeviceVulkan::ShutdownDevice()
 	SAFE_VK(vkWaitForFences(Device, 1, &FrameSyncFences[CurrentFrameIndex], VK_FALSE, UINT64_MAX));
 
 	for (RenderMesh* renderMesh : RenderMeshDestructionQueue)
-	//for (size_t i = 0; i < RenderMeshDestructionQueue.GetLength(); i++)
 	{
-		//RenderMesh* renderMesh = RenderMeshDestructionQueue[i];
-
 		vkDestroyBuffer(Device, ((RenderMeshVulkan*)renderMesh)->MeshBuffer, nullptr);
 
 		delete (RenderMeshVulkan*)renderMesh;
@@ -5025,10 +5022,7 @@ void RenderDeviceVulkan::ShutdownDevice()
 	RenderMeshDestructionQueue.Clear();
 
 	for (RenderMaterial* renderMaterial : RenderMaterialDestructionQueue)
-	//for (size_t i = 0; i < RenderMeshDestructionQueue.GetLength(); i++)
 	{
-		//RenderMaterial* renderMaterial = RenderMaterialDestructionQueue[i];
-
 		vkDestroyPipeline(Device, ((RenderMaterialVulkan*)renderMaterial)->GBufferOpaquePassPipeline, nullptr);
 		vkDestroyPipeline(Device, ((RenderMaterialVulkan*)renderMaterial)->ShadowMapPassPipeline, nullptr);
 
@@ -5038,10 +5032,7 @@ void RenderDeviceVulkan::ShutdownDevice()
 	RenderMaterialDestructionQueue.Clear();
 
 	for (RenderTexture* renderTexture : RenderTextureDestructionQueue)
-	//for (size_t i = 0; i < RenderMeshDestructionQueue.GetLength(); i++)
 	{
-		//RenderTexture* renderTexture = RenderTextureDestructionQueue[i];
-
 		vkDestroyImageView(Device, ((RenderTextureVulkan*)renderTexture)->TextureView, nullptr);
 		vkDestroyImage(Device, ((RenderTextureVulkan*)renderTexture)->Texture, nullptr);
 
@@ -5404,10 +5395,7 @@ void RenderDeviceVulkan::TickDevice(float DeltaTime)
 	DynamicArray<PointLight> PointLights;
 
 	for (PointLightComponent *pointLightComponent : VisblePointLightComponents)
-	//for (size_t i = 0; i < VisblePointLightComponents.GetLength(); i++)
 	{
-		//PointLightComponent *pointLightComponent = VisblePointLightComponents[i];
-
 		PointLight pointLight;
 		pointLight.Brightness = pointLightComponent->GetBrightness();
 		pointLight.Color = pointLightComponent->GetColor();

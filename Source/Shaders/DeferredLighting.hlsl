@@ -98,5 +98,4 @@ VK_LOCATION(0) float4 PS(PSInput PixelShaderInput, uint SampleIndex : SV_SampleI
 	}
 
 	return float4(Color, 1.0f);
-	//return float4(PixelShaderInput.Position.x, PixelShaderInput.Position.y, SampleIndex, 1.0f);
 }
