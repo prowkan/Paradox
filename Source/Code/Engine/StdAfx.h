@@ -9,6 +9,7 @@
 //#include <queue>
 #include <atomic>
 #include <mutex>
+#include <fstream>
 
 #include <Windows.h>
 #include <DbgHelp.h>

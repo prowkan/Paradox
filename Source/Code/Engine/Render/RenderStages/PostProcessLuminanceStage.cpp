@@ -61,11 +61,11 @@ void PostProcessLuminanceStage::Init(RenderGraph* renderGraph)
 
 	SceneLuminancePasses = new ComputePass*[5];
 
-	SceneLuminancePasses[0] = renderGraph->CreateRenderPass<ComputePass>("SceneLuminancePass0");
-	SceneLuminancePasses[1] = renderGraph->CreateRenderPass<ComputePass>("SceneLuminancePass1");
-	SceneLuminancePasses[2] = renderGraph->CreateRenderPass<ComputePass>("SceneLuminancePass2");
-	SceneLuminancePasses[3] = renderGraph->CreateRenderPass<ComputePass>("SceneLuminancePass3");
-	SceneLuminancePasses[4] = renderGraph->CreateRenderPass<ComputePass>("SceneLuminancePass4");
+	SceneLuminancePasses[0] = renderGraph->CreateRenderPass<ComputePass>("Post-Process Scene Luminance Pass 0");
+	SceneLuminancePasses[1] = renderGraph->CreateRenderPass<ComputePass>("Post-Process Scene Luminance Pass 1");
+	SceneLuminancePasses[2] = renderGraph->CreateRenderPass<ComputePass>("Post-Process Scene Luminance Pass 2");
+	SceneLuminancePasses[3] = renderGraph->CreateRenderPass<ComputePass>("Post-Process Scene Luminance Pass 3");
+	SceneLuminancePasses[4] = renderGraph->CreateRenderPass<ComputePass>("Post-Process Scene Luminance Pass 4");
 }
 
 void PostProcessLuminanceStage::Execute()

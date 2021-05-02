@@ -7,8 +7,8 @@
 
 void SkyAndFogStage::Init(RenderGraph* renderGraph)
 {
-	SkyPass = renderGraph->CreateRenderPass<RenderPass>("Sky Pass");
 	FogPass = renderGraph->CreateRenderPass<FullScreenPass>("Fog Pass");
+	SkyPass = renderGraph->CreateRenderPass<RenderPass>("Sky Pass");
 }
 
 void SkyAndFogStage::Execute()

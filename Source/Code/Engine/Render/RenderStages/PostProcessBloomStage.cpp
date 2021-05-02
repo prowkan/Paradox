@@ -47,7 +47,7 @@ void PostProcessBloomStage::Init(RenderGraph* renderGraph)
 
 	for (int i = 0; i < 3 * 7 + 6; i++)
 	{
-		BloomPasses[i] = renderGraph->CreateRenderPass<FullScreenPass>(String("BloomPass") + String(i));
+		BloomPasses[i] = renderGraph->CreateRenderPass<FullScreenPass>(String("Post-Process Bloom Pass ") + String(i));
 	}
 }
 

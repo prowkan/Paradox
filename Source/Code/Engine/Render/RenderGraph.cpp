@@ -3,6 +3,8 @@
 
 #include "RenderGraph.h"
 
+#include "RenderPass.h"
+
 RenderGraphResource* RenderGraph::CreateBuffer(VkBufferCreateInfo& BufferCreateInfo, const String& Name)
 {
     RenderGraphResource* Resource = new RenderGraphResource();
@@ -55,4 +57,45 @@ RenderGraphResource* RenderGraph::GetResource(const String& Name)
     }
 
     return nullptr;
+}
+
+void RenderGraph::ExportGraphToHTML()
+{
+    fstream OutputHTMLFile("RenderGraph.html", ios::out);
+    OutputHTMLFile << "<HTML>\n";
+    OutputHTMLFile << "\t<BODY>\n";
+    OutputHTMLFile << "\t\t<TABLE cellspacing=\"0\" cellpadding=\"0\" style=\"border-collapse: collapse\">\n";
+    OutputHTMLFile << "\t\t\t<TR>\n";
+
+    OutputHTMLFile << "\t\t\t\t<TD style=\"border: 1px solid black\">&nbsp;</TD>\n";
+
+    for (RenderPass* renderPass : RenderPasses)
+    {
+        OutputHTMLFile << "\t\t\t\t<TD style=\"border: 1px solid black\">";
+        OutputHTMLFile << renderPass->Name.GetData();
+        OutputHTMLFile << "</TD>\n";
+    }
+
+    OutputHTMLFile << "\t\t\t</TR>\n";
+
+    for (RenderGraphResource* renderGraphResource : RenderResources)
+    {
+        OutputHTMLFile << "\t\t\t<TR>\n";
+
+        OutputHTMLFile << "\t\t\t\t<TD style=\"border: 1px solid black\">";
+        OutputHTMLFile << renderGraphResource->Name.GetData();
+        OutputHTMLFile << "</TD>\n";
+
+        for (RenderPass* renderPass : RenderPasses)
+        {
+            OutputHTMLFile << "\t\t\t\t<TD style=\"border: 1px solid black\">&nbsp;</TD>\n";
+        }
+
+        OutputHTMLFile << "\t\t\t</TR>\n";
+    }
+
+    OutputHTMLFile << "\t\t</TABLE>\n";
+    OutputHTMLFile << "\t</BODY>\n";
+    OutputHTMLFile << "</HTML>\n";
+    OutputHTMLFile.close();
 }

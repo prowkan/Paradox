@@ -32,7 +32,7 @@ void DeferredLightingStage::Init(RenderGraph* renderGraph)
 	//SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &HDRSceneColorTexture));
 	renderGraph->CreateTexture(ImageCreateInfo, "HDRSceneColorTexture");
 
-	DeferredLightingPass = renderGraph->CreateRenderPass<FullScreenPass>("DeferredLightingPass");
+	DeferredLightingPass = renderGraph->CreateRenderPass<FullScreenPass>("Deferred Lighting Pass");
 }
 
 void DeferredLightingStage::Execute()

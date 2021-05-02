@@ -56,7 +56,7 @@ void GBufferOpaqueStage::Init(RenderGraph* renderGraph)
 
 	renderGraph->CreateTexture(ImageCreateInfo, "DepthBufferTexture");
 
-	GBufferOpaquePass = renderGraph->CreateRenderPass<ScenePass>("GBufferOpaquePass");
+	GBufferOpaquePass = renderGraph->CreateRenderPass<ScenePass>("G-Buffer Opaque Pass");
 }
 
 void GBufferOpaqueStage::Execute()

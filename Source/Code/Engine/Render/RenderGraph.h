@@ -40,6 +40,8 @@ class RenderGraph
 		template<typename T>
 		T* CreateRenderPass(const String& Name);
 
+		void ExportGraphToHTML();
+
 	private:
 
 		DynamicArray<RenderPass*> RenderPasses;

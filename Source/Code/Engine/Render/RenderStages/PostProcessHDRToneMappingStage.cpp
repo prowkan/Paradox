@@ -31,7 +31,7 @@ void PostProcessHDRToneMappingStage::Init(RenderGraph* renderGraph)
 
 	renderGraph->CreateTexture(ImageCreateInfo, "ToneMappedImageTexture");
 
-	PostProcessHDRToneMappingPass = renderGraph->CreateRenderPass<FullScreenPass>("PostProcessHDRToneMappingPass");
+	PostProcessHDRToneMappingPass = renderGraph->CreateRenderPass<FullScreenPass>("Post-Process HDR Tone Mapping Pass");
 }
 
 void PostProcessHDRToneMappingStage::Execute()

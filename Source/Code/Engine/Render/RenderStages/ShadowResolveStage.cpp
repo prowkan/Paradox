@@ -33,7 +33,7 @@ void ShadowResolveStage::Init(RenderGraph* renderGraph)
 
 	renderGraph->CreateTexture(ImageCreateInfo, "ShadowMaskTexture");
 
-	ShadowResolvePass = renderGraph->CreateRenderPass<FullScreenPass>("ShadowResolvePass");
+	ShadowResolvePass = renderGraph->CreateRenderPass<FullScreenPass>("Shadow Resolve Pass");
 }
 
 void ShadowResolveStage::Execute()

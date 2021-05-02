@@ -5038,7 +5038,7 @@ void RenderSystem::InitSystem()
 		renderStage->Init(&renderGraph);
 	}
 
-	cout << "Render graph was built." << endl;
+	renderGraph.ExportGraphToHTML();
 }
 
 void RenderSystem::ShutdownSystem()
