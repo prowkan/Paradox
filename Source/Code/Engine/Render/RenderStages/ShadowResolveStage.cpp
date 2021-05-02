@@ -31,9 +31,16 @@ void ShadowResolveStage::Init(RenderGraph* renderGraph)
 
 	//SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &ShadowMaskTexture));
 
-	renderGraph->CreateTexture(ImageCreateInfo, "ShadowMaskTexture");
+	RenderGraphResource *ShadowMaskTexture = renderGraph->CreateTexture(ImageCreateInfo, "ShadowMaskTexture");
 
 	ShadowResolvePass = renderGraph->CreateRenderPass<FullScreenPass>("Shadow Resolve Pass");
+
+	ShadowResolvePass->AddInput(renderGraph->GetResource("ResolvedDepthBufferTexture"));
+	ShadowResolvePass->AddInput(renderGraph->GetResource("CascadedShadowMapTexture0"));
+	ShadowResolvePass->AddInput(renderGraph->GetResource("CascadedShadowMapTexture1"));
+	ShadowResolvePass->AddInput(renderGraph->GetResource("CascadedShadowMapTexture2"));
+	ShadowResolvePass->AddInput(renderGraph->GetResource("CascadedShadowMapTexture3"));
+	ShadowResolvePass->AddOutput(ShadowMaskTexture);
 }
 
 void ShadowResolveStage::Execute()

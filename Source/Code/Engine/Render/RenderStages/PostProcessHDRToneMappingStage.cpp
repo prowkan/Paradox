@@ -29,9 +29,13 @@ void PostProcessHDRToneMappingStage::Init(RenderGraph* renderGraph)
 	ImageCreateInfo.tiling = VkImageTiling::VK_IMAGE_TILING_OPTIMAL;
 	ImageCreateInfo.usage = VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-	renderGraph->CreateTexture(ImageCreateInfo, "ToneMappedImageTexture");
+	RenderGraphResource *ToneMappedImageTexture = renderGraph->CreateTexture(ImageCreateInfo, "ToneMappedImageTexture");
 
 	PostProcessHDRToneMappingPass = renderGraph->CreateRenderPass<FullScreenPass>("Post-Process HDR Tone Mapping Pass");
+
+	PostProcessHDRToneMappingPass->AddInput(renderGraph->GetResource("HDRSceneColorTexture"));
+	PostProcessHDRToneMappingPass->AddInput(renderGraph->GetResource("BloomTextures20"));
+	PostProcessHDRToneMappingPass->AddOutput(ToneMappedImageTexture);
 }
 
 void PostProcessHDRToneMappingStage::Execute()

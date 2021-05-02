@@ -31,10 +31,10 @@ void GBufferOpaqueStage::Init(RenderGraph* renderGraph)
 
 	ImageCreateInfo.format = VkFormat::VK_FORMAT_R8G8B8A8_SRGB;
 	//SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &GBufferTextures[0]));
-	renderGraph->CreateTexture(ImageCreateInfo, "GBufferTexture0");
+	RenderGraphResource *GBufferTexture0 = renderGraph->CreateTexture(ImageCreateInfo, "GBufferTexture0");
 	ImageCreateInfo.format = VkFormat::VK_FORMAT_A2R10G10B10_UNORM_PACK32;
 	//SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &GBufferTextures[1]));
-	renderGraph->CreateTexture(ImageCreateInfo, "GBufferTexture1");
+	RenderGraphResource *GBufferTexture1 = renderGraph->CreateTexture(ImageCreateInfo, "GBufferTexture1");
 
 	ImageCreateInfo.arrayLayers = 1;
 	ImageCreateInfo.extent.depth = 1;
@@ -54,9 +54,13 @@ void GBufferOpaqueStage::Init(RenderGraph* renderGraph)
 	ImageCreateInfo.tiling = VkImageTiling::VK_IMAGE_TILING_OPTIMAL;
 	ImageCreateInfo.usage = VkImageUsageFlagBits::VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VkImageUsageFlagBits::VK_IMAGE_USAGE_SAMPLED_BIT;
 
-	renderGraph->CreateTexture(ImageCreateInfo, "DepthBufferTexture");
+	RenderGraphResource *DepthBufferTexture = renderGraph->CreateTexture(ImageCreateInfo, "DepthBufferTexture");
 
 	GBufferOpaquePass = renderGraph->CreateRenderPass<ScenePass>("G-Buffer Opaque Pass");
+
+	GBufferOpaquePass->AddOutput(GBufferTexture0);
+	GBufferOpaquePass->AddOutput(GBufferTexture1);
+	GBufferOpaquePass->AddOutput(DepthBufferTexture);
 }
 
 void GBufferOpaqueStage::Execute()

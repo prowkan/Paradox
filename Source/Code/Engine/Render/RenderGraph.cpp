@@ -69,6 +69,8 @@ void RenderGraph::ExportGraphToHTML()
 
     OutputHTMLFile << "\t\t\t\t<TD style=\"border: 1px solid black\">&nbsp;</TD>\n";
 
+    size_t RenderPassesCount = RenderPasses.GetLength();
+
     for (RenderPass* renderPass : RenderPasses)
     {
         OutputHTMLFile << "\t\t\t\t<TD style=\"border: 1px solid black\">";
@@ -80,15 +82,63 @@ void RenderGraph::ExportGraphToHTML()
 
     for (RenderGraphResource* renderGraphResource : RenderResources)
     {
+        size_t RenderPassBeginAccessIndex = -1, RenderPassEndAccessIndex = -1;
+
+        for (size_t i = 0; i < RenderPassesCount; i++)
+        {
+            RenderPass* renderPass = RenderPasses[i];
+
+            for (RenderGraphResource* resource : renderPass->RenderPassInputs)
+            {
+                if (resource == renderGraphResource) { RenderPassBeginAccessIndex = i; break; }
+            }
+
+            for (RenderGraphResource* resource : renderPass->RenderPassOutputs)
+            {
+                if (resource == renderGraphResource) { RenderPassBeginAccessIndex = i; break; }
+            }
+
+            if (RenderPassBeginAccessIndex == i) break;
+        }
+
+        for (size_t i = RenderPassesCount - 1; (int64_t)i >= 0; i--)
+        {
+            RenderPass* renderPass = RenderPasses[i];
+
+            for (RenderGraphResource* resource : renderPass->RenderPassInputs)
+            {
+                if (resource == renderGraphResource) { RenderPassEndAccessIndex = i; break; }
+            }
+
+            for (RenderGraphResource* resource : renderPass->RenderPassOutputs)
+            {
+                if (resource == renderGraphResource) { RenderPassEndAccessIndex = i; break; }
+            }
+
+            if (RenderPassEndAccessIndex == i) break;
+        }
+
         OutputHTMLFile << "\t\t\t<TR>\n";
 
         OutputHTMLFile << "\t\t\t\t<TD style=\"border: 1px solid black\">";
         OutputHTMLFile << renderGraphResource->Name.GetData();
         OutputHTMLFile << "</TD>\n";
 
-        for (RenderPass* renderPass : RenderPasses)
+        /*for (RenderPass* renderPass : RenderPasses)
         {
             OutputHTMLFile << "\t\t\t\t<TD style=\"border: 1px solid black\">&nbsp;</TD>\n";
+        }*/
+
+        for (size_t i = 0; i < RenderPassesCount; i++)
+        {
+            if (i >= RenderPassBeginAccessIndex && i <= RenderPassEndAccessIndex)
+            {
+                OutputHTMLFile << "\t\t\t\t<TD style=\"border-top: 1px solid black; border-bottom: 1px solid black; background-color: #C0C0C0\">&nbsp;</TD>\n";
+            }
+            else
+            {
+                OutputHTMLFile << "\t\t\t\t<TD style=\"border: 1px solid black\">&nbsp;</TD>\n";
+            }
         }
 
         OutputHTMLFile << "\t\t\t</TR>\n";

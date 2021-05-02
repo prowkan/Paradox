@@ -29,9 +29,12 @@ void MSAADepthBufferResolveStage::Init(RenderGraph* renderGraph)
 	ImageCreateInfo.tiling = VkImageTiling::VK_IMAGE_TILING_OPTIMAL;
 	ImageCreateInfo.usage = VkImageUsageFlagBits::VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VkImageUsageFlagBits::VK_IMAGE_USAGE_SAMPLED_BIT;
 
-	renderGraph->CreateTexture(ImageCreateInfo, "ResolvedDepthBufferTexture");
+	RenderGraphResource *ResolvedDepthBufferTexture = renderGraph->CreateTexture(ImageCreateInfo, "ResolvedDepthBufferTexture");
 
 	MSAADepthBufferResolvePass = renderGraph->CreateRenderPass<ResolvePass>("MSAA Depth Buffer Resolve Pass");
+
+	MSAADepthBufferResolvePass->AddInput(renderGraph->GetResource("DepthBufferTexture"));
+	MSAADepthBufferResolvePass->AddOutput(ResolvedDepthBufferTexture);
 }
 
 void MSAADepthBufferResolveStage::Execute()

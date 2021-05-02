@@ -30,9 +30,15 @@ void DeferredLightingStage::Init(RenderGraph* renderGraph)
 	ImageCreateInfo.usage = VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VkImageUsageFlagBits::VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VkImageUsageFlagBits::VK_IMAGE_USAGE_SAMPLED_BIT;
 
 	//SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &HDRSceneColorTexture));
-	renderGraph->CreateTexture(ImageCreateInfo, "HDRSceneColorTexture");
+	RenderGraphResource *HDRSceneColorTexture = renderGraph->CreateTexture(ImageCreateInfo, "HDRSceneColorTexture");
 
 	DeferredLightingPass = renderGraph->CreateRenderPass<FullScreenPass>("Deferred Lighting Pass");
+
+	DeferredLightingPass->AddInput(renderGraph->GetResource("GBufferTexture0"));
+	DeferredLightingPass->AddInput(renderGraph->GetResource("GBufferTexture1"));
+	DeferredLightingPass->AddInput(renderGraph->GetResource("DepthBufferTexture"));
+	DeferredLightingPass->AddInput(renderGraph->GetResource("ShadowMaskTexture"));
+	DeferredLightingPass->AddOutput(HDRSceneColorTexture);
 }
 
 void DeferredLightingStage::Execute()

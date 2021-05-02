@@ -29,9 +29,12 @@ void HDRSceneColorResolveStage::Init(RenderGraph* renderGraph)
 	ImageCreateInfo.tiling = VkImageTiling::VK_IMAGE_TILING_OPTIMAL;
 	ImageCreateInfo.usage = VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VkImageUsageFlagBits::VK_IMAGE_USAGE_SAMPLED_BIT;
 
-	renderGraph->CreateTexture(ImageCreateInfo, "ResolvedHDRSceneColorTexture");
+	RenderGraphResource *ResolvedHDRSceneColorTexture = renderGraph->CreateTexture(ImageCreateInfo, "ResolvedHDRSceneColorTexture");
 
 	HDRSceneColorResolvePass = renderGraph->CreateRenderPass<ResolvePass>("HDR Scene Color Resolve Pass");
+	
+	HDRSceneColorResolvePass->AddInput(renderGraph->GetResource("HDRSceneColorTexture"));
+	HDRSceneColorResolvePass->AddOutput(ResolvedHDRSceneColorTexture);
 }
 
 void HDRSceneColorResolveStage::Execute()

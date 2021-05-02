@@ -31,15 +31,20 @@ void ShadowMapStage::Init(RenderGraph* renderGraph)
 	SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &CascadedShadowMapTextures[2]));
 	SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &CascadedShadowMapTextures[3]));*/
 
-	renderGraph->CreateTexture(ImageCreateInfo, "CascadedShadowMapTexture0");
-	renderGraph->CreateTexture(ImageCreateInfo, "CascadedShadowMapTexture1");
-	renderGraph->CreateTexture(ImageCreateInfo, "CascadedShadowMapTexture2");
-	renderGraph->CreateTexture(ImageCreateInfo, "CascadedShadowMapTexture3");
+	RenderGraphResource *CascadedShadowMapTexture0 = renderGraph->CreateTexture(ImageCreateInfo, "CascadedShadowMapTexture0");
+	RenderGraphResource *CascadedShadowMapTexture1 = renderGraph->CreateTexture(ImageCreateInfo, "CascadedShadowMapTexture1");
+	RenderGraphResource *CascadedShadowMapTexture2 = renderGraph->CreateTexture(ImageCreateInfo, "CascadedShadowMapTexture2");
+	RenderGraphResource *CascadedShadowMapTexture3 = renderGraph->CreateTexture(ImageCreateInfo, "CascadedShadowMapTexture3");
 
 	CascadedShadowMapPasses[0] = renderGraph->CreateRenderPass<ScenePass>("Cascaded Shadow Map Pass 0");
 	CascadedShadowMapPasses[1] = renderGraph->CreateRenderPass<ScenePass>("Cascaded Shadow Map Pass 1");
 	CascadedShadowMapPasses[2] = renderGraph->CreateRenderPass<ScenePass>("Cascaded Shadow Map Pass 2");
 	CascadedShadowMapPasses[3] = renderGraph->CreateRenderPass<ScenePass>("Cascaded Shadow Map Pass 3");
+
+	CascadedShadowMapPasses[0]->AddOutput(CascadedShadowMapTexture0);
+	CascadedShadowMapPasses[1]->AddOutput(CascadedShadowMapTexture1);
+	CascadedShadowMapPasses[2]->AddOutput(CascadedShadowMapTexture2);
+	CascadedShadowMapPasses[3]->AddOutput(CascadedShadowMapTexture3);
 }
 
 void ShadowMapStage::Execute()
