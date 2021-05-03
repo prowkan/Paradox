@@ -171,6 +171,34 @@ class HashTable
 			return *(ValueType*)nullptr;
 		}
 
+		bool HasKey(const KeyType& Key)
+		{
+			uint64_t Hash = HashFunc(Key) % TableSize;
+
+			Node *CurrentNode = Nodes[Hash];
+
+			if (!CurrentNode) return false;
+
+			while (true)
+			{
+				if (CurrentNode->Key == Key)
+				{
+					return true;
+				}
+
+				if (CurrentNode->Next)
+				{
+					CurrentNode = CurrentNode->Next;
+				}
+				else
+				{
+					return false;
+				}
+			}
+
+			return false;
+		}
+
 		const int GetSize() const { return Size; }
 
 		struct Iterator

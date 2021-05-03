@@ -20,6 +20,8 @@ class ResourceManager
 		template<typename T>
 		T* GetResource(const String& ResourceName) { return (T*)ResourceTable[ResourceName]; }
 
+		bool IsResourceLoaded(const String& ResourceName) { return ResourceTable.HasKey(ResourceName); }
+
 		void DestroyAllResources()
 		{
 			for (auto& It : ResourceTable)
