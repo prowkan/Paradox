@@ -106,10 +106,14 @@ class RenderDeviceD3D12 : public RenderDevice
 		COMRCPtr<ID3D12Resource> GPUConstantBuffer, CPUConstantBuffers[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs[20000];
 
+		COMRCPtr<ID3D12Heap> GPUMemory1, CPUMemory1;
+
 		// ===============================================================================================================
 
 		COMRCPtr<ID3D12Resource> ResolvedDepthBufferTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE ResolvedDepthBufferTextureSRV;
+
+		COMRCPtr<ID3D12Heap> GPUMemory2;
 
 		// ===============================================================================================================
 
@@ -118,6 +122,8 @@ class RenderDeviceD3D12 : public RenderDevice
 
 		COMRCPtr<ID3D12PipelineState> OcclusionBufferPipelineState;
 
+		COMRCPtr<ID3D12Heap> GPUMemory3, CPUMemory3;
+
 		// ===============================================================================================================
 
 		COMRCPtr<ID3D12Resource> CascadedShadowMapTextures[4];
@@ -125,6 +131,8 @@ class RenderDeviceD3D12 : public RenderDevice
 
 		COMRCPtr<ID3D12Resource> GPUConstantBuffers2[4], CPUConstantBuffers2[4][2];
 		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs2[4][20000];
+
+		COMRCPtr<ID3D12Heap> GPUMemory4, CPUMemory4;
 
 		// ===============================================================================================================
 
@@ -135,6 +143,8 @@ class RenderDeviceD3D12 : public RenderDevice
 		D3D12_CPU_DESCRIPTOR_HANDLE ShadowResolveConstantBufferCBV;
 
 		COMRCPtr<ID3D12PipelineState> ShadowResolvePipelineState;
+
+		COMRCPtr<ID3D12Heap> GPUMemory5, CPUMemory5;
 
 		// ===============================================================================================================
 
@@ -154,6 +164,8 @@ class RenderDeviceD3D12 : public RenderDevice
 		D3D12_CPU_DESCRIPTOR_HANDLE PointLightsBufferSRV;
 
 		COMRCPtr<ID3D12PipelineState> DeferredLightingPipelineState;
+
+		COMRCPtr<ID3D12Heap> GPUMemory6, CPUMemory6;
 
 		// ===============================================================================================================
 
@@ -175,10 +187,14 @@ class RenderDeviceD3D12 : public RenderDevice
 
 		COMRCPtr<ID3D12PipelineState> FogPipelineState;
 
+		COMRCPtr<ID3D12Heap> GPUMemory7, CPUMemory7;
+
 		// ===============================================================================================================
 
 		COMRCPtr<ID3D12Resource> ResolvedHDRSceneColorTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE ResolvedHDRSceneColorTextureSRV;
+
+		COMRCPtr<ID3D12Heap> GPUMemory8;
 
 		// ===============================================================================================================
 
@@ -192,6 +208,8 @@ class RenderDeviceD3D12 : public RenderDevice
 		COMRCPtr<ID3D12PipelineState> LuminanceSumPipelineState;
 		COMRCPtr<ID3D12PipelineState> LuminanceAvgPipelineState;
 
+		COMRCPtr<ID3D12Heap> GPUMemory9;
+
 		// ===============================================================================================================
 
 		COMRCPtr<ID3D12Resource> BloomTextures[3][7];
@@ -203,12 +221,16 @@ class RenderDeviceD3D12 : public RenderDevice
 		COMRCPtr<ID3D12PipelineState> VerticalBlurPipelineState;
 		COMRCPtr<ID3D12PipelineState> UpSampleWithAddBlendPipelineState;
 
+		COMRCPtr<ID3D12Heap> GPUMemory10;
+
 		// ===============================================================================================================
 
 		COMRCPtr<ID3D12Resource> ToneMappedImageTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE ToneMappedImageTextureRTV;
 
 		COMRCPtr<ID3D12PipelineState> HDRToneMappingPipelineState;
+
+		COMRCPtr<ID3D12Heap> GPUMemory11;
 
 		// ===============================================================================================================
 

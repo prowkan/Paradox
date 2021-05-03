@@ -177,61 +177,61 @@ class HashTable
 		{
 			private:
 
-			using NodeType = typename HashTable<KeyType, ValueType, Allocator, HashFunc>::Node;
+				using NodeType = typename HashTable<KeyType, ValueType, Allocator, HashFunc>::Node;
 
-			int TableCellIndex;
-			int TableSize;
-			NodeType *TableNode, **TableNodes;
+				int TableCellIndex;
+				int TableSize;
+				NodeType *TableNode, **TableNodes;
 
 			public:
 
-			Iterator(int TableCellIndex, NodeType** TableNodes, NodeType* TableNode, int TableSize) : TableCellIndex(TableCellIndex), TableNodes(TableNodes), TableNode(TableNode), TableSize(TableSize)
-			{
-
-			}
-
-			NodeType* GetTableNode() { return TableNode; }
-
-			Iterator& operator++()
-			{
-				if (TableNode->Next)
+				Iterator(int TableCellIndex, NodeType** TableNodes, NodeType* TableNode, int TableSize) : TableCellIndex(TableCellIndex), TableNodes(TableNodes), TableNode(TableNode), TableSize(TableSize)
 				{
-					TableNode = TableNode->Next;
+
 				}
-				else
-				{
-					TableCellIndex++;
 
-					while (true)
+				NodeType* GetTableNode() { return TableNode; }
+
+				Iterator& operator++()
+				{
+					if (TableNode->Next)
 					{
-						if (TableCellIndex >= TableSize)
-						{
-							TableNode = nullptr;
-							break;
-						}
-
-						if (TableNodes[TableCellIndex])
-						{
-							TableNode = TableNodes[TableCellIndex];
-							break;
-						}
-
-						TableCellIndex++;
+						TableNode = TableNode->Next;
 					}
+					else
+					{
+						TableCellIndex++;
+
+						while (true)
+						{
+							if (TableCellIndex >= TableSize)
+							{
+								TableNode = nullptr;
+								break;
+							}
+
+							if (TableNodes[TableCellIndex])
+							{
+								TableNode = TableNodes[TableCellIndex];
+								break;
+							}
+
+							TableCellIndex++;
+						}		
+					}
+
+					return *this;
 				}
 
-				return *this;
-			}
+				bool operator!=(Iterator& OtherIterator)
+				{
+					return TableNode != OtherIterator.TableNode;
+				}
 
-			bool operator!=(Iterator& OtherIterator)
-			{
-				return TableNode != OtherIterator.TableNode;
-			}
-
-			NodeType*& operator*()
-			{
-				return TableNode;
-			}
+				NodeType*& operator*()
+				{
+					return TableNode;
+				}
 		};
 
 		Iterator Begin()

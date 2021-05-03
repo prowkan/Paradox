@@ -112,6 +112,9 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Lib>
+      <LinkTimeCodeGeneration>false</LinkTimeCodeGeneration>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -128,6 +131,7 @@
       <AssemblerOutput>All</AssemblerOutput>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -135,6 +139,9 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Lib>
+      <LinkTimeCodeGeneration>false</LinkTimeCodeGeneration>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -154,6 +161,9 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Lib>
+      <LinkTimeCodeGeneration>false</LinkTimeCodeGeneration>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -170,6 +180,7 @@
       <AssemblerOutput>All</AssemblerOutput>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -177,6 +188,9 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Lib>
+      <LinkTimeCodeGeneration>false</LinkTimeCodeGeneration>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Config\ConfigSystem.h" />
