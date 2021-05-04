@@ -234,8 +234,6 @@
     <ClInclude Include="MultiThreading\WorkerThread.h" />
     <ClInclude Include="Render\ClusterizationSubSystem.h" />
     <ClInclude Include="Render\CullingSubSystem.h" />
-    <ClInclude Include="Render\D3D12\RenderDeviceD3D12.h" />
-    <ClInclude Include="Render\RenderDevice.h" />
     <ClInclude Include="Render\RenderScene.h" />
     <ClInclude Include="Render\RenderStage.h" />
     <ClInclude Include="Render\RenderStages\BackBufferResolveStage.h" />
@@ -251,7 +249,6 @@
     <ClInclude Include="Render\RenderStages\ShadowResolveStage.h" />
     <ClInclude Include="Render\RenderStages\SkyAndFogStage.h" />
     <ClInclude Include="Render\RenderSystem.h" />
-    <ClInclude Include="Render\Vulkan\RenderDeviceVulkan.h" />
     <ClInclude Include="ResourceManager\Resource.h" />
     <ClInclude Include="ResourceManager\ResourceManager.h" />
     <ClInclude Include="ResourceManager\Resources\Render\Materials\MaterialResource.h" />
@@ -299,8 +296,6 @@
     <ClCompile Include="MultiThreading\WorkerThread.cpp" />
     <ClCompile Include="Render\ClusterizationSubSystem.cpp" />
     <ClCompile Include="Render\CullingSubSystem.cpp" />
-    <ClCompile Include="Render\D3D12\RenderDeviceD3D12.cpp" />
-    <ClCompile Include="Render\RenderDevice.cpp" />
     <ClCompile Include="Render\RenderScene.cpp" />
     <ClCompile Include="Render\RenderStage.cpp" />
     <ClCompile Include="Render\RenderStages\BackBufferResolveStage.cpp" />
@@ -316,7 +311,6 @@
     <ClCompile Include="Render\RenderStages\ShadowResolveStage.cpp" />
     <ClCompile Include="Render\RenderStages\SkyAndFogStage.cpp" />
     <ClCompile Include="Render\RenderSystem.cpp" />
-    <ClCompile Include="Render\Vulkan\RenderDeviceVulkan.cpp" />
     <ClCompile Include="ResourceManager\Resource.cpp" />
     <ClCompile Include="ResourceManager\ResourceManager.cpp" />
     <ClCompile Include="ResourceManager\Resources\Render\Materials\MaterialResource.cpp" />

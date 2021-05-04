@@ -162,50 +162,6 @@ void FileSystem::InitSystem()
 		} 		
 		while (FindNextFile(FindHandle, &FindData) != 0);
 	}
-
-	FindHandle = FindFirstFile((const wchar_t*)u"Shaders/SPIRV/*.spv", &FindData);
-
-	if (FindHandle != INVALID_HANDLE_VALUE)
-	{
-		do
-		{
-			char16_t FileName[255] = { 0 };
-			wcscat((wchar_t*)FileName, (const wchar_t*)u"Shaders/SPIRV");
-			wcscat((wchar_t*)FileName, (const wchar_t*)u"/");
-			wcscat((wchar_t*)FileName, (const wchar_t*)FindData.cFileName);
-
-			u16string FileNameStr(FileName);
-			FileNameStr = FileNameStr.substr(FileNameStr.find('/') + 1);
-			FileNameStr = FileNameStr.substr(0, FileNameStr.rfind('.'));
-
-			for (auto& ch : FileNameStr)
-			{
-				if (ch == '/') ch = '.';
-			}
-
-			char FileNameKey[255];
-
-			for (size_t i = 0; i < FileNameStr.size(); i++)
-			{
-				FileNameKey[i] = (char)FileNameStr[i];
-			}
-
-			FileNameKey[FileNameStr.length()] = 0;
-
-			HANDLE FileHandle = CreateFile((const wchar_t*)FileName, GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-			LARGE_INTEGER FileSize;
-			BOOL Result = GetFileSizeEx(FileHandle, &FileSize);
-
-			ShadersTable.Insert(FileNameKey, ShaderData{});
-			ShadersTable[FileNameKey].Size = (size_t)FileSize.QuadPart;
-			ShadersTable[FileNameKey].Data = SystemAllocator::AllocateMemory(FileSize.QuadPart);
-
-			Result = ReadFile(FileHandle, ShadersTable[FileNameKey].Data, (DWORD)FileSize.QuadPart, NULL, NULL);
-
-			Result = CloseHandle(FileHandle);
-		} 		
-		while (FindNextFile(FindHandle, &FindData) != 0);
-	}
 }
 
 void FileSystem::ShutdownSystem()

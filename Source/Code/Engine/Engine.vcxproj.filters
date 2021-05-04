@@ -144,15 +144,6 @@
     <ClInclude Include="Config\ConfigSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Render\RenderDevice.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Render\D3D12\RenderDeviceD3D12.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Render\Vulkan\RenderDeviceVulkan.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Render\ClusterizationSubSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -339,15 +330,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Config\ConfigSystem.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Render\RenderDevice.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Render\D3D12\RenderDeviceD3D12.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Render\Vulkan\RenderDeviceVulkan.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Render\ClusterizationSubSystem.cpp">
