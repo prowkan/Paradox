@@ -1,15 +1,7 @@
-#ifdef SPIRV
-#define VK_LOCATION(Index) [[vk::location(Index)]]
-#define VK_BINDING(Binding, Set) [[vk::binding(Binding, Set)]]
-#else
-#define VK_LOCATION(Index)
-#define VK_BINDING(Binding, Set)
-#endif
-
 struct VSOutput
 {
 	float4 Position : SV_Position;
-	VK_LOCATION(0) float2 TexCoord : TEXCOORD;
+	float2 TexCoord : TEXCOORD;
 };
 
 VSOutput VS(uint VertexID : SV_VertexID)

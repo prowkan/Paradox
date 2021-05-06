@@ -1,15 +1,7 @@
-#ifdef SPIRV
-#define VK_LOCATION(Index) [[vk::location(Index)]]
-#define VK_BINDING(Binding, Set) [[vk::binding(Binding, Set)]]
-#else
-#define VK_LOCATION(Index)
-#define VK_BINDING(Binding, Set)
-#endif
-
 struct PSInput
 {
 	float4 Position : SV_Position;
-	VK_LOCATION(0) float2 TexCoord : TEXCOORD;
+	float2 TexCoord : TEXCOORD;
 };
 
 struct PSConstants
@@ -26,17 +18,17 @@ struct PointLight
 	float Brightness;
 };
 
-VK_BINDING(0, 0) ConstantBuffer<PSConstants> PixelShaderConstants : register(b0);
+ConstantBuffer<PSConstants> PixelShaderConstants : register(b0);
 
-VK_BINDING(1, 0) Texture2DMS<float4> GBufferTexture0 : register(t0);
-VK_BINDING(2, 0) Texture2DMS<float4> GBufferTexture1 : register(t1);
-VK_BINDING(3, 0) Texture2DMS<float> DepthBufferTexture : register(t2);
-VK_BINDING(4, 0) Texture2D<float> ShadowMaskTexture : register(t3);
-VK_BINDING(5, 0) Buffer<uint2> LightClustersBuffer : register(t4);
-VK_BINDING(6, 0) Buffer<uint> LightIndicesBuffer : register(t5);
-VK_BINDING(7, 0) StructuredBuffer<PointLight> PointLightsBuffer : register(t6);
+Texture2DMS<float4> GBufferTexture0 : register(t0);
+Texture2DMS<float4> GBufferTexture1 : register(t1);
+Texture2DMS<float> DepthBufferTexture : register(t2);
+Texture2D<float> ShadowMaskTexture : register(t3);
+Buffer<uint2> LightClustersBuffer : register(t4);
+Buffer<uint> LightIndicesBuffer : register(t5);
+StructuredBuffer<PointLight> PointLightsBuffer : register(t6);
 
-VK_LOCATION(0) float4 PS(PSInput PixelShaderInput, uint SampleIndex : SV_SampleIndex) : SV_Target
+float4 PS(PSInput PixelShaderInput, uint SampleIndex : SV_SampleIndex) : SV_Target
 {
 	int2 Coords = trunc(PixelShaderInput.Position.xy);
 

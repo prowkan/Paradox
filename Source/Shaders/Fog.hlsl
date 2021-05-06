@@ -1,20 +1,12 @@
-#ifdef SPIRV
-#define VK_LOCATION(Index) [[vk::location(Index)]]
-#define VK_BINDING(Binding, Set) [[vk::binding(Binding, Set)]]
-#else
-#define VK_LOCATION(Index)
-#define VK_BINDING(Binding, Set)
-#endif
-
 struct PSInput
 {
 	float4 Position : SV_Position;
-	VK_LOCATION(0) float2 TexCoord : TEXCOORD;
+	float2 TexCoord : TEXCOORD;
 };
 
-VK_BINDING(0, 0) Texture2DMS<float> DepthBufferTexture : register(t0);
+Texture2DMS<float> DepthBufferTexture : register(t0);
 
-VK_LOCATION(0) float4 PS(PSInput PixelShaderInput, uint SampleIndex : SV_SampleIndex) : SV_Target
+float4 PS(PSInput PixelShaderInput, uint SampleIndex : SV_SampleIndex) : SV_Target
 {
 	int2 Coords = trunc(PixelShaderInput.Position.xy);
 
