@@ -16,6 +16,19 @@
 #include <ResourceManager/Resources/Render/Materials/MaterialResource.h>
 #include <ResourceManager/Resources/Render/Textures/Texture2DResource.h>
 
+#include "RenderStages/GBufferOpaqueStage.h"
+#include "RenderStages/MSAADepthBufferResolveStage.h"
+#include "RenderStages/OcclusionBufferStage.h"
+#include "RenderStages/ShadowMapStage.h"
+#include "RenderStages/ShadowResolveStage.h"
+#include "RenderStages/DeferredLightingStage.h"
+#include "RenderStages/SkyAndFogStage.h"
+#include "RenderStages/HDRSceneColorResolveStage.h"
+#include "RenderStages/PostProcessLuminanceStage.h"
+#include "RenderStages/PostProcessBloomStage.h"
+#include "RenderStages/PostProcessHDRToneMappingStage.h"
+#include "RenderStages/BackBufferResolveStage.h"
+
 struct PointLight
 {
 	XMFLOAT3 Position;
@@ -61,8 +74,6 @@ struct SunConstantBuffer
 
 void RenderSystem::InitSystem()
 {
-	clusterizationSubSystem.PreComputeClustersPlanes();
-
 	UINT FactoryCreationFlags = 0;
 
 #ifdef _DEBUG
@@ -2813,6 +2824,28 @@ void RenderSystem::InitSystem()
 
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(HDRToneMappingPipelineState)));
 	}
+
+	RenderStages.Add(new GBufferOpaqueStage());
+	RenderStages.Add(new MSAADepthBufferResolveStage());
+	RenderStages.Add(new OcclusionBufferStage());
+	RenderStages.Add(new ShadowMapStage());
+	RenderStages.Add(new ShadowResolveStage());
+	RenderStages.Add(new DeferredLightingStage());
+	RenderStages.Add(new SkyAndFogStage());
+	RenderStages.Add(new HDRSceneColorResolveStage());
+	RenderStages.Add(new PostProcessLuminanceStage());
+	RenderStages.Add(new PostProcessBloomStage());
+	RenderStages.Add(new PostProcessHDRToneMappingStage());
+	RenderStages.Add(new BackBufferResolveStage());
+
+	for (RenderStage* renderStage : RenderStages)
+	{
+		renderStage->Init(&renderGraph);
+	}
+
+	renderGraph.ExportGraphToHTML();
+
+	clusterizationSubSystem.PreComputeClustersPlanes();
 }
 
 void RenderSystem::ShutdownSystem()
@@ -4631,6 +4664,11 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	CurrentFrameIndex = (CurrentFrameIndex + 1) % 2;
 	CurrentBackBufferIndex = SwapChain->GetCurrentBackBufferIndex();
+
+	for (RenderStage* renderStage : RenderStages)
+	{
+		renderStage->Execute();
+	}
 }
 
 RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMeshCreateInfo)
@@ -5054,11 +5092,11 @@ inline void RenderSystem::CheckDXCallResult(HRESULT hr, const char16_t* Function
 		const char16_t *DXErrorCodePtr = GetDXErrorMessageFromHRESULT(hr);
 
 		if (DXErrorCodePtr) wcscpy((wchar_t*)DXErrorCodeBuffer, (const wchar_t*)DXErrorCodePtr);
-		else wsprintf((wchar_t*)DXErrorCodeBuffer, (const wchar_t*)u"0x%08X (íåèçâåñòíûé êîä)", hr);
+		else wsprintf((wchar_t*)DXErrorCodeBuffer, (const wchar_t*)u"0x%08X (Ð½ÐµÐ¸Ð·Ð²ÐµÑÑ‚Ð½Ñ‹Ð¹ ÐºÐ¾Ð´)", hr);
 
-		wsprintf((wchar_t*)DXErrorMessageBuffer, (const wchar_t*)u"Ïðîèçîøëà îøèáêà ïðè ïîïûòêå âûçîâà ñëåäóþùåé DirectX-ôóíêöèè:\r\n%s\r\nÊîä îøèáêè: %s", (const wchar_t*)Function, (const wchar_t*)DXErrorCodeBuffer);
+		wsprintf((wchar_t*)DXErrorMessageBuffer, (const wchar_t*)u"ÐŸÑ€Ð¾Ð¸Ð·Ð¾ÑˆÐ»Ð° Ð¾ÑˆÐ¸Ð±ÐºÐ° Ð¿Ñ€Ð¸ Ð¿Ð¾Ð¿Ñ‹Ñ‚ÐºÐµ Ð²Ñ‹Ð·Ð¾Ð²Ð° ÑÐ»ÐµÐ´ÑƒÑŽÑ‰ÐµÐ¹ DirectX-Ñ„ÑƒÐ½ÐºÑ†Ð¸Ð¸:\r\n%s\r\nÐšÐ¾Ð´ Ð¾ÑˆÐ¸Ð±ÐºÐ¸: %s", (const wchar_t*)Function, (const wchar_t*)DXErrorCodeBuffer);
 
-		int IntResult = MessageBox(NULL, (const wchar_t*)DXErrorMessageBuffer, (const wchar_t*)u"Îøèáêà DirectX", MB_OK | MB_ICONERROR);
+		int IntResult = MessageBox(NULL, (const wchar_t*)DXErrorMessageBuffer, (const wchar_t*)u"ÐžÑˆÐ¸Ð±ÐºÐ° DirectX", MB_OK | MB_ICONERROR);
 
 		if (hr == DXGI_ERROR_DEVICE_REMOVED) SAFE_DX(Device->GetDeviceRemovedReason());
 

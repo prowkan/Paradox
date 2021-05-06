@@ -1,13 +1,13 @@
 #pragma once
 
-class RenderDevice;
+class RenderGraph;
 
 class RenderStage
 {
 	public:
 
-		virtual void Init(RenderDevice* renderDevice) = 0;
-		virtual void Execute(RenderDevice* renderDevice) = 0;
+		virtual void Init(RenderGraph* renderGraph) = 0;
+		virtual void Execute() = 0;
 
 		virtual const char* GetName() = 0;
 };

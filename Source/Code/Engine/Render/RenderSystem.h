@@ -1,5 +1,8 @@
 #pragma once
 
+#include "RenderGraph.h"
+#include "RenderStage.h"
+
 #include "CullingSubSystem.h"
 #include "ClusterizationSubSystem.h"
 
@@ -295,6 +298,9 @@ class RenderSystem
 		inline const char16_t* GetDXErrorMessageFromHRESULT(HRESULT hr);
 
 		static const UINT MAX_MIP_LEVELS_IN_TEXTURE = 16;
+
+		RenderGraph renderGraph;
+		DynamicArray<RenderStage*> RenderStages;
 
 	#if WITH_EDITOR
 		UINT EditorViewportWidth;

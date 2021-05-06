@@ -3,12 +3,31 @@
 
 #include "SkyAndFogStage.h"
 
-void SkyAndFogStage::Init(RenderDevice* renderDevice)
+#include "../RenderGraph.h"
+
+void SkyAndFogStage::Init(RenderGraph* renderGraph)
 {
-	
+	FogPass = renderGraph->CreateRenderPass<FullScreenPass>("Fog Pass");
+	SkyPass = renderGraph->CreateRenderPass<RenderPass>("Sky Pass");
+
+	FogPass->AddInput(renderGraph->GetResource("DepthBufferTexture"));
+	FogPass->AddOutput(renderGraph->GetResource("HDRSceneColorTexture"));
+	SkyPass->AddOutput(renderGraph->GetResource("HDRSceneColorTexture"));
+	SkyPass->AddOutput(renderGraph->GetResource("DepthBufferTexture"));
+
+	FogPass->SetExecutionCallBack([=] () -> void 
+	{
+		cout << "FogPass callback was called." << endl;
+	});
+
+	SkyPass->SetExecutionCallBack([=] () -> void
+	{
+		cout << "SkyPass callback was called." << endl;
+	});
 }
 
-void SkyAndFogStage::Execute(RenderDevice* renderDevice)
+void SkyAndFogStage::Execute()
 {
-	
+	FogPass->ExecutePass();
+	SkyPass->ExecutePass();
 }
