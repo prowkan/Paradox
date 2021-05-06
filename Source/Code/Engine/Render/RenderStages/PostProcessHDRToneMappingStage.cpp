@@ -36,9 +36,14 @@ void PostProcessHDRToneMappingStage::Init(RenderGraph* renderGraph)
 	PostProcessHDRToneMappingPass->AddInput(renderGraph->GetResource("HDRSceneColorTexture"));
 	PostProcessHDRToneMappingPass->AddInput(renderGraph->GetResource("BloomTextures20"));
 	PostProcessHDRToneMappingPass->AddOutput(ToneMappedImageTexture);
+
+	PostProcessHDRToneMappingPass->SetExecutionCallBack([=] () -> void 
+	{
+		cout << "PostProcessHDRToneMappingPass callback was called." << endl;
+	});
 }
 
 void PostProcessHDRToneMappingStage::Execute()
 {
-	
+	PostProcessHDRToneMappingPass->ExecutePass();
 }

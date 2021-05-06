@@ -80,9 +80,20 @@ void PostProcessLuminanceStage::Init(RenderGraph* renderGraph)
 
 	SceneLuminancePasses[4]->AddInput(SceneLuminanceTextures[3]);
 	SceneLuminancePasses[4]->AddOutput(AverageLuminanceTexture);
+
+	for (int i = 0; i < 5; i++)
+	{
+		SceneLuminancePasses[i]->SetExecutionCallBack([=] () -> void
+		{
+			cout << "SceneLuminancePass[" << i << "] callback was called." << endl;
+		});
+	}
 }
 
 void PostProcessLuminanceStage::Execute()
 {
-	
+	for (int i = 0; i < 5; i++)
+	{
+		SceneLuminancePasses[i]->ExecutePass();
+	}
 }

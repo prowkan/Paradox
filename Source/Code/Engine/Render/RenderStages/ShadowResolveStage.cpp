@@ -41,9 +41,14 @@ void ShadowResolveStage::Init(RenderGraph* renderGraph)
 	ShadowResolvePass->AddInput(renderGraph->GetResource("CascadedShadowMapTexture2"));
 	ShadowResolvePass->AddInput(renderGraph->GetResource("CascadedShadowMapTexture3"));
 	ShadowResolvePass->AddOutput(ShadowMaskTexture);
+
+	ShadowResolvePass->SetExecutionCallBack([=] () -> void
+	{
+		cout << "ShadowResolvePass callback was called." << endl;
+	});
 }
 
 void ShadowResolveStage::Execute()
 {
-	
+	ShadowResolvePass->ExecutePass();
 }

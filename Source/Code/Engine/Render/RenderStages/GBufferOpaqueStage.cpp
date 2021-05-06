@@ -61,9 +61,14 @@ void GBufferOpaqueStage::Init(RenderGraph* renderGraph)
 	GBufferOpaquePass->AddOutput(GBufferTexture0);
 	GBufferOpaquePass->AddOutput(GBufferTexture1);
 	GBufferOpaquePass->AddOutput(DepthBufferTexture);
+
+	GBufferOpaquePass->SetExecutionCallBack([=] () -> void
+	{
+		cout << "GBufferOpaquePass callback was called." << endl;
+	});
 }
 
 void GBufferOpaqueStage::Execute()
 {
-	
+	GBufferOpaquePass->ExecutePass();
 }

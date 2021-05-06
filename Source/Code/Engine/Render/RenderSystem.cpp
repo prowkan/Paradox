@@ -8214,6 +8214,11 @@ void RenderSystem::TickSystem(float DeltaTime)
 	SAFE_VK(vkQueuePresentKHR(CommandQueue, &PresentInfo));
 
 	CurrentFrameIndex = (CurrentFrameIndex + 1) % 2;
+
+	for (RenderStage* renderStage : RenderStages)
+	{
+		renderStage->Execute();
+	}
 }
 
 RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMeshCreateInfo)

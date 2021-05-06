@@ -39,9 +39,14 @@ void DeferredLightingStage::Init(RenderGraph* renderGraph)
 	DeferredLightingPass->AddInput(renderGraph->GetResource("DepthBufferTexture"));
 	DeferredLightingPass->AddInput(renderGraph->GetResource("ShadowMaskTexture"));
 	DeferredLightingPass->AddOutput(HDRSceneColorTexture);
+
+	DeferredLightingPass->SetExecutionCallBack([=] () -> void 
+	{
+		cout << "DeferredLightingPass callback was called." << endl;
+	});
 }
 
 void DeferredLightingStage::Execute()
 {
-	
+	DeferredLightingPass->ExecutePass();
 }

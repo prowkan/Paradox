@@ -89,9 +89,20 @@ void PostProcessBloomStage::Init(RenderGraph* renderGraph)
 
 		Index++;
 	}
+
+	for (int i = 0; i < 3 * 7 + 6; i++)
+	{
+		BloomPasses[i]->SetExecutionCallBack([=] () -> void
+		{
+			cout << "BloomPass[" << i << "] callback was called." << endl;
+		});
+	}
 }
 
 void PostProcessBloomStage::Execute()
 {
-	
+	for (int i = 0; i < 3 * 7 + 6; i++)
+	{
+		BloomPasses[i]->ExecutePass();
+	}
 }
