@@ -4,6 +4,8 @@
 
 class ResolvePass : public RenderPass
 {
+	friend class RenderGraph;
+
 	public:
 
 		void SetResolveInput(RenderGraphResource* Resource)
@@ -14,6 +16,11 @@ class ResolvePass : public RenderPass
 		void SetResolveOutput(RenderGraphResource* Resource)
 		{
 			ResolveOutput = Resource;
+		}
+
+		virtual bool IsResolvePass() override
+		{
+			return true;
 		}
 
 	private:

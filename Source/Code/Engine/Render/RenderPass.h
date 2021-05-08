@@ -48,17 +48,17 @@ class RenderPass
 
 		void AddRenderTarget(RenderGraphResourceView* ResourceView)
 		{
-			RenderPassShaderResources.Add(ResourceView);
+			RenderPassRenderTargets.Add(ResourceView);
 		}
 
 		void AddDepthStencil(RenderGraphResourceView* ResourceView)
 		{
-			RenderPassShaderResources.Add(ResourceView);
+			RenderPassDepthStencils.Add(ResourceView);
 		}
 
 		void AddUnorderedAccess(RenderGraphResourceView* ResourceView)
 		{
-			RenderPassShaderResources.Add(ResourceView);
+			RenderPassUnorderedAccesses.Add(ResourceView);
 		}
 
 		template<typename T>
@@ -72,6 +72,11 @@ class RenderPass
 			CallBackCaller->Call();
 		}
 
+		virtual bool IsResolvePass()
+		{
+			return false;
+		}
+
 	private:
 
 		String Name;
@@ -80,6 +85,16 @@ class RenderPass
 		DynamicArray<RenderGraphResourceView*> RenderPassRenderTargets;
 		DynamicArray<RenderGraphResourceView*> RenderPassDepthStencils;
 		DynamicArray<RenderGraphResourceView*> RenderPassUnorderedAccesses;
+
+		struct ResourceBarrier
+		{
+			RenderGraphResource *Resource;
+			UINT SubResourceIndex;
+			D3D12_RESOURCE_STATES OldState;
+			D3D12_RESOURCE_STATES NewState;
+		};
+
+		DynamicArray<ResourceBarrier> ResourceBarriers;
 
 		RenderPassCallBackCallerBase *CallBackCaller;
 		BYTE CallBackCallerStorage[1024];

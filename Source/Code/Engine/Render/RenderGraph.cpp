@@ -4,6 +4,7 @@
 #include "RenderGraph.h"
 
 #include "RenderPass.h"
+#include "RenderPasses/ResolvePass.h"
 
 RenderGraphResource* RenderGraph::CreateResource(D3D12_RESOURCE_DESC& ResourceDesc, const String& Name)
 {
@@ -112,6 +113,10 @@ RenderGraphResource* RenderGraph::GetResource(const String& Name)
     return nullptr;
 }
 
+void RenderGraph::CompileGraph()
+{
+}
+
 void RenderGraph::ExportGraphToHTML()
 {
     fstream OutputHTMLFile("RenderGraph.html", ios::out);
@@ -161,6 +166,12 @@ void RenderGraph::ExportGraphToHTML()
                 if (resourceView->Resource == renderGraphResource) { RenderPassBeginAccessIndex = i; break; }
             }
 
+            if (renderPass->IsResolvePass())
+            {
+                if (((ResolvePass*)renderPass)->ResolveInput == renderGraphResource) { RenderPassBeginAccessIndex = i; break; }
+                if (((ResolvePass*)renderPass)->ResolveOutput == renderGraphResource) { RenderPassBeginAccessIndex = i; break; }
+            }
+
             if (RenderPassBeginAccessIndex == i) break;
         }
 
@@ -188,6 +199,12 @@ void RenderGraph::ExportGraphToHTML()
                 if (resourceView->Resource == renderGraphResource) { RenderPassEndAccessIndex = i; break; }
             }
 
+            if (renderPass->IsResolvePass())
+            {
+                if (((ResolvePass*)renderPass)->ResolveInput == renderGraphResource) { RenderPassEndAccessIndex = i; }
+                if (((ResolvePass*)renderPass)->ResolveOutput == renderGraphResource) { RenderPassEndAccessIndex = i; }
+            }
+
             if (RenderPassEndAccessIndex == i) break;
         }
 
@@ -201,7 +218,43 @@ void RenderGraph::ExportGraphToHTML()
         {
             if (i >= RenderPassBeginAccessIndex && i <= RenderPassEndAccessIndex)
             {
-                OutputHTMLFile << "\t\t\t\t<TD style=\"border-top: 1px solid black; border-bottom: 1px solid black; background-color: #C0C0C0\">&nbsp;</TD>\n";
+                RenderPass* renderPass = RenderPasses[i];
+
+                bool IsResourceRead = false;
+                bool IsResourceWritten = false;
+
+                for (RenderGraphResourceView* resourceView : renderPass->RenderPassShaderResources)
+                {
+                    if (resourceView->Resource == renderGraphResource) { IsResourceRead = true; break; }
+                }
+
+                for (RenderGraphResourceView* resourceView : renderPass->RenderPassRenderTargets)
+                {
+                    if (resourceView->Resource == renderGraphResource) { IsResourceWritten = true; break; }
+                }
+
+                for (RenderGraphResourceView* resourceView : renderPass->RenderPassDepthStencils)
+                {
+                    if (resourceView->Resource == renderGraphResource) { IsResourceWritten = true; break; }
+                }
+
+                for (RenderGraphResourceView* resourceView : renderPass->RenderPassUnorderedAccesses)
+                {
+                    if (resourceView->Resource == renderGraphResource) { IsResourceWritten = true; break; }
+                }
+
+                if (renderPass->IsResolvePass())
+                {
+                    if (((ResolvePass*)renderPass)->ResolveInput == renderGraphResource) { IsResourceRead = true; }
+                    if (((ResolvePass*)renderPass)->ResolveOutput == renderGraphResource) { IsResourceWritten = true; }
+                }
+
+                if (IsResourceRead)
+                    OutputHTMLFile << "\t\t\t\t<TD style=\"border-top: 1px solid black; border-bottom: 1px solid black; background-color: #00C000\">&nbsp;</TD>\n";
+                else if (IsResourceWritten)
+                    OutputHTMLFile << "\t\t\t\t<TD style=\"border-top: 1px solid black; border-bottom: 1px solid black; background-color: #C00000\">&nbsp;</TD>\n";
+                else
+                    OutputHTMLFile << "\t\t\t\t<TD style=\"border-top: 1px solid black; border-bottom: 1px solid black; background-color: #C0C0C0\">&nbsp;</TD>\n";
             }
             else
             {

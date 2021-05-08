@@ -77,6 +77,8 @@ class RenderGraph
 		template<typename T>
 		T* CreateRenderPass(const String& Name);
 
+		void CompileGraph();
+
 		void ExportGraphToHTML();
 
 	private:
