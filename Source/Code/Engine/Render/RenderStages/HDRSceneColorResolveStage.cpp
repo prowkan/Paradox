@@ -39,8 +39,8 @@ void HDRSceneColorResolveStage::Init(RenderGraph* renderGraph)
 
 	HDRSceneColorResolvePass = renderGraph->CreateRenderPass<ResolvePass>("HDR Scene Color Resolve Pass");
 	
-	HDRSceneColorResolvePass->AddInput(renderGraph->GetResource("HDRSceneColorTexture"));
-	HDRSceneColorResolvePass->AddOutput(ResolvedHDRSceneColorTexture);
+	HDRSceneColorResolvePass->SetResolveInput(renderGraph->GetResource("HDRSceneColorTexture"));
+	HDRSceneColorResolvePass->SetResolveOutput(ResolvedHDRSceneColorTexture);
 }
 
 void HDRSceneColorResolveStage::Execute()

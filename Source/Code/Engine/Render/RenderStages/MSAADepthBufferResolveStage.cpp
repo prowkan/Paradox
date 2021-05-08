@@ -39,8 +39,8 @@ void MSAADepthBufferResolveStage::Init(RenderGraph* renderGraph)
 
 	MSAADepthBufferResolvePass = renderGraph->CreateRenderPass<ResolvePass>("MSAA Depth Buffer Resolve Pass");
 
-	MSAADepthBufferResolvePass->AddInput(renderGraph->GetResource("DepthBufferTexture"));
-	MSAADepthBufferResolvePass->AddOutput(ResolvedDepthBufferTexture);
+	MSAADepthBufferResolvePass->SetResolveInput(renderGraph->GetResource("DepthBufferTexture"));
+	MSAADepthBufferResolvePass->SetResolveOutput(ResolvedDepthBufferTexture);
 }
 
 void MSAADepthBufferResolveStage::Execute()

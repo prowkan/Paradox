@@ -237,6 +237,7 @@
     <ClInclude Include="Render\RenderGraph.h" />
     <ClInclude Include="Render\RenderPass.h" />
     <ClInclude Include="Render\RenderPasses\ComputePass.h" />
+    <ClInclude Include="Render\RenderPasses\CopyPass.h" />
     <ClInclude Include="Render\RenderPasses\FullScreenPass.h" />
     <ClInclude Include="Render\RenderPasses\GraphicsPass.h" />
     <ClInclude Include="Render\RenderPasses\ResolvePass.h" />
@@ -306,6 +307,7 @@
     <ClCompile Include="Render\RenderGraph.cpp" />
     <ClCompile Include="Render\RenderPass.cpp" />
     <ClCompile Include="Render\RenderPasses\ComputePass.cpp" />
+    <ClCompile Include="Render\RenderPasses\CopyPass.cpp" />
     <ClCompile Include="Render\RenderPasses\FullScreenPass.cpp" />
     <ClCompile Include="Render\RenderPasses\GraphicsPass.cpp" />
     <ClCompile Include="Render\RenderPasses\ResolvePass.cpp" />

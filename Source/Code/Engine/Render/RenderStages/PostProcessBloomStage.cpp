@@ -68,40 +68,40 @@ void PostProcessBloomStage::Init(RenderGraph* renderGraph)
 		BloomPasses[i] = renderGraph->CreateRenderPass<FullScreenPass>(String("Post-Process Bloom Pass ") + String(i));
 	}
 
-	BloomPasses[0]->AddInput(renderGraph->GetResource("ResolvedHDRSceneColorTexture"));
-	BloomPasses[0]->AddInput(renderGraph->GetResource("SceneLuminanceTexture0"));
-	BloomPasses[0]->AddOutput(BloomTextures[0][0]);
+	BloomPasses[0]->AddShaderResource(renderGraph->GetResource("ResolvedHDRSceneColorTexture")->GetView("ResolvedHDRSceneColorTextureSRV"));
+	BloomPasses[0]->AddShaderResource(renderGraph->GetResource("SceneLuminanceTextures0")->GetView("SceneLuminanceTextureSRVs0"));
+	BloomPasses[0]->AddRenderTarget(BloomTextureRTVs[0][0]);
 
-	BloomPasses[1]->AddInput(BloomTextures[0][0]);
-	BloomPasses[1]->AddOutput(BloomTextures[1][0]);
+	BloomPasses[1]->AddShaderResource(BloomTextureSRVs[0][0]);
+	BloomPasses[1]->AddRenderTarget(BloomTextureRTVs[1][0]);
 
-	BloomPasses[2]->AddInput(BloomTextures[1][0]);
-	BloomPasses[2]->AddOutput(BloomTextures[2][0]);
+	BloomPasses[2]->AddShaderResource(BloomTextureSRVs[1][0]);
+	BloomPasses[2]->AddRenderTarget(BloomTextureRTVs[2][0]);
 
 	int Index = 3;
 
 	for (int i = 0; i < 6; i++)
 	{
-		BloomPasses[Index]->AddInput(BloomTextures[0][i]);
-		BloomPasses[Index]->AddOutput(BloomTextures[0][i + 1]);
+		BloomPasses[Index]->AddShaderResource(BloomTextureSRVs[0][i]);
+		BloomPasses[Index]->AddRenderTarget(BloomTextureRTVs[0][i + 1]);
 
 		Index++;
 
-		BloomPasses[Index]->AddInput(BloomTextures[0][i + 1]);
-		BloomPasses[Index]->AddOutput(BloomTextures[1][i + 1]);
+		BloomPasses[Index]->AddShaderResource(BloomTextureSRVs[0][i + 1]);
+		BloomPasses[Index]->AddRenderTarget(BloomTextureRTVs[1][i + 1]);
 
 		Index++;
 
-		BloomPasses[Index]->AddInput(BloomTextures[1][i + 1]);
-		BloomPasses[Index]->AddOutput(BloomTextures[2][i + 1]);
+		BloomPasses[Index]->AddShaderResource(BloomTextureSRVs[1][i + 1]);
+		BloomPasses[Index]->AddRenderTarget(BloomTextureRTVs[2][i + 1]);
 
 		Index++;
 	}
 
 	for (int i = 5; i >= 0; i--)
 	{
-		BloomPasses[Index]->AddInput(BloomTextures[2][i + 1]);
-		BloomPasses[Index]->AddOutput(BloomTextures[2][i]);
+		BloomPasses[Index]->AddShaderResource(BloomTextureSRVs[2][i + 1]);
+		BloomPasses[Index]->AddRenderTarget(BloomTextureRTVs[2][i]);
 
 		Index++;
 	}

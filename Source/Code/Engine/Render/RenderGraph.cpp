@@ -141,14 +141,24 @@ void RenderGraph::ExportGraphToHTML()
         {
             RenderPass* renderPass = RenderPasses[i];
 
-            for (RenderGraphResource* resource : renderPass->RenderPassInputs)
+            for (RenderGraphResourceView* resourceView : renderPass->RenderPassShaderResources)
             {
-                if (resource == renderGraphResource) { RenderPassBeginAccessIndex = i; break; }
+                if (resourceView->Resource == renderGraphResource) { RenderPassBeginAccessIndex = i; break; }
             }
 
-            for (RenderGraphResource* resource : renderPass->RenderPassOutputs)
+            for (RenderGraphResourceView* resourceView : renderPass->RenderPassRenderTargets)
             {
-                if (resource == renderGraphResource) { RenderPassBeginAccessIndex = i; break; }
+                if (resourceView->Resource == renderGraphResource) { RenderPassBeginAccessIndex = i; break; }
+            }
+
+            for (RenderGraphResourceView* resourceView : renderPass->RenderPassDepthStencils)
+            {
+                if (resourceView->Resource == renderGraphResource) { RenderPassBeginAccessIndex = i; break; }
+            }
+
+            for (RenderGraphResourceView* resourceView : renderPass->RenderPassUnorderedAccesses)
+            {
+                if (resourceView->Resource == renderGraphResource) { RenderPassBeginAccessIndex = i; break; }
             }
 
             if (RenderPassBeginAccessIndex == i) break;
@@ -158,14 +168,24 @@ void RenderGraph::ExportGraphToHTML()
         {
             RenderPass* renderPass = RenderPasses[i];
 
-            for (RenderGraphResource* resource : renderPass->RenderPassInputs)
+            for (RenderGraphResourceView* resourceView : renderPass->RenderPassShaderResources)
             {
-                if (resource == renderGraphResource) { RenderPassEndAccessIndex = i; break; }
+                if (resourceView->Resource == renderGraphResource) { RenderPassEndAccessIndex = i; break; }
             }
 
-            for (RenderGraphResource* resource : renderPass->RenderPassOutputs)
+            for (RenderGraphResourceView* resourceView : renderPass->RenderPassRenderTargets)
             {
-                if (resource == renderGraphResource) { RenderPassEndAccessIndex = i; break; }
+                if (resourceView->Resource == renderGraphResource) { RenderPassEndAccessIndex = i; break; }
+            }
+
+            for (RenderGraphResourceView* resourceView : renderPass->RenderPassDepthStencils)
+            {
+                if (resourceView->Resource == renderGraphResource) { RenderPassEndAccessIndex = i; break; }
+            }
+
+            for (RenderGraphResourceView* resourceView : renderPass->RenderPassUnorderedAccesses)
+            {
+                if (resourceView->Resource == renderGraphResource) { RenderPassEndAccessIndex = i; break; }
             }
 
             if (RenderPassEndAccessIndex == i) break;

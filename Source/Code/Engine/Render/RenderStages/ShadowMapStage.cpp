@@ -44,13 +44,13 @@ void ShadowMapStage::Init(RenderGraph* renderGraph)
 
 	for (int i = 0; i < 4; i++)
 	{
-		CascadedShadowMapTextures[i] = renderGraph->CreateResource(ResourceDesc, "CascadedShadowMapTexture" + i);
-		CascadedShadowMapTextureDSVs[i] = CascadedShadowMapTextures[i]->CreateView(DSVDesc, "CascadedShadowMapTextureDSV" + i);
-		CascadedShadowMapTextureSRVs[i] = CascadedShadowMapTextures[i]->CreateView(SRVDesc, "CascadedShadowMapTextureSRV" + i);
+		CascadedShadowMapTextures[i] = renderGraph->CreateResource(ResourceDesc, String("CascadedShadowMapTextures") + String(i));
+		CascadedShadowMapTextureDSVs[i] = CascadedShadowMapTextures[i]->CreateView(DSVDesc, String("CascadedShadowMapTextureDSVs") + String(i));
+		CascadedShadowMapTextureSRVs[i] = CascadedShadowMapTextures[i]->CreateView(SRVDesc, String("CascadedShadowMapTextureSRVs") + String(i));
 
-		CascadedShadowMapPasses[i] = renderGraph->CreateRenderPass<ScenePass>("Cascaded Shadow Map Pass " + i);
+		CascadedShadowMapPasses[i] = renderGraph->CreateRenderPass<ScenePass>(String("Cascaded Shadow Map Pass ") + String(i));
 
-		CascadedShadowMapPasses[i]->AddOutput(CascadedShadowMapTextures[i]);
+		CascadedShadowMapPasses[i]->AddDepthStencil(CascadedShadowMapTextureDSVs[i]);
 
 		CascadedShadowMapPasses[i]->SetExecutionCallBack([=] () -> void
 		{

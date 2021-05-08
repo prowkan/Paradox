@@ -4,6 +4,7 @@
 #include <Containers/DynamicArray.h>
 
 class RenderGraphResource;
+class RenderGraphResourceView;
 
 class RenderPassCallBackCallerBase
 {
@@ -40,14 +41,24 @@ class RenderPass
 			CallBackCaller = (RenderPassCallBackCallerBase*)CallBackCallerStorage;
 		}
 
-		void AddInput(RenderGraphResource* Resource)
+		void AddShaderResource(RenderGraphResourceView* ResourceView)
 		{
-			RenderPassInputs.Add(Resource);
+			RenderPassShaderResources.Add(ResourceView);
 		}
 
-		void AddOutput(RenderGraphResource* Resource)
+		void AddRenderTarget(RenderGraphResourceView* ResourceView)
 		{
-			RenderPassOutputs.Add(Resource);
+			RenderPassShaderResources.Add(ResourceView);
+		}
+
+		void AddDepthStencil(RenderGraphResourceView* ResourceView)
+		{
+			RenderPassShaderResources.Add(ResourceView);
+		}
+
+		void AddUnorderedAccess(RenderGraphResourceView* ResourceView)
+		{
+			RenderPassShaderResources.Add(ResourceView);
 		}
 
 		template<typename T>
@@ -65,8 +76,10 @@ class RenderPass
 
 		String Name;
 
-		DynamicArray<RenderGraphResource*> RenderPassInputs;
-		DynamicArray<RenderGraphResource*> RenderPassOutputs;
+		DynamicArray<RenderGraphResourceView*> RenderPassShaderResources;
+		DynamicArray<RenderGraphResourceView*> RenderPassRenderTargets;
+		DynamicArray<RenderGraphResourceView*> RenderPassDepthStencils;
+		DynamicArray<RenderGraphResourceView*> RenderPassUnorderedAccesses;
 
 		RenderPassCallBackCallerBase *CallBackCaller;
 		BYTE CallBackCallerStorage[1024];

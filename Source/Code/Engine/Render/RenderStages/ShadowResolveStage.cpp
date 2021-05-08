@@ -47,12 +47,12 @@ void ShadowResolveStage::Init(RenderGraph* renderGraph)
 
 	ShadowResolvePass = renderGraph->CreateRenderPass<FullScreenPass>("Shadow Resolve Pass");
 
-	ShadowResolvePass->AddInput(renderGraph->GetResource("ResolvedDepthBufferTexture"));
-	ShadowResolvePass->AddInput(renderGraph->GetResource("CascadedShadowMapTexture0"));
-	ShadowResolvePass->AddInput(renderGraph->GetResource("CascadedShadowMapTexture1"));
-	ShadowResolvePass->AddInput(renderGraph->GetResource("CascadedShadowMapTexture2"));
-	ShadowResolvePass->AddInput(renderGraph->GetResource("CascadedShadowMapTexture3"));
-	ShadowResolvePass->AddOutput(ShadowMaskTexture);
+	ShadowResolvePass->AddShaderResource(renderGraph->GetResource("ResolvedDepthBufferTexture")->GetView("ResolvedDepthBufferTextureSRV"));
+	ShadowResolvePass->AddShaderResource(renderGraph->GetResource("CascadedShadowMapTextures0")->GetView("CascadedShadowMapTextureSRVs0"));
+	ShadowResolvePass->AddShaderResource(renderGraph->GetResource("CascadedShadowMapTextures1")->GetView("CascadedShadowMapTextureSRVs1"));
+	ShadowResolvePass->AddShaderResource(renderGraph->GetResource("CascadedShadowMapTextures2")->GetView("CascadedShadowMapTextureSRVs2"));
+	ShadowResolvePass->AddShaderResource(renderGraph->GetResource("CascadedShadowMapTextures3")->GetView("CascadedShadowMapTextureSRVs3"));
+	ShadowResolvePass->AddRenderTarget(ShadowMaskTextureRTV);
 
 	ShadowResolvePass->SetExecutionCallBack([=] () -> void
 	{
