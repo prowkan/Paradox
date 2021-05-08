@@ -26,6 +26,17 @@ void MSAADepthBufferResolveStage::Init(RenderGraph* renderGraph)
 
 	RenderGraphResource *ResolvedDepthBufferTexture = renderGraph->CreateResource(ResourceDesc, "ResolvedDepthBufferTexture");
 
+	D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
+	SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	SRVDesc.Texture2D.MipLevels = 1;
+	SRVDesc.Texture2D.MostDetailedMip = 0;
+	SRVDesc.Texture2D.PlaneSlice = 0;
+	SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+	SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
+
+	RenderGraphResourceView *ResolvedDepthBufferTextureSRV = ResolvedDepthBufferTexture->CreateView(SRVDesc, "ResolvedDepthBufferTextureSRV");
+
 	MSAADepthBufferResolvePass = renderGraph->CreateRenderPass<ResolvePass>("MSAA Depth Buffer Resolve Pass");
 
 	MSAADepthBufferResolvePass->AddInput(renderGraph->GetResource("DepthBufferTexture"));

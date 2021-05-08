@@ -26,6 +26,12 @@ void PostProcessHDRToneMappingStage::Init(RenderGraph* renderGraph)
 
 	RenderGraphResource *ToneMappedImageTexture = renderGraph->CreateResource(ResourceDesc, "ToneMappedImageTexture");
 
+	D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
+	RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2DMS;
+
+	RenderGraphResourceView *ToneMappedImageTextureRTV = ToneMappedImageTexture->CreateView(RTVDesc, "ToneMappedImageTextureRTV");
+	
 	PostProcessHDRToneMappingPass = renderGraph->CreateRenderPass<FullScreenPass>("Post-Process HDR Tone Mapping Pass");
 
 	PostProcessHDRToneMappingPass->AddInput(renderGraph->GetResource("HDRSceneColorTexture"));

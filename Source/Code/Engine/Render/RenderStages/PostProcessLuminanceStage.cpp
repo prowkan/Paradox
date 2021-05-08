@@ -24,12 +24,35 @@ void PostProcessLuminanceStage::Init(RenderGraph* renderGraph)
 
 	RenderGraphResource *SceneLuminanceTextures[4];
 
+	D3D12_UNORDERED_ACCESS_VIEW_DESC UAVDesc;
+	UAVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
+	UAVDesc.Texture2D.MipSlice = 0;
+	UAVDesc.Texture2D.PlaneSlice = 0;
+	UAVDesc.ViewDimension = D3D12_UAV_DIMENSION::D3D12_UAV_DIMENSION_TEXTURE2D;
+
+	RenderGraphResourceView *SceneLuminanceTextureUAVs[4];
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
+	SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	SRVDesc.Texture2D.MipLevels = 1;
+	SRVDesc.Texture2D.MostDetailedMip = 0;
+	SRVDesc.Texture2D.PlaneSlice = 0;
+	SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+	SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
+
+	RenderGraphResourceView *SceneLuminanceTextureSRVs[4];
+
 	for (int i = 0; i < 4; i++)
 	{
 		ResourceDesc.Height = Heights[i];
 		ResourceDesc.Width = Widths[i];
 
 		SceneLuminanceTextures[i] = renderGraph->CreateResource(ResourceDesc, String("SceneLuminanceTexture") + String(i));
+
+		SceneLuminanceTextureUAVs[i] = SceneLuminanceTextures[i]->CreateView(UAVDesc, "SceneLuminanceTextureUAVs" + i);
+
+		SceneLuminanceTextureSRVs[i] = SceneLuminanceTextures[i]->CreateView(SRVDesc, "SceneLuminanceTextureUAVs" + i);
 	}
 
 	ZeroMemory(&ResourceDesc, sizeof(D3D12_RESOURCE_DESC));
@@ -45,8 +68,24 @@ void PostProcessLuminanceStage::Init(RenderGraph* renderGraph)
 	ResourceDesc.SampleDesc.Quality = 0;
 	ResourceDesc.Width = 1;
 
-	//SAFE_VK(vkCreateImage(Device, &ImageCreateInfo, nullptr, &AverageLuminanceTexture));
 	RenderGraphResource *AverageLuminanceTexture = renderGraph->CreateResource(ResourceDesc, "AverageLuminanceTexture");
+
+	UAVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
+	UAVDesc.Texture2D.MipSlice = 0;
+	UAVDesc.Texture2D.PlaneSlice = 0;
+	UAVDesc.ViewDimension = D3D12_UAV_DIMENSION::D3D12_UAV_DIMENSION_TEXTURE2D;
+
+	RenderGraphResourceView *AverageLuminanceTextureUAV = AverageLuminanceTexture->CreateView(UAVDesc, "AverageLuminanceTextureUAV");
+	
+	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
+	SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	SRVDesc.Texture2D.MipLevels = 1;
+	SRVDesc.Texture2D.MostDetailedMip = 0;
+	SRVDesc.Texture2D.PlaneSlice = 0;
+	SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+	SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
+
+	RenderGraphResourceView *AverageLuminanceTextureSRV = AverageLuminanceTexture->CreateView(SRVDesc, "AverageLuminanceTextureSRV");
 
 	SceneLuminancePasses = new ComputePass*[5];
 

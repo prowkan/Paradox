@@ -26,6 +26,25 @@ void ShadowResolveStage::Init(RenderGraph* renderGraph)
 
 	RenderGraphResource *ShadowMaskTexture = renderGraph->CreateResource(ResourceDesc, "ShadowMaskTexture");
 
+	D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
+	RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8_UNORM;
+	RTVDesc.Texture2D.MipSlice = 0;
+	RTVDesc.Texture2D.PlaneSlice = 0;
+	RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2D;
+
+	RenderGraphResourceView *ShadowMaskTextureRTV = ShadowMaskTexture->CreateView(RTVDesc, "ShadowMaskTextureRTV");
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8_UNORM;
+	SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	SRVDesc.Texture2D.MipLevels = 1;
+	SRVDesc.Texture2D.MostDetailedMip = 0;
+	SRVDesc.Texture2D.PlaneSlice = 0;
+	SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+	SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
+
+	RenderGraphResourceView *ShadowMaskTextureSRV = ShadowMaskTexture->CreateView(SRVDesc, "ShadowMaskTextureSRV");
+
 	ShadowResolvePass = renderGraph->CreateRenderPass<FullScreenPass>("Shadow Resolve Pass");
 
 	ShadowResolvePass->AddInput(renderGraph->GetResource("ResolvedDepthBufferTexture"));

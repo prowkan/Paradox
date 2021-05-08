@@ -26,6 +26,17 @@ void HDRSceneColorResolveStage::Init(RenderGraph* renderGraph)
 
 	RenderGraphResource *ResolvedHDRSceneColorTexture = renderGraph->CreateResource(ResourceDesc, "ResolvedHDRSceneColorTexture");
 
+	D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
+	SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	SRVDesc.Texture2D.MipLevels = 1;
+	SRVDesc.Texture2D.MostDetailedMip = 0;
+	SRVDesc.Texture2D.PlaneSlice = 0;
+	SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+	SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
+
+	RenderGraphResourceView *ResolvedHDRSceneColorTextureView = ResolvedHDRSceneColorTexture->CreateView(SRVDesc, "ResolvedHDRSceneColorTextureSRV");
+
 	HDRSceneColorResolvePass = renderGraph->CreateRenderPass<ResolvePass>("HDR Scene Color Resolve Pass");
 	
 	HDRSceneColorResolvePass->AddInput(renderGraph->GetResource("HDRSceneColorTexture"));

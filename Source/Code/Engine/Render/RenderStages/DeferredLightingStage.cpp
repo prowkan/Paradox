@@ -26,6 +26,19 @@ void DeferredLightingStage::Init(RenderGraph* renderGraph)
 
 	RenderGraphResource *HDRSceneColorTexture = renderGraph->CreateResource(ResourceDesc, "HDRSceneColorTexture");
 
+	D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
+	RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
+	RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2DMS;
+
+	RenderGraphResourceView *HDRSceneColorTextureRTV = HDRSceneColorTexture->CreateView(RTVDesc, "HDRSceneColorTextureRTV");
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
+	SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2DMS;
+
+	RenderGraphResourceView *HDRSceneColorTextureSRV = HDRSceneColorTexture->CreateView(SRVDesc, "HDRSceneColorTextureSRV");
+
 	DeferredLightingPass = renderGraph->CreateRenderPass<FullScreenPass>("Deferred Lighting Pass");
 
 	DeferredLightingPass->AddInput(renderGraph->GetResource("GBufferTexture0"));

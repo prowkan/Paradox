@@ -22,23 +22,36 @@ void ShadowMapStage::Init(RenderGraph* renderGraph)
 	ResourceDesc.Width = 2048;
 
 	RenderGraphResource *CascadedShadowMapTextures[4];
-	CascadedShadowMapTextures[0] = renderGraph->CreateResource(ResourceDesc, "CascadedShadowMapTexture0");
-	CascadedShadowMapTextures[1] = renderGraph->CreateResource(ResourceDesc, "CascadedShadowMapTexture1");
-	CascadedShadowMapTextures[2] = renderGraph->CreateResource(ResourceDesc, "CascadedShadowMapTexture2");
-	CascadedShadowMapTextures[3] = renderGraph->CreateResource(ResourceDesc, "CascadedShadowMapTexture3");
 
-	CascadedShadowMapPasses[0] = renderGraph->CreateRenderPass<ScenePass>("Cascaded Shadow Map Pass 0");
-	CascadedShadowMapPasses[1] = renderGraph->CreateRenderPass<ScenePass>("Cascaded Shadow Map Pass 1");
-	CascadedShadowMapPasses[2] = renderGraph->CreateRenderPass<ScenePass>("Cascaded Shadow Map Pass 2");
-	CascadedShadowMapPasses[3] = renderGraph->CreateRenderPass<ScenePass>("Cascaded Shadow Map Pass 3");
+	D3D12_DEPTH_STENCIL_VIEW_DESC DSVDesc;
+	DSVDesc.Flags = D3D12_DSV_FLAGS::D3D12_DSV_FLAG_NONE;
+	DSVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT;
+	DSVDesc.Texture2D.MipSlice = 0;
+	DSVDesc.ViewDimension = D3D12_DSV_DIMENSION::D3D12_DSV_DIMENSION_TEXTURE2D;
 
-	CascadedShadowMapPasses[0]->AddOutput(CascadedShadowMapTextures[0]);
-	CascadedShadowMapPasses[1]->AddOutput(CascadedShadowMapTextures[1]);
-	CascadedShadowMapPasses[2]->AddOutput(CascadedShadowMapTextures[2]);
-	CascadedShadowMapPasses[3]->AddOutput(CascadedShadowMapTextures[3]);
+	RenderGraphResourceView *CascadedShadowMapTextureDSVs[4];
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
+	SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	SRVDesc.Texture2D.MipLevels = 1;
+	SRVDesc.Texture2D.MostDetailedMip = 0;
+	SRVDesc.Texture2D.PlaneSlice = 0;
+	SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+	SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
+
+	RenderGraphResourceView *CascadedShadowMapTextureSRVs[4];
 
 	for (int i = 0; i < 4; i++)
 	{
+		CascadedShadowMapTextures[i] = renderGraph->CreateResource(ResourceDesc, "CascadedShadowMapTexture" + i);
+		CascadedShadowMapTextureDSVs[i] = CascadedShadowMapTextures[i]->CreateView(DSVDesc, "CascadedShadowMapTextureDSV" + i);
+		CascadedShadowMapTextureSRVs[i] = CascadedShadowMapTextures[i]->CreateView(SRVDesc, "CascadedShadowMapTextureSRV" + i);
+
+		CascadedShadowMapPasses[i] = renderGraph->CreateRenderPass<ScenePass>("Cascaded Shadow Map Pass " + i);
+
+		CascadedShadowMapPasses[i]->AddOutput(CascadedShadowMapTextures[i]);
+
 		CascadedShadowMapPasses[i]->SetExecutionCallBack([=] () -> void
 		{
 			cout << "CascadedShadowMapPass[" << i << "] callback was called." << endl;

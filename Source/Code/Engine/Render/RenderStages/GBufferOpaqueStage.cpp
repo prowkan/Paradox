@@ -28,6 +28,25 @@ void GBufferOpaqueStage::Init(RenderGraph* renderGraph)
 	ResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R10G10B10A2_UNORM;
 	RenderGraphResource *GBufferTexture1 = renderGraph->CreateResource(ResourceDesc, "GBufferTexture1");
 
+	D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
+	RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2DMS;
+
+	RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	RenderGraphResourceView *GBufferTexture0RTV = GBufferTexture0->CreateView(RTVDesc, "GBufferTexture0RTV");
+
+	RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R10G10B10A2_UNORM;
+	RenderGraphResourceView *GBufferTexture1RTV = GBufferTexture1->CreateView(RTVDesc, "GBufferTexture1RTV");
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+	SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2DMS;
+
+	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	RenderGraphResourceView *GBufferTexture0SRV = GBufferTexture0->CreateView(SRVDesc, "GBufferTexture0SRV");
+
+	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R10G10B10A2_UNORM;
+	RenderGraphResourceView *GBufferTexture1SRV = GBufferTexture1->CreateView(SRVDesc, "GBufferTexture1SRV");
+
 	ZeroMemory(&ResourceDesc, sizeof(D3D12_RESOURCE_DESC));
 	ResourceDesc.Alignment = 0;
 	ResourceDesc.DepthOrArraySize = 1;
@@ -42,6 +61,19 @@ void GBufferOpaqueStage::Init(RenderGraph* renderGraph)
 	ResourceDesc.Width = ResolutionWidth;
 
 	RenderGraphResource *DepthBufferTexture = renderGraph->CreateResource(ResourceDesc, "DepthBufferTexture");
+
+	D3D12_DEPTH_STENCIL_VIEW_DESC DSVDesc;
+	DSVDesc.Flags = D3D12_DSV_FLAGS::D3D12_DSV_FLAG_NONE;
+	DSVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+	DSVDesc.ViewDimension = D3D12_DSV_DIMENSION::D3D12_DSV_DIMENSION_TEXTURE2DMS;
+
+	RenderGraphResourceView *DepthBufferTextureDSV = DepthBufferTexture->CreateView(DSVDesc, "DepthBufferTextureDSV");
+
+	SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
+	SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2DMS;
+
+	RenderGraphResourceView *DepthBufferTextureSRV = DepthBufferTexture->CreateView(SRVDesc, "DepthBufferTextureSRV");
 
 	GBufferOpaquePass = renderGraph->CreateRenderPass<ScenePass>("G-Buffer Opaque Pass");
 

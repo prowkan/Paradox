@@ -34,6 +34,71 @@ RenderGraphResource* RenderGraph::CreateResource(D3D12_RESOURCE_DESC& ResourceDe
     return Resource;
 }
 
+RenderGraphResourceView* RenderGraphResource::CreateView(const D3D12_SHADER_RESOURCE_VIEW_DESC& ViewDesc, const String& Name)
+{
+    RenderGraphResourceView *View = new RenderGraphResourceView();
+    View->Name = Name;
+    View->Resource = this;
+    View->Type = RenderGraphResourceView::ViewType::ShaderResource;
+    View->ViewDesc.SRVDesc = ViewDesc;
+
+    Views.Add(View);
+
+    return View;
+}
+
+RenderGraphResourceView* RenderGraphResource::CreateView(const D3D12_RENDER_TARGET_VIEW_DESC& ViewDesc, const String& Name)
+{
+    RenderGraphResourceView *View = new RenderGraphResourceView();
+    View->Name = Name;
+    View->Resource = this;
+    View->Type = RenderGraphResourceView::ViewType::RenderTarget;
+    View->ViewDesc.RTVDesc = ViewDesc;
+
+    Views.Add(View);
+
+    return View;
+}
+
+RenderGraphResourceView* RenderGraphResource::CreateView(const D3D12_DEPTH_STENCIL_VIEW_DESC& ViewDesc, const String& Name)
+{
+    RenderGraphResourceView *View = new RenderGraphResourceView();
+    View->Name = Name;
+    View->Resource = this;
+    View->Type = RenderGraphResourceView::ViewType::DepthStencil;
+    View->ViewDesc.DSVDesc = ViewDesc;
+
+    Views.Add(View);
+
+    return View;
+}
+
+RenderGraphResourceView* RenderGraphResource::CreateView(const D3D12_UNORDERED_ACCESS_VIEW_DESC& ViewDesc, const String& Name)
+{
+    RenderGraphResourceView *View = new RenderGraphResourceView();
+    View->Name = Name;
+    View->Resource = this;
+    View->Type = RenderGraphResourceView::ViewType::UnorderedAccess;
+    View->ViewDesc.UAVDesc = ViewDesc;
+
+    Views.Add(View);
+
+    return View;
+}
+
+RenderGraphResourceView* RenderGraphResource::GetView(const String& Name)
+{
+    for (RenderGraphResourceView* View : Views)
+    {
+        if (View->GetName() == Name)
+        {
+            return View;
+        }
+    }
+
+    return nullptr;
+}
+
 RenderGraphResource* RenderGraph::GetResource(const String& Name)
 {
     for (RenderGraphResource* Resource : RenderResources)
@@ -111,11 +176,6 @@ void RenderGraph::ExportGraphToHTML()
         OutputHTMLFile << "\t\t\t\t<TD style=\"border: 1px solid black\">";
         OutputHTMLFile << renderGraphResource->Name.GetData();
         OutputHTMLFile << "</TD>\n";
-
-        /*for (RenderPass* renderPass : RenderPasses)
-        {
-            OutputHTMLFile << "\t\t\t\t<TD style=\"border: 1px solid black\">&nbsp;</TD>\n";
-        }*/
 
         for (size_t i = 0; i < RenderPassesCount; i++)
         {
