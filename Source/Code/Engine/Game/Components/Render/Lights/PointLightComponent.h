@@ -15,6 +15,8 @@ class PointLightComponent : public Component
 		virtual void RegisterComponent() override;
 		virtual void UnRegisterComponent() override;
 
+		virtual void LoadFromFile(LevelFile& File) override;
+
 		TransformComponent* GetTransformComponent() { return transformComponent; }
 
 		float GetBrightness() const { return Brightness; }

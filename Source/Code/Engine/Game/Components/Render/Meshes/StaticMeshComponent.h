@@ -19,6 +19,8 @@ class StaticMeshComponent : public Component
 		virtual void RegisterComponent() override;
 		virtual void UnRegisterComponent() override;
 
+		virtual void LoadFromFile(LevelFile& File) override;
+
 		StaticMeshResource* GetStaticMesh() { return StaticMesh; }
 		void SetStaticMesh(StaticMeshResource* NewStaticMesh) { StaticMesh = NewStaticMesh; }
 
@@ -27,8 +29,6 @@ class StaticMeshComponent : public Component
 
 		TransformComponent* GetTransformComponent() { return transformComponent; }
 		BoundingBoxComponent* GetBoundingBoxComponent() { return boundingBoxComponent; }
-
-		uint32_t Index;
 
 	private:
 

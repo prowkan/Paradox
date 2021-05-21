@@ -6,8 +6,7 @@ struct RenderMesh;
 
 struct StaticMeshResourceCreateInfo
 {
-	void *VertexData;
-	void *IndexData;
+	void *MeshData;
 	UINT VertexCount;
 	UINT IndexCount;
 };
@@ -16,7 +15,7 @@ class StaticMeshResource : public Resource
 {
 	public:
 
-		virtual void CreateResource(const void* ResourceData) override;
+		virtual void CreateResource(const String& ResourceName, const void* ResourceData) override;
 		virtual void DestroyResource() override;
 
 		RenderMesh* GetRenderMesh() { return renderMesh; }

@@ -10,12 +10,13 @@
 #include <Game/Components/Common/TransformComponent.h>
 #include <Game/Components/Common/BoundingBoxComponent.h>
 #include <Game/Components/Render/Meshes/StaticMeshComponent.h>
+#include <Game/Components/Render/Lights/PointLightComponent.h>
 
-vector<StaticMeshComponent*> CullingSubSystem::GetVisibleStaticMeshesInFrustum(const vector<StaticMeshComponent*>& InputStaticMeshes, const XMMATRIX& ViewProjMatrix)
+DynamicArray<StaticMeshComponent*> CullingSubSystem::GetVisibleStaticMeshesInFrustum(const DynamicArray<StaticMeshComponent*>& InputStaticMeshes, const XMMATRIX& ViewProjMatrix, const bool DoOcclusionTest)
 {
 	OPTICK_EVENT("Frustum Culling")
 
-	vector<StaticMeshComponent*> OutputStaticMeshes;
+	DynamicArray<StaticMeshComponent*> OutputStaticMeshes;
 
 	XMVECTOR FrustumPlanes[6];
 
@@ -26,7 +27,7 @@ vector<StaticMeshComponent*> CullingSubSystem::GetVisibleStaticMeshesInFrustum(c
 
 	for (UINT i = 0; i < 20; i++)
 	{
-		new (&FrustumCullingTasks[i]) FrustumCullingTask(InputStaticMeshes, FrustumPlanes, i * 1000, (i + 1) * 1000);
+		new (&FrustumCullingTasks[i]) FrustumCullingTask(InputStaticMeshes, FrustumPlanes, i * 1000, (i + 1) * 1000, DoOcclusionTest);
 
 		Engine::GetEngine().GetMultiThreadingSystem().AddTask(&FrustumCullingTasks[i]);
 	}
@@ -56,12 +57,33 @@ vector<StaticMeshComponent*> CullingSubSystem::GetVisibleStaticMeshesInFrustum(c
 	for (UINT i = 0; i < 20; i++)
 	{
 		FrustumCullingTasks[i].WaitForFinish();
-		vector<StaticMeshComponent*>& LocalTaskResult = FrustumCullingTasks[i].GetOutputData();
-		OutputStaticMeshes.insert(OutputStaticMeshes.end(), LocalTaskResult.begin(), LocalTaskResult.end());
+		DynamicArray<StaticMeshComponent*>& LocalTaskResult = FrustumCullingTasks[i].GetOutputData();
+		OutputStaticMeshes.Append(LocalTaskResult);
 		FrustumCullingTasks[i].~FrustumCullingTask();
 	}
 
 	return OutputStaticMeshes;
+}
+
+
+DynamicArray<PointLightComponent*> CullingSubSystem::GetVisiblePointLightsInFrustum(const DynamicArray<PointLightComponent*>& InputPointLights, const XMMATRIX& ViewProjMatrix)
+{
+	DynamicArray<PointLightComponent*> OutputPointLights;
+
+	XMVECTOR FrustumPlanes[6];
+
+	ExtractFrustumPlanesFromViewProjMatrix(ViewProjMatrix, FrustumPlanes);
+
+	for (int i = 0; i < InputPointLights.GetLength(); i++)
+	{
+		XMFLOAT3 Location = InputPointLights[i]->GetTransformComponent()->GetLocation();
+		XMVECTOR SphereCenter = XMVectorSet(Location.x, Location.y, Location.z, 1.0f);
+		float SphereRadius = InputPointLights[i]->GetRadius();		
+
+		if (CullSphereVsFrustum(SphereCenter, SphereRadius, FrustumPlanes)) OutputPointLights.Add(InputPointLights[i]);
+	}
+
+	return OutputPointLights;
 }
 
 void CullingSubSystem::ExtractFrustumPlanesFromViewProjMatrix(const XMMATRIX& ViewProjMatrix, XMVECTOR* FrustumPlanes)
@@ -99,6 +121,16 @@ bool CullingSubSystem::CullBoxVsFrustum(const XMVECTOR* BoundingBoxVertices, con
 		if (XMVectorGetX(XMPlaneDotCoord(FrustumPlanes[i], TransformedBoundingBoxVertices[7])) > 0.0f) continue;
 
 		return false;
+	}
+
+	return true;
+}
+
+bool CullingSubSystem::CullSphereVsFrustum(const XMVECTOR& SphereCenter, const float SphereRadius, const XMVECTOR* FrustumPlanes)
+{
+	for (int i = 0; i < 6; i++)
+	{
+		if (XMVectorGetX(XMPlaneDotCoord(FrustumPlanes[i], SphereCenter)) < -SphereRadius) return false;
 	}
 
 	return true;

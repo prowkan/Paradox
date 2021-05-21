@@ -10,6 +10,8 @@ class BoundingBoxComponent : public Component
 
 		virtual void InitComponentDefaultProperties() override;
 
+		virtual void LoadFromFile(LevelFile& File) override;
+
 		XMFLOAT3 GetCenter() { return Center; }
 		XMFLOAT3 GetHalfSize() { return HalfSize; }
 
