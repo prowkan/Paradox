@@ -327,8 +327,8 @@ void RenderSystem::InitSystem()
 
 	// ===============================================================================================================
 
-	void *FullScreenQuadVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.FullScreenQuad");
-	size_t FullScreenQuadVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.FullScreenQuad");
+	void *FullScreenQuadVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel66.FullScreenQuad");
+	size_t FullScreenQuadVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel66.FullScreenQuad");
 
 	// ===============================================================================================================
 
@@ -809,8 +809,8 @@ void RenderSystem::InitSystem()
 
 		Device->CreateRenderTargetView(OcclusionBufferTexture, &RTVDesc, OcclusionBufferTextureRTV);
 
-		void *OcclusionBufferPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.OcclusionBuffer");
-		SIZE_T OcclusionBufferPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.OcclusionBuffer");
+		void *OcclusionBufferPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel66.OcclusionBuffer");
+		SIZE_T OcclusionBufferPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel66.OcclusionBuffer");
 
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC GraphicsPipelineStateDesc;
 		ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
@@ -1179,8 +1179,8 @@ void RenderSystem::InitSystem()
 
 		Device->CreateConstantBufferView(&CBVDesc, ShadowResolveConstantBufferCBV);
 
-		void *ShadowResolvePixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.ShadowResolve");
-		SIZE_T ShadowResolvePixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.ShadowResolve");
+		void *ShadowResolvePixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel66.ShadowResolve");
+		SIZE_T ShadowResolvePixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel66.ShadowResolve");
 
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC GraphicsPipelineStateDesc;
 		ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
@@ -1463,8 +1463,8 @@ void RenderSystem::InitSystem()
 
 		Device->CreateShaderResourceView(GPUPointLightsBuffer, &SRVDesc, PointLightsBufferSRV);
 
-		void *DeferredLightingPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.DeferredLighting");
-		SIZE_T DeferredLightingPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.DeferredLighting");
+		void *DeferredLightingPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel66.DeferredLighting");
+		SIZE_T DeferredLightingPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel66.DeferredLighting");
 
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC GraphicsPipelineStateDesc;
 		ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
@@ -1835,11 +1835,11 @@ void RenderSystem::InitSystem()
 
 		Device->CreateConstantBufferView(&CBVDesc, SkyConstantBufferCBV);
 
-		void *SkyVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.SkyVertexShader");
-		SIZE_T SkyVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.SkyVertexShader");
+		void *SkyVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel66.SkyVertexShader");
+		SIZE_T SkyVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel66.SkyVertexShader");
 
-		void *SkyPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.SkyPixelShader");
-		SIZE_T SkyPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.SkyPixelShader");
+		void *SkyPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel66.SkyPixelShader");
+		SIZE_T SkyPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel66.SkyPixelShader");
 
 		D3D12_INPUT_ELEMENT_DESC InputElementDescs[5];
 		ZeroMemory(InputElementDescs, 5 * sizeof(D3D12_INPUT_ELEMENT_DESC));
@@ -2059,11 +2059,11 @@ void RenderSystem::InitSystem()
 
 		Device->CreateConstantBufferView(&CBVDesc, SunConstantBufferCBV);
 
-		void *SunVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.SunVertexShader");
-		SIZE_T SunVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.SunVertexShader");
+		void *SunVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel66.SunVertexShader");
+		SIZE_T SunVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel66.SunVertexShader");
 
-		void *SunPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.SunPixelShader");
-		SIZE_T SunPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.SunPixelShader");
+		void *SunPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel66.SunPixelShader");
+		SIZE_T SunPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel66.SunPixelShader");
 
 		ZeroMemory(InputElementDescs, 5 * sizeof(D3D12_INPUT_ELEMENT_DESC));
 		InputElementDescs[0].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
@@ -2222,8 +2222,8 @@ void RenderSystem::InitSystem()
 
 		Device->CreateShaderResourceView(SunTexture, &SRVDesc, SunTextureSRV);
 
-		void *FogPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.Fog");
-		SIZE_T FogPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.Fog");
+		void *FogPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel66.Fog");
+		SIZE_T FogPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel66.Fog");
 
 		ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
 		GraphicsPipelineStateDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE::D3D12_COLOR_WRITE_ENABLE_ALL;
@@ -2453,14 +2453,14 @@ void RenderSystem::InitSystem()
 
 		Device->CreateShaderResourceView(AverageLuminanceTexture, &SRVDesc, AverageLuminanceTextureSRV);
 
-		void *LuminanceCalcComputeShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.LuminanceCalc");
-		SIZE_T LuminanceCalcComputeShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.LuminanceCalc");
+		void *LuminanceCalcComputeShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel66.LuminanceCalc");
+		SIZE_T LuminanceCalcComputeShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel66.LuminanceCalc");
 
-		void *LuminanceSumComputeShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.LuminanceSum");
-		SIZE_T LuminanceSumComputeShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.LuminanceSum");
+		void *LuminanceSumComputeShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel66.LuminanceSum");
+		SIZE_T LuminanceSumComputeShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel66.LuminanceSum");
 
-		void *LuminanceAvgComputeShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.LuminanceAvg");
-		SIZE_T LuminanceAvgComputeShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.LuminanceAvg");
+		void *LuminanceAvgComputeShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel66.LuminanceAvg");
+		SIZE_T LuminanceAvgComputeShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel66.LuminanceAvg");
 
 		D3D12_COMPUTE_PIPELINE_STATE_DESC ComputePipelineStateDesc;
 		ZeroMemory(&ComputePipelineStateDesc, sizeof(D3D12_COMPUTE_PIPELINE_STATE_DESC));
@@ -2600,17 +2600,17 @@ void RenderSystem::InitSystem()
 			Device->CreateShaderResourceView(BloomTextures[2][i], &SRVDesc, BloomTexturesSRVs[2][i]);
 		}
 
-		void *BrightPassPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.BrightPass");
-		SIZE_T BrightPassPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.BrightPass");
+		void *BrightPassPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel66.BrightPass");
+		SIZE_T BrightPassPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel66.BrightPass");
 
-		void *ImageResamplePixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.ImageResample");
-		SIZE_T ImageResamplePixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.ImageResample");
+		void *ImageResamplePixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel66.ImageResample");
+		SIZE_T ImageResamplePixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel66.ImageResample");
 
-		void *HorizontalBlurPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.HorizontalBlur");
-		SIZE_T HorizontalBlurPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.HorizontalBlur");
+		void *HorizontalBlurPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel66.HorizontalBlur");
+		SIZE_T HorizontalBlurPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel66.HorizontalBlur");
 
-		void *VerticalBlurPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.VerticalBlur");
-		SIZE_T VerticalBlurPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.VerticalBlur");
+		void *VerticalBlurPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel66.VerticalBlur");
+		SIZE_T VerticalBlurPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel66.VerticalBlur");
 
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC GraphicsPipelineStateDesc;
 		ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
@@ -2785,8 +2785,8 @@ void RenderSystem::InitSystem()
 
 		Device->CreateRenderTargetView(ToneMappedImageTexture, &RTVDesc, ToneMappedImageTextureRTV);
 
-		void *HDRToneMappingPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel51.HDRToneMapping");
-		SIZE_T HDRToneMappingPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel51.HDRToneMapping");
+		void *HDRToneMappingPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel66.HDRToneMapping");
+		SIZE_T HDRToneMappingPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel66.HDRToneMapping");
 
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC GraphicsPipelineStateDesc;
 		ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));

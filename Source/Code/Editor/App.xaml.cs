@@ -34,7 +34,7 @@ namespace Editor
                 if (Action == CompileShadersAction.Compile) ActionString = "Compile";
                 if (Action == CompileShadersAction.Clean) ActionString = "Clean";
 
-                //EditorEngine.CompileShaders(ActionString);
+                EditorEngine.CompileShaders(ActionString);
                 Current.Shutdown(0);
                 return;
             }
