@@ -61,21 +61,10 @@ void StaticMeshComponent::LoadFromFile(LevelFile& File)
 
 	if (!Engine::GetEngine().GetResourceManager().IsResourceLoaded(MaterialResourceName))
 	{
-		String GraphicsAPI = Engine::GetEngine().GetConfigSystem().GetRenderConfigValueString("System", "GraphicsAPI");
-
 		ScopedMemoryBlockArray<BYTE> MaterialData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(Engine::GetEngine().GetFileSystem().GetFileSize(MaterialResourceName));
 		Engine::GetEngine().GetFileSystem().LoadFile(MaterialResourceName, MaterialData);
 
-		const char *ShaderModel = nullptr;
-
-		if (GraphicsAPI == "D3D12")
-		{
-			ShaderModel = "ShaderModel51";
-		}
-		else if (GraphicsAPI == "Vulkan")
-		{
-			ShaderModel = "SPIRV";
-		}
+		const char *ShaderModel = "ShaderModel51";
 
 		char ShaderFileName[255];
 		sprintf(ShaderFileName, "%s.%s.GBufferOpaquePass_VertexShader", ShaderModel, MaterialResourceName.GetData());
