@@ -18,7 +18,14 @@ struct PointLight
 	float Brightness;
 };
 
+#if HLSL_SHADER_MODEL == 50
+cbuffer cb0 : register(b0)
+{
+	PSConstants PixelShaderConstants;
+};
+#else
 ConstantBuffer<PSConstants> PixelShaderConstants : register(b0);
+#endif
 
 Texture2DMS<float4> GBufferTexture0 : register(t0);
 Texture2DMS<float4> GBufferTexture1 : register(t1);

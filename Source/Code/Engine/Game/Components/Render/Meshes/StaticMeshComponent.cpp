@@ -64,7 +64,18 @@ void StaticMeshComponent::LoadFromFile(LevelFile& File)
 		ScopedMemoryBlockArray<BYTE> MaterialData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(Engine::GetEngine().GetFileSystem().GetFileSize(MaterialResourceName));
 		Engine::GetEngine().GetFileSystem().LoadFile(MaterialResourceName, MaterialData);
 
-		const char *ShaderModel = "ShaderModel51";
+		String GraphicsAPI = Engine::GetEngine().GetConfigSystem().GetRenderConfigValueString("System", "GraphicsAPI");
+
+		const char *ShaderModel = nullptr;
+
+		if (GraphicsAPI == "D3D11")
+		{
+			ShaderModel = "ShaderModel50";
+		}
+		else if (GraphicsAPI == "D3D12")
+		{
+			ShaderModel = "ShaderModel51";
+		}
 
 		char ShaderFileName[255];
 		sprintf(ShaderFileName, "%s.%s.GBufferOpaquePass_VertexShader", ShaderModel, MaterialResourceName.GetData());

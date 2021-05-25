@@ -14,6 +14,7 @@
 #include <Windows.h>
 #include <DbgHelp.h>
 
+#include <d3d11_1.h>
 #include <d3d12.h>
 #include <dxgi1_6.h>
 
@@ -25,6 +26,7 @@
 
 #pragma comment(lib, "DbgHelp.lib")
 
+#pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
 

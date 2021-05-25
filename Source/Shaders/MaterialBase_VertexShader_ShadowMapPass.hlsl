@@ -13,7 +13,14 @@ struct VSConstants
 	float4x4 WVPMatrix;
 };
 
+#if HLSL_SHADER_MODEL == 50
+cbuffer cb0 : register(b0)
+{
+	VSConstants VertexShaderConstants;
+};
+#else
 ConstantBuffer<VSConstants> VertexShaderConstants : register(b0);
+#endif
 
 VSOutput VS(VSInput VertexShaderInput)
 {
