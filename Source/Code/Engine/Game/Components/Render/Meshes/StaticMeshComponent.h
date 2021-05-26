@@ -30,6 +30,8 @@ class StaticMeshComponent : public Component
 		TransformComponent* GetTransformComponent() { return transformComponent; }
 		BoundingBoxComponent* GetBoundingBoxComponent() { return boundingBoxComponent; }
 
+		uint32_t Index;
+
 	private:
 
 		StaticMeshResource *StaticMesh;

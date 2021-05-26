@@ -13,14 +13,20 @@ struct PSOutput
 	float4 GBuffer1 : SV_Target1;
 };
 
-Texture2D DiffuseMap : register(t0);
-Texture2D NormalMap : register(t1);
-
-SamplerState Sampler : register(s0);
+cbuffer DrawData : register(b0)
+{
+	uint4 DataIndices0;
+	uint DataIndices1;
+}
 
 PSOutput PS(PSInput PixelShaderInput)
 {
 	PSOutput PixelShaderOutput;
+
+	Texture2D<float4> DiffuseMap = ResourceDescriptorHeap[DataIndices0.z];
+	Texture2D<float4> NormalMap = ResourceDescriptorHeap[DataIndices0.w];
+
+	SamplerState Sampler = SamplerDescriptorHeap[DataIndices1];
 
 	float3 BaseColor = DiffuseMap.Sample(Sampler, PixelShaderInput.TexCoord).rgb;
 	float3 Normal;
@@ -30,6 +36,9 @@ PSOutput PS(PSInput PixelShaderInput)
 
 	PixelShaderOutput.GBuffer0 = float4(BaseColor, 0.0f);
 	PixelShaderOutput.GBuffer1 = float4(Normal * 0.5f + 0.5f, 0.0f);
+
+	/*PixelShaderOutput.GBuffer0 = float4(0.0f, 0.0f, 0.0f, 0.0f);
+	PixelShaderOutput.GBuffer1 = float4(0.0f, 0.0f, 0.0f, 0.0f);*/
 
 	return PixelShaderOutput;
 }
