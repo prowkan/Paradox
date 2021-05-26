@@ -1201,21 +1201,21 @@ void RenderDeviceD3D11::ShutdownDevice()
 {
 	for (RenderMesh* renderMesh : RenderMeshDestructionQueue)
 	{
-		delete renderMesh;
+		delete (RenderMeshD3D11*)renderMesh;
 	}
 
 	RenderMeshDestructionQueue.Clear();
 
 	for (RenderMaterial* renderMaterial : RenderMaterialDestructionQueue)
 	{
-		delete renderMaterial;
+		delete (RenderMaterialD3D11*)renderMaterial;
 	}
 
 	RenderMaterialDestructionQueue.Clear();
 
 	for (RenderTexture* renderTexture : RenderTextureDestructionQueue)
 	{
-		delete renderTexture;
+		delete (RenderTextureD3D11*)renderTexture;
 	}
 
 	RenderTextureDestructionQueue.Clear();
