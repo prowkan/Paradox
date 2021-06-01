@@ -54,7 +54,7 @@ void ShadowMapStage::Init(RenderGraph* renderGraph)
 
 		CascadedShadowMapPasses[i]->SetExecutionCallBack([=] () -> void
 		{
-			cout << "CascadedShadowMapPass[" << i << "] callback was called." << endl;
+			//cout << "CascadedShadowMapPass[" << i << "] callback was called." << endl;
 		});
 	}
 }

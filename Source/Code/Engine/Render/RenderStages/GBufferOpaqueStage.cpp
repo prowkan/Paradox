@@ -83,7 +83,7 @@ void GBufferOpaqueStage::Init(RenderGraph* renderGraph)
 
 	GBufferOpaquePass->SetExecutionCallBack([=] () -> void
 	{
-		cout << "GBufferOpaquePass callback was called." << endl;
+		//cout << "GBufferOpaquePass callback was called." << endl;
 	});
 }
 

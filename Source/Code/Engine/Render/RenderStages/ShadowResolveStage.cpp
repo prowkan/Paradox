@@ -56,7 +56,7 @@ void ShadowResolveStage::Init(RenderGraph* renderGraph)
 
 	ShadowResolvePass->SetExecutionCallBack([=] () -> void
 	{
-		cout << "ShadowResolvePass callback was called." << endl;
+		//cout << "ShadowResolvePass callback was called." << endl;
 	});
 }
 

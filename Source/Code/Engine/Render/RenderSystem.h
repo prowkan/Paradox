@@ -8,6 +8,8 @@
 
 #include <Containers/COMRCPtr.h>
 
+class Texture2DResource;
+
 struct RenderMesh
 {
 	COMRCPtr<ID3D12Resource> MeshBuffer;
@@ -24,6 +26,7 @@ struct RenderMaterial
 {
 	COMRCPtr<ID3D12PipelineState> GBufferOpaquePassPipelineState;
 	COMRCPtr<ID3D12PipelineState> ShadowMapPassPipelineState;
+	D3D12_GPU_DESCRIPTOR_HANDLE MaterialDescriptorTable;
 };
 
 enum class BlockCompression { BC1, BC2, BC3, BC4, BC5 };
@@ -55,6 +58,7 @@ struct RenderMaterialCreateInfo
 	void *ShadowMapPassPixelShaderByteCodeData;
 	size_t ShadowMapPassVertexShaderByteCodeLength;
 	size_t ShadowMapPassPixelShaderByteCodeLength;
+	DynamicArray<Texture2DResource*> Textures;
 };
 
 struct Vertex
@@ -123,10 +127,14 @@ class RenderSystem
 
 		COMRCPtr<ID3D12DescriptorHeap> RTDescriptorHeap, DSDescriptorHeap, CBSRUADescriptorHeap, SamplersDescriptorHeap;
 		COMRCPtr<ID3D12DescriptorHeap> ConstantBufferDescriptorHeap, TexturesDescriptorHeap;
-		COMRCPtr<ID3D12DescriptorHeap> FrameResourcesDescriptorHeaps[2], FrameSamplersDescriptorHeaps[2];
+		//COMRCPtr<ID3D12DescriptorHeap> FrameResourcesDescriptorHeaps[2], FrameSamplersDescriptorHeaps[2];
+		COMRCPtr<ID3D12DescriptorHeap> CompiledResourcesDescriptorHeap, CompiledSamplersDescriptorHeap;
 
 		UINT RTDescriptorsCount = 0, DSDescriptorsCount = 0, CBSRUADescriptorsCount = 0, SamplersDescriptorsCount = 0;
 		UINT ConstantBufferDescriptorsCount = 0, TexturesDescriptorsCount = 0;
+		UINT ResourcesDescriptorsCount = 0, SamplersDescriptorCount = 0;
+
+		D3D12_GPU_DESCRIPTOR_HANDLE ObjectsDescriptorTables[100000], MaterialsDescriptorTables[4000];
 
 		COMRCPtr<ID3D12RootSignature> GraphicsRootSignature, ComputeRootSignature;
 
@@ -136,6 +144,7 @@ class RenderSystem
 		// ===============================================================================================================
 
 		D3D12_CPU_DESCRIPTOR_HANDLE TextureSampler, ShadowMapSampler, BiLinearSampler, MinSampler;
+		D3D12_GPU_DESCRIPTOR_HANDLE TextureSamplerTable, ShadowMapSamplerTable, BiLinearSamplerTable, MinSamplerTable;
 
 		// ===============================================================================================================
 
@@ -180,6 +189,8 @@ class RenderSystem
 
 		COMRCPtr<ID3D12Heap> GPUMemory3, CPUMemory3;
 
+		D3D12_GPU_DESCRIPTOR_HANDLE OcclusionBufferPassDescriptorTable;
+
 		// ===============================================================================================================
 
 		COMRCPtr<ID3D12Resource> CascadedShadowMapTextures[4];
@@ -202,6 +213,8 @@ class RenderSystem
 
 		COMRCPtr<ID3D12Heap> GPUMemory5, CPUMemory5;
 
+		D3D12_GPU_DESCRIPTOR_HANDLE ShadowResolvePassConstantBuffersDescriptorTable, ShadowResolvePassShaderResourcesDescriptorTable;
+
 		// ===============================================================================================================
 
 		COMRCPtr<ID3D12Resource> HDRSceneColorTexture;
@@ -222,6 +235,8 @@ class RenderSystem
 		COMRCPtr<ID3D12PipelineState> DeferredLightingPipelineState;
 
 		COMRCPtr<ID3D12Heap> GPUMemory6, CPUMemory6;
+
+		D3D12_GPU_DESCRIPTOR_HANDLE DeferredLightingPassConstantBuffersDescriptorTable, DeferredLightingPassShaderResourcesDescriptorTable;
 
 		// ===============================================================================================================
 
@@ -245,6 +260,8 @@ class RenderSystem
 
 		COMRCPtr<ID3D12Heap> GPUMemory7, CPUMemory7;
 
+		D3D12_GPU_DESCRIPTOR_HANDLE FogPassDescriptorTable, SkyPassConstantBuffersDescriptorTable, SkyPassShaderResourcesDescriptorTable, SunPassConstantBuffersDescriptorTable, SunPassShaderResourcesDescriptorTable;
+
 		// ===============================================================================================================
 
 		COMRCPtr<ID3D12Resource> ResolvedHDRSceneColorTexture;
@@ -266,6 +283,8 @@ class RenderSystem
 
 		COMRCPtr<ID3D12Heap> GPUMemory9;
 
+		D3D12_GPU_DESCRIPTOR_HANDLE SceneLuminancePassShaderResourcesDescriptorTables[5], SceneLuminancePassUnorderedAccessViewsDescriptorTables[5];
+
 		// ===============================================================================================================
 
 		COMRCPtr<ID3D12Resource> BloomTextures[3][7];
@@ -279,6 +298,8 @@ class RenderSystem
 
 		COMRCPtr<ID3D12Heap> GPUMemory10;
 
+		D3D12_GPU_DESCRIPTOR_HANDLE PostProcessBloomPassDescriptorTables[3 + 3 * 6 + 6];
+
 		// ===============================================================================================================
 
 		COMRCPtr<ID3D12Resource> ToneMappedImageTexture;
@@ -287,6 +308,8 @@ class RenderSystem
 		COMRCPtr<ID3D12PipelineState> HDRToneMappingPipelineState;
 
 		COMRCPtr<ID3D12Heap> GPUMemory11;
+
+		D3D12_GPU_DESCRIPTOR_HANDLE HDRToneMappingPassDescriptorTable;
 
 		// ===============================================================================================================
 

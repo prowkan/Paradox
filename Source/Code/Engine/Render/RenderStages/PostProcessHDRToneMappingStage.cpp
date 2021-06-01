@@ -40,7 +40,7 @@ void PostProcessHDRToneMappingStage::Init(RenderGraph* renderGraph)
 
 	PostProcessHDRToneMappingPass->SetExecutionCallBack([=] () -> void 
 	{
-		cout << "PostProcessHDRToneMappingPass callback was called." << endl;
+		//cout << "PostProcessHDRToneMappingPass callback was called." << endl;
 	});
 }
 

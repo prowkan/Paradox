@@ -49,7 +49,7 @@ void DeferredLightingStage::Init(RenderGraph* renderGraph)
 
 	DeferredLightingPass->SetExecutionCallBack([=] () -> void 
 	{
-		cout << "DeferredLightingPass callback was called." << endl;
+		//cout << "DeferredLightingPass callback was called." << endl;
 	});
 }
 

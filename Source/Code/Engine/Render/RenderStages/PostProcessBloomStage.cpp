@@ -110,7 +110,7 @@ void PostProcessBloomStage::Init(RenderGraph* renderGraph)
 	{
 		BloomPasses[i]->SetExecutionCallBack([=] () -> void
 		{
-			cout << "BloomPass[" << i << "] callback was called." << endl;
+			//cout << "BloomPass[" << i << "] callback was called." << endl;
 		});
 	}
 }

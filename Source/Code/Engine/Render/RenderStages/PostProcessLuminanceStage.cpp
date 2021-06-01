@@ -111,7 +111,7 @@ void PostProcessLuminanceStage::Init(RenderGraph* renderGraph)
 	{
 		SceneLuminancePasses[i]->SetExecutionCallBack([=] () -> void
 		{
-			cout << "SceneLuminancePass[" << i << "] callback was called." << endl;
+			//cout << "SceneLuminancePass[" << i << "] callback was called." << endl;
 		});
 	}
 }

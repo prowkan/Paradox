@@ -17,12 +17,12 @@ void SkyAndFogStage::Init(RenderGraph* renderGraph)
 
 	FogPass->SetExecutionCallBack([=] () -> void 
 	{
-		cout << "FogPass callback was called." << endl;
+		//cout << "FogPass callback was called." << endl;
 	});
 
 	SkyPass->SetExecutionCallBack([=] () -> void
 	{
-		cout << "SkyPass callback was called." << endl;
+		//cout << "SkyPass callback was called." << endl;
 	});
 }
 

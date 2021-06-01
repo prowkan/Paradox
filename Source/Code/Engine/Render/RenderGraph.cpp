@@ -121,8 +121,6 @@ void RenderGraph::CompileGraph()
 
     for (RenderGraphResource* Resource : RenderResources)
     {
-        cout << Resource->GetName().GetData() << endl;
-
         for (size_t i = RenderPassesCount - 1; (int64_t)i >= 0; i--)
         {
             if (RenderPasses[i]->IsResourceUsedInRenderPass(Resource))

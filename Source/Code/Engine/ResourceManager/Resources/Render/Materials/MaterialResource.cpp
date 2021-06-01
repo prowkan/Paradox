@@ -22,6 +22,7 @@ void MaterialResource::CreateResource(const String& ResourceName, const void* Re
 	renderMaterialCreateInfo.ShadowMapPassPixelShaderByteCodeLength = materialResourceCreateInfo.ShadowMapPassPixelShaderByteCodeLength;
 	renderMaterialCreateInfo.ShadowMapPassVertexShaderByteCodeData = materialResourceCreateInfo.ShadowMapPassVertexShaderByteCodeData;
 	renderMaterialCreateInfo.ShadowMapPassVertexShaderByteCodeLength = materialResourceCreateInfo.ShadowMapPassVertexShaderByteCodeLength;
+	renderMaterialCreateInfo.Textures = materialResourceCreateInfo.Textures;
 
 	renderMaterial = Engine::GetEngine().GetRenderSystem().CreateRenderMaterial(renderMaterialCreateInfo);
 }
