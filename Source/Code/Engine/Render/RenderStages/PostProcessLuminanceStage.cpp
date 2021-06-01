@@ -95,17 +95,17 @@ void PostProcessLuminanceStage::Init(RenderGraph* renderGraph)
 	SceneLuminancePasses[3] = renderGraph->CreateRenderPass<ComputePass>("Post-Process Scene Luminance Pass 3");
 	SceneLuminancePasses[4] = renderGraph->CreateRenderPass<ComputePass>("Post-Process Scene Luminance Pass 4");
 
-	SceneLuminancePasses[0]->AddShaderResource(renderGraph->GetResource("ResolvedHDRSceneColorTexture")->GetView("ResolvedHDRSceneColorTextureSRV"));
-	SceneLuminancePasses[0]->AddUnorderedAccess(SceneLuminanceTextureUAVs[0]);
+	SceneLuminancePasses[0]->AddInput(renderGraph->GetResource("ResolvedHDRSceneColorTexture")->GetView("ResolvedHDRSceneColorTextureSRV"));
+	SceneLuminancePasses[0]->AddOutput(SceneLuminanceTextureUAVs[0]);
 
 	for (int i = 1; i < 4; i++)
 	{
-		SceneLuminancePasses[i]->AddShaderResource(SceneLuminanceTextureSRVs[i - 1]);
-		SceneLuminancePasses[i]->AddUnorderedAccess(SceneLuminanceTextureUAVs[i]);
+		SceneLuminancePasses[i]->AddInput(SceneLuminanceTextureSRVs[i - 1]);
+		SceneLuminancePasses[i]->AddOutput(SceneLuminanceTextureUAVs[i]);
 	}
 
-	SceneLuminancePasses[4]->AddShaderResource(SceneLuminanceTextureSRVs[3]);
-	SceneLuminancePasses[4]->AddUnorderedAccess(AverageLuminanceTextureUAV);
+	SceneLuminancePasses[4]->AddInput(SceneLuminanceTextureSRVs[3]);
+	SceneLuminancePasses[4]->AddOutput(AverageLuminanceTextureUAV);
 
 	for (int i = 0; i < 5; i++)
 	{

@@ -44,6 +44,8 @@ class RenderGraphResourceView
 
 		const String& GetName() { return Name; }
 
+		RenderGraphResource* GetResource() { return Resource; }
+
 	private:
 
 		RenderGraphResource *Resource;

@@ -3,7 +3,7 @@
 #include "../RenderStage.h"
 
 #include "../RenderPasses/FullScreenPass.h"
-#include "../RenderPass.h"
+#include "../RenderPasses/GraphicsPass.h"
 
 class SkyAndFogStage : public RenderStage
 {
@@ -17,5 +17,5 @@ class SkyAndFogStage : public RenderStage
 	private:
 
 		FullScreenPass *FogPass;
-		RenderPass *SkyPass;
+		GraphicsPass *SkyPass;
 };

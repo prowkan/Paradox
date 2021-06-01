@@ -77,9 +77,9 @@ void GBufferOpaqueStage::Init(RenderGraph* renderGraph)
 
 	GBufferOpaquePass = renderGraph->CreateRenderPass<ScenePass>("G-Buffer Opaque Pass");
 
-	GBufferOpaquePass->AddRenderTarget(GBufferTexture0RTV);
-	GBufferOpaquePass->AddRenderTarget(GBufferTexture1RTV);
-	GBufferOpaquePass->AddDepthStencil(DepthBufferTextureDSV);
+	GBufferOpaquePass->SetRenderTarget(GBufferTexture0RTV, 0);
+	GBufferOpaquePass->SetRenderTarget(GBufferTexture1RTV, 1);
+	GBufferOpaquePass->SetDepthStencil(DepthBufferTextureDSV);
 
 	GBufferOpaquePass->SetExecutionCallBack([=] () -> void
 	{

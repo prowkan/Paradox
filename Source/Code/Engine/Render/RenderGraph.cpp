@@ -115,6 +115,97 @@ RenderGraphResource* RenderGraph::GetResource(const String& Name)
 
 void RenderGraph::CompileGraph()
 {
+    auto BeginTime = chrono::high_resolution_clock::now();
+
+    size_t RenderPassesCount = RenderPasses.GetLength();
+
+    for (RenderGraphResource* Resource : RenderResources)
+    {
+        cout << Resource->GetName().GetData() << endl;
+
+        for (size_t i = RenderPassesCount - 1; (int64_t)i >= 0; i--)
+        {
+            if (RenderPasses[i]->IsResourceUsedInRenderPass(Resource))
+            {
+                RenderPass::ResourceUsageType DestResourceUsageType = RenderPasses[i]->GetResourceUsageType(Resource);
+
+                int64_t j = i - 1;
+                if (j == -1) j = RenderPassesCount - 1;
+
+                while (true)
+                {
+                    if (RenderPasses[j]->IsResourceUsedInRenderPass(Resource))
+                    {
+                        RenderPass::ResourceUsageType SourceResourceUsageType = RenderPasses[j]->GetResourceUsageType(Resource);
+
+                        if (SourceResourceUsageType != DestResourceUsageType)
+                        {
+                            D3D12_RESOURCE_STATES OldState, NewState;
+
+                            switch (SourceResourceUsageType)
+                            {
+                                case RenderPass::ResourceUsageType::ShaderResource:
+                                    OldState = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+                                    break;
+                                case RenderPass::ResourceUsageType::RenderTarget:
+                                    OldState = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
+                                    break;
+                                case RenderPass::ResourceUsageType::DepthStencil:
+                                    OldState = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE;
+                                    break;
+                                case RenderPass::ResourceUsageType::UnorderedAccess:
+                                    OldState = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+                                    break;
+                                case RenderPass::ResourceUsageType::ResolveInput:
+                                    OldState = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
+                                    break;
+                                case RenderPass::ResourceUsageType::ResolveOutput:
+                                    OldState = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST;
+                                    break;
+                            }
+
+                            switch (DestResourceUsageType)
+                            {
+                                case RenderPass::ResourceUsageType::ShaderResource:
+                                    NewState = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+                                    break;
+                                case RenderPass::ResourceUsageType::RenderTarget:
+                                    NewState = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
+                                    break;
+                                case RenderPass::ResourceUsageType::DepthStencil:
+                                    NewState = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE;
+                                    break;
+                                case RenderPass::ResourceUsageType::UnorderedAccess:
+                                    NewState = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+                                    break;
+                                case RenderPass::ResourceUsageType::ResolveInput:
+                                    NewState = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
+                                    break;
+                                case RenderPass::ResourceUsageType::ResolveOutput:
+                                    NewState = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST;
+                                    break;
+                            }
+
+                            RenderPasses[i]->ResourceBarriers.Add(RenderPass::ResourceBarrier{ Resource, 0, OldState, NewState });
+                        }
+
+                        break;
+                    }
+
+                    j--;
+
+                    if (j == -1) j = RenderPassesCount - 1;
+                    if (j == i) break;
+                }                
+            }
+        }
+    }
+
+    auto EndTime = chrono::high_resolution_clock::now();
+
+    float GraphCompilationTime = float(chrono::duration_cast<chrono::milliseconds>(EndTime - BeginTime).count());
+
+    cout << "Graph Compilation Time: " << GraphCompilationTime << " ms." << endl;
 }
 
 void RenderGraph::ExportGraphToHTML()
@@ -146,66 +237,14 @@ void RenderGraph::ExportGraphToHTML()
         {
             RenderPass* renderPass = RenderPasses[i];
 
-            for (RenderGraphResourceView* resourceView : renderPass->RenderPassShaderResources)
-            {
-                if (resourceView->Resource == renderGraphResource) { RenderPassBeginAccessIndex = i; break; }
-            }
-
-            for (RenderGraphResourceView* resourceView : renderPass->RenderPassRenderTargets)
-            {
-                if (resourceView->Resource == renderGraphResource) { RenderPassBeginAccessIndex = i; break; }
-            }
-
-            for (RenderGraphResourceView* resourceView : renderPass->RenderPassDepthStencils)
-            {
-                if (resourceView->Resource == renderGraphResource) { RenderPassBeginAccessIndex = i; break; }
-            }
-
-            for (RenderGraphResourceView* resourceView : renderPass->RenderPassUnorderedAccesses)
-            {
-                if (resourceView->Resource == renderGraphResource) { RenderPassBeginAccessIndex = i; break; }
-            }
-
-            if (renderPass->IsResolvePass())
-            {
-                if (((ResolvePass*)renderPass)->ResolveInput == renderGraphResource) { RenderPassBeginAccessIndex = i; break; }
-                if (((ResolvePass*)renderPass)->ResolveOutput == renderGraphResource) { RenderPassBeginAccessIndex = i; break; }
-            }
-
-            if (RenderPassBeginAccessIndex == i) break;
+            if (renderPass->IsResourceUsedInRenderPass(renderGraphResource)) { RenderPassBeginAccessIndex = i; break; }            
         }
 
         for (size_t i = RenderPassesCount - 1; (int64_t)i >= 0; i--)
         {
             RenderPass* renderPass = RenderPasses[i];
 
-            for (RenderGraphResourceView* resourceView : renderPass->RenderPassShaderResources)
-            {
-                if (resourceView->Resource == renderGraphResource) { RenderPassEndAccessIndex = i; break; }
-            }
-
-            for (RenderGraphResourceView* resourceView : renderPass->RenderPassRenderTargets)
-            {
-                if (resourceView->Resource == renderGraphResource) { RenderPassEndAccessIndex = i; break; }
-            }
-
-            for (RenderGraphResourceView* resourceView : renderPass->RenderPassDepthStencils)
-            {
-                if (resourceView->Resource == renderGraphResource) { RenderPassEndAccessIndex = i; break; }
-            }
-
-            for (RenderGraphResourceView* resourceView : renderPass->RenderPassUnorderedAccesses)
-            {
-                if (resourceView->Resource == renderGraphResource) { RenderPassEndAccessIndex = i; break; }
-            }
-
-            if (renderPass->IsResolvePass())
-            {
-                if (((ResolvePass*)renderPass)->ResolveInput == renderGraphResource) { RenderPassEndAccessIndex = i; }
-                if (((ResolvePass*)renderPass)->ResolveOutput == renderGraphResource) { RenderPassEndAccessIndex = i; }
-            }
-
-            if (RenderPassEndAccessIndex == i) break;
+            if (renderPass->IsResourceUsedInRenderPass(renderGraphResource)) { RenderPassEndAccessIndex = i; break; }
         }
 
         OutputHTMLFile << "\t\t\t<TR>\n";
@@ -223,38 +262,41 @@ void RenderGraph::ExportGraphToHTML()
                 bool IsResourceRead = false;
                 bool IsResourceWritten = false;
 
-                for (RenderGraphResourceView* resourceView : renderPass->RenderPassShaderResources)
-                {
-                    if (resourceView->Resource == renderGraphResource) { IsResourceRead = true; break; }
-                }
+                IsResourceRead = renderPass->IsResourceReadInRenderPass(renderGraphResource);
+                IsResourceWritten = renderPass->IsResourceWrittenInRenderPass(renderGraphResource);
 
-                for (RenderGraphResourceView* resourceView : renderPass->RenderPassRenderTargets)
-                {
-                    if (resourceView->Resource == renderGraphResource) { IsResourceWritten = true; break; }
-                }
+                String BarrierStr = "&nbsp;";
 
-                for (RenderGraphResourceView* resourceView : renderPass->RenderPassDepthStencils)
+                for (RenderPass::ResourceBarrier& ResourceBarrier : renderPass->ResourceBarriers)
                 {
-                    if (resourceView->Resource == renderGraphResource) { IsResourceWritten = true; break; }
-                }
+                    if (ResourceBarrier.Resource == renderGraphResource)
+                    {
+                        BarrierStr = "";
 
-                for (RenderGraphResourceView* resourceView : renderPass->RenderPassUnorderedAccesses)
-                {
-                    if (resourceView->Resource == renderGraphResource) { IsResourceWritten = true; break; }
-                }
+                        if (ResourceBarrier.OldState == D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET) BarrierStr += "RT";
+                        if (ResourceBarrier.OldState == D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE) BarrierStr += "DS";
+                        if (ResourceBarrier.OldState == D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS) BarrierStr += "UA";
+                        if (ResourceBarrier.OldState == D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE) BarrierStr += "RS";
+                        if (ResourceBarrier.OldState == D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST) BarrierStr += "RD";
+                        if ((ResourceBarrier.OldState == (D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE)) || (ResourceBarrier.OldState == (D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ))) BarrierStr += "SR";
+                    
+                        BarrierStr += "&nbsp;->&nbsp;";
 
-                if (renderPass->IsResolvePass())
-                {
-                    if (((ResolvePass*)renderPass)->ResolveInput == renderGraphResource) { IsResourceRead = true; }
-                    if (((ResolvePass*)renderPass)->ResolveOutput == renderGraphResource) { IsResourceWritten = true; }
+                        if (ResourceBarrier.NewState == D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET) BarrierStr += "RT";
+                        if (ResourceBarrier.NewState == D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE) BarrierStr += "DS";
+                        if (ResourceBarrier.NewState == D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS) BarrierStr += "UA";
+                        if (ResourceBarrier.NewState == D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE) BarrierStr += "RS";
+                        if (ResourceBarrier.NewState == D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST) BarrierStr += "RD";
+                        if ((ResourceBarrier.NewState == (D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE)) || (ResourceBarrier.NewState == (D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ))) BarrierStr += "SR";
+                    }
                 }
 
                 if (IsResourceRead)
-                    OutputHTMLFile << "\t\t\t\t<TD style=\"border-top: 1px solid black; border-bottom: 1px solid black; background-color: #00C000\">&nbsp;</TD>\n";
+                    OutputHTMLFile << "\t\t\t\t<TD style=\"border-top: 1px solid black; border-bottom: 1px solid black; background-color: #00C000\">" << BarrierStr.GetData() << "</TD>\n";
                 else if (IsResourceWritten)
-                    OutputHTMLFile << "\t\t\t\t<TD style=\"border-top: 1px solid black; border-bottom: 1px solid black; background-color: #C00000\">&nbsp;</TD>\n";
+                    OutputHTMLFile << "\t\t\t\t<TD style=\"border-top: 1px solid black; border-bottom: 1px solid black; background-color: #C00000\">" << BarrierStr.GetData() << "</TD>\n";
                 else
-                    OutputHTMLFile << "\t\t\t\t<TD style=\"border-top: 1px solid black; border-bottom: 1px solid black; background-color: #C0C0C0\">&nbsp;</TD>\n";
+                    OutputHTMLFile << "\t\t\t\t<TD style=\"border-top: 1px solid black; border-bottom: 1px solid black; background-color: #C0C0C0\">" << BarrierStr.GetData() << "</TD>\n";
             }
             else
             {

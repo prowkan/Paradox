@@ -8,12 +8,12 @@
 void SkyAndFogStage::Init(RenderGraph* renderGraph)
 {
 	FogPass = renderGraph->CreateRenderPass<FullScreenPass>("Fog Pass");
-	SkyPass = renderGraph->CreateRenderPass<RenderPass>("Sky Pass");
+	SkyPass = renderGraph->CreateRenderPass<GraphicsPass>("Sky Pass");
 
-	FogPass->AddShaderResource(renderGraph->GetResource("DepthBufferTexture")->GetView("DepthBufferTextureSRV"));
-	FogPass->AddRenderTarget(renderGraph->GetResource("HDRSceneColorTexture")->GetView("HDRSceneColorTextureRTV"));
-	SkyPass->AddRenderTarget(renderGraph->GetResource("HDRSceneColorTexture")->GetView("HDRSceneColorTextureRTV"));
-	SkyPass->AddDepthStencil(renderGraph->GetResource("DepthBufferTexture")->GetView("DepthBufferTextureDSV"));
+	FogPass->AddInput(renderGraph->GetResource("DepthBufferTexture")->GetView("DepthBufferTextureSRV"));
+	FogPass->SetRenderTarget(renderGraph->GetResource("HDRSceneColorTexture")->GetView("HDRSceneColorTextureRTV"), 0);
+	SkyPass->SetRenderTarget(renderGraph->GetResource("HDRSceneColorTexture")->GetView("HDRSceneColorTextureRTV"), 0);
+	SkyPass->SetDepthStencil(renderGraph->GetResource("DepthBufferTexture")->GetView("DepthBufferTextureDSV"));
 
 	FogPass->SetExecutionCallBack([=] () -> void 
 	{

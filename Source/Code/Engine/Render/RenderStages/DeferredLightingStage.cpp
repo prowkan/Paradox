@@ -41,11 +41,11 @@ void DeferredLightingStage::Init(RenderGraph* renderGraph)
 
 	DeferredLightingPass = renderGraph->CreateRenderPass<FullScreenPass>("Deferred Lighting Pass");
 
-	DeferredLightingPass->AddShaderResource(renderGraph->GetResource("GBufferTexture0")->GetView("GBufferTexture0SRV"));
-	DeferredLightingPass->AddShaderResource(renderGraph->GetResource("GBufferTexture1")->GetView("GBufferTexture1SRV"));
-	DeferredLightingPass->AddShaderResource(renderGraph->GetResource("DepthBufferTexture")->GetView("DepthBufferTextureSRV"));
-	DeferredLightingPass->AddShaderResource(renderGraph->GetResource("ShadowMaskTexture")->GetView("ShadowMaskTextureSRV"));
-	DeferredLightingPass->AddRenderTarget(HDRSceneColorTextureRTV);
+	DeferredLightingPass->AddInput(renderGraph->GetResource("GBufferTexture0")->GetView("GBufferTexture0SRV"));
+	DeferredLightingPass->AddInput(renderGraph->GetResource("GBufferTexture1")->GetView("GBufferTexture1SRV"));
+	DeferredLightingPass->AddInput(renderGraph->GetResource("DepthBufferTexture")->GetView("DepthBufferTextureSRV"));
+	DeferredLightingPass->AddInput(renderGraph->GetResource("ShadowMaskTexture")->GetView("ShadowMaskTextureSRV"));
+	DeferredLightingPass->SetRenderTarget(HDRSceneColorTextureRTV, 0);
 
 	DeferredLightingPass->SetExecutionCallBack([=] () -> void 
 	{

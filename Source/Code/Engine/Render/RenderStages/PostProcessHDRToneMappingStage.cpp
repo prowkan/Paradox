@@ -34,9 +34,9 @@ void PostProcessHDRToneMappingStage::Init(RenderGraph* renderGraph)
 	
 	PostProcessHDRToneMappingPass = renderGraph->CreateRenderPass<FullScreenPass>("Post-Process HDR Tone Mapping Pass");
 
-	PostProcessHDRToneMappingPass->AddShaderResource(renderGraph->GetResource("HDRSceneColorTexture")->GetView("HDRSceneColorTextureSRV"));
-	PostProcessHDRToneMappingPass->AddShaderResource(renderGraph->GetResource("BloomTextures20")->GetView("BloomTextureSRVs20"));
-	PostProcessHDRToneMappingPass->AddRenderTarget(ToneMappedImageTextureRTV);
+	PostProcessHDRToneMappingPass->AddInput(renderGraph->GetResource("HDRSceneColorTexture")->GetView("HDRSceneColorTextureSRV"));
+	PostProcessHDRToneMappingPass->AddInput(renderGraph->GetResource("BloomTextures20")->GetView("BloomTextureSRVs20"));
+	PostProcessHDRToneMappingPass->SetRenderTarget(ToneMappedImageTextureRTV, 0);
 
 	PostProcessHDRToneMappingPass->SetExecutionCallBack([=] () -> void 
 	{

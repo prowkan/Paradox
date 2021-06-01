@@ -50,7 +50,7 @@ void ShadowMapStage::Init(RenderGraph* renderGraph)
 
 		CascadedShadowMapPasses[i] = renderGraph->CreateRenderPass<ScenePass>(String("Cascaded Shadow Map Pass ") + String(i));
 
-		CascadedShadowMapPasses[i]->AddDepthStencil(CascadedShadowMapTextureDSVs[i]);
+		CascadedShadowMapPasses[i]->SetDepthStencil(CascadedShadowMapTextureDSVs[i]);
 
 		CascadedShadowMapPasses[i]->SetExecutionCallBack([=] () -> void
 		{

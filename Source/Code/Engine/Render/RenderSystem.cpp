@@ -2843,6 +2843,8 @@ void RenderSystem::InitSystem()
 		renderStage->Init(&renderGraph);
 	}
 
+	renderGraph.CompileGraph();
+
 	renderGraph.ExportGraphToHTML();
 
 	clusterizationSubSystem.PreComputeClustersPlanes();

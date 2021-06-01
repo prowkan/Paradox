@@ -41,7 +41,7 @@ class RenderPass
 			CallBackCaller = (RenderPassCallBackCallerBase*)CallBackCallerStorage;
 		}
 
-		void AddShaderResource(RenderGraphResourceView* ResourceView)
+		/*void AddShaderResource(RenderGraphResourceView* ResourceView)
 		{
 			RenderPassShaderResources.Add(ResourceView);
 		}
@@ -59,7 +59,7 @@ class RenderPass
 		void AddUnorderedAccess(RenderGraphResourceView* ResourceView)
 		{
 			RenderPassUnorderedAccesses.Add(ResourceView);
-		}
+		}*/
 
 		template<typename T>
 		void SetExecutionCallBack(const T& CallBack)
@@ -72,10 +72,13 @@ class RenderPass
 			CallBackCaller->Call();
 		}
 
-		virtual bool IsResolvePass()
-		{
-			return false;
-		}
+		enum class ResourceUsageType { ShaderResource, RenderTarget, DepthStencil, UnorderedAccess, ResolveInput, ResolveOutput };
+
+		virtual bool IsResourceUsedInRenderPass(RenderGraphResource* Resource) = 0;
+		virtual bool IsResourceReadInRenderPass(RenderGraphResource* Resource) = 0;
+		virtual bool IsResourceWrittenInRenderPass(RenderGraphResource* Resource) = 0;
+
+		virtual ResourceUsageType GetResourceUsageType(RenderGraphResource* Resource) = 0;
 
 	private:
 

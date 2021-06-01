@@ -123,7 +123,7 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 			CloseHandle(ShaderFile);
 		}
 
-		COMRCPtr<ID3DBlob> VertexShader1Blob, VertexShader2Blob, PixelShaderBlob, ErrorBlob;
+		/*COMRCPtr<ID3DBlob> VertexShader1Blob, VertexShader2Blob, PixelShaderBlob, ErrorBlob;
 
 		HANDLE ShaderFile = CreateFile((const wchar_t*)L"MaterialBase_VertexShader_GBufferOpaquePass.hlsl", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
 		LARGE_INTEGER ShaderFileSize;
@@ -182,7 +182,7 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 			CloseHandle(ShaderFile);
 
 			cout << (i + 1) << "/4000" << endl;
-		}
+		}*/
 	}
 	else if (strcmp(Action, "Clean") == 0)
 	{
