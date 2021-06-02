@@ -1138,9 +1138,9 @@ void RenderSystem::InitSystem()
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory5)));
 
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory5, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ShadowMaskTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(ShadowMaskTexture)));
+		SAFE_DX(Device->CreatePlacedResource(GPUMemory5, ShadowMaskTextureOffset, &ShadowMaskTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(ShadowMaskTexture)));
 
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory5, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ShadowResolveConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUShadowResolveConstantBuffer)));
+		SAFE_DX(Device->CreatePlacedResource(GPUMemory5, GPUConstantBufferOffset, &ShadowResolveConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUShadowResolveConstantBuffer)));
 
 		HeapDesc.Alignment = D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT;
 		HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE;
