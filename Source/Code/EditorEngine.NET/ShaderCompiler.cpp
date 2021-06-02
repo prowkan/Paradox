@@ -206,157 +206,163 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 			CloseHandle(ShaderFile);
 		}
 
+		HANDLE ShaderFile = CreateFile((const wchar_t*)u"MaterialBase_VertexShader_GBufferOpaquePass.hlsl", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+
+		if (ShaderFile == INVALID_HANDLE_VALUE)
+		{
+			DWORD Error = GetLastError();
+			cout << "System error: " << Error << endl;
+		}
+
+		LARGE_INTEGER ShaderFileSize;
+		BOOL Result = GetFileSizeEx(ShaderFile, &ShaderFileSize);
+		void *ShaderData = HeapAlloc(GetProcessHeap(), 0, ShaderFileSize.QuadPart);
+		Result = ReadFile(ShaderFile, ShaderData, (DWORD)ShaderFileSize.QuadPart, NULL, NULL);
+		Result = CloseHandle(ShaderFile);
+
+		DxcBuffer dxcBuffer;
+		dxcBuffer.Encoding = 0;
+		dxcBuffer.Ptr = ShaderData;
+		dxcBuffer.Size = ShaderFileSize.QuadPart;
+
+		DynamicArray<const wchar_t*> DXCompilerArgs;
+		DXCompilerArgs.Clear();
+		DXCompilerArgs.Add((const wchar_t*)u"-E");
+		DXCompilerArgs.Add((const wchar_t*)u"VS");
+		DXCompilerArgs.Add((const wchar_t*)u"-T");
+		DXCompilerArgs.Add((const wchar_t*)u"vs_6_6");
+		DXCompilerArgs.Add((const wchar_t*)u"-Zpr");
+
+		hr = Compiler->Compile(&dxcBuffer, (LPCWSTR*)DXCompilerArgs.GetData(), DXCompilerArgs.GetLength(), NULL, __uuidof(IDxcOperationResult), (void**)&OperationResult);
+
+		HRESULT CompilationResult;
+
+		hr = OperationResult->GetStatus(&CompilationResult);
+
+		if (SUCCEEDED(hr) && FAILED(CompilationResult))
+		{
+			COMRCPtr<IDxcBlobEncoding> ErrorBlob;
+
+			hr = OperationResult->GetErrorBuffer(&ErrorBlob);
+
+			if (ErrorBlob) cout << (const char*)ErrorBlob->GetBufferPointer() << endl;
+		}
+
+		COMRCPtr<IDxcBlob> VertexShader1BlobDXC;
+
+		hr = OperationResult->GetResult(&VertexShader1BlobDXC);
+
+		Result = HeapFree(GetProcessHeap(), 0, ShaderData);
+
+		ShaderFile = CreateFile((const wchar_t*)u"MaterialBase_VertexShader_ShadowMapPass.hlsl", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+
+		if (ShaderFile == INVALID_HANDLE_VALUE)
+		{
+			DWORD Error = GetLastError();
+			cout << "System error: " << Error << endl;
+		}
+
+		Result = GetFileSizeEx(ShaderFile, &ShaderFileSize);
+		ShaderData = HeapAlloc(GetProcessHeap(), 0, ShaderFileSize.QuadPart);
+		Result = ReadFile(ShaderFile, ShaderData, (DWORD)ShaderFileSize.QuadPart, NULL, NULL);
+		Result = CloseHandle(ShaderFile);
+
+		dxcBuffer.Encoding = 0;
+		dxcBuffer.Ptr = ShaderData;
+		dxcBuffer.Size = ShaderFileSize.QuadPart;
+
+		DXCompilerArgs.Clear();
+		DXCompilerArgs.Add((const wchar_t*)u"-E");
+		DXCompilerArgs.Add((const wchar_t*)u"VS");
+		DXCompilerArgs.Add((const wchar_t*)u"-T");
+		DXCompilerArgs.Add((const wchar_t*)u"vs_6_6");
+		DXCompilerArgs.Add((const wchar_t*)u"-Zpr");
+
+		hr = Compiler->Compile(&dxcBuffer, (LPCWSTR*)DXCompilerArgs.GetData(), DXCompilerArgs.GetLength(), NULL, __uuidof(IDxcOperationResult), (void**)&OperationResult);
+
+		hr = OperationResult->GetStatus(&CompilationResult);
+
+		if (SUCCEEDED(hr) && FAILED(CompilationResult))
+		{
+			COMRCPtr<IDxcBlobEncoding> ErrorBlob;
+
+			hr = OperationResult->GetErrorBuffer(&ErrorBlob);
+
+			if (ErrorBlob) cout << (const char*)ErrorBlob->GetBufferPointer() << endl;
+		}
+
+		COMRCPtr<IDxcBlob> VertexShader2BlobDXC;
+
+		hr = OperationResult->GetResult(&VertexShader2BlobDXC);
+
+		Result = HeapFree(GetProcessHeap(), 0, ShaderData);
+
+		ShaderFile = CreateFile((const wchar_t*)u"MaterialBase_PixelShader_GBufferOpaquePass.hlsl", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+
+		if (ShaderFile == INVALID_HANDLE_VALUE)
+		{
+			DWORD Error = GetLastError();
+			cout << "System error: " << Error << endl;
+		}
+
+		Result = GetFileSizeEx(ShaderFile, &ShaderFileSize);
+		ShaderData = HeapAlloc(GetProcessHeap(), 0, ShaderFileSize.QuadPart);
+		Result = ReadFile(ShaderFile, ShaderData, (DWORD)ShaderFileSize.QuadPart, NULL, NULL);
+		Result = CloseHandle(ShaderFile);
+
+		dxcBuffer.Encoding = 0;
+		dxcBuffer.Ptr = ShaderData;
+		dxcBuffer.Size = ShaderFileSize.QuadPart;
+
+		DXCompilerArgs.Clear();
+		DXCompilerArgs.Add((const wchar_t*)u"-E");
+		DXCompilerArgs.Add((const wchar_t*)u"PS");
+		DXCompilerArgs.Add((const wchar_t*)u"-T");
+		DXCompilerArgs.Add((const wchar_t*)u"ps_6_6");
+		DXCompilerArgs.Add((const wchar_t*)u"-Zpr");
+
+		hr = Compiler->Compile(&dxcBuffer, (LPCWSTR*)DXCompilerArgs.GetData(), DXCompilerArgs.GetLength(), NULL, __uuidof(IDxcOperationResult), (void**)&OperationResult);
+
+		hr = OperationResult->GetStatus(&CompilationResult);
+
+		if (SUCCEEDED(hr) && FAILED(CompilationResult))
+		{
+			COMRCPtr<IDxcBlobEncoding> ErrorBlob;
+
+			hr = OperationResult->GetErrorBuffer(&ErrorBlob);
+
+			if (ErrorBlob) cout << (const char*)ErrorBlob->GetBufferPointer() << endl;
+		}
+
+		COMRCPtr<IDxcBlob> PixelShaderBlobDXC;
+
+		hr = OperationResult->GetResult(&PixelShaderBlobDXC);
+
+		Result = HeapFree(GetProcessHeap(), 0, ShaderData);
+
 		for (int i = 0; i < 4000; i++)
 		{
-			HANDLE ShaderFile = CreateFile((const wchar_t*)u"MaterialBase_VertexShader_GBufferOpaquePass.hlsl", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
-
-			if (ShaderFile == INVALID_HANDLE_VALUE)
-			{
-				DWORD Error = GetLastError();
-				cout << "System error: " << Error << endl;
-			}
-
-			LARGE_INTEGER ShaderFileSize;
-			BOOL Result = GetFileSizeEx(ShaderFile, &ShaderFileSize);
-			void *ShaderData = HeapAlloc(GetProcessHeap(), 0, ShaderFileSize.QuadPart);
-			Result = ReadFile(ShaderFile, ShaderData, (DWORD)ShaderFileSize.QuadPart, NULL, NULL);
-			Result = CloseHandle(ShaderFile);
-
-			DxcBuffer dxcBuffer;
-			dxcBuffer.Encoding = 0;
-			dxcBuffer.Ptr = ShaderData;
-			dxcBuffer.Size = ShaderFileSize.QuadPart;
-
-			DynamicArray<const wchar_t*> DXCompilerArgs;
-			DXCompilerArgs.Clear();
-			DXCompilerArgs.Add((const wchar_t*)u"-E");
-			DXCompilerArgs.Add((const wchar_t*)u"VS");
-			DXCompilerArgs.Add((const wchar_t*)u"-T");
-			DXCompilerArgs.Add((const wchar_t*)u"vs_6_6");
-			DXCompilerArgs.Add((const wchar_t*)u"-Zpr");
-
-			hr = Compiler->Compile(&dxcBuffer, (LPCWSTR*)DXCompilerArgs.GetData(), DXCompilerArgs.GetLength(), NULL, __uuidof(IDxcOperationResult), (void**)&OperationResult);
-
-			HRESULT CompilationResult;
-
-			hr = OperationResult->GetStatus(&CompilationResult);
-
-			if (SUCCEEDED(hr) && FAILED(CompilationResult))
-			{
-				COMRCPtr<IDxcBlobEncoding> ErrorBlob;
-
-				hr = OperationResult->GetErrorBuffer(&ErrorBlob);
-
-				if (ErrorBlob) cout << (const char*)ErrorBlob->GetBufferPointer() << endl;
-			}
-			
-			hr = OperationResult->GetResult(&ShaderBlobDXC);			
-
-			Result = HeapFree(GetProcessHeap(), 0, ShaderData);
-
 			wchar_t OutputFileName[8192];
 
 			wsprintf(OutputFileName, (const wchar_t*)u"./../../Build/Shaders/ShaderModel66/Test.M_Standart_%d.GBufferOpaquePass_VertexShader.dxil", i);
 
 			ShaderFile = CreateFile(OutputFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
-			ShaderFileSize.QuadPart = ShaderBlobDXC->GetBufferSize();
-			Result = WriteFile(ShaderFile, ShaderBlobDXC->GetBufferPointer(), ShaderFileSize.QuadPart, NULL, NULL);
-			CloseHandle(ShaderFile);
-
-			ShaderFile = CreateFile((const wchar_t*)u"MaterialBase_VertexShader_ShadowMapPass.hlsl", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
-
-			if (ShaderFile == INVALID_HANDLE_VALUE)
-			{
-				DWORD Error = GetLastError();
-				cout << "System error: " << Error << endl;
-			}
-
-			Result = GetFileSizeEx(ShaderFile, &ShaderFileSize);
-			ShaderData = HeapAlloc(GetProcessHeap(), 0, ShaderFileSize.QuadPart);
-			Result = ReadFile(ShaderFile, ShaderData, (DWORD)ShaderFileSize.QuadPart, NULL, NULL);
-			Result = CloseHandle(ShaderFile);
-
-			dxcBuffer.Encoding = 0;
-			dxcBuffer.Ptr = ShaderData;
-			dxcBuffer.Size = ShaderFileSize.QuadPart;
-
-			DXCompilerArgs.Clear();
-			DXCompilerArgs.Add((const wchar_t*)u"-E");
-			DXCompilerArgs.Add((const wchar_t*)u"VS");
-			DXCompilerArgs.Add((const wchar_t*)u"-T");
-			DXCompilerArgs.Add((const wchar_t*)u"vs_6_6");
-			DXCompilerArgs.Add((const wchar_t*)u"-Zpr");
-
-			hr = Compiler->Compile(&dxcBuffer, (LPCWSTR*)DXCompilerArgs.GetData(), DXCompilerArgs.GetLength(), NULL, __uuidof(IDxcOperationResult), (void**)&OperationResult);
-
-			hr = OperationResult->GetStatus(&CompilationResult);
-
-			if (SUCCEEDED(hr) && FAILED(CompilationResult))
-			{
-				COMRCPtr<IDxcBlobEncoding> ErrorBlob;
-
-				hr = OperationResult->GetErrorBuffer(&ErrorBlob);
-
-				if (ErrorBlob) cout << (const char*)ErrorBlob->GetBufferPointer() << endl;
-			}
-
-			hr = OperationResult->GetResult(&ShaderBlobDXC);
-
-			Result = HeapFree(GetProcessHeap(), 0, ShaderData);
+			ShaderFileSize.QuadPart = VertexShader1BlobDXC->GetBufferSize();
+			Result = WriteFile(ShaderFile, VertexShader1BlobDXC->GetBufferPointer(), ShaderFileSize.QuadPart, NULL, NULL);
+			CloseHandle(ShaderFile);			
 
 			wsprintf(OutputFileName, (const wchar_t*)u"./../../Build/Shaders/ShaderModel66/Test.M_Standart_%d.ShadowMapPass_VertexShader.dxil", i);
 
 			ShaderFile = CreateFile(OutputFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
-			ShaderFileSize.QuadPart = ShaderBlobDXC->GetBufferSize();
-			Result = WriteFile(ShaderFile, ShaderBlobDXC->GetBufferPointer(), ShaderFileSize.QuadPart, NULL, NULL);
+			ShaderFileSize.QuadPart = VertexShader2BlobDXC->GetBufferSize();
+			Result = WriteFile(ShaderFile, VertexShader2BlobDXC->GetBufferPointer(), ShaderFileSize.QuadPart, NULL, NULL);
 			CloseHandle(ShaderFile);
-
-			ShaderFile = CreateFile((const wchar_t*)u"MaterialBase_PixelShader_GBufferOpaquePass.hlsl", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
-
-			if (ShaderFile == INVALID_HANDLE_VALUE)
-			{
-				DWORD Error = GetLastError();
-				cout << "System error: " << Error << endl;
-			}
-
-			Result = GetFileSizeEx(ShaderFile, &ShaderFileSize);
-			ShaderData = HeapAlloc(GetProcessHeap(), 0, ShaderFileSize.QuadPart);
-			Result = ReadFile(ShaderFile, ShaderData, (DWORD)ShaderFileSize.QuadPart, NULL, NULL);
-			Result = CloseHandle(ShaderFile);
-
-			dxcBuffer.Encoding = 0;
-			dxcBuffer.Ptr = ShaderData;
-			dxcBuffer.Size = ShaderFileSize.QuadPart;
-
-			DXCompilerArgs.Clear();
-			DXCompilerArgs.Add((const wchar_t*)u"-E");
-			DXCompilerArgs.Add((const wchar_t*)u"PS");
-			DXCompilerArgs.Add((const wchar_t*)u"-T");
-			DXCompilerArgs.Add((const wchar_t*)u"ps_6_6");
-			DXCompilerArgs.Add((const wchar_t*)u"-Zpr");
-
-			hr = Compiler->Compile(&dxcBuffer, (LPCWSTR*)DXCompilerArgs.GetData(), DXCompilerArgs.GetLength(), NULL, __uuidof(IDxcOperationResult), (void**)&OperationResult);
-
-			hr = OperationResult->GetStatus(&CompilationResult);
-
-			if (SUCCEEDED(hr) && FAILED(CompilationResult))
-			{
-				COMRCPtr<IDxcBlobEncoding> ErrorBlob;
-
-				hr = OperationResult->GetErrorBuffer(&ErrorBlob);
-
-				if (ErrorBlob) cout << (const char*)ErrorBlob->GetBufferPointer() << endl;
-			}
-			
-			hr = OperationResult->GetResult(&ShaderBlobDXC);
-
-			Result = HeapFree(GetProcessHeap(), 0, ShaderData);
 
 			wsprintf(OutputFileName, (const wchar_t*)u"./../../Build/Shaders/ShaderModel66/Test.M_Standart_%d.GBufferOpaquePass_PixelShader.dxil", i);
 
 			ShaderFile = CreateFile(OutputFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
-			ShaderFileSize.QuadPart = ShaderBlobDXC->GetBufferSize();
-			Result = WriteFile(ShaderFile, ShaderBlobDXC->GetBufferPointer(), ShaderFileSize.QuadPart, NULL, NULL);
+			ShaderFileSize.QuadPart = PixelShaderBlobDXC->GetBufferSize();
+			Result = WriteFile(ShaderFile, PixelShaderBlobDXC->GetBufferPointer(), ShaderFileSize.QuadPart, NULL, NULL);
 			CloseHandle(ShaderFile);
 
 			cout << (i + 1) << "/4000" << endl;
