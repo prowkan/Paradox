@@ -53,6 +53,15 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 
 			HRESULT hr = D3DCompile(ShaderData, ShaderFileSize.QuadPart, NULL, NULL, NULL, "VS", "vs_5_1", D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &ShaderBlob, &ErrorBlob);
 
+			if (FAILED(hr))
+			{
+				if (ErrorBlob.Pointer)
+				{
+					cout << (const char*)ErrorBlob->GetBufferPointer() << endl;
+				}
+				ExitProcess(-1);
+			}
+
 			Result = HeapFree(GetProcessHeap(), 0, ShaderData);
 
 			wchar_t OutputFileName[8192];
@@ -81,6 +90,15 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 			Result = CloseHandle(ShaderFile);
 
 			HRESULT hr = D3DCompile(ShaderData, ShaderFileSize.QuadPart, NULL, NULL, NULL, "PS", "ps_5_1", D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &ShaderBlob, &ErrorBlob);
+
+			if (FAILED(hr))
+			{
+				if (ErrorBlob.Pointer)
+				{
+					cout << (const char*)ErrorBlob->GetBufferPointer() << endl;
+				}
+				ExitProcess(-1);
+			}
 
 			Result = HeapFree(GetProcessHeap(), 0, ShaderData);
 
@@ -111,6 +129,15 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 
 			HRESULT hr = D3DCompile(ShaderData, ShaderFileSize.QuadPart, NULL, NULL, NULL, "CS", "cs_5_1", D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &ShaderBlob, &ErrorBlob);
 
+			if (FAILED(hr))
+			{
+				if (ErrorBlob.Pointer)
+				{
+					cout << (const char*)ErrorBlob->GetBufferPointer() << endl;
+				}
+				ExitProcess(-1);
+			}
+
 			Result = HeapFree(GetProcessHeap(), 0, ShaderData);
 
 			wchar_t OutputFileName[8192];
@@ -134,6 +161,15 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 
 		HRESULT hr = D3DCompile(ShaderData, ShaderFileSize.QuadPart, "MaterialBase_VertexShader_GBufferOpaquePass", NULL, NULL, "VS", "vs_5_1", D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &VertexShader1Blob, &ErrorBlob);
 
+		if (FAILED(hr))
+		{
+			if (ErrorBlob.Pointer)
+			{
+				cout << (const char*)ErrorBlob->GetBufferPointer() << endl;
+			}
+			ExitProcess(-1);
+		}
+
 		Result = HeapFree(GetProcessHeap(), 0, ShaderData);
 
 		ShaderFile = CreateFile((const wchar_t*)L"MaterialBase_VertexShader_ShadowMapPass.hlsl", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
@@ -144,6 +180,15 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 
 		hr = D3DCompile(ShaderData, ShaderFileSize.QuadPart, "MaterialBase_VertexShader_ShadowMapPass", NULL, NULL, "VS", "vs_5_1", D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &VertexShader2Blob, &ErrorBlob);
 
+		if (FAILED(hr))
+		{
+			if (ErrorBlob.Pointer)
+			{
+				cout << (const char*)ErrorBlob->GetBufferPointer() << endl;
+			}
+			ExitProcess(-1);
+		}
+
 		Result = HeapFree(GetProcessHeap(), 0, ShaderData);
 
 		ShaderFile = CreateFile((const wchar_t*)L"MaterialBase_PixelShader_GBufferOpaquePass.hlsl", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
@@ -153,6 +198,15 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 		Result = CloseHandle(ShaderFile);
 
 		hr = D3DCompile(ShaderData, ShaderFileSize.QuadPart, "MaterialBase_PixelShader_GBufferOpaquePass", NULL, NULL, "PS", "ps_5_1", D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &PixelShaderBlob, &ErrorBlob);
+
+		if (FAILED(hr))
+		{
+			if (ErrorBlob.Pointer)
+			{
+				cout << (const char*)ErrorBlob->GetBufferPointer() << endl;
+			}
+			ExitProcess(-1);
+		}
 
 		Result = HeapFree(GetProcessHeap(), 0, ShaderData);
 
