@@ -162,14 +162,38 @@ class RenderSystem
 
 		// ===============================================================================================================
 
+		COMRCPtr<ID3D12Resource> GPUAllObjectsDataBuffer, CPUAllObjectsDataBuffer;
+		COMRCPtr<ID3D12Resource> GPUVisibleObjectsDataBuffer;
+		COMRCPtr<ID3D12Resource> GPUVisibleObjectsIndicesBuffer, CPUVisibleObjectsIndicesBuffers[2];
+		
+		D3D12_CPU_DESCRIPTOR_HANDLE AllObjectsDataBufferSRV;
+		D3D12_CPU_DESCRIPTOR_HANDLE VisibleObjectsIndicesBufferSRV;
+		D3D12_CPU_DESCRIPTOR_HANDLE VisibleObjectsDataBufferUAV;
+
+		D3D12_CPU_DESCRIPTOR_HANDLE ObjectsDataConstantBufferCBVs[20000];
+
+		COMRCPtr<ID3D12PipelineState> ObjectMatricesComputePipelineState;
+
+		COMRCPtr<ID3D12Heap> GPUMemory0, CPUMemory0;
+
+		D3D12_GPU_DESCRIPTOR_HANDLE ObjectMatricesComputePassSRVDescriptorTable;
+		D3D12_GPU_DESCRIPTOR_HANDLE ObjectMatricesComputePassUAVDescriptorTable;
+			
+		bool NeedToFillObjectsDataBuffer = true;
+
+		// ===============================================================================================================
+
 		COMRCPtr<ID3D12Resource> GBufferTextures[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE GBufferTexturesRTVs[2], GBufferTexturesSRVs[2];
 
 		COMRCPtr<ID3D12Resource> DepthBufferTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE DepthBufferTextureDSV, DepthBufferTextureSRV;
 
-		COMRCPtr<ID3D12Resource> GPUConstantBuffer, CPUConstantBuffers[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs[20000];
+		COMRCPtr<ID3D12Resource> GPUCameraConstantBuffer, CPUCameraConstantBuffers[2];
+
+		D3D12_CPU_DESCRIPTOR_HANDLE CameraConstantBufferCBV;
+
+		D3D12_GPU_DESCRIPTOR_HANDLE ObjectMatricesComputePassCBVDescriptorTable;
 
 		COMRCPtr<ID3D12Heap> GPUMemory1, CPUMemory1;
 
@@ -189,15 +213,18 @@ class RenderSystem
 
 		COMRCPtr<ID3D12Heap> GPUMemory3, CPUMemory3;
 
-		D3D12_GPU_DESCRIPTOR_HANDLE OcclusionBufferPassDescriptorTable;
+		D3D12_GPU_DESCRIPTOR_HANDLE OcclusionBufferPassSRVDescriptorTable;
 
 		// ===============================================================================================================
 
 		COMRCPtr<ID3D12Resource> CascadedShadowMapTextures[4];
 		D3D12_CPU_DESCRIPTOR_HANDLE CascadedShadowMapTexturesDSVs[4], CascadedShadowMapTexturesSRVs[4];
 
-		COMRCPtr<ID3D12Resource> GPUConstantBuffers2[4], CPUConstantBuffers2[4][2];
-		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs2[4][20000];
+		COMRCPtr<ID3D12Resource> GPUShadowCameraConstantBuffers[4], CPUShadowCameraConstantBuffers[4][2];
+
+		D3D12_CPU_DESCRIPTOR_HANDLE ShadowCameraConstantBufferCBVs[4];
+
+		D3D12_GPU_DESCRIPTOR_HANDLE ObjectShadowMatricesComputePassCBVDescriptorTables[4];
 
 		COMRCPtr<ID3D12Heap> GPUMemory4, CPUMemory4;
 
@@ -213,7 +240,7 @@ class RenderSystem
 
 		COMRCPtr<ID3D12Heap> GPUMemory5, CPUMemory5;
 
-		D3D12_GPU_DESCRIPTOR_HANDLE ShadowResolvePassConstantBuffersDescriptorTable, ShadowResolvePassShaderResourcesDescriptorTable;
+		D3D12_GPU_DESCRIPTOR_HANDLE ShadowResolvePassCBVDescriptorTable, ShadowResolvePassSRVDescriptorTable;
 
 		// ===============================================================================================================
 
@@ -236,7 +263,7 @@ class RenderSystem
 
 		COMRCPtr<ID3D12Heap> GPUMemory6, CPUMemory6;
 
-		D3D12_GPU_DESCRIPTOR_HANDLE DeferredLightingPassConstantBuffersDescriptorTable, DeferredLightingPassShaderResourcesDescriptorTable;
+		D3D12_GPU_DESCRIPTOR_HANDLE DeferredLightingPassCBVDescriptorTable, DeferredLightingPassSRVDescriptorTable;
 
 		// ===============================================================================================================
 
@@ -260,7 +287,7 @@ class RenderSystem
 
 		COMRCPtr<ID3D12Heap> GPUMemory7, CPUMemory7;
 
-		D3D12_GPU_DESCRIPTOR_HANDLE FogPassDescriptorTable, SkyPassConstantBuffersDescriptorTable, SkyPassShaderResourcesDescriptorTable, SunPassConstantBuffersDescriptorTable, SunPassShaderResourcesDescriptorTable;
+		D3D12_GPU_DESCRIPTOR_HANDLE FogPassSRVDescriptorTable, SkyPassCBVDescriptorTable, SkyPassSRVDescriptorTable, SunPassCBVDescriptorTable, SunPassSRVDescriptorTable;
 
 		// ===============================================================================================================
 
@@ -283,7 +310,7 @@ class RenderSystem
 
 		COMRCPtr<ID3D12Heap> GPUMemory9;
 
-		D3D12_GPU_DESCRIPTOR_HANDLE SceneLuminancePassShaderResourcesDescriptorTables[5], SceneLuminancePassUnorderedAccessViewsDescriptorTables[5];
+		D3D12_GPU_DESCRIPTOR_HANDLE SceneLuminancePassSRVDescriptorTables[5], SceneLuminancePassUAVDescriptorTables[5];
 
 		// ===============================================================================================================
 
@@ -298,7 +325,7 @@ class RenderSystem
 
 		COMRCPtr<ID3D12Heap> GPUMemory10;
 
-		D3D12_GPU_DESCRIPTOR_HANDLE PostProcessBloomPassDescriptorTables[3 + 3 * 6 + 6];
+		D3D12_GPU_DESCRIPTOR_HANDLE PostProcessBloomPassSRVDescriptorTables[3 + 3 * 6 + 6];
 
 		// ===============================================================================================================
 
@@ -309,7 +336,7 @@ class RenderSystem
 
 		COMRCPtr<ID3D12Heap> GPUMemory11;
 
-		D3D12_GPU_DESCRIPTOR_HANDLE HDRToneMappingPassDescriptorTable;
+		D3D12_GPU_DESCRIPTOR_HANDLE HDRToneMappingPassSRVDescriptorTable;
 
 		// ===============================================================================================================
 

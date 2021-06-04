@@ -33,7 +33,8 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 		{
 			u"LuminanceCalc",
 			u"LuminanceSum",
-			u"LuminanceAvg"
+			u"LuminanceAvg",
+			u"ObjectMatricesCompute"
 		};
 
 		for (auto VertexShader : VertexShaders)

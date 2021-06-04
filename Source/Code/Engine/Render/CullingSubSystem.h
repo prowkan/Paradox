@@ -2,6 +2,8 @@
 
 #include <Containers/DynamicArray.h>
 
+#include <MultiThreading/Tasks/FrustumCullingTask.h>
+
 class StaticMeshComponent;
 class PointLightComponent;
 
@@ -9,7 +11,7 @@ class CullingSubSystem
 {
 	public:
 
-		DynamicArray<StaticMeshComponent*> GetVisibleStaticMeshesInFrustum(const DynamicArray<StaticMeshComponent*>& InputStaticMeshes, const XMMATRIX& ViewProjMatrix, const bool DoOcclusionTest);
+		DynamicArray<FrustumCullingTask::CullingResultItem> GetVisibleStaticMeshesInFrustum(const DynamicArray<StaticMeshComponent*>& InputStaticMeshes, const XMMATRIX& ViewProjMatrix, const bool DoOcclusionTest);
 		DynamicArray<PointLightComponent*> GetVisiblePointLightsInFrustum(const DynamicArray<PointLightComponent*>& InputPointLights, const XMMATRIX& ViewProjMatrix);
 
 		float* GetOcclusionBufferData() { return OcclusionBufferData; }

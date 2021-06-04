@@ -10,6 +10,12 @@ class FrustumCullingTask : public Task
 {
 	public:
 
+		struct CullingResultItem
+		{
+			StaticMeshComponent *staticMeshComponent;
+			UINT Index;
+		};
+
 		FrustumCullingTask(const DynamicArray<StaticMeshComponent*>& InputStaticMeshesArray, const XMVECTOR* FrustumPlanes, const size_t Begin, const size_t End, const bool DoOcclusionTest) : InputStaticMeshesArray(InputStaticMeshesArray)
 		{
 			this->FrustumPlanes = FrustumPlanes;
@@ -20,12 +26,12 @@ class FrustumCullingTask : public Task
 
 		virtual void Execute(const UINT ThreadID) override;
 
-		DynamicArray<StaticMeshComponent*>& GetOutputData() { return OutputStaticMeshesArray; }
+		DynamicArray<CullingResultItem>& GetOutputData() { return OutputStaticMeshesArray; }
 
 	private:
 
 		const DynamicArray<StaticMeshComponent*>& InputStaticMeshesArray;
-		DynamicArray<StaticMeshComponent*> OutputStaticMeshesArray;
+		DynamicArray<CullingResultItem> OutputStaticMeshesArray;
 
 		const XMVECTOR *FrustumPlanes;
 		size_t Begin, End;

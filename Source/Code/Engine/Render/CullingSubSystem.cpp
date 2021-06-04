@@ -12,11 +12,11 @@
 #include <Game/Components/Render/Meshes/StaticMeshComponent.h>
 #include <Game/Components/Render/Lights/PointLightComponent.h>
 
-DynamicArray<StaticMeshComponent*> CullingSubSystem::GetVisibleStaticMeshesInFrustum(const DynamicArray<StaticMeshComponent*>& InputStaticMeshes, const XMMATRIX& ViewProjMatrix, const bool DoOcclusionTest)
+DynamicArray<FrustumCullingTask::CullingResultItem> CullingSubSystem::GetVisibleStaticMeshesInFrustum(const DynamicArray<StaticMeshComponent*>& InputStaticMeshes, const XMMATRIX& ViewProjMatrix, const bool DoOcclusionTest)
 {
 	OPTICK_EVENT("Frustum Culling")
 
-	DynamicArray<StaticMeshComponent*> OutputStaticMeshes;
+	DynamicArray<FrustumCullingTask::CullingResultItem> OutputStaticMeshes;
 
 	XMVECTOR FrustumPlanes[6];
 
@@ -57,7 +57,7 @@ DynamicArray<StaticMeshComponent*> CullingSubSystem::GetVisibleStaticMeshesInFru
 	for (UINT i = 0; i < 20; i++)
 	{
 		FrustumCullingTasks[i].WaitForFinish();
-		DynamicArray<StaticMeshComponent*>& LocalTaskResult = FrustumCullingTasks[i].GetOutputData();
+		DynamicArray<FrustumCullingTask::CullingResultItem>& LocalTaskResult = FrustumCullingTasks[i].GetOutputData();
 		OutputStaticMeshes.Append(LocalTaskResult);
 		FrustumCullingTasks[i].~FrustumCullingTask();
 	}
