@@ -674,7 +674,7 @@ for TS in TangentSpaces:
 for Idx in Indices:
     CubeMeshData.extend(int(Idx).to_bytes(2, byteorder='little', signed=False))
 
-os.chdir("F:/Paradox/Build/GameContent/Test")
+os.chdir("D:/Paradox/Build/GameContent/Test")
 
 i = 0
 while i < 4000:
@@ -683,7 +683,7 @@ while i < 4000:
     f.close()
     i = i + 1
 
-os.chdir("F:/Paradox/Build/GameContent/Test")
+os.chdir("D:/Paradox/Build/GameContent/Test")
 i = 0
 while i < 4000:
     f = open("M_Standart_" + str(i) + ".dasset", "wb")

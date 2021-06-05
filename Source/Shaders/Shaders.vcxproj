@@ -74,31 +74,31 @@
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
-    <NMakeBuildCommandLine>F:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeBuildCommandLine>
-    <NMakeReBuildCommandLine>F:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeReBuildCommandLine>
-    <NMakeCleanCommandLine>F:/Paradox/Build/Editor.exe CompileShaders Clean</NMakeCleanCommandLine>
+    <NMakeBuildCommandLine>D:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>D:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>D:/Paradox/Build/Editor.exe CompileShaders Clean</NMakeCleanCommandLine>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
-    <NMakeBuildCommandLine>F:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeBuildCommandLine>
-    <NMakeReBuildCommandLine>F:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeReBuildCommandLine>
-    <NMakeCleanCommandLine>F:/Paradox/Build/Editor.exe CompileShaders Clean</NMakeCleanCommandLine>
+    <NMakeBuildCommandLine>D:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>D:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>D:/Paradox/Build/Editor.exe CompileShaders Clean</NMakeCleanCommandLine>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
-    <NMakeBuildCommandLine>F:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeBuildCommandLine>
-    <NMakeReBuildCommandLine>F:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeReBuildCommandLine>
-    <NMakeCleanCommandLine>F:/Paradox/Build/Editor.exe CompileShaders Clean</NMakeCleanCommandLine>
+    <NMakeBuildCommandLine>D:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>D:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>D:/Paradox/Build/Editor.exe CompileShaders Clean</NMakeCleanCommandLine>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <NMakeBuildCommandLine>F:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeBuildCommandLine>
-    <NMakeReBuildCommandLine>F:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeReBuildCommandLine>
-    <NMakeCleanCommandLine>F:/Paradox/Build/Editor.exe CompileShaders Clean</NMakeCleanCommandLine>
+    <NMakeBuildCommandLine>D:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>D:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>D:/Paradox/Build/Editor.exe CompileShaders Clean</NMakeCleanCommandLine>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
   </PropertyGroup>

@@ -1,7 +1,7 @@
 import os
 import struct
 
-os.chdir("F:/Paradox/Build/GameContent/Maps")
+os.chdir("D:/Paradox/Build/GameContent/Maps")
 
 f = open("000.dmap", "wb")
 
