@@ -13,11 +13,11 @@
 #include <Windows.h>
 #include <DbgHelp.h>
 
-#include "F:/D3D12SDK/d3d12.h"
+#include "D:/D3D12SDK/d3d12.h"
 #include <dxgi1_6.h>
 
-#include "F:/DirectXMath/Inc/DirectXMath.h"
-#include "F:/DirectXMath/Inc/DirectXPackedVector.h"
+#include "D:/DirectXMath/Inc/DirectXMath.h"
+#include "D:/DirectXMath/Inc/DirectXPackedVector.h"
 
 #define USE_OPTICK 1
 #include <F:/Optick/include/optick.h>

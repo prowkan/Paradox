@@ -13,12 +13,13 @@ struct PSOutput
 	float4 GBuffer1 : SV_Target1;
 };
 
-cbuffer DrawData : register(b0)
+cbuffer DrawData : register(b0, space0)
 {
 	uint4 DataIndices0;
 	uint DataIndices1;
 }
 
+[RootSignature("RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED | SAMPLER_HEAP_DIRECTLY_INDEXED), CBV(b0, space = 0, visibility = SHADER_VISIBILITY_ALL)")]
 PSOutput PS(PSInput PixelShaderInput)
 {
 	PSOutput PixelShaderOutput;
