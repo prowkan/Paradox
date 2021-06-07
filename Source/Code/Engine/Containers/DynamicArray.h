@@ -162,6 +162,23 @@ class DynamicArray
 			ArrayLength = 0;
 		}
 
+		template<typename U>
+		void Sort(const U& Comparator)
+		{
+			for (size_t i = 0; i < ArrayLength; i++)
+			{
+				for (size_t j = i + 1; j < ArrayLength; j++)
+				{
+					if (Comparator(ArrayData[j], ArrayData[i]))
+					{
+						T Tmp = ArrayData[j];
+						ArrayData[j] = ArrayData[i];
+						ArrayData[i] = Tmp;
+					}
+				}
+			}
+		}
+
 		struct Iterator
 		{
 			T* ArrayData;
