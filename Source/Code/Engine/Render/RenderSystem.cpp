@@ -3402,8 +3402,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 	RenderScene& renderScene = gameFramework.GetWorld().GetRenderScene();
 
 	DynamicArray<StaticMeshComponent*>& AllStaticMeshComponents = renderScene.GetStaticMeshComponents();
-	DynamicArray<FrustumCullingTask::CullingResultItem> VisbleStaticMeshComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ViewProjMatrix, true);
-	size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.GetLength();
+	DynamicArray<FrustumCullingTask::CullingResultItem> VisibleStaticMeshComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ViewProjMatrix, true);
+	size_t VisibleStaticMeshComponentsCount = VisibleStaticMeshComponents.GetLength();
 
 	DynamicArray<PointLightComponent*> AllPointLightComponents = renderScene.GetPointLightComponents();
 	DynamicArray<PointLightComponent*> VisblePointLightComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisiblePointLightsInFrustum(AllPointLightComponents, ViewProjMatrix);
@@ -3559,13 +3559,13 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		SAFE_DX(CPUVisibleObjectsIndicesBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &VisibleObjectIndicesData));
 
-		for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
+		for (size_t k = 0; k < VisibleStaticMeshComponentsCount; k++)
 		{
-			memcpy((BYTE*)VisibleObjectIndicesData + k * 4, &VisbleStaticMeshComponents[k].Index, sizeof(UINT));
+			memcpy((BYTE*)VisibleObjectIndicesData + k * 4, &VisibleStaticMeshComponents[k].Index, sizeof(UINT));
 		}
 
 		WrittenRange.Begin = 0;
-		WrittenRange.End = VisbleStaticMeshComponentsCount * 4;
+		WrittenRange.End = VisibleStaticMeshComponentsCount * 4;
 
 		CPUVisibleObjectsIndicesBuffers[CurrentFrameIndex]->Unmap(0, &WrittenRange);
 
@@ -3585,7 +3585,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		CommandList->ResourceBarrier(4, ResourceBarriers);
 
 		CommandList->CopyBufferRegion(GPUCameraConstantBuffer, 0, CPUCameraConstantBuffers[CurrentFrameIndex], 0, 256);
-		CommandList->CopyBufferRegion(GPUVisibleObjectsIndicesBuffer, 0, CPUVisibleObjectsIndicesBuffers[CurrentFrameIndex], 0, VisbleStaticMeshComponentsCount * 4);
+		CommandList->CopyBufferRegion(GPUVisibleObjectsIndicesBuffer, 0, CPUVisibleObjectsIndicesBuffers[CurrentFrameIndex], 0, VisibleStaticMeshComponentsCount * 4);
 
 		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		ResourceBarriers[0].Transition.pResource = GPUCameraConstantBuffer;
@@ -3614,7 +3614,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		CommandList->SetComputeRootDescriptorTable(1, ObjectMatricesComputePassSRVDescriptorTable);
 		CommandList->SetComputeRootDescriptorTable(3, ObjectMatricesComputePassUAVDescriptorTable);
 
-		CommandList->Dispatch((VisbleStaticMeshComponentsCount / 256) + 1, 1, 1);
+		CommandList->Dispatch((VisibleStaticMeshComponentsCount / 256) + 1, 1, 1);
 
 		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		ResourceBarriers[0].Transition.pResource = GPUVisibleObjectsDataBuffer;
@@ -3655,9 +3655,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CommandList->SetGraphicsRootDescriptorTable(5, TextureSamplerTable);
 
-		for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
+		for (size_t k = 0; k < VisibleStaticMeshComponentsCount; k++)
 		{
-			StaticMeshComponent *staticMeshComponent = VisbleStaticMeshComponents[k].staticMeshComponent;
+			StaticMeshComponent *staticMeshComponent = VisibleStaticMeshComponents[k].staticMeshComponent;
 
 			RenderMesh *renderMesh = staticMeshComponent->GetStaticMesh()->GetRenderMesh();
 			RenderMaterial *renderMaterial = staticMeshComponent->GetMaterial()->GetRenderMaterial();
@@ -3864,33 +3864,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 			//SIZE_T ConstantBufferOffset = 0;
 
 			DynamicArray<StaticMeshComponent*> AllStaticMeshComponents = Engine::GetEngine().GetGameFramework().GetWorld().GetRenderScene().GetStaticMeshComponents();
-			DynamicArray<FrustumCullingTask::CullingResultItem> VisbleStaticMeshComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ShadowViewProjMatrices[i], false);
-			size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.GetLength();
-
-			/*D3D12_RANGE ReadRange, WrittenRange;
-			ReadRange.Begin = 0;
-			ReadRange.End = 0;
-
-			void *ConstantBufferData;
-
-			SAFE_DX(CPUConstantBuffers2[i][CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
-
-			for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
-			{
-				XMMATRIX WorldMatrix = VisbleStaticMeshComponents[k].staticMeshComponent->GetTransformComponent()->GetTransformMatrix();
-				XMMATRIX WVPMatrix = WorldMatrix * ShadowViewProjMatrices[i];
-
-				ShadowMapPassConstantBuffer& ConstantBuffer = *((ShadowMapPassConstantBuffer*)((BYTE*)ConstantBufferData + ConstantBufferOffset));
-
-				ConstantBuffer.WVPMatrix = WVPMatrix;
-
-				ConstantBufferOffset += 256;
-			}
-
-			WrittenRange.Begin = 0;
-			WrittenRange.End = ConstantBufferOffset;
-
-			CPUConstantBuffers2[i][CurrentFrameIndex]->Unmap(0, &WrittenRange);*/
+			DynamicArray<FrustumCullingTask::CullingResultItem> VisibleStaticMeshComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ShadowViewProjMatrices[i], false);
+			size_t VisibleStaticMeshComponentsCount = VisibleStaticMeshComponents.GetLength();
 
 			D3D12_RANGE ReadRange, WrittenRange;
 			ReadRange.Begin = 0;
@@ -3913,13 +3888,13 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			SAFE_DX(CPUVisibleObjectsIndicesBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &VisibleObjectIndicesData));
 
-			for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
+			for (size_t k = 0; k < VisibleStaticMeshComponentsCount; k++)
 			{
-				memcpy((BYTE*)VisibleObjectIndicesData + (i + 1) * 20000 * 4 + k * 4, &VisbleStaticMeshComponents[k].Index, sizeof(UINT));
+				memcpy((BYTE*)VisibleObjectIndicesData + (i + 1) * 20000 * 4 + k * 4, &VisibleStaticMeshComponents[k].Index, sizeof(UINT));
 			}
 
 			WrittenRange.Begin = (i + 1) * 20000 * 4;
-			WrittenRange.End = (i + 1) * 20000 * 4 + VisbleStaticMeshComponentsCount * 4;
+			WrittenRange.End = (i + 1) * 20000 * 4 + VisibleStaticMeshComponentsCount * 4;
 
 			CPUVisibleObjectsIndicesBuffers[CurrentFrameIndex]->Unmap(0, &WrittenRange);
 
@@ -3939,7 +3914,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 			CommandList->ResourceBarrier(2, ResourceBarriers);
 
 			CommandList->CopyBufferRegion(GPUShadowCameraConstantBuffers[i], 0, CPUShadowCameraConstantBuffers[i][CurrentFrameIndex], 0, 256);
-			CommandList->CopyBufferRegion(GPUVisibleObjectsIndicesBuffer, 0, CPUVisibleObjectsIndicesBuffers[CurrentFrameIndex], (i + 1) * 20000 * 4, VisbleStaticMeshComponentsCount * 4);
+			CommandList->CopyBufferRegion(GPUVisibleObjectsIndicesBuffer, 0, CPUVisibleObjectsIndicesBuffers[CurrentFrameIndex], (i + 1) * 20000 * 4, VisibleStaticMeshComponentsCount * 4);
 
 			ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 			ResourceBarriers[0].Transition.pResource = GPUShadowCameraConstantBuffers[i];
@@ -3968,7 +3943,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 			CommandList->SetComputeRootDescriptorTable(1, ObjectMatricesComputePassSRVDescriptorTable);
 			CommandList->SetComputeRootDescriptorTable(3, ObjectMatricesComputePassUAVDescriptorTable);
 
-			CommandList->Dispatch((VisbleStaticMeshComponentsCount / 256) + 1, 1, 1);
+			CommandList->Dispatch((VisibleStaticMeshComponentsCount / 256) + 1, 1, 1);
 
 			ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 			ResourceBarriers[0].Transition.pResource = GPUVisibleObjectsDataBuffer;
@@ -3978,40 +3953,6 @@ void RenderSystem::TickSystem(float DeltaTime)
 			ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
 			CommandList->ResourceBarrier(1, ResourceBarriers);
-
-			/*if (i == 0)
-			{
-				ResourceBarriers[4].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-				ResourceBarriers[4].Transition.pResource = GPUConstantBuffers2[i];
-				ResourceBarriers[4].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-				ResourceBarriers[4].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-				ResourceBarriers[4].Transition.Subresource = 0;
-				ResourceBarriers[4].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-				CommandList->ResourceBarrier(5, ResourceBarriers);
-			}
-			else
-			{
-				ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-				ResourceBarriers[0].Transition.pResource = GPUConstantBuffers2[i];
-				ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-				ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-				ResourceBarriers[0].Transition.Subresource = 0;
-				ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-				CommandList->ResourceBarrier(1, ResourceBarriers);
-			}
-
-			CommandList->CopyBufferRegion(GPUConstantBuffers2[i], 0, CPUConstantBuffers2[i][CurrentFrameIndex], 0, ConstantBufferOffset);
-
-			ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-			ResourceBarriers[0].Transition.pResource = GPUConstantBuffers2[i];
-			ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-			ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-			ResourceBarriers[0].Transition.Subresource = 0;
-			ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-			CommandList->ResourceBarrier(1, ResourceBarriers);*/
 
 			CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
@@ -4037,9 +3978,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			CommandList->ClearDepthStencilView(CascadedShadowMapTexturesDSVs[i], D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
-			for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
+			for (size_t k = 0; k < VisibleStaticMeshComponentsCount; k++)
 			{
-				StaticMeshComponent *staticMeshComponent = VisbleStaticMeshComponents[k].staticMeshComponent;
+				StaticMeshComponent *staticMeshComponent = VisibleStaticMeshComponents[k].staticMeshComponent;
 
 				RenderMesh *renderMesh = staticMeshComponent->GetStaticMesh()->GetRenderMesh();
 				RenderMaterial *renderMaterial = staticMeshComponent->GetMaterial()->GetRenderMaterial();
