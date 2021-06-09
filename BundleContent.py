@@ -32,7 +32,7 @@ def PackFilesIntoArchive(FilesFolder, ArchiveName):
         Offset = Offset + fileRecord.FileSize
         FileRecordArray.append(fileRecord)
 
-    os.chdir("F:/Paradox/Build/AssetPackages")
+    os.chdir("D:/Paradox/Build/AssetPackages")
 
     f = open(ArchiveName + ".assetpackage", "wb")
 
