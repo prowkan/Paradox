@@ -252,10 +252,10 @@ class RenderSystem
 		// ===============================================================================================================
 
 		COMRCPtr<ID3D12Resource> SceneLuminanceTextures[4];
-		D3D12_CPU_DESCRIPTOR_HANDLE SceneLuminanceTexturesUAVs[4], SceneLuminanceTexturesSRVs[4];
+		D3D12_CPU_DESCRIPTOR_HANDLE SceneLuminanceTexturesRTVs[4], SceneLuminanceTexturesSRVs[4];
 
 		COMRCPtr<ID3D12Resource> AverageLuminanceTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE AverageLuminanceTextureUAV, AverageLuminanceTextureSRV;
+		D3D12_CPU_DESCRIPTOR_HANDLE AverageLuminanceTextureRTV, AverageLuminanceTextureSRV;
 
 		COMRCPtr<ID3D12PipelineState> LuminanceCalcPipelineState;
 		COMRCPtr<ID3D12PipelineState> LuminanceSumPipelineState;

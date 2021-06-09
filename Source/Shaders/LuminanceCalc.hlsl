@@ -1,10 +1,16 @@
-Texture2D HDRColorTexture : register(t0);
-RWTexture2D<float> OutputTexture : register(u0);
-
-[numthreads(16, 16, 1)]
-void CS(uint3 DispatchThreadID : SV_DispatchThreadID)
+struct PSInput
 {
-	float3 HDRColor = HDRColorTexture[DispatchThreadID.xy].rgb;
+	float4 Position : SV_Position;
+	float2 TexCoord : TEXCOORD;
+}; 
+
+Texture2D HDRSceneColorTexture : register(t0);
+
+float4 PS(PSInput PixelShaderInput) : SV_Target
+{
+	int2 Coords = trunc(PixelShaderInput.Position.xy);
+
+	float3 HDRColor = HDRSceneColorTexture[Coords].rgb;
 	float Luminance = 0.2126 * HDRColor.r + 0.7152 * HDRColor.g + 0.0722 * HDRColor.b;
-	OutputTexture[DispatchThreadID.xy] = Luminance;
+	return float4(Luminance, 0.0f, 0.0f, 0.0f);
 }

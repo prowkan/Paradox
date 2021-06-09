@@ -155,7 +155,7 @@ void RenderSystem::InitSystem()
 	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	DescriptorHeapDesc.NodeMask = 0;
-	DescriptorHeapDesc.NumDescriptors = 29;
+	DescriptorHeapDesc.NumDescriptors = 34;
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 
 	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(RTDescriptorHeap)));
@@ -2329,7 +2329,7 @@ void RenderSystem::InitSystem()
 			SceneLuminanceTexturesResourceDescs[i].Alignment = 0;
 			SceneLuminanceTexturesResourceDescs[i].DepthOrArraySize = 1;
 			SceneLuminanceTexturesResourceDescs[i].Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-			SceneLuminanceTexturesResourceDescs[i].Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+			SceneLuminanceTexturesResourceDescs[i].Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 			SceneLuminanceTexturesResourceDescs[i].Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
 			SceneLuminanceTexturesResourceDescs[i].Height = Heights[i];
 			SceneLuminanceTexturesResourceDescs[i].Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_UNKNOWN;
@@ -2344,7 +2344,7 @@ void RenderSystem::InitSystem()
 		AverageLuminanceTextureResourceDesc.Alignment = 0;
 		AverageLuminanceTextureResourceDesc.DepthOrArraySize = 1;
 		AverageLuminanceTextureResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-		AverageLuminanceTextureResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+		AverageLuminanceTextureResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 		AverageLuminanceTextureResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
 		AverageLuminanceTextureResourceDesc.Height = 1;
 		AverageLuminanceTextureResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_UNKNOWN;
@@ -2397,20 +2397,27 @@ void RenderSystem::InitSystem()
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory9, SceneLuminanceTexture2Offset, &SceneLuminanceTexturesResourceDescs[2], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(SceneLuminanceTextures[2])));
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory9, SceneLuminanceTexture3Offset, &SceneLuminanceTexturesResourceDescs[3], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(SceneLuminanceTextures[3])));
 
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory9, AverageLuminanceTextureOffset, &AverageLuminanceTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr, UUIDOF(AverageLuminanceTexture)));
+		D3D12_CLEAR_VALUE ClearValue;
+		ClearValue.Color[0] = 0.0f;
+		ClearValue.Color[1] = 0.0f;
+		ClearValue.Color[2] = 0.0f;
+		ClearValue.Color[3] = 0.0f;
+		ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
 
-		D3D12_UNORDERED_ACCESS_VIEW_DESC UAVDesc;
-		UAVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
-		UAVDesc.Texture2D.MipSlice = 0;
-		UAVDesc.Texture2D.PlaneSlice = 0;
-		UAVDesc.ViewDimension = D3D12_UAV_DIMENSION::D3D12_UAV_DIMENSION_TEXTURE2D;
+		SAFE_DX(Device->CreatePlacedResource(GPUMemory9, AverageLuminanceTextureOffset, &AverageLuminanceTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue, UUIDOF(AverageLuminanceTexture)));
+
+		D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
+		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
+		RTVDesc.Texture2D.MipSlice = 0;
+		RTVDesc.Texture2D.PlaneSlice = 0;
+		RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2D;
 
 		for (int i = 0; i < 4; i++)
 		{
-			SceneLuminanceTexturesUAVs[i].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			CBSRUADescriptorsCount++;
+			SceneLuminanceTexturesRTVs[i].ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+			RTDescriptorsCount++;
 
-			Device->CreateUnorderedAccessView(SceneLuminanceTextures[i], nullptr, &UAVDesc, SceneLuminanceTexturesUAVs[i]);
+			Device->CreateRenderTargetView(SceneLuminanceTextures[i], &RTVDesc, SceneLuminanceTexturesRTVs[i]);
 		}
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
@@ -2430,15 +2437,15 @@ void RenderSystem::InitSystem()
 			Device->CreateShaderResourceView(SceneLuminanceTextures[i], &SRVDesc, SceneLuminanceTexturesSRVs[i]);
 		}
 
-		UAVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
-		UAVDesc.Texture2D.MipSlice = 0;
-		UAVDesc.Texture2D.PlaneSlice = 0;
-		UAVDesc.ViewDimension = D3D12_UAV_DIMENSION::D3D12_UAV_DIMENSION_TEXTURE2D;
+		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
+		RTVDesc.Texture2D.MipSlice = 0;
+		RTVDesc.Texture2D.PlaneSlice = 0;
+		RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2D;
 
-		AverageLuminanceTextureUAV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		AverageLuminanceTextureRTV.ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+		RTDescriptorsCount++;
 
-		Device->CreateUnorderedAccessView(AverageLuminanceTexture, nullptr, &UAVDesc, AverageLuminanceTextureUAV);
+		Device->CreateRenderTargetView(AverageLuminanceTexture, &RTVDesc, AverageLuminanceTextureRTV);
 
 		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
 		SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -2462,27 +2469,72 @@ void RenderSystem::InitSystem()
 		void *LuminanceAvgComputeShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel60.LuminanceAvg");
 		SIZE_T LuminanceAvgComputeShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel60.LuminanceAvg");
 
-		D3D12_COMPUTE_PIPELINE_STATE_DESC ComputePipelineStateDesc;
-		ZeroMemory(&ComputePipelineStateDesc, sizeof(D3D12_COMPUTE_PIPELINE_STATE_DESC));
-		ComputePipelineStateDesc.CS.BytecodeLength = LuminanceCalcComputeShaderByteCodeLength;
-		ComputePipelineStateDesc.CS.pShaderBytecode = LuminanceCalcComputeShaderByteCodeData;
-		ComputePipelineStateDesc.pRootSignature = ComputeRootSignature;
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC GraphicsPipelineStateDesc;
+		ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+		GraphicsPipelineStateDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE::D3D12_COLOR_WRITE_ENABLE_ALL;
+		GraphicsPipelineStateDesc.Flags = D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_NONE;
+		GraphicsPipelineStateDesc.InputLayout.NumElements = 0;
+		GraphicsPipelineStateDesc.InputLayout.pInputElementDescs = nullptr;
+		GraphicsPipelineStateDesc.NodeMask = 0;
+		GraphicsPipelineStateDesc.NumRenderTargets = 1;
+		GraphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE::D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+		GraphicsPipelineStateDesc.pRootSignature = GraphicsRootSignature;
+		GraphicsPipelineStateDesc.PS.BytecodeLength = LuminanceCalcComputeShaderByteCodeLength;
+		GraphicsPipelineStateDesc.PS.pShaderBytecode = LuminanceCalcComputeShaderByteCodeData;
+		GraphicsPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_BACK;
+		GraphicsPipelineStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID;
+		GraphicsPipelineStateDesc.RTVFormats[0] = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
+		GraphicsPipelineStateDesc.SampleDesc.Count = 1;
+		GraphicsPipelineStateDesc.SampleDesc.Quality = 0;
+		GraphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
+		GraphicsPipelineStateDesc.VS.BytecodeLength = FullScreenQuadVertexShaderByteCodeLength;
+		GraphicsPipelineStateDesc.VS.pShaderBytecode = FullScreenQuadVertexShaderByteCodeData;
 
-		SAFE_DX(Device->CreateComputePipelineState(&ComputePipelineStateDesc, UUIDOF(LuminanceCalcPipelineState)));
+		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(LuminanceCalcPipelineState)));
 
-		ZeroMemory(&ComputePipelineStateDesc, sizeof(D3D12_COMPUTE_PIPELINE_STATE_DESC));
-		ComputePipelineStateDesc.CS.BytecodeLength = LuminanceSumComputeShaderByteCodeLength;
-		ComputePipelineStateDesc.CS.pShaderBytecode = LuminanceSumComputeShaderByteCodeData;
-		ComputePipelineStateDesc.pRootSignature = ComputeRootSignature;
+		ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+		GraphicsPipelineStateDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE::D3D12_COLOR_WRITE_ENABLE_ALL;
+		GraphicsPipelineStateDesc.Flags = D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_NONE;
+		GraphicsPipelineStateDesc.InputLayout.NumElements = 0;
+		GraphicsPipelineStateDesc.InputLayout.pInputElementDescs = nullptr;
+		GraphicsPipelineStateDesc.NodeMask = 0;
+		GraphicsPipelineStateDesc.NumRenderTargets = 1;
+		GraphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE::D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+		GraphicsPipelineStateDesc.pRootSignature = GraphicsRootSignature;
+		GraphicsPipelineStateDesc.PS.BytecodeLength = LuminanceSumComputeShaderByteCodeLength;
+		GraphicsPipelineStateDesc.PS.pShaderBytecode = LuminanceSumComputeShaderByteCodeData;
+		GraphicsPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_BACK;
+		GraphicsPipelineStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID;
+		GraphicsPipelineStateDesc.RTVFormats[0] = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
+		GraphicsPipelineStateDesc.SampleDesc.Count = 1;
+		GraphicsPipelineStateDesc.SampleDesc.Quality = 0;
+		GraphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
+		GraphicsPipelineStateDesc.VS.BytecodeLength = FullScreenQuadVertexShaderByteCodeLength;
+		GraphicsPipelineStateDesc.VS.pShaderBytecode = FullScreenQuadVertexShaderByteCodeData;
 
-		SAFE_DX(Device->CreateComputePipelineState(&ComputePipelineStateDesc, UUIDOF(LuminanceSumPipelineState)));
+		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(LuminanceSumPipelineState)));
 
-		ZeroMemory(&ComputePipelineStateDesc, sizeof(D3D12_COMPUTE_PIPELINE_STATE_DESC));
-		ComputePipelineStateDesc.CS.BytecodeLength = LuminanceAvgComputeShaderByteCodeLength;
-		ComputePipelineStateDesc.CS.pShaderBytecode = LuminanceAvgComputeShaderByteCodeData;
-		ComputePipelineStateDesc.pRootSignature = ComputeRootSignature;
+		ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+		GraphicsPipelineStateDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE::D3D12_COLOR_WRITE_ENABLE_ALL;
+		GraphicsPipelineStateDesc.Flags = D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_NONE;
+		GraphicsPipelineStateDesc.InputLayout.NumElements = 0;
+		GraphicsPipelineStateDesc.InputLayout.pInputElementDescs = nullptr;
+		GraphicsPipelineStateDesc.NodeMask = 0;
+		GraphicsPipelineStateDesc.NumRenderTargets = 1;
+		GraphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE::D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+		GraphicsPipelineStateDesc.pRootSignature = GraphicsRootSignature;
+		GraphicsPipelineStateDesc.PS.BytecodeLength = LuminanceAvgComputeShaderByteCodeLength;
+		GraphicsPipelineStateDesc.PS.pShaderBytecode = LuminanceAvgComputeShaderByteCodeData;
+		GraphicsPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_BACK;
+		GraphicsPipelineStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID;
+		GraphicsPipelineStateDesc.RTVFormats[0] = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
+		GraphicsPipelineStateDesc.SampleDesc.Count = 1;
+		GraphicsPipelineStateDesc.SampleDesc.Quality = 0;
+		GraphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
+		GraphicsPipelineStateDesc.VS.BytecodeLength = FullScreenQuadVertexShaderByteCodeLength;
+		GraphicsPipelineStateDesc.VS.pShaderBytecode = FullScreenQuadVertexShaderByteCodeData;
 
-		SAFE_DX(Device->CreateComputePipelineState(&ComputePipelineStateDesc, UUIDOF(LuminanceAvgPipelineState)));
+		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(LuminanceAvgPipelineState)));
 	}
 
 	// ===============================================================================================================
@@ -3988,7 +4040,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	ResourceBarriers[2].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarriers[2].Transition.pResource = SceneLuminanceTextures[0];
-	ResourceBarriers[2].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+	ResourceBarriers[2].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
 	ResourceBarriers[2].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
 	ResourceBarriers[2].Transition.Subresource = 0;
 	ResourceBarriers[2].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -3998,161 +4050,250 @@ void RenderSystem::TickSystem(float DeltaTime)
 	{
 		CommandList->ResourceBarrier(3, ResourceBarriers);
 
-		UINT DestRangeSize = 2;
-		UINT SourceRangeSizes[2] = { 1, 1 };
-		D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[2] = { ResolvedHDRSceneColorTextureSRV, SceneLuminanceTexturesUAVs[0] };
+		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-		Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		CommandList->OMSetRenderTargets(1, &SceneLuminanceTexturesRTVs[0], TRUE, nullptr);
 
-		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
+		D3D12_VIEWPORT Viewport;
+		Viewport.Height = FLOAT(ResolutionHeight);
+		Viewport.MaxDepth = 1.0f;
+		Viewport.MinDepth = 0.0f;
+		Viewport.TopLeftX = 0.0f;
+		Viewport.TopLeftY = 0.0f;
+		Viewport.Width = FLOAT(ResolutionWidth);
+
+		CommandList->RSSetViewports(1, &Viewport);
+
+		D3D12_RECT ScissorRect;
+		ScissorRect.bottom = ResolutionHeight;
+		ScissorRect.left = 0;
+		ScissorRect.right = ResolutionWidth;
+		ScissorRect.top = 0;
+
+		CommandList->RSSetScissorRects(1, &ScissorRect);
+		
+		UINT DestRangeSize = 1;
+		UINT SourceRangeSize = 1;
+		D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandle = ResolvedHDRSceneColorTextureSRV;
+
+		Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, &SourceCPUHandle, &SourceRangeSize, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+		ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
 		CommandList->SetPipelineState(LuminanceCalcPipelineState);
 
-		CommandList->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-		CommandList->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 		CommandList->DiscardResource(SceneLuminanceTextures[0], nullptr);
 
-		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
+		ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->Dispatch(80, 45, 1);
+		CommandList->DrawInstanced(4, 1, 0, 0);
 
 		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		ResourceBarriers[0].Transition.pResource = SceneLuminanceTextures[0];
 		ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-		ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+		ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
 		ResourceBarriers[0].Transition.Subresource = 0;
 		ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
 		ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		ResourceBarriers[1].Transition.pResource = SceneLuminanceTextures[1];
-		ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+		ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
 		ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
 		ResourceBarriers[1].Transition.Subresource = 0;
 		ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
 		CommandList->ResourceBarrier(2, ResourceBarriers);
 
-		DestRangeSize = 2;
-		SourceRangeSizes[0] = 1;
-		SourceRangeSizes[1] = 1;
-		SourceCPUHandles[0] = SceneLuminanceTexturesSRVs[0];
-		SourceCPUHandles[1] = SceneLuminanceTexturesUAVs[1];
+		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-		Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		CommandList->OMSetRenderTargets(1, &SceneLuminanceTexturesRTVs[1], TRUE, nullptr);
 
-		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
+		Viewport.Height = FLOAT(45);
+		Viewport.MaxDepth = 1.0f;
+		Viewport.MinDepth = 0.0f;
+		Viewport.TopLeftX = 0.0f;
+		Viewport.TopLeftY = 0.0f;
+		Viewport.Width = FLOAT(80);
+
+		CommandList->RSSetViewports(1, &Viewport);
+
+		ScissorRect.bottom = 45;
+		ScissorRect.left = 0;
+		ScissorRect.right = 80;
+		ScissorRect.top = 0;
+
+		CommandList->RSSetScissorRects(1, &ScissorRect);
+
+		DestRangeSize = 1;
+		SourceRangeSize = 1;
+		SourceCPUHandle = SceneLuminanceTexturesSRVs[0];
+
+		Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, &SourceCPUHandle, &SourceRangeSize, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+		ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
 		CommandList->SetPipelineState(LuminanceSumPipelineState);
 
-		CommandList->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-		CommandList->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 		CommandList->DiscardResource(SceneLuminanceTextures[1], nullptr);
 
-		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
+		ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->Dispatch(80, 45, 1);
+		CommandList->DrawInstanced(4, 1, 0, 0);
 
 		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		ResourceBarriers[0].Transition.pResource = SceneLuminanceTextures[1];
 		ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-		ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+		ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
 		ResourceBarriers[0].Transition.Subresource = 0;
 		ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
 		ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		ResourceBarriers[1].Transition.pResource = SceneLuminanceTextures[2];
-		ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+		ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
 		ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
 		ResourceBarriers[1].Transition.Subresource = 0;
 		ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
 		CommandList->ResourceBarrier(2, ResourceBarriers);
 
-		DestRangeSize = 2;
-		SourceRangeSizes[0] = 1;
-		SourceRangeSizes[1] = 1;
-		SourceCPUHandles[0] = SceneLuminanceTexturesSRVs[1];
-		SourceCPUHandles[1] = SceneLuminanceTexturesUAVs[2];
+		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-		Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		CommandList->OMSetRenderTargets(1, &SceneLuminanceTexturesRTVs[2], TRUE, nullptr);
 
-		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
+		Viewport.Height = FLOAT(3);
+		Viewport.MaxDepth = 1.0f;
+		Viewport.MinDepth = 0.0f;
+		Viewport.TopLeftX = 0.0f;
+		Viewport.TopLeftY = 0.0f;
+		Viewport.Width = FLOAT(5);
 
-		CommandList->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-		CommandList->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+		CommandList->RSSetViewports(1, &Viewport);
+
+		ScissorRect.bottom = 3;
+		ScissorRect.left = 0;
+		ScissorRect.right = 5;
+		ScissorRect.top = 0;
+
+		CommandList->RSSetScissorRects(1, &ScissorRect);
+
+		DestRangeSize = 1;
+		SourceRangeSize = 1;
+		SourceCPUHandle = SceneLuminanceTexturesSRVs[1];
+
+		Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, &SourceCPUHandle, &SourceRangeSize, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+		ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
+
+		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 		CommandList->DiscardResource(SceneLuminanceTextures[2], nullptr);
 
-		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
+		ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->Dispatch(5, 3, 1);
+		CommandList->DrawInstanced(4, 1, 0, 0);
 
 		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		ResourceBarriers[0].Transition.pResource = SceneLuminanceTextures[2];
 		ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-		ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+		ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
 		ResourceBarriers[0].Transition.Subresource = 0;
 		ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
 		ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		ResourceBarriers[1].Transition.pResource = SceneLuminanceTextures[3];
-		ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+		ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
 		ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
 		ResourceBarriers[1].Transition.Subresource = 0;
 		ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
 		CommandList->ResourceBarrier(2, ResourceBarriers);
 
-		DestRangeSize = 2;
-		SourceRangeSizes[0] = 1;
-		SourceRangeSizes[1] = 1;
-		SourceCPUHandles[0] = SceneLuminanceTexturesSRVs[2];
-		SourceCPUHandles[1] = SceneLuminanceTexturesUAVs[3];
+		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-		Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		CommandList->OMSetRenderTargets(1, &SceneLuminanceTexturesRTVs[3], TRUE, nullptr);
 
-		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
+		Viewport.Height = FLOAT(1);
+		Viewport.MaxDepth = 1.0f;
+		Viewport.MinDepth = 0.0f;
+		Viewport.TopLeftX = 0.0f;
+		Viewport.TopLeftY = 0.0f;
+		Viewport.Width = FLOAT(1);
 
-		CommandList->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-		CommandList->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+		CommandList->RSSetViewports(1, &Viewport);
+
+		ScissorRect.bottom = 1;
+		ScissorRect.left = 0;
+		ScissorRect.right = 1;
+		ScissorRect.top = 0;
+
+		CommandList->RSSetScissorRects(1, &ScissorRect);
+
+		DestRangeSize = 1;
+		SourceRangeSize = 1;
+		SourceCPUHandle = SceneLuminanceTexturesSRVs[2];
+
+		Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, &SourceCPUHandle, &SourceRangeSize, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+		ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
+
+		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 		CommandList->DiscardResource(SceneLuminanceTextures[3], nullptr);
 
-		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
+		ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->Dispatch(1, 1, 1);
+		CommandList->DrawInstanced(4, 1, 0, 0);
 
 		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		ResourceBarriers[0].Transition.pResource = SceneLuminanceTextures[3];
 		ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-		ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+		ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
 		ResourceBarriers[0].Transition.Subresource = 0;
 		ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
 		CommandList->ResourceBarrier(1, ResourceBarriers);
 
-		DestRangeSize = 2;
-		SourceRangeSizes[0] = 1;
-		SourceRangeSizes[1] = 1;
-		SourceCPUHandles[0] = SceneLuminanceTexturesSRVs[3];
-		SourceCPUHandles[1] = AverageLuminanceTextureUAV;
+		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-		Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		CommandList->OMSetRenderTargets(1, &AverageLuminanceTextureRTV, TRUE, nullptr);
 
-		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
+		Viewport.Height = FLOAT(1);
+		Viewport.MaxDepth = 1.0f;
+		Viewport.MinDepth = 0.0f;
+		Viewport.TopLeftX = 0.0f;
+		Viewport.TopLeftY = 0.0f;
+		Viewport.Width = FLOAT(1);
+
+		CommandList->RSSetViewports(1, &Viewport);
+
+		ScissorRect.bottom = 1;
+		ScissorRect.left = 0;
+		ScissorRect.right = 1;
+		ScissorRect.top = 0;
+
+		CommandList->RSSetScissorRects(1, &ScissorRect);
+
+		DestRangeSize = 1;
+		SourceRangeSize = 1;
+		SourceCPUHandle = SceneLuminanceTexturesSRVs[3];
+
+		Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, &SourceCPUHandle, &SourceRangeSize, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+		ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
 		CommandList->SetPipelineState(LuminanceAvgPipelineState);
 
-		CommandList->SetComputeRootDescriptorTable(1, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-		CommandList->SetComputeRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 		CommandList->DiscardResource(AverageLuminanceTexture, nullptr);
 
-		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
+		ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->Dispatch(1, 1, 1);
+		CommandList->DrawInstanced(4, 1, 0, 0);
 	}
 
 	// ===============================================================================================================

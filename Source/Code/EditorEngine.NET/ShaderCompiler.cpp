@@ -26,15 +26,16 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 			u"ImageResample",
 			u"HorizontalBlur",
 			u"VerticalBlur",
-			u"HDRToneMapping"
-		};
-
-		const char16_t* ComputeShaders[] =
-		{
+			u"HDRToneMapping",
 			u"LuminanceCalc",
 			u"LuminanceSum",
 			u"LuminanceAvg"
 		};
+
+		/*const char16_t* ComputeShaders[] =
+		{
+			
+		};*/
 
 		COMRCPtr<IDxcCompiler3> Compiler;
 
@@ -156,7 +157,7 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 			CloseHandle(ShaderFile);
 		}
 
-		for (auto ComputeShader : ComputeShaders)
+		/*for (auto ComputeShader : ComputeShaders)
 		{
 			char16_t InputFileName[8192];
 
@@ -212,7 +213,7 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 			ShaderFileSize.QuadPart = ShaderBlob->GetBufferSize();
 			Result = WriteFile(ShaderFile, ShaderBlob->GetBufferPointer(), ShaderFileSize.QuadPart, NULL, NULL);
 			CloseHandle(ShaderFile);
-		}
+		}*/
 
 		/*HANDLE ShaderFile = CreateFile((const wchar_t*)L"MaterialBase_VertexShader_GBufferOpaquePass.hlsl", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
 		LARGE_INTEGER ShaderFileSize;

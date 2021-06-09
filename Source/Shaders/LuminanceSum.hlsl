@@ -1,29 +1,26 @@
-Texture2D<float> InputLuminanceTexture : register(t0);
-RWTexture2D<float> OutputLuminanceTexture : register(u0);
-
-groupshared float LocalLuminances[16][16];
-
-[numthreads(16, 16, 1)]
-void CS(uint3 DispatchThreadID : SV_DispatchThreadID, uint3 GroupThreadID : SV_GroupThreadID, uint3 GroupID : SV_GroupID)
+struct PSInput
 {
-	float SummedLuminance = 0.0;
+	float4 Position : SV_Position;
+	float2 TexCoord : TEXCOORD;
+}; 
 
-	LocalLuminances[GroupThreadID.x][GroupThreadID.y] = InputLuminanceTexture[DispatchThreadID.xy];
+Texture2D<float> InputLuminanceTexture : register(t0);
 
-	GroupMemoryBarrierWithGroupSync();
+float4 PS(PSInput PixelShaderInput) : SV_Target
+{
+	int2 Coords = trunc(PixelShaderInput.Position.xy);
 
-	if (GroupThreadID.x == 0 && GroupThreadID.y == 0)
+	float SummedLuminance = 0.0f;
+
+	[unroll]
+	for (int i = 0; i < 16; i++)
 	{
 		[unroll]
-		for (int i = 0; i < 16; i++)
+		for (int j = 0; j < 16; j++)
 		{
-			[unroll]
-			for (int j = 0; j < 16; j++)
-			{
-				SummedLuminance += LocalLuminances[i][j];
-			}
+			SummedLuminance += InputLuminanceTexture[int2(Coords.x * 16 + i, Coords.y * 16 + j)];
 		}
-
-		OutputLuminanceTexture[GroupID.xy] = SummedLuminance;
 	}
+
+	return float4(SummedLuminance, 0.0f, 0.0f, 0.0f);
 }
