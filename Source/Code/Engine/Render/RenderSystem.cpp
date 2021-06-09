@@ -16,19 +16,6 @@
 #include <ResourceManager/Resources/Render/Materials/MaterialResource.h>
 #include <ResourceManager/Resources/Render/Textures/Texture2DResource.h>
 
-#include "RenderStages/GBufferOpaqueStage.h"
-#include "RenderStages/MSAADepthBufferResolveStage.h"
-#include "RenderStages/OcclusionBufferStage.h"
-#include "RenderStages/ShadowMapStage.h"
-#include "RenderStages/ShadowResolveStage.h"
-#include "RenderStages/DeferredLightingStage.h"
-#include "RenderStages/SkyAndFogStage.h"
-#include "RenderStages/HDRSceneColorResolveStage.h"
-#include "RenderStages/PostProcessLuminanceStage.h"
-#include "RenderStages/PostProcessBloomStage.h"
-#include "RenderStages/PostProcessHDRToneMappingStage.h"
-#include "RenderStages/BackBufferResolveStage.h"
-
 struct PointLight
 {
 	XMFLOAT3 Position;
@@ -2825,28 +2812,6 @@ void RenderSystem::InitSystem()
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(HDRToneMappingPipelineState)));
 	}
 
-	RenderStages.Add(new GBufferOpaqueStage());
-	RenderStages.Add(new MSAADepthBufferResolveStage());
-	RenderStages.Add(new OcclusionBufferStage());
-	RenderStages.Add(new ShadowMapStage());
-	RenderStages.Add(new ShadowResolveStage());
-	RenderStages.Add(new DeferredLightingStage());
-	RenderStages.Add(new SkyAndFogStage());
-	RenderStages.Add(new HDRSceneColorResolveStage());
-	RenderStages.Add(new PostProcessLuminanceStage());
-	RenderStages.Add(new PostProcessBloomStage());
-	RenderStages.Add(new PostProcessHDRToneMappingStage());
-	RenderStages.Add(new BackBufferResolveStage());
-
-	for (RenderStage* renderStage : RenderStages)
-	{
-		renderStage->Init(&renderGraph);
-	}
-
-	renderGraph.CompileGraph();
-
-	renderGraph.ExportGraphToHTML();
-
 	clusterizationSubSystem.PreComputeClustersPlanes();
 }
 
@@ -4666,11 +4631,6 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	CurrentFrameIndex = (CurrentFrameIndex + 1) % 2;
 	CurrentBackBufferIndex = SwapChain->GetCurrentBackBufferIndex();
-
-	for (RenderStage* renderStage : RenderStages)
-	{
-		renderStage->Execute();
-	}
 }
 
 RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMeshCreateInfo)
