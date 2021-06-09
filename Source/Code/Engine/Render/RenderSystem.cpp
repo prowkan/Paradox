@@ -2883,17 +2883,17 @@ void RenderSystem::TickSystem(float DeltaTime)
 	RenderScene& renderScene = gameFramework.GetWorld().GetRenderScene();
 
 	DynamicArray<StaticMeshComponent*> AllStaticMeshComponents = renderScene.GetStaticMeshComponents();
-	DynamicArray<StaticMeshComponent*> VisbleStaticMeshComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ViewProjMatrix, true);
-	size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.GetLength();
+	DynamicArray<StaticMeshComponent*> VisibleStaticMeshComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ViewProjMatrix, true);
+	size_t VisibleStaticMeshComponentsCount = VisibleStaticMeshComponents.GetLength();
 
 	DynamicArray<PointLightComponent*> AllPointLightComponents = renderScene.GetPointLightComponents();
-	DynamicArray<PointLightComponent*> VisblePointLightComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisiblePointLightsInFrustum(AllPointLightComponents, ViewProjMatrix);
+	DynamicArray<PointLightComponent*> VisiblePointLightComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisiblePointLightsInFrustum(AllPointLightComponents, ViewProjMatrix);
 
-	Engine::GetEngine().GetRenderSystem().GetClusterizationSubSystem().ClusterizeLights(VisblePointLightComponents, ViewMatrix);
+	Engine::GetEngine().GetRenderSystem().GetClusterizationSubSystem().ClusterizeLights(VisiblePointLightComponents, ViewMatrix);
 
 	DynamicArray<PointLight> PointLights;
 
-	for (PointLightComponent *pointLightComponent : VisblePointLightComponents)
+	for (PointLightComponent *pointLightComponent : VisiblePointLightComponents)
 	{
 		PointLight pointLight;
 		pointLight.Brightness = pointLightComponent->GetBrightness();
@@ -2959,11 +2959,11 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		SAFE_DX(CPUConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
 
-		for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
+		for (size_t k = 0; k < VisibleStaticMeshComponentsCount; k++)
 		{
 			GBufferOpaquePassConstantBuffer& ConstantBuffer = *((GBufferOpaquePassConstantBuffer*)((BYTE*)ConstantBufferData + ConstantBufferOffset));
 
-			XMMATRIX WorldMatrix = VisbleStaticMeshComponents[k]->GetTransformComponent()->GetTransformMatrix();
+			XMMATRIX WorldMatrix = VisibleStaticMeshComponents[k]->GetTransformComponent()->GetTransformMatrix();
 			XMMATRIX WVPMatrix = WorldMatrix * ViewProjMatrix;
 
 			XMFLOAT3X4 VectorTransformMatrix;
@@ -3055,9 +3055,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 		CommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
 		SamplerGPUHandle.ptr += SamplerHandleSize;
 
-		for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
+		for (size_t k = 0; k < VisibleStaticMeshComponentsCount; k++)
 		{
-			StaticMeshComponent *staticMeshComponent = VisbleStaticMeshComponents[k];
+			StaticMeshComponent *staticMeshComponent = VisibleStaticMeshComponents[k];
 
 			RenderMesh *renderMesh = staticMeshComponent->GetStaticMesh()->GetRenderMesh();
 			RenderMaterial *renderMaterial = staticMeshComponent->GetMaterial()->GetRenderMaterial();
