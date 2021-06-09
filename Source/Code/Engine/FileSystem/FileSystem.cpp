@@ -118,14 +118,14 @@ void FileSystem::InitSystem()
 
 	WIN32_FIND_DATA FindData;
 	
-	HANDLE FindHandle = FindFirstFile((const wchar_t*)u"Shaders/ShaderModel51/*.dxbc", &FindData);
+	HANDLE FindHandle = FindFirstFile((const wchar_t*)u"Shaders/ShaderModel60/*.dxil", &FindData);
 
 	if (FindHandle != INVALID_HANDLE_VALUE)
 	{
 		do
 		{
 			char16_t FileName[255] = { 0 };
-			wcscat((wchar_t*)FileName, (const wchar_t*)u"Shaders/ShaderModel51");
+			wcscat((wchar_t*)FileName, (const wchar_t*)u"Shaders/ShaderModel60");
 			wcscat((wchar_t*)FileName, (const wchar_t*)u"/");
 			wcscat((wchar_t*)FileName, (const wchar_t*)FindData.cFileName);
 

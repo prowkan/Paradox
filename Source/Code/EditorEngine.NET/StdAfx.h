@@ -2,8 +2,8 @@
 
 #include "../Engine/StdAfx.h"
 
-#include <d3dcompiler.h>
+#include "D:/DXCompiler/inc/dxcapi.h"
 
-#pragma comment(lib, "d3dcompiler.lib")
+#pragma comment(lib, "D:/DXCompiler/lib/x64/dxcompiler.lib")
 
 #pragma comment(lib, "Engine.lib")
