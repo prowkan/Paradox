@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Containers/StaticReference.h>
+
 #include <MultiThreading/MultiThreadingSystem.h>
 #include <MemoryManager/MemoryManager.h>
 
@@ -36,17 +38,17 @@ class Engine
 
 	private:
 
-		static Engine engine;
+		static StaticReference<Engine> engine;
 
-		MultiThreadingSystem multiThreadingSystem;
-		MemoryManager memoryManager;
+		StaticReference<MultiThreadingSystem> multiThreadingSystem;
+		StaticReference<MemoryManager> memoryManager;
 
-		ConfigSystem configSystem;
-		FileSystem fileSystem;
-		InputSystem inputSystem;
-		RenderSystem renderSystem;
+		StaticReference<ConfigSystem> configSystem;
+		StaticReference<FileSystem> fileSystem;
+		StaticReference<InputSystem> inputSystem;
+		StaticReference<RenderSystem> renderSystem;
 
-		ResourceManager resourceManager;
+		StaticReference<ResourceManager> resourceManager;
 
-		GameFramework gameFramework;
+		StaticReference<GameFramework> gameFramework;
 };

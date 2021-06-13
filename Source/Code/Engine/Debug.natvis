@@ -26,11 +26,17 @@
               <Exec>NodePtr = NodePtr->Next</Exec>
               <Break Condition="NodePtr == nullptr"/>
             </Loop>
-        </If>
+          </If>
           <Exec>NodeIndex++</Exec>
           <Break Condition="NodeIndex == NodesCount"/>
         </Loop>
       </CustomListItems>
+    </Expand>
+  </Type>
+  <Type Name="StaticReference&lt;*&gt;">
+    <DisplayString>{ *($T1*)DataStorage }</DisplayString>
+    <Expand>
+      <Item Name="[Data]">*($T1*)DataStorage</Item>
     </Expand>
   </Type>
 </AutoVisualizer>

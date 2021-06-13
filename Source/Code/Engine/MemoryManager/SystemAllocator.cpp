@@ -3,14 +3,19 @@
 
 #include "SystemAllocator.h"
 
+HANDLE SystemAllocator::ProcessHeap;
+
+void SystemAllocator::InitAllocator()
+{
+	ProcessHeap = GetProcessHeap();
+}
+
 void* SystemAllocator::AllocateMemory(const size_t Size)
 {
-	static HANDLE ProcessHeap = GetProcessHeap();
 	return HeapAlloc(ProcessHeap, 0, Size);
 }
 
 void SystemAllocator::FreeMemory(void *Pointer)
 {
-	static HANDLE ProcessHeap = GetProcessHeap();
 	BOOL Result = HeapFree(ProcessHeap, 0, Pointer);
 }
