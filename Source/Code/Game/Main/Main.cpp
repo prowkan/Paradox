@@ -1,13 +1,254 @@
 // This is an independent project of an individual developer. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 
-#include "Main.h"
+#include "D:/D3D12SDK/d3d12.h"
+#include "D:/DXCompiler/inc/dxcapi.h"
+
+#include <dxgi1_6.h>
+
+#include <iostream>
+
+using namespace std;
+
+#pragma comment(lib, "D:/DXCompiler/lib/x64/dxcompiler.lib")
+#pragma comment(lib, "d3d12.lib")
+#pragma comment(lib, "dxgi.lib")
 
 extern "C" { _declspec(dllexport) extern const UINT D3D12SDKVersion = 4; }
 extern "C" { _declspec(dllexport) extern const char* D3D12SDKPath = u8".\\"; }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
+	IDxcCompiler3 *Compiler;
+
+	HRESULT hr = DxcCreateInstance(CLSID_DxcCompiler, __uuidof(IDxcCompiler3), (void**)&Compiler);
+
+	const char* VertexShaderGBufferOpaquePass = R"(struct VSInput
+{
+	float3 Position : POSITION;
+	float2 TexCoord : TEXCOORD;
+	float3 Normal : NORMAL;
+	float3 Tangent : TANGENT;
+	float3 Binormal : BINORMAL;
+};
+
+
+struct VSOutput
+{
+	float4 Position : SV_Position;
+	float2 TexCoord : TEXCOORD;
+	float3 Normal : NORMAL;
+	float3 Tangent : TANGENT;
+	float3 Binormal : BINORMAL;
+};
+
+struct VSCameraConstants
+{
+	float4x4 ViewProjMatrix;
+};
+
+struct VSObjectConstants
+{
+	float4x4 WorldMatrix;
+	float3x3 VectorTransformMatrix;
+};
+
+cbuffer DrawData : register(b0, space0)
+{
+	uint4 DataIndices0;
+	uint DataIndices1;
+}
+
+VSOutput VS(VSInput VertexShaderInput)
+{
+	VSOutput VertexShaderOutput;
+
+	ConstantBuffer<VSCameraConstants> VertexShaderCameraConstants = ResourceDescriptorHeap[DataIndices0.x];
+	ConstantBuffer<VSObjectConstants> VertexShaderObjectConstants = ResourceDescriptorHeap[DataIndices0.y];
+
+	float4x4 WVPMatrix = mul(VertexShaderObjectConstants.WorldMatrix, VertexShaderCameraConstants.ViewProjMatrix);
+
+	VertexShaderOutput.Position = mul(float4(VertexShaderInput.Position, 1.0f), WVPMatrix);
+	VertexShaderOutput.TexCoord = VertexShaderInput.TexCoord;
+	VertexShaderOutput.Normal = normalize(mul(VertexShaderInput.Normal, VertexShaderObjectConstants.VectorTransformMatrix));
+	VertexShaderOutput.Tangent = normalize(mul(VertexShaderInput.Tangent, VertexShaderObjectConstants.VectorTransformMatrix));
+	VertexShaderOutput.Binormal = normalize(mul(VertexShaderInput.Binormal, VertexShaderObjectConstants.VectorTransformMatrix));
+
+	return VertexShaderOutput;
+})";
+
+	DxcBuffer ShaderSource;
+	ShaderSource.Encoding = 0;
+	ShaderSource.Ptr = VertexShaderGBufferOpaquePass;
+	ShaderSource.Size = strlen(VertexShaderGBufferOpaquePass);
+
+	const char16_t* CompilerArgs[] =
+	{
+		u"-E VS",
+		u"-T vs_6_6",
+		u"-Zpr"
+	};
+
+	IDxcOperationResult *CompilationResult;
+
+	hr = Compiler->Compile(&ShaderSource, (const wchar_t**)CompilerArgs, 3, NULL, __uuidof(IDxcOperationResult), (void**)&CompilationResult);
+
+	HRESULT CompilationStatus;
+
+	hr = CompilationResult->GetStatus(&CompilationStatus);
+
+	if (FAILED(CompilationStatus))
+	{
+		IDxcBlobEncoding *ErrorBuffer = nullptr;
+		hr = CompilationResult->GetErrorBuffer(&ErrorBuffer);
+		if (ErrorBuffer)
+		{
+			OutputDebugStringA((const char*)ErrorBuffer->GetBufferPointer());
+		}
+		ExitProcess(0);
+	}
+
+	IDxcBlob *VertexShader1Blob;
+
+	hr = CompilationResult->GetResult(&VertexShader1Blob);
+
+	const char* VertexShaderShadowMapPass = R"(struct VSInput
+{
+	float3 Position : POSITION;
+};
+
+struct VSOutput
+{
+	float4 Position : SV_Position;
+};
+
+struct VSCameraConstants
+{
+	float4x4 ViewProjMatrix;
+};
+
+struct VSObjectConstants
+{
+	float4x4 WorldMatrix;
+	float3x3 VectorTransformMatrix;
+};
+
+cbuffer DrawData : register(b0)
+{
+	uint4 DataIndices0;
+	uint DataIndices1;
+}
+
+VSOutput VS(VSInput VertexShaderInput)
+{
+	VSOutput VertexShaderOutput;
+
+	ConstantBuffer<VSCameraConstants> VertexShaderCameraConstants = ResourceDescriptorHeap[DataIndices0.x];
+	ConstantBuffer<VSObjectConstants> VertexShaderObjectConstants = ResourceDescriptorHeap[DataIndices0.y];
+
+	float4x4 WVPMatrix = mul(VertexShaderObjectConstants.WorldMatrix, VertexShaderCameraConstants.ViewProjMatrix);
+
+	VertexShaderOutput.Position = mul(float4(VertexShaderInput.Position, 1.0f), WVPMatrix);
+
+	return VertexShaderOutput;
+})";
+
+	ShaderSource.Encoding = 0;
+	ShaderSource.Ptr = VertexShaderShadowMapPass;
+	ShaderSource.Size = strlen(VertexShaderShadowMapPass);
+
+	CompilerArgs[0] = u"-E VS";
+	CompilerArgs[1] = u"-T vs_6_6";
+	CompilerArgs[2] = u"-Zpr";
+
+	hr = Compiler->Compile(&ShaderSource, (const wchar_t**)CompilerArgs, 3, NULL, __uuidof(IDxcOperationResult), (void**)&CompilationResult);
+
+	hr = CompilationResult->GetStatus(&CompilationStatus);
+
+	if (FAILED(CompilationStatus))
+	{
+		IDxcBlobEncoding *ErrorBuffer = nullptr;
+		hr = CompilationResult->GetErrorBuffer(&ErrorBuffer);
+		if (ErrorBuffer)
+		{
+			OutputDebugStringA((const char*)ErrorBuffer->GetBufferPointer());
+		}
+		ExitProcess(0);
+	}
+
+	IDxcBlob *VertexShader2Blob;
+
+	hr = CompilationResult->GetResult(&VertexShader2Blob);
+
+	const char* PixelShaderGBufferOpaquePass = R"(struct PSInput
+{
+	float4 Position : SV_Position;
+	float2 TexCoord : TEXCOORD;
+	float3 Normal : NORMAL;
+	float3 Tangent : TANGENT;
+	float3 Binormal : BINORMAL;
+};
+
+struct PSOutput
+{
+	float4 GBuffer0 : SV_Target0;
+	float4 GBuffer1 : SV_Target1;
+};
+
+cbuffer DrawData : register(b0, space0)
+{
+	uint4 DataIndices0;
+	uint DataIndices1;
+}
+
+PSOutput PS(PSInput PixelShaderInput)
+{
+	PSOutput PixelShaderOutput;
+
+	Texture2D<float4> DiffuseMap = ResourceDescriptorHeap[DataIndices0.z];
+	Texture2D<float4> NormalMap = ResourceDescriptorHeap[DataIndices0.w];
+
+	SamplerState Sampler = SamplerDescriptorHeap[DataIndices1];
+
+	float3 BaseColor = DiffuseMap.Sample(Sampler, PixelShaderInput.TexCoord).rgb;
+	float3 Normal;
+	Normal.xy = 2.0f * NormalMap.Sample(Sampler, PixelShaderInput.TexCoord).xy - 1.0f;
+	Normal.z = sqrt(max(0.0f, 1.0f - Normal.x * Normal.x - Normal.y * Normal.y));
+	Normal = normalize(Normal.x * normalize(PixelShaderInput.Tangent) + Normal.y * normalize(PixelShaderInput.Binormal) + Normal.z * normalize(PixelShaderInput.Normal));
+
+	PixelShaderOutput.GBuffer0 = float4(BaseColor, 0.0f);
+	PixelShaderOutput.GBuffer1 = float4(Normal * 0.5f + 0.5f, 0.0f);
+
+	return PixelShaderOutput;
+})";
+
+	ShaderSource.Encoding = 0;
+	ShaderSource.Ptr = PixelShaderGBufferOpaquePass;
+	ShaderSource.Size = strlen(PixelShaderGBufferOpaquePass);
+
+	CompilerArgs[0] = u"-E PS";
+	CompilerArgs[1] = u"-T ps_6_6";
+	CompilerArgs[2] = u"-Zpr";
+
+	hr = Compiler->Compile(&ShaderSource, (const wchar_t**)CompilerArgs, 3, NULL, __uuidof(IDxcOperationResult), (void**)&CompilationResult);
+
+	hr = CompilationResult->GetStatus(&CompilationStatus);
+
+	if (FAILED(CompilationStatus))
+	{
+		IDxcBlobEncoding *ErrorBuffer = nullptr;
+		hr = CompilationResult->GetErrorBuffer(&ErrorBuffer);
+		if (ErrorBuffer)
+		{
+			OutputDebugStringA((const char*)ErrorBuffer->GetBufferPointer());
+		}
+		ExitProcess(0);
+	}
+
+	IDxcBlob *PixelShaderBlob;
+
+	hr = CompilationResult->GetResult(&PixelShaderBlob);
+
 	UINT FactoryCreationFlags = 0;
 
 #ifdef _DEBUG
@@ -97,24 +338,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	InputElementDescs[4].SemanticIndex = 0;
 	InputElementDescs[4].SemanticName = "BINORMAL";
 
-	HANDLE VertexShaderFileHandle = CreateFile((const wchar_t*)u"Shaders/ShaderModel66/GBufferOpaquePass_VertexShader.dxil", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-	LARGE_INTEGER VertexShaderFileSize;
-	BOOL Result = GetFileSizeEx(VertexShaderFileHandle, &VertexShaderFileSize);
-
-	size_t VertexShaderSize = (size_t)VertexShaderFileSize.QuadPart;
-	void *VertexShaderData = malloc(VertexShaderFileSize.QuadPart);
-
-	Result = ReadFile(VertexShaderFileHandle, VertexShaderData, (DWORD)VertexShaderFileSize.QuadPart, NULL, NULL);
-
-	HANDLE PixelShaderFileHandle = CreateFile((const wchar_t*)u"Shaders/ShaderModel66/GBufferOpaquePass_PixelShader.dxil", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-	LARGE_INTEGER PixelShaderFileSize;
-	Result = GetFileSizeEx(PixelShaderFileHandle, &PixelShaderFileSize);
-
-	size_t PixelShaderSize = (size_t)PixelShaderFileSize.QuadPart;
-	void *PixelShaderData = malloc(PixelShaderFileSize.QuadPart);
-
-	Result = ReadFile(PixelShaderFileHandle, PixelShaderData, (DWORD)PixelShaderFileSize.QuadPart, NULL, NULL);
-
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC GraphicsPipelineStateDesc;
 	ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
 	GraphicsPipelineStateDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE::D3D12_COLOR_WRITE_ENABLE_ALL;
@@ -129,10 +352,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	GraphicsPipelineStateDesc.NodeMask = 0;
 	GraphicsPipelineStateDesc.NumRenderTargets = 2;
 	GraphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE::D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	//GraphicsPipelineStateDesc.pRootSignature = SceneRenderRootSignature;
-	GraphicsPipelineStateDesc.pRootSignature = nullptr;
-	GraphicsPipelineStateDesc.PS.BytecodeLength = PixelShaderSize;
-	GraphicsPipelineStateDesc.PS.pShaderBytecode = PixelShaderData;
+	GraphicsPipelineStateDesc.pRootSignature = SceneRenderRootSignature;
+	//GraphicsPipelineStateDesc.pRootSignature = nullptr;
+	GraphicsPipelineStateDesc.PS.BytecodeLength = PixelShaderBlob->GetBufferSize();
+	GraphicsPipelineStateDesc.PS.pShaderBytecode = PixelShaderBlob->GetBufferPointer();
 	GraphicsPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_BACK;
 	GraphicsPipelineStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID;
 	GraphicsPipelineStateDesc.RTVFormats[0] = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
@@ -140,8 +363,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	GraphicsPipelineStateDesc.SampleDesc.Count = 8;
 	GraphicsPipelineStateDesc.SampleDesc.Quality = 0;
 	GraphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
-	GraphicsPipelineStateDesc.VS.BytecodeLength = VertexShaderSize;
-	GraphicsPipelineStateDesc.VS.pShaderBytecode = VertexShaderData;
+	GraphicsPipelineStateDesc.VS.BytecodeLength = VertexShader1Blob->GetBufferSize();
+	GraphicsPipelineStateDesc.VS.pShaderBytecode = VertexShader1Blob->GetBufferPointer();
 
 	ID3D12PipelineState *TestPipeline;
 
