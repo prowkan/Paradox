@@ -74,31 +74,31 @@
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
-    <NMakeBuildCommandLine>CompileShaders.bat</NMakeBuildCommandLine>
-    <NMakeReBuildCommandLine>CompileShaders.bat</NMakeReBuildCommandLine>
-    <NMakeCleanCommandLine>CleanShaders.bat</NMakeCleanCommandLine>
+    <NMakeBuildCommandLine>F:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>F:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>F:/Paradox/Build/Editor.exe CompileShaders Clean</NMakeCleanCommandLine>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
-    <NMakeBuildCommandLine>CompileShaders.bat</NMakeBuildCommandLine>
-    <NMakeReBuildCommandLine>CompileShaders.bat</NMakeReBuildCommandLine>
-    <NMakeCleanCommandLine>CleanShaders.bat</NMakeCleanCommandLine>
+    <NMakeBuildCommandLine>F:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>F:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>F:/Paradox/Build/Editor.exe CompileShaders Clean</NMakeCleanCommandLine>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
-    <NMakeBuildCommandLine>CompileShaders.bat</NMakeBuildCommandLine>
-    <NMakeReBuildCommandLine>CompileShaders.bat</NMakeReBuildCommandLine>
-    <NMakeCleanCommandLine>CleanShaders.bat</NMakeCleanCommandLine>
+    <NMakeBuildCommandLine>D:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>D:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>D:/Paradox/Build/Editor.exe CompileShaders Clean</NMakeCleanCommandLine>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <NMakeBuildCommandLine>CompileShaders.bat</NMakeBuildCommandLine>
-    <NMakeReBuildCommandLine>CompileShaders.bat</NMakeReBuildCommandLine>
-    <NMakeCleanCommandLine>CleanShaders.bat</NMakeCleanCommandLine>
+    <NMakeBuildCommandLine>D:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>D:/Paradox/Build/Editor.exe CompileShaders Compile</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>D:/Paradox/Build/Editor.exe CompileShaders Clean</NMakeCleanCommandLine>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
   </PropertyGroup>
@@ -159,16 +159,28 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <None Include="CleanShaders.bat" />
-    <None Include="CompileShaders.bat" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="MaterialBase_PixelShader.hlsl">
-      <FileType>Document</FileType>
-    </None>
-    <None Include="MaterialBase_VertexShader.hlsl">
-      <FileType>Document</FileType>
-    </None>
+    <FxCompile Include="BrightPass.hlsl" />
+    <FxCompile Include="DebugDrawOcclusionBuffer_PixelShader.hlsl" />
+    <FxCompile Include="DebugDrawOcclusionBuffer_VertexShader.hlsl" />
+    <FxCompile Include="DeferredLighting.hlsl" />
+    <FxCompile Include="Fog.hlsl" />
+    <FxCompile Include="FullScreenQuad.hlsl" />
+    <FxCompile Include="HDRToneMapping.hlsl" />
+    <FxCompile Include="HorizontalBlur.hlsl" />
+    <FxCompile Include="ImageResample.hlsl" />
+    <FxCompile Include="LuminanceAvg.hlsl" />
+    <FxCompile Include="LuminanceCalc.hlsl" />
+    <FxCompile Include="LuminanceSum.hlsl" />
+    <FxCompile Include="MaterialBase_PixelShader_GBufferOpaquePass.hlsl" />
+    <FxCompile Include="MaterialBase_VertexShader_GBufferOpaquePass.hlsl" />
+    <FxCompile Include="MaterialBase_VertexShader_ShadowMapPass.hlsl" />
+    <FxCompile Include="ShadowResolve.hlsl" />
+    <FxCompile Include="SkyPixelShader.hlsl" />
+    <FxCompile Include="SkyVertexShader.hlsl" />
+    <FxCompile Include="SunPixelShader.hlsl" />
+    <FxCompile Include="SunVertexShader.hlsl" />
+    <FxCompile Include="VerticalBlur.hlsl" />
+    <FxCompile Include="OcclusionBuffer.hlsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

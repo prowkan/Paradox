@@ -17,8 +17,6 @@
 
 void MemoryManager::InitManager()
 {
-	SystemAllocator::ProcessHeap = GetProcessHeap();
-
 	EntitiesHeap.CreateHeap(20000 * sizeof(StaticMeshEntity) + 10000 * sizeof(PointLightEntity));
 
 	TransformComponentsPool.CreatePool(sizeof(TransformComponent), 30000);
@@ -26,7 +24,7 @@ void MemoryManager::InitManager()
 	StaticMeshComponentsPool.CreatePool(sizeof(StaticMeshComponent), 20000);
 	PointLightComponentsPool.CreatePool(sizeof(PointLightComponent), 10000);
 
-	GlobalStack.CreateStack(10 * 1024 * 1024);
+	GlobalStack.CreateStack(20 * 1024 * 1024);
 }
 
 void MemoryManager::ShutdownManager()

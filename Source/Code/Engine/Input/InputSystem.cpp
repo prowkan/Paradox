@@ -8,14 +8,19 @@
 
 void InputSystem::InitSystem()
 {
-	RECT WindowRect;
-	BOOL Result = GetWindowRect(Application::GetMainWindowHandle(), &WindowRect);
-	POINT WindowCenter;
-	WindowCenter.x = (WindowRect.left + WindowRect.right) / 2;
-	WindowCenter.y = (WindowRect.top + WindowRect.bottom) / 2;
-	Result = SetCursorPos(WindowCenter.x, WindowCenter.y);
-	PreviousCursorPosition.x = WindowCenter.x;
-	PreviousCursorPosition.y = WindowCenter.y;
+#if WITH_EDITOR
+	if (!Application::IsEditor())
+#endif
+	{
+		RECT WindowRect;
+		BOOL Result = GetWindowRect(Application::GetMainWindowHandle(), &WindowRect);
+		POINT WindowCenter;
+		WindowCenter.x = (WindowRect.left + WindowRect.right) / 2;
+		WindowCenter.y = (WindowRect.top + WindowRect.bottom) / 2;
+		Result = SetCursorPos(WindowCenter.x, WindowCenter.y);
+		PreviousCursorPosition.x = WindowCenter.x;
+		PreviousCursorPosition.y = WindowCenter.y;
+	}
 }
 
 void InputSystem::ShutdownSystem()
@@ -44,14 +49,19 @@ void InputSystem::TickSystem(float DeltaTime)
 	CameraRotation.x += MouseSensetivity * (CurrentCursorPosition.y - PreviousCursorPosition.y) * DeltaTime;
 	CameraRotation.y += MouseSensetivity * (CurrentCursorPosition.x - PreviousCursorPosition.x) * DeltaTime;
 
-	RECT WindowRect;
-	Result = GetWindowRect(Application::GetMainWindowHandle(), &WindowRect);
-	POINT WindowCenter;
-	WindowCenter.x = (WindowRect.left + WindowRect.right) / 2;
-	WindowCenter.y = (WindowRect.top + WindowRect.bottom) / 2;
-	Result = SetCursorPos(WindowCenter.x, WindowCenter.y);
-	PreviousCursorPosition.x = WindowCenter.x;
-	PreviousCursorPosition.y = WindowCenter.y;
+#if WITH_EDITOR
+	if (!Application::IsEditor())
+#endif
+	{
+		RECT WindowRect;
+		Result = GetWindowRect(Application::GetMainWindowHandle(), &WindowRect);
+		POINT WindowCenter;
+		WindowCenter.x = (WindowRect.left + WindowRect.right) / 2;
+		WindowCenter.y = (WindowRect.top + WindowRect.bottom) / 2;
+		Result = SetCursorPos(WindowCenter.x, WindowCenter.y);
+		PreviousCursorPosition.x = WindowCenter.x;
+		PreviousCursorPosition.y = WindowCenter.y;
+	}
 
 	XMFLOAT3 CameraOffset = XMFLOAT3(0.0f, 0.0f, 0.0f);
 

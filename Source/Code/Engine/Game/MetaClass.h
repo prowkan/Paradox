@@ -2,6 +2,11 @@
 
 #undef GetClassName
 
+#include <Containers/HashTable.h>
+
+class Entity;
+class Component;
+
 template<typename T>
 void CallObjectConstructor(void* Pointer)
 {
@@ -9,6 +14,18 @@ void CallObjectConstructor(void* Pointer)
 }
 
 using ObjectConstructorType = void(*)(void*);
+
+enum class ClassPropertyType { Float, Vector, Rotator, Color, EntityReference, ComponentReference, ResourceReference };
+
+struct ClassProperty
+{
+	ClassPropertyType PropertyType;
+
+	size_t ValueOffset;
+
+	ClassProperty() {}
+	ClassProperty(ClassPropertyType PropertyType, size_t ValueOffset) : PropertyType(PropertyType), ValueOffset(ValueOffset) {}
+};
 
 class MetaClass
 {
@@ -32,6 +49,10 @@ class MetaClass
 
 			return false;
 		}
+
+		uint32_t InstancesCount = 0;
+
+		HashTable<String, ClassProperty*> ClassProperties;
 
 	private:
 

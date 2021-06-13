@@ -74,25 +74,25 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
-    <IncludePath>$(ProjectDir);$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir);C:\VulkanSDK\1.2.162.1\Include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
-    <IncludePath>$(ProjectDir);$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir);C:\VulkanSDK\1.2.162.1\Include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
-    <IncludePath>$(ProjectDir);$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir);C:\VulkanSDK\1.2.162.1\Include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)..\..\Build\</OutDir>
     <IntDir>$(SolutionDir)..\OBJ\$(ProjectName)\$(Configuration)_$(PlatformShortName)\</IntDir>
-    <IncludePath>$(ProjectDir);$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir);C:\VulkanSDK\1.2.162.1\Include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -102,7 +102,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <ForcedIncludeFiles>StdAfx.h</ForcedIncludeFiles>
-      <AdditionalOptions>/source-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 </AdditionalOptions>
       <PreprocessToFile>false</PreprocessToFile>
       <AssemblerOutput>All</AssemblerOutput>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -112,6 +112,9 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Lib>
+      <LinkTimeCodeGeneration>false</LinkTimeCodeGeneration>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -123,11 +126,12 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <ForcedIncludeFiles>StdAfx.h</ForcedIncludeFiles>
-      <AdditionalOptions>/source-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 </AdditionalOptions>
       <PreprocessToFile>false</PreprocessToFile>
       <AssemblerOutput>All</AssemblerOutput>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -135,6 +139,9 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Lib>
+      <LinkTimeCodeGeneration>false</LinkTimeCodeGeneration>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -144,7 +151,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <ForcedIncludeFiles>StdAfx.h</ForcedIncludeFiles>
-      <AdditionalOptions>/source-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 </AdditionalOptions>
       <PreprocessToFile>false</PreprocessToFile>
       <AssemblerOutput>All</AssemblerOutput>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -154,6 +161,9 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Lib>
+      <LinkTimeCodeGeneration>false</LinkTimeCodeGeneration>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -165,11 +175,12 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <ForcedIncludeFiles>StdAfx.h</ForcedIncludeFiles>
-      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 </AdditionalOptions>
       <PreprocessToFile>false</PreprocessToFile>
       <AssemblerOutput>All</AssemblerOutput>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -177,11 +188,25 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Lib>
+      <LinkTimeCodeGeneration>false</LinkTimeCodeGeneration>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Config\ConfigSystem.h" />
     <ClInclude Include="Containers\COMRCPtr.h" />
+    <ClInclude Include="Containers\DefaultAllocator.h" />
+    <ClInclude Include="Containers\DynamicArray.h" />
+    <ClInclude Include="Containers\FixedSizeString.h" />
+    <ClInclude Include="Containers\Hash.h" />
+    <ClInclude Include="Containers\HashTable.h" />
+    <ClInclude Include="Containers\Queue.h" />
+    <ClInclude Include="Containers\StaticArray.h" />
+    <ClInclude Include="Containers\String.h" />
     <ClInclude Include="Core\Application.h" />
     <ClInclude Include="Engine\Engine.h" />
+    <ClInclude Include="FileSystem\FileSystem.h" />
+    <ClInclude Include="FileSystem\LevelFile.h" />
     <ClInclude Include="Game\Camera.h" />
     <ClInclude Include="Game\Component.h" />
     <ClInclude Include="Game\Components\Common\BoundingBoxComponent.h" />
@@ -207,6 +232,7 @@
     <ClInclude Include="MultiThreading\Tasks\FrustumCullingTask.h" />
     <ClInclude Include="MultiThreading\ThreadSafeQueue.h" />
     <ClInclude Include="MultiThreading\WorkerThread.h" />
+    <ClInclude Include="Render\ClusterizationSubSystem.h" />
     <ClInclude Include="Render\CullingSubSystem.h" />
     <ClInclude Include="Render\RenderScene.h" />
     <ClInclude Include="Render\RenderSystem.h" />
@@ -218,9 +244,19 @@
     <ClInclude Include="StdAfx.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Config\ConfigSystem.cpp" />
     <ClCompile Include="Containers\COMRCPtr.cpp" />
+    <ClCompile Include="Containers\DynamicArray.cpp" />
+    <ClCompile Include="Containers\FixedSizeString.cpp" />
+    <ClCompile Include="Containers\Hash.cpp" />
+    <ClCompile Include="Containers\HashTable.cpp" />
+    <ClCompile Include="Containers\Queue.cpp" />
+    <ClCompile Include="Containers\StaticArray.cpp" />
+    <ClCompile Include="Containers\String.cpp" />
     <ClCompile Include="Core\Application.cpp" />
     <ClCompile Include="Engine\Engine.cpp" />
+    <ClCompile Include="FileSystem\FileSystem.cpp" />
+    <ClCompile Include="FileSystem\LevelFile.cpp" />
     <ClCompile Include="Game\Camera.cpp" />
     <ClCompile Include="Game\Component.cpp" />
     <ClCompile Include="Game\Components\Common\BoundingBoxComponent.cpp" />
@@ -245,6 +281,7 @@
     <ClCompile Include="MultiThreading\Tasks\FrustumCullingTask.cpp" />
     <ClCompile Include="MultiThreading\ThreadSafeQueue.cpp" />
     <ClCompile Include="MultiThreading\WorkerThread.cpp" />
+    <ClCompile Include="Render\ClusterizationSubSystem.cpp" />
     <ClCompile Include="Render\CullingSubSystem.cpp" />
     <ClCompile Include="Render\RenderScene.cpp" />
     <ClCompile Include="Render\RenderSystem.cpp" />
@@ -262,6 +299,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="Debug.natvis" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

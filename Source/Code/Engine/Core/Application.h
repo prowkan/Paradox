@@ -10,8 +10,28 @@ class Application
 
 		static HWND GetMainWindowHandle() { return MainWindowHandle; }
 
+#if WITH_EDITOR
+		static void EditorStartApplication();
+		static void EditorStopApplication();
+		static void EditorRunMainLoop();
+
+		static HWND GetLevelRenderCanvasHandle() { return LevelRenderCanvasHandle; }
+
+		static bool IsEditor() { return Application::EditorFlag; }
+
+		static void SetLevelRenderCanvasHandle(HWND LevelRenderCanvasHandle) { Application::LevelRenderCanvasHandle = LevelRenderCanvasHandle; }
+		static void SetAppExitFlag(bool Value) { Application::AppExitFlag = Value; }
+
+		static UINT EditorViewportWidth;
+		static UINT EditorViewportHeight;
+#endif
+
 	private:
 
+#if WITH_EDITOR
+		static bool EditorFlag;
+		static HWND LevelRenderCanvasHandle;
+#endif
 		static bool AppExitFlag;
 		static HWND MainWindowHandle;
 

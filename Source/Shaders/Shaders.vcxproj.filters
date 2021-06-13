@@ -15,15 +15,27 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="CleanShaders.bat">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="CompileShaders.bat">
-      <Filter>Source Files</Filter>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="MaterialBase_VertexShader.hlsl" />
-    <FxCompile Include="MaterialBase_PixelShader.hlsl" />
+    <FxCompile Include="DeferredLighting.hlsl" />
+    <FxCompile Include="FullScreenQuad.hlsl" />
+    <FxCompile Include="HDRToneMapping.hlsl" />
+    <FxCompile Include="SkyVertexShader.hlsl" />
+    <FxCompile Include="SkyPixelShader.hlsl" />
+    <FxCompile Include="Fog.hlsl" />
+    <FxCompile Include="SunVertexShader.hlsl" />
+    <FxCompile Include="SunPixelShader.hlsl" />
+    <FxCompile Include="MaterialBase_VertexShader_ShadowMapPass.hlsl" />
+    <FxCompile Include="MaterialBase_VertexShader_GBufferOpaquePass.hlsl" />
+    <FxCompile Include="MaterialBase_PixelShader_GBufferOpaquePass.hlsl" />
+    <FxCompile Include="ShadowResolve.hlsl" />
+    <FxCompile Include="LuminanceSum.hlsl" />
+    <FxCompile Include="LuminanceCalc.hlsl" />
+    <FxCompile Include="LuminanceAvg.hlsl" />
+    <FxCompile Include="ImageResample.hlsl" />
+    <FxCompile Include="HorizontalBlur.hlsl" />
+    <FxCompile Include="BrightPass.hlsl" />
+    <FxCompile Include="VerticalBlur.hlsl" />
+    <FxCompile Include="OcclusionBuffer.hlsl" />
+    <FxCompile Include="DebugDrawOcclusionBuffer_PixelShader.hlsl" />
+    <FxCompile Include="DebugDrawOcclusionBuffer_VertexShader.hlsl" />
   </ItemGroup>
 </Project>

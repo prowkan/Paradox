@@ -5,17 +5,23 @@
 
 #include <Engine/Engine.h>
 
-void MaterialResource::CreateResource(const void* ResourceData)
+void MaterialResource::CreateResource(const String& ResourceName, const void* ResourceData)
 {
+	Resource::CreateResource(ResourceName, ResourceData);
+
 	MaterialResourceCreateInfo& materialResourceCreateInfo = *(MaterialResourceCreateInfo*)ResourceData;
 
 	Textures = materialResourceCreateInfo.Textures;
 
 	RenderMaterialCreateInfo renderMaterialCreateInfo;
-	renderMaterialCreateInfo.PixelShaderByteCodeData = materialResourceCreateInfo.PixelShaderByteCodeData;
-	renderMaterialCreateInfo.PixelShaderByteCodeLength = materialResourceCreateInfo.PixelShaderByteCodeLength;
-	renderMaterialCreateInfo.VertexShaderByteCodeData = materialResourceCreateInfo.VertexShaderByteCodeData;
-	renderMaterialCreateInfo.VertexShaderByteCodeLength = materialResourceCreateInfo.VertexShaderByteCodeLength;
+	renderMaterialCreateInfo.GBufferOpaquePassPixelShaderByteCodeData = materialResourceCreateInfo.GBufferOpaquePassPixelShaderByteCodeData;
+	renderMaterialCreateInfo.GBufferOpaquePassPixelShaderByteCodeLength = materialResourceCreateInfo.GBufferOpaquePassPixelShaderByteCodeLength;
+	renderMaterialCreateInfo.GBufferOpaquePassVertexShaderByteCodeData = materialResourceCreateInfo.GBufferOpaquePassVertexShaderByteCodeData;
+	renderMaterialCreateInfo.GBufferOpaquePassVertexShaderByteCodeLength = materialResourceCreateInfo.GBufferOpaquePassVertexShaderByteCodeLength;
+	renderMaterialCreateInfo.ShadowMapPassPixelShaderByteCodeData = materialResourceCreateInfo.ShadowMapPassPixelShaderByteCodeData;
+	renderMaterialCreateInfo.ShadowMapPassPixelShaderByteCodeLength = materialResourceCreateInfo.ShadowMapPassPixelShaderByteCodeLength;
+	renderMaterialCreateInfo.ShadowMapPassVertexShaderByteCodeData = materialResourceCreateInfo.ShadowMapPassVertexShaderByteCodeData;
+	renderMaterialCreateInfo.ShadowMapPassVertexShaderByteCodeLength = materialResourceCreateInfo.ShadowMapPassVertexShaderByteCodeLength;
 
 	renderMaterial = Engine::GetEngine().GetRenderSystem().CreateRenderMaterial(renderMaterialCreateInfo);
 }
