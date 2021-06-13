@@ -100,7 +100,7 @@ namespace Editor
         public static extern IntPtr GetResourceName(IntPtr Resource);
 
         [DllImport("EditorEngine.NET.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern void CompileShaders(string Action);
+        public static extern void CompileShaders(string Action, bool CompileMaterialShaders);
 
         [DllImport("EditorEngine.NET.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern void SetComponentFloatProperty(IntPtr component, string PropertyName, float PropertyValue);

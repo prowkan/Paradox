@@ -40,4 +40,9 @@
     <FxCompile Include="DebugDrawBoundingBox_VertexShader.hlsl" />
     <FxCompile Include="DebugDrawBoundingBox_PixelShader.hlsl" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="CompileMaterialShaders.bat">
+      <Filter>Source Files</Filter>
+    </None>
+  </ItemGroup>
 </Project>

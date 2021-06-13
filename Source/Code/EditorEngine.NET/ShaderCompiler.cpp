@@ -1,7 +1,7 @@
 #include "../Engine/Containers/COMRCPtr.h"
 #include "../Engine/Containers/DynamicArray.h"
 
-extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
+extern "C" __declspec(dllexport) void CompileShaders(const char* Action, bool CompileMaterialShaders)
 {
 	if (strcmp(Action, "Compile") == 0)
 	{
@@ -221,7 +221,9 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 			CloseHandle(ShaderFile);
 		}*/
 
-		/*HANDLE ShaderFile = CreateFile((const wchar_t*)L"MaterialBase_VertexShader_GBufferOpaquePass.hlsl", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+		if (!CompileMaterialShaders) return;
+
+		HANDLE ShaderFile = CreateFile((const wchar_t*)L"MaterialBase_VertexShader_GBufferOpaquePass.hlsl", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
 		LARGE_INTEGER ShaderFileSize;
 		BOOL Result = GetFileSizeEx(ShaderFile, &ShaderFileSize);
 		void *ShaderData = HeapAlloc(GetProcessHeap(), 0, ShaderFileSize.QuadPart);
@@ -361,7 +363,7 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 			CloseHandle(ShaderFile);
 
 			cout << (i + 1) << "/4000" << endl;
-		}*/
+		}
 	}
 	else if (strcmp(Action, "Clean") == 0)
 	{

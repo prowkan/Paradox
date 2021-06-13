@@ -21,6 +21,7 @@ namespace Editor
         private void Application_Startup(object sender, StartupEventArgs e)
         {
             bool CompileShaders = false;
+            bool CompileMaterialShaders = false;
             CompileShadersAction Action = 0;
 
             for (int i = 0; i < e.Args.Length; i++)
@@ -28,6 +29,7 @@ namespace Editor
                 if (e.Args[i] == "CompileShaders") CompileShaders = true;
                 if (CompileShaders && e.Args[i] == "Compile") Action = CompileShadersAction.Compile;
                 if (CompileShaders && e.Args[i] == "Clean") Action = CompileShadersAction.Clean;
+                if (CompileShaders && e.Args[i] == "CompileMaterials") CompileMaterialShaders = true;
             }
 
             if (CompileShaders)
@@ -37,7 +39,7 @@ namespace Editor
                 if (Action == CompileShadersAction.Compile) ActionString = "Compile";
                 if (Action == CompileShadersAction.Clean) ActionString = "Clean";
 
-                EditorEngine.CompileShaders(ActionString);
+                EditorEngine.CompileShaders(ActionString, CompileMaterialShaders);
                 Current.Shutdown(0);
                 return;
             }
