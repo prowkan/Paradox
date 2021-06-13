@@ -103,11 +103,15 @@ void RenderSystem::InitSystem()
 	CommandQueueDesc.Type = D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT;
 
 	SAFE_DX(Device->CreateCommandQueue(&CommandQueueDesc, UUIDOF(CommandQueue)));
+	SAFE_DX(CommandQueue->SetName((const wchar_t*)u"Graphics Command Queue"));
 
 	SAFE_DX(Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT, UUIDOF(CommandAllocators[0])));
 	SAFE_DX(Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT, UUIDOF(CommandAllocators[1])));
+	SAFE_DX(CommandAllocators[0]->SetName((const wchar_t*)u"Graphics Command Allocator 0"));
+	SAFE_DX(CommandAllocators[1]->SetName((const wchar_t*)u"Graphics Command Allocator 1"));
 
 	SAFE_DX(Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT, CommandAllocators[0], nullptr, UUIDOF(CommandList)));
+	SAFE_DX(CommandList->SetName((const wchar_t*)u"Graphics Command List"));
 	SAFE_DX(CommandList->Close());
 
 	DXGI_SWAP_CHAIN_DESC1 SwapChainDesc;
@@ -144,10 +148,13 @@ void RenderSystem::InitSystem()
 
 	SAFE_DX(Device->CreateFence(1, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE, UUIDOF(FrameSyncFences[0])));
 	SAFE_DX(Device->CreateFence(1, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE, UUIDOF(FrameSyncFences[1])));
+	SAFE_DX(FrameSyncFences[0]->SetName((const wchar_t*)u"Frame Sync Fence 0"));
+	SAFE_DX(FrameSyncFences[1]->SetName((const wchar_t*)u"Frame Sync Fence 1"));
 
 	FrameSyncEvent = CreateEvent(NULL, FALSE, FALSE, (const wchar_t*)u"FrameSyncEvent");
 
 	SAFE_DX(Device->CreateFence(0, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE, UUIDOF(CopySyncFence)));
+	SAFE_DX(CopySyncFence->SetName((const wchar_t*)u"Copy Sync Fence"));
 
 	CopySyncEvent = CreateEvent(NULL, FALSE, FALSE, (const wchar_t*)u"CopySyncEvent");
 
@@ -159,6 +166,7 @@ void RenderSystem::InitSystem()
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 
 	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(RTDescriptorHeap)));
+	SAFE_DX(RTDescriptorHeap->SetName((const wchar_t*)u"Render Targets Descriptor Heap"));
 
 	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
@@ -167,6 +175,7 @@ void RenderSystem::InitSystem()
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 
 	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(DSDescriptorHeap)));
+	SAFE_DX(DSDescriptorHeap->SetName((const wchar_t*)u"Depth-Stencils Descriptor Heap"));
 
 	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
@@ -175,6 +184,7 @@ void RenderSystem::InitSystem()
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 
 	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(CBSRUADescriptorHeap)));
+	SAFE_DX(CBSRUADescriptorHeap->SetName((const wchar_t*)u"Constant Buffer/Shader Resource/Unordered Access Views Descriptor Heap"));
 
 	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
@@ -183,6 +193,7 @@ void RenderSystem::InitSystem()
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 
 	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(SamplersDescriptorHeap)));
+	SAFE_DX(SamplersDescriptorHeap->SetName((const wchar_t*)u"Samplers Descriptor Heap"));
 
 	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
@@ -191,6 +202,7 @@ void RenderSystem::InitSystem()
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 
 	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(ConstantBufferDescriptorHeap)));
+	SAFE_DX(ConstantBufferDescriptorHeap->SetName((const wchar_t*)u"Constant Buffers Descriptor Heap"));
 
 	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
@@ -199,6 +211,7 @@ void RenderSystem::InitSystem()
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 
 	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(TexturesDescriptorHeap)));
+	SAFE_DX(TexturesDescriptorHeap->SetName((const wchar_t*)u"Textures Descriptor Heap"));
 
 	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
@@ -208,6 +221,8 @@ void RenderSystem::InitSystem()
 
 	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(FrameResourcesDescriptorHeaps[0])));
 	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(FrameResourcesDescriptorHeaps[1])));
+	SAFE_DX(FrameResourcesDescriptorHeaps[0]->SetName((const wchar_t*)u"Frame Resources Descriptor Heap 0"));
+	SAFE_DX(FrameResourcesDescriptorHeaps[1]->SetName((const wchar_t*)u"Frame Resources Descriptor Heap 1"));
 
 	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
@@ -217,6 +232,8 @@ void RenderSystem::InitSystem()
 
 	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(FrameSamplersDescriptorHeaps[0])));
 	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(FrameSamplersDescriptorHeaps[1])));
+	SAFE_DX(FrameSamplersDescriptorHeaps[0]->SetName((const wchar_t*)u"Frame Samplers Descriptor Heap 0"));
+	SAFE_DX(FrameSamplersDescriptorHeaps[1]->SetName((const wchar_t*)u"Frame Samplers Descriptor Heap 1"));
 
 	D3D12_DESCRIPTOR_RANGE DescriptorRanges[4];
 	DescriptorRanges[0].BaseShaderRegister = 0;
@@ -278,6 +295,7 @@ void RenderSystem::InitSystem()
 	SAFE_DX(D3D12SerializeRootSignature(&RootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION::D3D_ROOT_SIGNATURE_VERSION_1_0, &RootSignatureBlob, nullptr));
 
 	SAFE_DX(Device->CreateRootSignature(0, RootSignatureBlob->GetBufferPointer(), RootSignatureBlob->GetBufferSize(), UUIDOF(GraphicsRootSignature)));
+	SAFE_DX(GraphicsRootSignature->SetName((const wchar_t*)u"Graphics Root Signature"));
 
 	RootParameters[0].DescriptorTable.NumDescriptorRanges = 1;
 	RootParameters[0].DescriptorTable.pDescriptorRanges = &DescriptorRanges[0];
@@ -305,10 +323,13 @@ void RenderSystem::InitSystem()
 	SAFE_DX(D3D12SerializeRootSignature(&RootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION::D3D_ROOT_SIGNATURE_VERSION_1_0, &RootSignatureBlob, nullptr));
 
 	SAFE_DX(Device->CreateRootSignature(0, RootSignatureBlob->GetBufferPointer(), RootSignatureBlob->GetBufferSize(), UUIDOF(ComputeRootSignature)));
+	SAFE_DX(ComputeRootSignature->SetName((const wchar_t*)u"Compute Root Signature"));
 
 	{
 		SAFE_DX(SwapChain->GetBuffer(0, UUIDOF(BackBufferTextures[0])));
 		SAFE_DX(SwapChain->GetBuffer(1, UUIDOF(BackBufferTextures[1])));
+		SAFE_DX(BackBufferTextures[0]->SetName((const wchar_t*)u"Back Buffer Texture 0"));
+		SAFE_DX(BackBufferTextures[1]->SetName((const wchar_t*)u"Back Buffer Texture 1"));
 
 		D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
 		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
@@ -450,6 +471,7 @@ void RenderSystem::InitSystem()
 		ResourceDesc.Width = UPLOAD_HEAP_SIZE;
 
 		SAFE_DX(Device->CreatePlacedResource(UploadHeap, 0, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(UploadBuffer)));
+		SAFE_DX(UploadBuffer->SetName((const wchar_t*)u"Upload Buffer"));
 	}
 
 	// ===============================================================================================================
@@ -544,6 +566,7 @@ void RenderSystem::InitSystem()
 		HeapDesc.SizeInBytes = GPUConstantBufferOffset + ResourceAllocationInfo.SizeInBytes;
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory1)));
+		SAFE_DX(GPUMemory1->SetName((const wchar_t*)u"G-Buffer Opaque Pass Data GPU Heap"));
 
 		D3D12_CLEAR_VALUE ClearValue;
 		ClearValue.Color[0] = 0.0f;
@@ -554,18 +577,22 @@ void RenderSystem::InitSystem()
 		ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory1, GBufferTexture0Offset, &GBufferTexture0ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(GBufferTextures[0])));
+		SAFE_DX(GBufferTextures[0]->SetName((const wchar_t*)u"G-Buffer Texture 0"));
 
 		ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_R10G10B10A2_UNORM;
 
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory1, GBufferTexture1Offset, &GBufferTexture1ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(GBufferTextures[1])));
+		SAFE_DX(GBufferTextures[1]->SetName((const wchar_t*)u"G-Buffer Texture 1"));
 
 		ClearValue.DepthStencil.Depth = 0.0f;
 		ClearValue.DepthStencil.Stencil = 0;
 		ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory1, DepthBufferTextureOffset, &DepthBufferTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE, &ClearValue, UUIDOF(DepthBufferTexture)));
+		SAFE_DX(DepthBufferTexture->SetName((const wchar_t*)u"Depth Buffer Texture"));
 
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory1, GPUConstantBufferOffset, &GBufferOpaquePassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUConstantBuffer)));
+		SAFE_DX(GPUConstantBuffer->SetName((const wchar_t*)u"GPU Constant Buffer"));
 
 		HeapDesc.Alignment = 0;
 		HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE;
@@ -587,9 +614,12 @@ void RenderSystem::InitSystem()
 		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &GBufferOpaquePassConstantBufferResourceDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory1)));
+		SAFE_DX(CPUMemory1->SetName((const wchar_t*)u"G-Buffer Opaque Pass Data CPU Heap"));
 
 		SAFE_DX(Device->CreatePlacedResource(CPUMemory1, CPUConstantBuffer0Offset, &GBufferOpaquePassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUConstantBuffers[0])));
 		SAFE_DX(Device->CreatePlacedResource(CPUMemory1, CPUConstantBuffer1Offset, &GBufferOpaquePassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUConstantBuffers[1])));
+		SAFE_DX(CPUConstantBuffers[0]->SetName((const wchar_t*)u"CPU Constant Buffers 0"));
+		SAFE_DX(CPUConstantBuffers[1]->SetName((const wchar_t*)u"CPU Constant Buffers 1"));
 
 		D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
 		RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2DMS;
@@ -687,6 +717,7 @@ void RenderSystem::InitSystem()
 		HeapDesc.SizeInBytes = ResolvedDepthBufferTextureOffset + ResourceAllocationInfo.SizeInBytes;
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory2)));
+		SAFE_DX(GPUMemory2->SetName((const wchar_t*)u"Depth Resolve Pass Data GPU Heap"));
 
 		D3D12_CLEAR_VALUE ClearValue;
 		ClearValue.DepthStencil.Depth = 1.0f;
@@ -694,6 +725,7 @@ void RenderSystem::InitSystem()
 		ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory2, ResolvedDepthBufferTextureOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(ResolvedDepthBufferTexture)));
+		SAFE_DX(ResolvedDepthBufferTexture->SetName((const wchar_t*)u"Resolved Depth Buffer Texture"));
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
 		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
@@ -745,6 +777,7 @@ void RenderSystem::InitSystem()
 		HeapDesc.SizeInBytes = OcclusionBufferTextureOffset + ResourceAllocationInfo.SizeInBytes;
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory3)));
+		SAFE_DX(GPUMemory3->SetName((const wchar_t*)u"Occlusion Buffer Pass Data GPU Heap"));
 
 		D3D12_CLEAR_VALUE ClearValue;
 		ClearValue.Color[0] = 0.0f;
@@ -754,6 +787,7 @@ void RenderSystem::InitSystem()
 		ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
 
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory3, OcclusionBufferTextureOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_SOURCE, &ClearValue, UUIDOF(OcclusionBufferTexture)));
+		SAFE_DX(OcclusionBufferTexture->SetName((const wchar_t*)u"Occlusion Buffer Texture"));
 
 		D3D12_PLACED_SUBRESOURCE_FOOTPRINT PlacedSubResourceFootPrint;
 
@@ -794,9 +828,12 @@ void RenderSystem::InitSystem()
 		HeapDesc.SizeInBytes = OcclusionBufferReadbackBuffer1Offset + ResourceAllocationInfo.SizeInBytes;
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory3)));
+		SAFE_DX(CPUMemory3->SetName((const wchar_t*)u"Occlsuon Buffer Pass Data CPU Heap"));
 
 		SAFE_DX(Device->CreatePlacedResource(CPUMemory3, OcclusionBufferReadbackBuffer0Offset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(OcclusionBufferTextureReadback[0])));
 		SAFE_DX(Device->CreatePlacedResource(CPUMemory3, OcclusionBufferReadbackBuffer1Offset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(OcclusionBufferTextureReadback[1])));
+		SAFE_DX(OcclusionBufferTextureReadback[0]->SetName((const wchar_t*)u"Occlusion Buffer Texture Readback 0"));
+		SAFE_DX(OcclusionBufferTextureReadback[1]->SetName((const wchar_t*)u"Occlusion Buffer Texture Readback 1"));
 
 		D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
 		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
@@ -834,6 +871,7 @@ void RenderSystem::InitSystem()
 		GraphicsPipelineStateDesc.VS.pShaderBytecode = FullScreenQuadVertexShaderByteCodeData;
 
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(OcclusionBufferPipelineState)));
+		SAFE_DX(OcclusionBufferPipelineState->SetName((const wchar_t*)u"Occlusion Buffer Pipeline State"));
 	}
 
 	// ===============================================================================================================
@@ -920,6 +958,7 @@ void RenderSystem::InitSystem()
 		HeapDesc.SizeInBytes = ConstantBuffer3Offset + ResourceAllocationInfo.SizeInBytes;
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory4)));
+		SAFE_DX(GPUMemory4->SetName((const wchar_t*)u"Shadow Map Pass Data GPU Heap"));
 
 		D3D12_CLEAR_VALUE ClearValue;
 		ClearValue.DepthStencil.Depth = 1.0f;
@@ -930,11 +969,19 @@ void RenderSystem::InitSystem()
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory4, CascadedShadowMapTexture1Offset, &ShadowMapTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(CascadedShadowMapTextures[1])));
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory4, CascadedShadowMapTexture2Offset, &ShadowMapTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(CascadedShadowMapTextures[2])));
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory4, CascadedShadowMapTexture3Offset, &ShadowMapTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(CascadedShadowMapTextures[3])));
+		SAFE_DX(CascadedShadowMapTextures[0]->SetName((const wchar_t*)u"Cascaded Shadow Map Textures [0]"));
+		SAFE_DX(CascadedShadowMapTextures[1]->SetName((const wchar_t*)u"Cascaded Shadow Map Textures [1]"));
+		SAFE_DX(CascadedShadowMapTextures[2]->SetName((const wchar_t*)u"Cascaded Shadow Map Textures [2]"));
+		SAFE_DX(CascadedShadowMapTextures[3]->SetName((const wchar_t*)u"Cascaded Shadow Map Textures [3]"));
 
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory4, ConstantBuffer0Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUConstantBuffers2[0])));
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory4, ConstantBuffer1Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUConstantBuffers2[1])));
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory4, ConstantBuffer2Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUConstantBuffers2[2])));
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory4, ConstantBuffer3Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUConstantBuffers2[3])));
+		SAFE_DX(GPUConstantBuffers2[0]->SetName((const wchar_t*)u"GPU Constant Buffer 2 [0]"));
+		SAFE_DX(GPUConstantBuffers2[1]->SetName((const wchar_t*)u"GPU Constant Buffer 2 [1]"));
+		SAFE_DX(GPUConstantBuffers2[2]->SetName((const wchar_t*)u"GPU Constant Buffer 2 [2]"));
+		SAFE_DX(GPUConstantBuffers2[3]->SetName((const wchar_t*)u"GPU Constant Buffer 2 [3]"));
 
 		HeapDesc.Alignment = D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT;
 		HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE;
@@ -986,6 +1033,7 @@ void RenderSystem::InitSystem()
 		HeapDesc.SizeInBytes = ConstantBuffer31Offset + ResourceAllocationInfo.SizeInBytes;
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory4)));
+		SAFE_DX(CPUMemory4->SetName((const wchar_t*)u"Shadow Map Pass Data CPU Heap"));
 
 		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, ConstantBuffer00Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUConstantBuffers2[0][0])));
 		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, ConstantBuffer10Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUConstantBuffers2[1][0])));
@@ -995,6 +1043,14 @@ void RenderSystem::InitSystem()
 		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, ConstantBuffer11Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUConstantBuffers2[1][1])));
 		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, ConstantBuffer21Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUConstantBuffers2[2][1])));
 		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, ConstantBuffer31Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUConstantBuffers2[3][1])));
+		SAFE_DX(CPUConstantBuffers2[0][0]->SetName((const wchar_t*)u"CPU Constant Buffer 2 [0] 0"));
+		SAFE_DX(CPUConstantBuffers2[1][0]->SetName((const wchar_t*)u"CPU Constant Buffer 2 [1] 0"));
+		SAFE_DX(CPUConstantBuffers2[2][0]->SetName((const wchar_t*)u"CPU Constant Buffer 2 [2] 0"));
+		SAFE_DX(CPUConstantBuffers2[3][0]->SetName((const wchar_t*)u"CPU Constant Buffer 2 [3] 0"));
+		SAFE_DX(CPUConstantBuffers2[0][1]->SetName((const wchar_t*)u"CPU Constant Buffer 2 [0] 1"));
+		SAFE_DX(CPUConstantBuffers2[1][1]->SetName((const wchar_t*)u"CPU Constant Buffer 2 [1] 1"));
+		SAFE_DX(CPUConstantBuffers2[2][1]->SetName((const wchar_t*)u"CPU Constant Buffer 2 [2] 1"));
+		SAFE_DX(CPUConstantBuffers2[3][1]->SetName((const wchar_t*)u"CPU Constant Buffer 2 [3] 1"));
 
 		D3D12_DEPTH_STENCIL_VIEW_DESC DSVDesc;
 		DSVDesc.Flags = D3D12_DSV_FLAGS::D3D12_DSV_FLAG_NONE;
@@ -1116,10 +1172,13 @@ void RenderSystem::InitSystem()
 		HeapDesc.SizeInBytes = GPUConstantBufferOffset + ResourceAllocationInfo.SizeInBytes;
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory5)));
+		SAFE_DX(GPUMemory5->SetName((const wchar_t*)u"Shadow Resolve Pass Data GPU Heap"));
 
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory5, ShadowMaskTextureOffset, &ShadowMaskTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(ShadowMaskTexture)));
+		SAFE_DX(ShadowMaskTexture->SetName((const wchar_t*)u"Shadow Mask Texture"));
 
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory5, GPUConstantBufferOffset, &ShadowResolveConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUShadowResolveConstantBuffer)));
+		SAFE_DX(GPUShadowResolveConstantBuffer->SetName((const wchar_t*)u"GPU Shadow Resolve Constant Buffer"));
 
 		HeapDesc.Alignment = D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT;
 		HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE;
@@ -1141,9 +1200,12 @@ void RenderSystem::InitSystem()
 		HeapDesc.SizeInBytes = CPUConstantBuffer1Offset + ResourceAllocationInfo.SizeInBytes;
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory5)));
+		SAFE_DX(CPUMemory5->SetName((const wchar_t*)u"Shadow Resolve Pass Data CPU Heap"));
 
 		SAFE_DX(Device->CreatePlacedResource(CPUMemory5, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ShadowResolveConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUShadowResolveConstantBuffers[0])));
 		SAFE_DX(Device->CreatePlacedResource(CPUMemory5, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ShadowResolveConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUShadowResolveConstantBuffers[1])));
+		SAFE_DX(CPUShadowResolveConstantBuffers[0]->SetName((const wchar_t*)u"CPU Shadow Resolve Constant Buffer 0"));
+		SAFE_DX(CPUShadowResolveConstantBuffers[1]->SetName((const wchar_t*)u"CPU Shadow Resolve Constant Buffer 1"));
 
 		D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
 		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8_UNORM;
@@ -1204,6 +1266,7 @@ void RenderSystem::InitSystem()
 		GraphicsPipelineStateDesc.VS.pShaderBytecode = FullScreenQuadVertexShaderByteCodeData;
 
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(ShadowResolvePipelineState)));
+		SAFE_DX(ShadowResolvePipelineState->SetName((const wchar_t*)u"Shadow Resolve Pipeline State"));
 	}
 
 	// ===============================================================================================================
@@ -1317,6 +1380,7 @@ void RenderSystem::InitSystem()
 		HeapDesc.SizeInBytes = GPUPointLightsBufferOffset + ResourceAllocationInfo.SizeInBytes;
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory6)));
+		SAFE_DX(GPUMemory6->SetName((const wchar_t*)u"Deferred Lighting Pass Data GPU Heap"));
 
 		D3D12_CLEAR_VALUE ClearValue;
 		ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
@@ -1326,12 +1390,17 @@ void RenderSystem::InitSystem()
 		ClearValue.Color[3] = 0.0f;
 
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory6, HDRSceneColorTextureOffset, &HDRSceneColorTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(HDRSceneColorTexture)));
+		SAFE_DX(HDRSceneColorTexture->SetName((const wchar_t*)u"HDR Scene Color Texture"));
 
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory6, GPUConstantBufferOffset, &DeferredLightingConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUDeferredLightingConstantBuffer)));
+		SAFE_DX(GPUDeferredLightingConstantBuffer->SetName((const wchar_t*)u"GPU Deferred Lighting Constant Buffer"));
 
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory6, GPULightClustersBufferOffset, &LightClustersBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(GPULightClustersBuffer)));
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory6, GPULightIndicesBufferOffset, &LightIndicesBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(GPULightIndicesBuffer)));
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory6, GPUPointLightsBufferOffset, &PointLightsBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(GPUPointLightsBuffer)));
+		SAFE_DX(GPULightClustersBuffer->SetName((const wchar_t*)u"GPU Light Clusters Buffer"));
+		SAFE_DX(GPULightIndicesBuffer->SetName((const wchar_t*)u"GPU Light Clusters Buffer"));
+		SAFE_DX(GPUPointLightsBuffer->SetName((const wchar_t*)u"GPU Point Lights Buffer"));
 
 		HeapDesc.Alignment = D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT;
 		HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE;
@@ -1383,18 +1452,27 @@ void RenderSystem::InitSystem()
 		HeapDesc.SizeInBytes = CPUPointLightsBufferOffset1 + ResourceAllocationInfo.SizeInBytes;
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory6)));
+		SAFE_DX(CPUMemory6->SetName((const wchar_t*)u"Deferred Lighting Pass Data GPU Heap"));
 
 		SAFE_DX(Device->CreatePlacedResource(CPUMemory6, CPUConstantBuffer0Offset, &DeferredLightingConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUDeferredLightingConstantBuffers[0])));
 		SAFE_DX(Device->CreatePlacedResource(CPUMemory6, CPUConstantBuffer1Offset, &DeferredLightingConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUDeferredLightingConstantBuffers[1])));
+		SAFE_DX(CPUDeferredLightingConstantBuffers[0]->SetName((const wchar_t*)u"CPU Deferred Lighting Constant Buffer 0"));
+		SAFE_DX(CPUDeferredLightingConstantBuffers[1]->SetName((const wchar_t*)u"CPU Deferred Lighting Constant Buffer 1"));
 
 		SAFE_DX(Device->CreatePlacedResource(CPUMemory6, CPULightClustersBufferOffset0, &LightClustersBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPULightClustersBuffers[0])));
 		SAFE_DX(Device->CreatePlacedResource(CPUMemory6, CPULightClustersBufferOffset1, &LightClustersBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPULightClustersBuffers[1])));
+		SAFE_DX(CPULightClustersBuffers[0]->SetName((const wchar_t*)u"CPU Light Clusters Buffer 0"));
+		SAFE_DX(CPULightClustersBuffers[1]->SetName((const wchar_t*)u"CPU Light Clusters Buffer 1"));
 
 		SAFE_DX(Device->CreatePlacedResource(CPUMemory6, CPULightIndicesBufferOffset0, &LightIndicesBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPULightIndicesBuffers[0])));
 		SAFE_DX(Device->CreatePlacedResource(CPUMemory6, CPULightIndicesBufferOffset1, &LightIndicesBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPULightIndicesBuffers[1])));
+		SAFE_DX(CPULightIndicesBuffers[0]->SetName((const wchar_t*)u"CPU Light Indices Buffer 0"));
+		SAFE_DX(CPULightIndicesBuffers[1]->SetName((const wchar_t*)u"CPU Light Indices Buffer 1"));
 
 		SAFE_DX(Device->CreatePlacedResource(CPUMemory6, CPUPointLightsBufferOffset0, &PointLightsBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUPointLightsBuffers[0])));
 		SAFE_DX(Device->CreatePlacedResource(CPUMemory6, CPUPointLightsBufferOffset1, &PointLightsBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUPointLightsBuffers[1])));
+		SAFE_DX(CPUPointLightsBuffers[0]->SetName((const wchar_t*)u"CPU Point Lights Buffer 0"));
+		SAFE_DX(CPUPointLightsBuffers[1]->SetName((const wchar_t*)u"CPU Point Lights Buffer 1"));
 
 		D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
 		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
@@ -1488,6 +1566,7 @@ void RenderSystem::InitSystem()
 		GraphicsPipelineStateDesc.VS.pShaderBytecode = FullScreenQuadVertexShaderByteCodeData;
 
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(DeferredLightingPipelineState)));
+		SAFE_DX(DeferredLightingPipelineState->SetName((const wchar_t*)u"Deferred Lighting Pipeline State"));
 	}
 
 	// ===============================================================================================================
@@ -1727,6 +1806,7 @@ void RenderSystem::InitSystem()
 		HeapDesc.SizeInBytes = GPUSunConstantBufferOffset + ResourceAllocationInfo.SizeInBytes;
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory7)));
+		SAFE_DX(GPUMemory7->SetName((const wchar_t*)u"Sky and Fog Pass Data GPU Heap"));
 
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory7, SkyVertexBufferOffset, &SkyVertexBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(SkyVertexBuffer)));
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory7, SkyIndexBufferOffset, &SkyIndexBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(SkyIndexBuffer)));
@@ -1736,6 +1816,14 @@ void RenderSystem::InitSystem()
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory7, SunIndexBufferOffset, &SunIndexBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(SunIndexBuffer)));
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory7, GPUSunConstantBufferOffset, &SunConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUSunConstantBuffer)));
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory7, SunTextureOffset, &SunTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(SunTexture)));
+		SAFE_DX(SkyVertexBuffer->SetName((const wchar_t*)u"Sky Vertex Buffer"));
+		SAFE_DX(SkyIndexBuffer->SetName((const wchar_t*)u"Sky Index Buffer"));
+		SAFE_DX(GPUSkyConstantBuffer->SetName((const wchar_t*)u"GPU Sky Constant Buffer"));
+		SAFE_DX(SkyTexture->SetName((const wchar_t*)u"Sky Texture"));
+		SAFE_DX(SunVertexBuffer->SetName((const wchar_t*)u"Sun Vertex Buffer"));
+		SAFE_DX(SunIndexBuffer->SetName((const wchar_t*)u"Sun Index Buffer"));
+		SAFE_DX(GPUSunConstantBuffer->SetName((const wchar_t*)u"GPU Sun Constant Buffer"));
+		SAFE_DX(SunTexture->SetName((const wchar_t*)u"Sun Texture"));
 
 		HeapDesc.Alignment = D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT;
 		HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE;
@@ -1767,11 +1855,16 @@ void RenderSystem::InitSystem()
 		HeapDesc.SizeInBytes = CPUSunConstantBufferOffset1 + ResourceAllocationInfo.SizeInBytes;
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory7)));
+		SAFE_DX(CPUMemory7->SetName((const wchar_t*)u"Sky and Fog Pass Data GPU Heap"));
 
 		SAFE_DX(Device->CreatePlacedResource(CPUMemory7, CPUSkyConstantBufferOffset0, &SkyConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUSkyConstantBuffers[0])));
 		SAFE_DX(Device->CreatePlacedResource(CPUMemory7, CPUSkyConstantBufferOffset1, &SkyConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUSkyConstantBuffers[1])));
 		SAFE_DX(Device->CreatePlacedResource(CPUMemory7, CPUSunConstantBufferOffset0, &SunConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUSunConstantBuffers[0])));
 		SAFE_DX(Device->CreatePlacedResource(CPUMemory7, CPUSunConstantBufferOffset1, &SunConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUSunConstantBuffers[1])));
+		SAFE_DX(CPUSkyConstantBuffers[0]->SetName((const wchar_t*)u"CPU Sky Constant Buffers 0"));
+		SAFE_DX(CPUSkyConstantBuffers[1]->SetName((const wchar_t*)u"CPU Sky Constant Buffers 1"));
+		SAFE_DX(CPUSunConstantBuffers[0]->SetName((const wchar_t*)u"CPU Sun Constant Buffers 0"));
+		SAFE_DX(CPUSunConstantBuffers[1]->SetName((const wchar_t*)u"CPU Sun Constant Buffers 1"));
 
 		void *MappedData;
 
@@ -1905,6 +1998,7 @@ void RenderSystem::InitSystem()
 		GraphicsPipelineStateDesc.VS.pShaderBytecode = SkyVertexShaderByteCodeData;
 
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(SkyPipelineState)));
+		SAFE_DX(SkyPipelineState->SetName((const wchar_t*)u"Sky Pipeline State"));
 
 		ScopedMemoryBlockArray<Texel> SkyTextureTexels = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<Texel>(2048 * 2048);
 
@@ -2134,6 +2228,7 @@ void RenderSystem::InitSystem()
 		GraphicsPipelineStateDesc.VS.pShaderBytecode = SunVertexShaderByteCodeData;
 
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(SunPipelineState)));
+		SAFE_DX(SunPipelineState->SetName((const wchar_t*)u"Sun Pipeline State"));
 
 		ScopedMemoryBlockArray<Texel> SunTextureTexels = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<Texel>(512 * 512);
 
@@ -2253,6 +2348,7 @@ void RenderSystem::InitSystem()
 		GraphicsPipelineStateDesc.VS.pShaderBytecode = FullScreenQuadVertexShaderByteCodeData;
 
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(FogPipelineState)));
+		SAFE_DX(FogPipelineState->SetName((const wchar_t*)u"Fog Pipeline State"));
 	}
 
 	// ===============================================================================================================
@@ -2290,6 +2386,7 @@ void RenderSystem::InitSystem()
 		HeapDesc.SizeInBytes = ResolvedHDRSceneColorTextureOffset + ResourceAllocationInfo.SizeInBytes;
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory8)));
+		SAFE_DX(GPUMemory1->SetName((const wchar_t*)u"HDR Scene Color Texture Resolve Pass Data GPU Heap"));
 
 		D3D12_CLEAR_VALUE ClearValue;
 		ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
@@ -2299,6 +2396,7 @@ void RenderSystem::InitSystem()
 		ClearValue.Color[3] = 0.0f;
 
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory8, ResolvedHDRSceneColorTextureOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(ResolvedHDRSceneColorTexture)));
+		SAFE_DX(ResolvedHDRSceneColorTexture->SetName((const wchar_t*)u"Resolved HDR Scene Color Texture"));
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
 		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
@@ -2391,11 +2489,16 @@ void RenderSystem::InitSystem()
 		HeapDesc.SizeInBytes = AverageLuminanceTextureOffset + ResourceAllocationInfo.SizeInBytes;
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory9)));
+		SAFE_DX(GPUMemory9->SetName((const wchar_t*)u"Scene Luminance Pass Data GPU Heap"));
 
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory9, SceneLuminanceTexture0Offset, &SceneLuminanceTexturesResourceDescs[0], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(SceneLuminanceTextures[0])));
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory9, SceneLuminanceTexture1Offset, &SceneLuminanceTexturesResourceDescs[1], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(SceneLuminanceTextures[1])));
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory9, SceneLuminanceTexture2Offset, &SceneLuminanceTexturesResourceDescs[2], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(SceneLuminanceTextures[2])));
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory9, SceneLuminanceTexture3Offset, &SceneLuminanceTexturesResourceDescs[3], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(SceneLuminanceTextures[3])));
+		SAFE_DX(SceneLuminanceTextures[0]->SetName((const wchar_t*)u"Scene Luminance Textures 0"));
+		SAFE_DX(SceneLuminanceTextures[1]->SetName((const wchar_t*)u"Scene Luminance Textures 1"));
+		SAFE_DX(SceneLuminanceTextures[2]->SetName((const wchar_t*)u"Scene Luminance Textures 2"));
+		SAFE_DX(SceneLuminanceTextures[3]->SetName((const wchar_t*)u"Scene Luminance Textures 3"));
 
 		D3D12_CLEAR_VALUE ClearValue;
 		ClearValue.Color[0] = 0.0f;
@@ -2405,6 +2508,7 @@ void RenderSystem::InitSystem()
 		ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
 
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory9, AverageLuminanceTextureOffset, &AverageLuminanceTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue, UUIDOF(AverageLuminanceTexture)));
+		SAFE_DX(AverageLuminanceTexture->SetName((const wchar_t*)u"Average Luminance Texture"));
 
 		D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
 		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
@@ -2491,6 +2595,7 @@ void RenderSystem::InitSystem()
 		GraphicsPipelineStateDesc.VS.pShaderBytecode = FullScreenQuadVertexShaderByteCodeData;
 
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(LuminanceCalcPipelineState)));
+		SAFE_DX(LuminanceCalcPipelineState->SetName((const wchar_t*)u"Luminance Calc Pipeline State"));
 
 		ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
 		GraphicsPipelineStateDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE::D3D12_COLOR_WRITE_ENABLE_ALL;
@@ -2513,6 +2618,7 @@ void RenderSystem::InitSystem()
 		GraphicsPipelineStateDesc.VS.pShaderBytecode = FullScreenQuadVertexShaderByteCodeData;
 
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(LuminanceSumPipelineState)));
+		SAFE_DX(LuminanceSumPipelineState->SetName((const wchar_t*)u"Luminance Sum Pipeline State"));
 
 		ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
 		GraphicsPipelineStateDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE::D3D12_COLOR_WRITE_ENABLE_ALL;
@@ -2535,6 +2641,7 @@ void RenderSystem::InitSystem()
 		GraphicsPipelineStateDesc.VS.pShaderBytecode = FullScreenQuadVertexShaderByteCodeData;
 
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(LuminanceAvgPipelineState)));
+		SAFE_DX(LuminanceAvgPipelineState->SetName((const wchar_t*)u"Luminance Avg Pipeline State"));
 	}
 
 	// ===============================================================================================================
@@ -2594,6 +2701,7 @@ void RenderSystem::InitSystem()
 		}
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory10)));
+		SAFE_DX(GPUMemory10->SetName((const wchar_t*)u"Bloom Pass Data GPU Heap"));
 
 		D3D12_CLEAR_VALUE ClearValue;
 		ClearValue.Color[0] = 0.0f;
@@ -2607,6 +2715,14 @@ void RenderSystem::InitSystem()
 			SAFE_DX(Device->CreatePlacedResource(GPUMemory10, BloomTexturesOffsets[0][i], &ResourceDescs[0][i], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(BloomTextures[0][i])));
 			SAFE_DX(Device->CreatePlacedResource(GPUMemory10, BloomTexturesOffsets[1][i], &ResourceDescs[1][i], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(BloomTextures[1][i])));
 			SAFE_DX(Device->CreatePlacedResource(GPUMemory10, BloomTexturesOffsets[2][i], &ResourceDescs[2][i], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(BloomTextures[2][i])));
+
+			char16_t DebugTextureName[255];
+			wsprintf((wchar_t*)DebugTextureName, (const wchar_t*)u"Bloom Texture %d %d", i, 0);
+			SAFE_DX(BloomTextures[0][i]->SetName((const wchar_t*)DebugTextureName));
+			wsprintf((wchar_t*)DebugTextureName, (const wchar_t*)u"Bloom Texture %d %d", i, 1);
+			SAFE_DX(BloomTextures[1][i]->SetName((const wchar_t*)DebugTextureName));
+			wsprintf((wchar_t*)DebugTextureName, (const wchar_t*)u"Bloom Texture %d %d", i, 2);
+			SAFE_DX(BloomTextures[2][i]->SetName((const wchar_t*)DebugTextureName));
 		}
 
 		D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
@@ -2686,6 +2802,7 @@ void RenderSystem::InitSystem()
 		GraphicsPipelineStateDesc.VS.pShaderBytecode = FullScreenQuadVertexShaderByteCodeData;
 
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(BrightPassPipelineState)));
+		SAFE_DX(BrightPassPipelineState->SetName((const wchar_t*)u"Bright Pass Pipeline State"));
 
 		ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
 		GraphicsPipelineStateDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE::D3D12_COLOR_WRITE_ENABLE_ALL;
@@ -2708,6 +2825,7 @@ void RenderSystem::InitSystem()
 		GraphicsPipelineStateDesc.VS.pShaderBytecode = FullScreenQuadVertexShaderByteCodeData;
 
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(DownSamplePipelineState)));
+		SAFE_DX(DownSamplePipelineState->SetName((const wchar_t*)u"Down Sample Pipeline State"));
 
 		ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
 		GraphicsPipelineStateDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE::D3D12_COLOR_WRITE_ENABLE_ALL;
@@ -2737,6 +2855,7 @@ void RenderSystem::InitSystem()
 		GraphicsPipelineStateDesc.VS.pShaderBytecode = FullScreenQuadVertexShaderByteCodeData;
 
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(UpSampleWithAddBlendPipelineState)));
+		SAFE_DX(UpSampleWithAddBlendPipelineState->SetName((const wchar_t*)u"Up Sample With Add Blend Pipeline State"));
 
 		ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
 		GraphicsPipelineStateDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE::D3D12_COLOR_WRITE_ENABLE_ALL;
@@ -2759,6 +2878,7 @@ void RenderSystem::InitSystem()
 		GraphicsPipelineStateDesc.VS.pShaderBytecode = FullScreenQuadVertexShaderByteCodeData;
 
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(HorizontalBlurPipelineState)));
+		SAFE_DX(HorizontalBlurPipelineState->SetName((const wchar_t*)u"Horizontal Blur Pipeline State"));
 
 		ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
 		GraphicsPipelineStateDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE::D3D12_COLOR_WRITE_ENABLE_ALL;
@@ -2781,6 +2901,7 @@ void RenderSystem::InitSystem()
 		GraphicsPipelineStateDesc.VS.pShaderBytecode = FullScreenQuadVertexShaderByteCodeData;
 
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(VerticalBlurPipelineState)));
+		SAFE_DX(VerticalBlurPipelineState->SetName((const wchar_t*)u"Vertical Blur Pipeline State"));
 	}
 
 	// ===============================================================================================================
@@ -2818,6 +2939,7 @@ void RenderSystem::InitSystem()
 		HeapDesc.SizeInBytes = ToneMappedImageTextureOffset + ResourceAllocationInfo.SizeInBytes;
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory11)));
+		SAFE_DX(GPUMemory11->SetName((const wchar_t*)u"HDR Tone Mapping Pass Data GPU Heap"));
 
 		D3D12_CLEAR_VALUE ClearValue;
 		ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
@@ -2827,6 +2949,7 @@ void RenderSystem::InitSystem()
 		ClearValue.Color[3] = 0.0f;
 
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory11, ToneMappedImageTextureOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE, &ClearValue, UUIDOF(ToneMappedImageTexture)));
+		SAFE_DX(ToneMappedImageTexture->SetName((const wchar_t*)u"Tone Mapped Image Texture"));
 
 		D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
 		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
@@ -2899,8 +3022,10 @@ void RenderSystem::InitSystem()
 		HeapDesc.SizeInBytes = OcclusionBufferTextureOffset + ResourceAllocationInfo.SizeInBytes;
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory12)));
+		SAFE_DX(GPUMemory12->SetName((const wchar_t*)u"Debug Occlusion Pass Data GPU Heap"));
 
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory12, OcclusionBufferTextureOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(DebugOcclusionBufferTexture)));
+		SAFE_DX(DebugOcclusionBufferTexture->SetName((const wchar_t*)u"Debug Occlusion Buffer Texture"));
 
 		D3D12_PLACED_SUBRESOURCE_FOOTPRINT PlacedSubResourceFootPrint;
 
@@ -2941,9 +3066,12 @@ void RenderSystem::InitSystem()
 		HeapDesc.SizeInBytes = OcclusionBufferReadbackBuffer1Offset + ResourceAllocationInfo.SizeInBytes;
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory12)));
+		SAFE_DX(CPUMemory12->SetName((const wchar_t*)u"Debug Occlusion Pass Data CPU Heap"));
 
 		SAFE_DX(Device->CreatePlacedResource(CPUMemory12, OcclusionBufferReadbackBuffer0Offset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(DebugOcclusionBufferTextureUpload[0])));
 		SAFE_DX(Device->CreatePlacedResource(CPUMemory12, OcclusionBufferReadbackBuffer1Offset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(DebugOcclusionBufferTextureUpload[1])));
+		SAFE_DX(DebugOcclusionBufferTextureUpload[0]->SetName((const wchar_t*)u"Debug Occlusion Buffer Texture Upload 0"));
+		SAFE_DX(DebugOcclusionBufferTextureUpload[1]->SetName((const wchar_t*)u"Debug Occlusion Buffer Texture Upload 1"));
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
 		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
@@ -3042,9 +3170,12 @@ void RenderSystem::InitSystem()
 		HeapDesc.SizeInBytes = IndexBufferOffset + ResourceAllocationInfo.SizeInBytes;
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory13)));
+		SAFE_DX(GPUMemory13->SetName((const wchar_t*)u"Debug Bounding Boxes Pass Data GPU Heap"));
 
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory13, GPUConstantBufferOffset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUConstantBuffer3)));
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory13, IndexBufferOffset, &IndexBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(BoundingBoxIndexBuffer)));
+		SAFE_DX(GPUConstantBuffer3->SetName((const wchar_t*)u"GPU Constant Buffer 3"));
+		SAFE_DX(BoundingBoxIndexBuffer->SetName((const wchar_t*)u"Bounding Box Index Buffer"));
 
 		HeapDesc.Alignment = 0;
 		HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE;
@@ -3066,9 +3197,12 @@ void RenderSystem::InitSystem()
 		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ConstantBufferResourceDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory13)));
+		SAFE_DX(CPUMemory13->SetName((const wchar_t*)u"Debug Bounding Boxes Pass Data CPU Heap"));
 
 		SAFE_DX(Device->CreatePlacedResource(CPUMemory13, CPUConstantBuffer0Offset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUConstantBuffers3[0])));
 		SAFE_DX(Device->CreatePlacedResource(CPUMemory13, CPUConstantBuffer1Offset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUConstantBuffers3[1])));
+		SAFE_DX(CPUConstantBuffers3[0]->SetName((const wchar_t*)u"CPU Constant Buffers 3 0"));
+		SAFE_DX(CPUConstantBuffers3[1]->SetName((const wchar_t*)u"CPU Constant Buffers 3 1"));
 
 		for (int i = 0; i < 20000; i++)
 		{
