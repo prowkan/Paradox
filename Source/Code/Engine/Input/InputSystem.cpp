@@ -28,6 +28,7 @@ void InputSystem::InitSystem()
 	}
 
 	OnPressedKeyBindings[VK_F2] = Delegate<void>(this, &InputSystem::ToggleOcclusionBuffer);
+	OnPressedKeyBindings[VK_F3] = Delegate<void>(this, &InputSystem::ToggleBoundingBoxes);
 }
 
 void InputSystem::ShutdownSystem()
@@ -39,6 +40,12 @@ void InputSystem::ToggleOcclusionBuffer()
 {
 	Engine::GetEngine().GetRenderSystem().ToggleOcclusionBuffer();
 }
+
+void InputSystem::ToggleBoundingBoxes()
+{
+	Engine::GetEngine().GetRenderSystem().ToggleBoundingBoxes();
+}
+
 
 void InputSystem::TickSystem(float DeltaTime)
 {

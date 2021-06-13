@@ -95,6 +95,11 @@ class RenderSystem
 			DebugDrawOcclusionBuffer = !DebugDrawOcclusionBuffer;
 		}
 
+		void ToggleBoundingBoxes()
+		{
+			DebugDrawBoundingBoxes = !DebugDrawBoundingBoxes;
+		}
+
 	#if WITH_EDITOR
 		void SetEditorViewportSize(const UINT Width, const UINT Height)
 		{
@@ -106,6 +111,7 @@ class RenderSystem
 	private:
 
 		bool DebugDrawOcclusionBuffer = false;
+		bool DebugDrawBoundingBoxes = false;
 
 		CullingSubSystem cullingSubSystem;
 		ClusterizationSubSystem clusterizationSubSystem;
@@ -300,6 +306,18 @@ class RenderSystem
 		COMRCPtr<ID3D12PipelineState> DebugDrawOcclusionBufferPipelineState;
 
 		COMRCPtr<ID3D12Heap> GPUMemory12, CPUMemory12;
+
+		// ===============================================================================================================
+
+		COMRCPtr<ID3D12Resource> BoundingBoxIndexBuffer;
+		D3D12_GPU_VIRTUAL_ADDRESS BoundingBoxIndexBufferAddress;
+
+		COMRCPtr<ID3D12PipelineState> DebugDrawBoundingBoxPipelineState;
+
+		COMRCPtr<ID3D12Resource> GPUConstantBuffer3, CPUConstantBuffers3[2];
+		D3D12_CPU_DESCRIPTOR_HANDLE ConstantBufferCBVs3[20000];
+
+		COMRCPtr<ID3D12Heap> GPUMemory13, CPUMemory13;
 
 		// ===============================================================================================================
 

@@ -11,6 +11,7 @@ class InputSystem
 		void TickSystem(float DeltaTime);
 
 		void ToggleOcclusionBuffer();
+		void ToggleBoundingBoxes();
 
 	private:
 

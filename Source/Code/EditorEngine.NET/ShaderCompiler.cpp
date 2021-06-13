@@ -12,7 +12,8 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 			u"SkyVertexShader",
 			u"SunVertexShader",
 			u"FullScreenQuad",
-			u"DebugDrawOcclusionBuffer_VertexShader"
+			u"DebugDrawOcclusionBuffer_VertexShader",
+			u"DebugDrawBoundingBox_VertexShader"
 		};
 
 		const char16_t* PixelShaders[] =
@@ -31,7 +32,8 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 			u"LuminanceCalc",
 			u"LuminanceSum",
 			u"LuminanceAvg",
-			u"DebugDrawOcclusionBuffer_PixelShader"
+			u"DebugDrawOcclusionBuffer_PixelShader",
+			u"DebugDrawBoundingBox_PixelShader"
 		};
 
 		/*const char16_t* ComputeShaders[] =

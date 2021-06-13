@@ -37,5 +37,7 @@
     <FxCompile Include="OcclusionBuffer.hlsl" />
     <FxCompile Include="DebugDrawOcclusionBuffer_PixelShader.hlsl" />
     <FxCompile Include="DebugDrawOcclusionBuffer_VertexShader.hlsl" />
+    <FxCompile Include="DebugDrawBoundingBox_VertexShader.hlsl" />
+    <FxCompile Include="DebugDrawBoundingBox_PixelShader.hlsl" />
   </ItemGroup>
 </Project>

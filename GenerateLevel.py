@@ -48,9 +48,9 @@ while i < 50:
         Bytes.extend(struct.pack("f", 0.0))
         Bytes.extend(struct.pack("f", 0.0))
         
-        Bytes.extend(struct.pack("f", 2.0))
-        Bytes.extend(struct.pack("f", 2.0))
-        Bytes.extend(struct.pack("f", 2.0))
+        Bytes.extend(struct.pack("f", 5.0))
+        Bytes.extend(struct.pack("f", 5.0))
+        Bytes.extend(struct.pack("f", 5.0))
 
         Bytes.extend("StaticMeshComponent".encode())
         Bytes += b'\0'
@@ -93,9 +93,9 @@ while i < 50:
         Bytes.extend(struct.pack("f", 0.0))
         Bytes.extend(struct.pack("f", 0.0))
         
-        Bytes.extend(struct.pack("f", 1.0))
-        Bytes.extend(struct.pack("f", 1.0))
-        Bytes.extend(struct.pack("f", 1.0))
+        Bytes.extend(struct.pack("f", 5.0))
+        Bytes.extend(struct.pack("f", 5.0))
+        Bytes.extend(struct.pack("f", 5.0))
 
         Bytes.extend("StaticMeshComponent".encode())
         Bytes += b'\0'

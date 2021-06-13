@@ -160,6 +160,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <FxCompile Include="BrightPass.hlsl" />
+    <FxCompile Include="DebugDrawBoundingBox_PixelShader.hlsl" />
+    <FxCompile Include="DebugDrawBoundingBox_VertexShader.hlsl" />
     <FxCompile Include="DebugDrawOcclusionBuffer_PixelShader.hlsl" />
     <FxCompile Include="DebugDrawOcclusionBuffer_VertexShader.hlsl" />
     <FxCompile Include="DeferredLighting.hlsl" />
