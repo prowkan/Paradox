@@ -14,7 +14,7 @@ void LevelFile::OpenFile(const wchar_t* FileName)
 	FileData = SystemAllocator::AllocateMemory(LevelFileSize.QuadPart);
 	FilePointer = 0;
 
-	Result = ReadFile(LevelFile, FileData, LevelFileSize.QuadPart, NULL, NULL);
+	Result = ReadFile(LevelFile, FileData, (DWORD)LevelFileSize.QuadPart, NULL, NULL);
 }
 
 void LevelFile::CloseFile()

@@ -57,7 +57,7 @@ class HashTable
 
 		void ReHash(const size_t NewTableSize)
 		{
-			int OldTableSize = TableSize;
+			size_t OldTableSize = TableSize;
 			Node** OldNodes = Nodes;
 
 			TableSize = NewTableSize;
@@ -207,13 +207,13 @@ class HashTable
 
 				using NodeType = typename HashTable<KeyType, ValueType, Allocator, HashFunc>::Node;
 
-				int TableCellIndex;
-				int TableSize;
+				size_t TableCellIndex;
+				size_t TableSize;
 				NodeType *TableNode, **TableNodes;
 
 			public:
 
-				Iterator(int TableCellIndex, NodeType** TableNodes, NodeType* TableNode, int TableSize) : TableCellIndex(TableCellIndex), TableNodes(TableNodes), TableNode(TableNode), TableSize(TableSize)
+				Iterator(size_t TableCellIndex, NodeType** TableNodes, NodeType* TableNode, size_t TableSize) : TableCellIndex(TableCellIndex), TableNodes(TableNodes), TableNode(TableNode), TableSize(TableSize)
 				{
 
 				}
@@ -271,6 +271,8 @@ class HashTable
 					return Iterator(i, Nodes, Nodes[i], TableSize);
 				}
 			}
+
+			return Iterator(TableSize, Nodes, nullptr, TableSize);
 		}
 
 		Iterator End()
@@ -280,7 +282,7 @@ class HashTable
 
 	private:
 
-		int TableSize;
+		size_t TableSize;
 
 		struct Node
 		{

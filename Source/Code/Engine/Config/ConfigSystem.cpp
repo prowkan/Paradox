@@ -53,13 +53,13 @@ void ConfigSystem::InitSystem()
 
 	while (true)
 	{
-		if (FilePointer >= RenderConfigFileSize.QuadPart) break;
+		if (FilePointer >= (size_t)RenderConfigFileSize.QuadPart) break;
 
 		String CurrentLine = "";
 
 		while (true)
 		{
-			if ((RenderConfigFileData[FilePointer] == '\r' && RenderConfigFileData[FilePointer + 1] == '\n') || (FilePointer >= RenderConfigFileSize.QuadPart))
+			if ((RenderConfigFileData[FilePointer] == '\r' && RenderConfigFileData[FilePointer + 1] == '\n') || (FilePointer >= (size_t)RenderConfigFileSize.QuadPart))
 			{
 				FilePointer += 2;
 				break;

@@ -70,7 +70,7 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 
 			COMRCPtr<IDxcOperationResult> CompilationResult;
 
-			HRESULT hr = Compiler->Compile(&ShaderSource, (const wchar_t**)CompilerArgs.GetData(), CompilerArgs.GetLength(), NULL, __uuidof(IDxcOperationResult), (void**)&CompilationResult);
+			HRESULT hr = Compiler->Compile(&ShaderSource, (const wchar_t**)CompilerArgs.GetData(), (UINT32)CompilerArgs.GetLength(), NULL, __uuidof(IDxcOperationResult), (void**)&CompilationResult);
 
 			HRESULT CompilationStatus;
 
@@ -99,7 +99,7 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 
 			ShaderFile = CreateFile(OutputFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
 			ShaderFileSize.QuadPart = ShaderBlob->GetBufferSize();
-			Result = WriteFile(ShaderFile, ShaderBlob->GetBufferPointer(), ShaderFileSize.QuadPart, NULL, NULL);
+			Result = WriteFile(ShaderFile, ShaderBlob->GetBufferPointer(), (DWORD)ShaderFileSize.QuadPart, NULL, NULL);
 			CloseHandle(ShaderFile);
 		}
 
@@ -128,7 +128,7 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 
 			COMRCPtr<IDxcOperationResult> CompilationResult;
 
-			HRESULT hr = Compiler->Compile(&ShaderSource, (const wchar_t**)CompilerArgs.GetData(), CompilerArgs.GetLength(), NULL, __uuidof(IDxcOperationResult), (void**)&CompilationResult);
+			HRESULT hr = Compiler->Compile(&ShaderSource, (const wchar_t**)CompilerArgs.GetData(), (UINT32)CompilerArgs.GetLength(), NULL, __uuidof(IDxcOperationResult), (void**)&CompilationResult);
 
 			HRESULT CompilationStatus;
 
@@ -157,7 +157,7 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 
 			ShaderFile = CreateFile(OutputFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
 			ShaderFileSize.QuadPart = ShaderBlob->GetBufferSize();
-			Result = WriteFile(ShaderFile, ShaderBlob->GetBufferPointer(), ShaderFileSize.QuadPart, NULL, NULL);
+			Result = WriteFile(ShaderFile, ShaderBlob->GetBufferPointer(), (DWORD)ShaderFileSize.QuadPart, NULL, NULL);
 			CloseHandle(ShaderFile);
 		}
 
@@ -186,7 +186,7 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 
 			COMRCPtr<IDxcOperationResult> CompilationResult;
 
-			HRESULT hr = Compiler->Compile(&ShaderSource, (const wchar_t**)CompilerArgs.GetData(), CompilerArgs.GetLength(), NULL, __uuidof(IDxcOperationResult), (void**)&CompilationResult);
+			HRESULT hr = Compiler->Compile(&ShaderSource, (const wchar_t**)CompilerArgs.GetData(), (UINT32)CompilerArgs.GetLength(), NULL, __uuidof(IDxcOperationResult), (void**)&CompilationResult);
 
 			HRESULT CompilationStatus;
 
@@ -215,7 +215,7 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 
 			ShaderFile = CreateFile(OutputFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
 			ShaderFileSize.QuadPart = ShaderBlob->GetBufferSize();
-			Result = WriteFile(ShaderFile, ShaderBlob->GetBufferPointer(), ShaderFileSize.QuadPart, NULL, NULL);
+			Result = WriteFile(ShaderFile, ShaderBlob->GetBufferPointer(), (DWORD)ShaderFileSize.QuadPart, NULL, NULL);
 			CloseHandle(ShaderFile);
 		}*/
 
@@ -238,7 +238,7 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 
 		COMRCPtr<IDxcOperationResult> CompilationResult;
 
-		hr = Compiler->Compile(&ShaderSource, (const wchar_t**)CompilerArgs.GetData(), CompilerArgs.GetLength(), NULL, __uuidof(IDxcOperationResult), (void**)&CompilationResult);
+		hr = Compiler->Compile(&ShaderSource, (const wchar_t**)CompilerArgs.GetData(), (UINT32)CompilerArgs.GetLength(), NULL, __uuidof(IDxcOperationResult), (void**)&CompilationResult);
 
 		HRESULT CompilationStatus;
 
@@ -276,7 +276,7 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 		CompilerArgs.Add(u"-T vs_6_0");
 		CompilerArgs.Add(u"-Zpr");
 
-		hr = Compiler->Compile(&ShaderSource, (const wchar_t**)CompilerArgs.GetData(), CompilerArgs.GetLength(), NULL, __uuidof(IDxcOperationResult), (void**)&CompilationResult);
+		hr = Compiler->Compile(&ShaderSource, (const wchar_t**)CompilerArgs.GetData(), (UINT32)CompilerArgs.GetLength(), NULL, __uuidof(IDxcOperationResult), (void**)&CompilationResult);
 
 		hr = CompilationResult->GetStatus(&CompilationStatus);
 
@@ -312,7 +312,7 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 		CompilerArgs.Add(u"-T ps_6_0");
 		CompilerArgs.Add(u"-Zpr");
 
-		hr = Compiler->Compile(&ShaderSource, (const wchar_t**)CompilerArgs.GetData(), CompilerArgs.GetLength(), NULL, __uuidof(IDxcOperationResult), (void**)&CompilationResult);
+		hr = Compiler->Compile(&ShaderSource, (const wchar_t**)CompilerArgs.GetData(), (UINT32)CompilerArgs.GetLength(), NULL, __uuidof(IDxcOperationResult), (void**)&CompilationResult);
 
 		hr = CompilationResult->GetStatus(&CompilationStatus);
 

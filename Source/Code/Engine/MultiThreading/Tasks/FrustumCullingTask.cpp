@@ -109,10 +109,10 @@ bool FrustumCullingTask::CullBoxVsFrustum(const XMVECTOR* BoundingBoxVertices, c
 		float MinYf = min(min(TrianglePoints[0].y, TrianglePoints[1].y), TrianglePoints[2].y);
 		float MaxYf = max(max(TrianglePoints[0].y, TrianglePoints[1].y), TrianglePoints[2].y);
 
-		int MinX = floorf(MinXf);
-		int MaxX = ceilf(MaxXf);
-		int MinY = floorf(MinYf);
-		int MaxY = ceilf(MaxYf);
+		int MinX = (int)floorf(MinXf);
+		int MaxX = (int)ceilf(MaxXf);
+		int MinY = (int)floorf(MinYf);
+		int MaxY = (int)ceilf(MaxYf);
 
 		#define clamp(x, a, b) x = (x < a) ? (a) : ((x > b) ? (b) : (x))
 

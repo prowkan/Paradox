@@ -99,7 +99,7 @@ void ClusterizationSubSystem::ClusterizeLights(const DynamicArray<PointLightComp
 
 					int ClusterIndex = z * CLUSTERS_COUNT_X * CLUSTERS_COUNT_Y + y * CLUSTERS_COUNT_X + x;
 
-					LocalLightIndices[ClusterIndex][LightClustersData[ClusterIndex].Count] = i;
+					LocalLightIndices[ClusterIndex][LightClustersData[ClusterIndex].Count] = (uint16_t)i;
 					LightClustersData[ClusterIndex].Count++;
 				}
 			}
