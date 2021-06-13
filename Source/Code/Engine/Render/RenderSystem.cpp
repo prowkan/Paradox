@@ -4997,7 +4997,10 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->DrawInstanced(4, 1, 0, 0);
+		if (DebugDrawOcclusionBuffer)
+		{
+			CommandList->DrawInstanced(4, 1, 0, 0);
+		}
 	}
 
 	// ===============================================================================================================

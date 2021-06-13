@@ -37,7 +37,7 @@ void InputSystem::ShutdownSystem()
 
 void InputSystem::ToggleOcclusionBuffer()
 {
-	std::cout << "Key was pressed" << std::endl;
+	Engine::GetEngine().GetRenderSystem().ToggleOcclusionBuffer();
 }
 
 void InputSystem::TickSystem(float DeltaTime)

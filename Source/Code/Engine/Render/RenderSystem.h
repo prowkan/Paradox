@@ -90,6 +90,11 @@ class RenderSystem
 		CullingSubSystem& GetCullingSubSystem() { return cullingSubSystem; }
 		ClusterizationSubSystem& GetClusterizationSubSystem() { return clusterizationSubSystem; }
 
+		void ToggleOcclusionBuffer()
+		{
+			DebugDrawOcclusionBuffer = !DebugDrawOcclusionBuffer;
+		}
+
 	#if WITH_EDITOR
 		void SetEditorViewportSize(const UINT Width, const UINT Height)
 		{
@@ -99,6 +104,8 @@ class RenderSystem
 	#endif
 
 	private:
+
+		bool DebugDrawOcclusionBuffer = false;
 
 		CullingSubSystem cullingSubSystem;
 		ClusterizationSubSystem clusterizationSubSystem;
