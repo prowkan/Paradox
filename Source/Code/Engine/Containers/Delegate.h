@@ -38,10 +38,25 @@ class Delegate
 {
 	public:
 
+		Delegate()
+		{
+			*((void**)&DelegateStorage) = nullptr;
+		}
+
 		template<typename ClassType, typename MethodType>
 		Delegate(ClassType* Object, MethodType Method)
 		{
 			new (DelegateStorage) DelegateImpl<ClassType, MethodType, RetType, ArgTypes...>(Object, Method);
+		}
+
+		bool operator==(nullptr_t)
+		{
+			return *((void**)&DelegateStorage) == nullptr;
+		}
+
+		bool operator!=(nullptr_t)
+		{
+			return *((void**)&DelegateStorage) != nullptr;
 		}
 
 		RetType operator()(ArgTypes... Args)
@@ -49,7 +64,14 @@ class Delegate
 			return ((DelegateBase<RetType, ArgTypes...>*)DelegateStorage)->Call(Args...);
 		}		
 
+		Delegate<RetType, ArgTypes...>& operator=(const Delegate<RetType, ArgTypes...>& OtherDelegate)
+		{
+			memcpy(DelegateStorage, OtherDelegate.DelegateStorage, 3 * sizeof(void*));
+
+			return *this;
+		}
+
 	private:
 
-		BYTE DelegateStorage[2 * sizeof(void*)];
+		BYTE DelegateStorage[3 * sizeof(void*)];
 };

@@ -16,6 +16,13 @@ void InputSystem::InitSystem()
 	Result = SetCursorPos(WindowCenter.x, WindowCenter.y);
 	PreviousCursorPosition.x = WindowCenter.x;
 	PreviousCursorPosition.y = WindowCenter.y;
+
+	for (int i = 0; i < 255; i++)
+	{
+		KeyStates[i] = KeyState::Released;
+	}
+
+	OnPressedKeyBindings[VK_F2] = Delegate<void>(this, &InputSystem::ToggleOcclusionBuffer);
 }
 
 void InputSystem::ShutdownSystem()
@@ -23,9 +30,56 @@ void InputSystem::ShutdownSystem()
 
 }
 
+void InputSystem::ToggleOcclusionBuffer()
+{
+	std::cout << "Key was pressed" << std::endl;
+}
+
 void InputSystem::TickSystem(float DeltaTime)
 {
 	if (GetForegroundWindow() != Application::GetMainWindowHandle()) return;
+
+	bool WasKeyPressed[255];
+	bool WasKeyReleased[255];
+
+	for (int i = 0; i < 255; i++)
+	{
+		WasKeyPressed[i] = false;
+		WasKeyReleased[i] = false;
+	}
+
+	for (int i = 0; i < 255; i++)
+	{
+		if (GetAsyncKeyState(i) & 0x8000)
+		{
+			if (KeyStates[i] == KeyState::Released)
+			{
+				WasKeyPressed[i] = true;
+				KeyStates[i] = KeyState::Pressed;
+			}
+		}
+		else
+		{
+			if (KeyStates[i] == KeyState::Pressed)
+			{
+				WasKeyReleased[i] = true;
+				KeyStates[i] = KeyState::Released;
+			}
+		}
+	}
+
+	for (int i = 0; i < 255; i++)
+	{
+		if (WasKeyPressed[i] && OnPressedKeyBindings[i] != nullptr)
+		{
+			OnPressedKeyBindings[i]();
+		}
+
+		if (WasKeyReleased[i] && OnReleasedKeyBindings[i] != nullptr)
+		{
+			OnReleasedKeyBindings[i]();
+		}
+	}
 
 	Camera& camera = Engine::GetEngine().GetGameFramework().GetCamera();
 
