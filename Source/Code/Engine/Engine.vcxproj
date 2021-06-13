@@ -203,6 +203,7 @@
     <ClInclude Include="Containers\Queue.h" />
     <ClInclude Include="Containers\StaticArray.h" />
     <ClInclude Include="Containers\String.h" />
+    <ClInclude Include="Containers\Delegate.h" />
     <ClInclude Include="Core\Application.h" />
     <ClInclude Include="Engine\Engine.h" />
     <ClInclude Include="FileSystem\FileSystem.h" />
