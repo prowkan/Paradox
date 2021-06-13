@@ -5,6 +5,8 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action)
 {
 	if (strcmp(Action, "Compile") == 0)
 	{
+		SystemAllocator::InitAllocator();
+
 		const char16_t* OutputDirSM60 = u"./../../Build/Shaders/ShaderModel60";
 
 		const char16_t* VertexShaders[] =
