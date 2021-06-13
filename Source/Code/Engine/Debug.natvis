@@ -33,10 +33,13 @@
       </CustomListItems>
     </Expand>
   </Type>
+  <Type Name="StringTemplate&lt;*&gt;">
+    <DisplayString>{ StringData,s }</DisplayString>
+  </Type>
   <Type Name="StaticReference&lt;*&gt;">
     <DisplayString>{ *($T1*)DataStorage }</DisplayString>
     <Expand>
-      <Item Name="[Data]">*($T1*)DataStorage</Item>
+      <ExpandedItem>*($T1*)DataStorage</ExpandedItem>
     </Expand>
   </Type>
 </AutoVisualizer>
