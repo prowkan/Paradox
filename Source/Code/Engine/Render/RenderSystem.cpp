@@ -171,7 +171,7 @@ void RenderSystem::InitSystem()
 	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	DescriptorHeapDesc.NodeMask = 0;
-	DescriptorHeapDesc.NumDescriptors = 46;
+	DescriptorHeapDesc.NumDescriptors = 47;
 	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 
 	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(CBSRUADescriptorHeap)));
@@ -2864,6 +2864,132 @@ void RenderSystem::InitSystem()
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(HDRToneMappingPipelineState)));
 	}
 
+	// ===============================================================================================================
+
+	{
+		D3D12_RESOURCE_DESC ResourceDesc;
+		ZeroMemory(&ResourceDesc, sizeof(D3D12_RESOURCE_DESC));
+		ResourceDesc.Alignment = 0;
+		ResourceDesc.DepthOrArraySize = 1;
+		ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+		ResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE;
+		ResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
+		ResourceDesc.Height = 144;
+		ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_UNKNOWN;
+		ResourceDesc.MipLevels = 1;
+		ResourceDesc.SampleDesc.Count = 1;
+		ResourceDesc.SampleDesc.Quality = 0;
+		ResourceDesc.Width = 256;
+
+		D3D12_HEAP_DESC HeapDesc;
+		HeapDesc.Alignment = D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT;
+		HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE;
+		HeapDesc.Properties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_NOT_AVAILABLE;
+		HeapDesc.Properties.CreationNodeMask = 0;
+		HeapDesc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_L1;
+		HeapDesc.Properties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_CUSTOM;
+		HeapDesc.Properties.VisibleNodeMask = 0;
+		HeapDesc.SizeInBytes = 0;
+
+		D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo;
+
+		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDesc);
+
+		SIZE_T OcclusionBufferTextureOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.SizeInBytes - HeapDesc.SizeInBytes % ResourceAllocationInfo.SizeInBytes);
+		HeapDesc.SizeInBytes = OcclusionBufferTextureOffset + ResourceAllocationInfo.SizeInBytes;
+
+		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory12)));
+
+		SAFE_DX(Device->CreatePlacedResource(GPUMemory12, OcclusionBufferTextureOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(DebugOcclusionBufferTexture)));
+
+		D3D12_PLACED_SUBRESOURCE_FOOTPRINT PlacedSubResourceFootPrint;
+
+		UINT NumRows;
+		UINT64 RowSizeInBytes, TotalBytes;
+
+		Device->GetCopyableFootprints(&ResourceDesc, 0, 1, 0, &PlacedSubResourceFootPrint, &NumRows, &RowSizeInBytes, &TotalBytes);
+
+		ResourceDesc.Alignment = 0;
+		ResourceDesc.DepthOrArraySize = 1;
+		ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER;
+		ResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE;
+		ResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
+		ResourceDesc.Height = 1;
+		ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+		ResourceDesc.MipLevels = 1;
+		ResourceDesc.SampleDesc.Count = 1;
+		ResourceDesc.SampleDesc.Quality = 0;
+		ResourceDesc.Width = TotalBytes;
+
+		HeapDesc.Alignment = D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT;
+		HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE;
+		HeapDesc.Properties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_WRITE_COMBINE;
+		HeapDesc.Properties.CreationNodeMask = 0;
+		HeapDesc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_L0;
+		HeapDesc.Properties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_CUSTOM;
+		HeapDesc.Properties.VisibleNodeMask = 0;
+		HeapDesc.SizeInBytes = 0;
+
+		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDesc);
+
+		SIZE_T OcclusionBufferReadbackBuffer0Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
+		HeapDesc.SizeInBytes = OcclusionBufferReadbackBuffer0Offset + ResourceAllocationInfo.SizeInBytes;
+
+		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDesc);
+
+		SIZE_T OcclusionBufferReadbackBuffer1Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
+		HeapDesc.SizeInBytes = OcclusionBufferReadbackBuffer1Offset + ResourceAllocationInfo.SizeInBytes;
+
+		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory12)));
+
+		SAFE_DX(Device->CreatePlacedResource(CPUMemory12, OcclusionBufferReadbackBuffer0Offset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(DebugOcclusionBufferTextureUpload[0])));
+		SAFE_DX(Device->CreatePlacedResource(CPUMemory12, OcclusionBufferReadbackBuffer1Offset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(DebugOcclusionBufferTextureUpload[1])));
+
+		D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
+		SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		SRVDesc.Texture2D.MipLevels = 1;
+		SRVDesc.Texture2D.MostDetailedMip = 0;
+		SRVDesc.Texture2D.PlaneSlice = 0;
+		SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
+
+		DebugOcclusionBufferTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		CBSRUADescriptorsCount++;
+
+		Device->CreateShaderResourceView(DebugOcclusionBufferTexture, &SRVDesc, DebugOcclusionBufferTextureSRV);
+
+		void *DebugDrawOcclusionBufferVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel60.DebugDrawOcclusionBuffer_VertexShader");
+		SIZE_T DebugDrawOcclusionBufferVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel60.DebugDrawOcclusionBuffer_VertexShader");
+		void *DebugDrawOcclusionBufferPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel60.DebugDrawOcclusionBuffer_PixelShader");
+		SIZE_T DebugDrawOcclusionBufferPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel60.DebugDrawOcclusionBuffer_PixelShader");
+		
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC GraphicsPipelineStateDesc;
+		ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+		GraphicsPipelineStateDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE::D3D12_COLOR_WRITE_ENABLE_ALL;
+		GraphicsPipelineStateDesc.Flags = D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_NONE;
+		GraphicsPipelineStateDesc.InputLayout.NumElements = 0;
+		GraphicsPipelineStateDesc.InputLayout.pInputElementDescs = nullptr;
+		GraphicsPipelineStateDesc.NodeMask = 0;
+		GraphicsPipelineStateDesc.NumRenderTargets = 1;
+		GraphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE::D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+		GraphicsPipelineStateDesc.pRootSignature = GraphicsRootSignature;
+		GraphicsPipelineStateDesc.PS.BytecodeLength = DebugDrawOcclusionBufferPixelShaderByteCodeLength;
+		GraphicsPipelineStateDesc.PS.pShaderBytecode = DebugDrawOcclusionBufferPixelShaderByteCodeData;
+		GraphicsPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_BACK;
+		GraphicsPipelineStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID;
+		GraphicsPipelineStateDesc.RTVFormats[0] = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		GraphicsPipelineStateDesc.SampleDesc.Count = 1;
+		GraphicsPipelineStateDesc.SampleDesc.Quality = 0;
+		GraphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
+		GraphicsPipelineStateDesc.VS.BytecodeLength = DebugDrawOcclusionBufferVertexShaderByteCodeLength;
+		GraphicsPipelineStateDesc.VS.pShaderBytecode = DebugDrawOcclusionBufferVertexShaderByteCodeData;
+
+		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(DebugDrawOcclusionBufferPipelineState)));
+	}
+
+	// ===============================================================================================================
+
 	clusterizationSubSystem.PreComputeClustersPlanes();
 }
 
@@ -2998,6 +3124,41 @@ void RenderSystem::TickSystem(float DeltaTime)
 	ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 	ResourceBarriers[1].Transition.Subresource = 0;
 	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+
+	// ===============================================================================================================
+
+	{
+		D3D12_RESOURCE_DESC ResourceDesc = OcclusionBufferTexture->GetDesc();
+
+		D3D12_PLACED_SUBRESOURCE_FOOTPRINT PlacedSubResourceFootPrint;
+
+		UINT NumRows;
+		UINT64 RowSizeInBytes, TotalBytes;
+
+		Device->GetCopyableFootprints(&ResourceDesc, 0, 1, 0, &PlacedSubResourceFootPrint, &NumRows, &RowSizeInBytes, &TotalBytes);
+
+		float *OcclusionBufferData = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetOcclusionBufferData();
+
+		D3D12_RANGE ReadRange, WrittenRange;
+		ReadRange.Begin = 0;
+		ReadRange.End = TotalBytes;
+
+		WrittenRange.Begin = 0;
+		WrittenRange.End = 0;
+
+		void *MappedData;
+
+		OcclusionBufferTextureReadback[CurrentFrameIndex]->Map(0, &ReadRange, &MappedData);
+
+		for (UINT i = 0; i < NumRows; i++)
+		{
+			memcpy((BYTE*)OcclusionBufferData + i * RowSizeInBytes, (BYTE*)MappedData + i * PlacedSubResourceFootPrint.Footprint.RowPitch, RowSizeInBytes);
+		}
+
+		OcclusionBufferTextureReadback[CurrentFrameIndex]->Unmap(0, &WrittenRange);
+
+		Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().ReProjectOcclusionBuffer(ViewProjMatrix, CurrentFrameIndex);
+	}
 
 	// ===============================================================================================================
 
@@ -3279,26 +3440,6 @@ void RenderSystem::TickSystem(float DeltaTime)
 		DestTextureCopyLocation.Type = D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 
 		CommandList->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
-
-		float *OcclusionBufferData = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetOcclusionBufferData();
-
-		D3D12_RANGE ReadRange, WrittenRange;
-		ReadRange.Begin = 0;
-		ReadRange.End = TotalBytes;
-
-		WrittenRange.Begin = 0;
-		WrittenRange.End = 0;
-
-		void *MappedData;
-
-		OcclusionBufferTextureReadback[CurrentFrameIndex]->Map(0, &ReadRange, &MappedData);
-
-		for (UINT i = 0; i < NumRows; i++)
-		{
-			memcpy((BYTE*)OcclusionBufferData + i * RowSizeInBytes, (BYTE*)MappedData + i * PlacedSubResourceFootPrint.Footprint.RowPitch, RowSizeInBytes);
-		}
-
-		OcclusionBufferTextureReadback[CurrentFrameIndex]->Unmap(0, &WrittenRange);
 	}
 
 	// ===============================================================================================================
@@ -4753,8 +4894,118 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarriers[0].Transition.pResource = BackBufferTextures[CurrentBackBufferIndex];
-	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PRESENT;
+	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
 	ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST;
+	ResourceBarriers[0].Transition.Subresource = 0;
+	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+
+	// ===============================================================================================================
+
+	{
+		ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		ResourceBarriers[1].Transition.pResource = DebugOcclusionBufferTexture;
+		ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
+		ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+		ResourceBarriers[1].Transition.Subresource = 0;
+		ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+
+		CommandList->ResourceBarrier(2, ResourceBarriers);
+
+		D3D12_RESOURCE_DESC ResourceDesc = DebugOcclusionBufferTexture->GetDesc();
+
+		D3D12_PLACED_SUBRESOURCE_FOOTPRINT PlacedSubResourceFootPrint;
+
+		UINT NumRows;
+		UINT64 RowSizeInBytes, TotalBytes;
+
+		Device->GetCopyableFootprints(&ResourceDesc, 0, 1, 0, &PlacedSubResourceFootPrint, &NumRows, &RowSizeInBytes, &TotalBytes);
+
+		float *OcclusionBufferData = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetReProjectedOcclusionBufferData();
+
+		D3D12_RANGE ReadRange, WrittenRange;
+		ReadRange.Begin = 0;
+		ReadRange.End = TotalBytes;
+
+		WrittenRange.Begin = 0;
+		WrittenRange.End = 0;
+
+		void *MappedData;
+
+		DebugOcclusionBufferTextureUpload[CurrentFrameIndex]->Map(0, &ReadRange, &MappedData);
+
+		for (UINT i = 0; i < NumRows; i++)
+		{
+			memcpy((BYTE*)MappedData + i * PlacedSubResourceFootPrint.Footprint.RowPitch, (BYTE*)OcclusionBufferData + i * RowSizeInBytes, RowSizeInBytes);
+		}
+
+		DebugOcclusionBufferTextureUpload[CurrentFrameIndex]->Unmap(0, &WrittenRange);
+
+		D3D12_TEXTURE_COPY_LOCATION SourceTextureCopyLocation, DestTextureCopyLocation;
+
+		SourceTextureCopyLocation.PlacedFootprint = PlacedSubResourceFootPrint;
+		SourceTextureCopyLocation.pResource = DebugOcclusionBufferTextureUpload[CurrentFrameIndex];
+		SourceTextureCopyLocation.Type = D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+
+		DestTextureCopyLocation.pResource = DebugOcclusionBufferTexture;
+		DestTextureCopyLocation.SubresourceIndex = 0;
+		DestTextureCopyLocation.Type = D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+
+		CommandList->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
+
+		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		ResourceBarriers[0].Transition.pResource = DebugOcclusionBufferTexture;
+		ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+		ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
+		ResourceBarriers[0].Transition.Subresource = 0;
+		ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+
+		CommandList->ResourceBarrier(1, ResourceBarriers);		
+
+		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+		CommandList->OMSetRenderTargets(1, &BackBufferTexturesRTVs[CurrentBackBufferIndex], TRUE, nullptr);
+
+		D3D12_VIEWPORT Viewport;
+		Viewport.Height = FLOAT(ResolutionHeight);
+		Viewport.MaxDepth = 1.0f;
+		Viewport.MinDepth = 0.0f;
+		Viewport.TopLeftX = 0.0f;
+		Viewport.TopLeftY = 0.0f;
+		Viewport.Width = FLOAT(ResolutionWidth);
+
+		CommandList->RSSetViewports(1, &Viewport);
+
+		D3D12_RECT ScissorRect;
+		ScissorRect.bottom = ResolutionHeight;
+		ScissorRect.left = 0;
+		ScissorRect.right = ResolutionWidth;
+		ScissorRect.top = 0;
+
+		CommandList->RSSetScissorRects(1, &ScissorRect);
+
+		UINT DestRangeSize = 1;
+		UINT SourceRangeSizes[1] = { 1 };
+		D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[1] = { DebugOcclusionBufferTextureSRV };
+
+		Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+		ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
+
+		CommandList->SetPipelineState(DebugDrawOcclusionBufferPipelineState);
+
+		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+
+		ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
+
+		CommandList->DrawInstanced(4, 1, 0, 0);
+	}
+
+	// ===============================================================================================================
+
+	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	ResourceBarriers[0].Transition.pResource = BackBufferTextures[CurrentBackBufferIndex];
+	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PRESENT;
+	ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
 	ResourceBarriers[0].Transition.Subresource = 0;
 	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 

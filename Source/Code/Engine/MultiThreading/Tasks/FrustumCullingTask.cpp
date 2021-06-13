@@ -63,7 +63,7 @@ bool FrustumCullingTask::CullBoxVsFrustum(const XMVECTOR* BoundingBoxVertices, c
 
 	XMMATRIX ViewProjMatrix = Engine::GetEngine().GetGameFramework().GetCamera().GetViewProjMatrix();
 
-	XMMATRIX WVPMatrix = XMMatrixScaling(1.1f, 1.1f, 1.1f) * WorldMatrix * ViewProjMatrix;
+	XMMATRIX WVPMatrix = WorldMatrix * ViewProjMatrix;
 
 	for (int i = 0; i < 8; i++)
 	{
@@ -79,7 +79,7 @@ bool FrustumCullingTask::CullBoxVsFrustum(const XMVECTOR* BoundingBoxVertices, c
 		TransformedBoundingBoxVertices[i].vector4_f32[1] = -72.0f * TransformedBoundingBoxVertices[i].vector4_f32[1] + 72.0f;
 	}
 
-	float *OcclusionBufferData = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetOcclusionBufferData();
+	float *OcclusionBufferData = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetReProjectedOcclusionBufferData();
 
 	static WORD BBIndices[36] =
 	{

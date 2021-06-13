@@ -86,6 +86,71 @@ DynamicArray<PointLightComponent*> CullingSubSystem::GetVisiblePointLightsInFrus
 	return OutputPointLights;
 }
 
+void CullingSubSystem::ReProjectOcclusionBuffer(const XMMATRIX& CurrentFrameViewProjMatrix, const uint32_t PreviousFrameIndex)
+{
+	XMMATRIX ReProjMatrix = XMMatrixInverse(nullptr, PreviousFramesViewProjMatrices[PreviousFrameIndex]) * CurrentFrameViewProjMatrix;
+
+	PreviousFramesViewProjMatrices[PreviousFrameIndex] = CurrentFrameViewProjMatrix;
+
+	for (int i = 0; i < 256 * 144; i++)
+	{
+		ReProjectedOcclusionBufferData[i] = 0.0f;
+		DilatedOcclusionBufferData[i] = 0.0f;
+	}
+
+	for (int y = 0; y < 144; y++)
+	{
+		for (int x = 0; x < 256; x++)
+		{
+			float PositionX = 2.0f * (x / 256.0f) - 1.0f;
+			float PositionY = -2.0f * (y / 144.0f) + 1.0f;
+			float PositionZ = OcclusionBufferData[y * 256 + x];
+			float PositionW = 1.0f;
+
+			XMVECTOR Position = XMVectorSet(PositionX, PositionY, PositionZ, PositionW);
+			Position = XMVector4Transform(Position, ReProjMatrix);
+
+			PositionX = XMVectorGetX(Position);
+			PositionY = XMVectorGetY(Position);
+			PositionZ = XMVectorGetZ(Position);
+			PositionW = XMVectorGetW(Position);
+
+			PositionX = PositionX / PositionW;
+			PositionY = PositionY / PositionW;
+			PositionZ = PositionZ / PositionW;
+
+			PositionX = roundf((0.5f * PositionX + 0.5f) * 256.0f);
+			PositionY = roundf((-0.5f * PositionY + 0.5f) * 144.0f);
+
+			if ((int)PositionX < 0 || (int)PositionX > 255 || (int)PositionY < 0 || (int)PositionY > 143) continue;
+
+			ReProjectedOcclusionBufferData[(int)PositionY * 256 + (int)PositionX] = PositionZ;
+			DilatedOcclusionBufferData[(int)PositionY * 256 + (int)PositionX] = PositionZ;
+		}
+	}
+
+	for (int y = 1; y < 143; y++)
+	{
+		for (int x = 1; x < 255; x++)
+		{
+			float MaxZ = 0.0f;
+
+			for (int y1 = -1; y1 <= 1; y1++)
+			{
+				for (int x1 = -1; x1 <= 1; x1++)
+				{
+					if (ReProjectedOcclusionBufferData[(y + y1) * 256 + (x + x1)] > MaxZ)
+					{
+						MaxZ = ReProjectedOcclusionBufferData[(y + y1) * 256 + (x + x1)];
+					}
+				}
+			}
+
+			DilatedOcclusionBufferData[y * 256 + x] = MaxZ;
+		}
+	}
+}
+
 void CullingSubSystem::ExtractFrustumPlanesFromViewProjMatrix(const XMMATRIX& ViewProjMatrix, XMVECTOR* FrustumPlanes)
 {
 	XMFLOAT4X4 ViewProjMatrixF44;

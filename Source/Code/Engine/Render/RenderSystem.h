@@ -287,6 +287,15 @@ class RenderSystem
 
 		// ===============================================================================================================
 
+		COMRCPtr<ID3D12Resource> DebugOcclusionBufferTexture, DebugOcclusionBufferTextureUpload[2];
+		D3D12_CPU_DESCRIPTOR_HANDLE DebugOcclusionBufferTextureSRV;
+
+		COMRCPtr<ID3D12PipelineState> DebugDrawOcclusionBufferPipelineState;
+
+		COMRCPtr<ID3D12Heap> GPUMemory12, CPUMemory12;
+
+		// ===============================================================================================================
+
 		DynamicArray<RenderMesh*> RenderMeshDestructionQueue;
 		DynamicArray<RenderMaterial*> RenderMaterialDestructionQueue;
 		DynamicArray<RenderTexture*> RenderTextureDestructionQueue;

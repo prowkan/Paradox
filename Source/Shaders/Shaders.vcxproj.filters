@@ -35,5 +35,7 @@
     <FxCompile Include="BrightPass.hlsl" />
     <FxCompile Include="VerticalBlur.hlsl" />
     <FxCompile Include="OcclusionBuffer.hlsl" />
+    <FxCompile Include="DebugDrawOcclusionBuffer_PixelShader.hlsl" />
+    <FxCompile Include="DebugDrawOcclusionBuffer_VertexShader.hlsl" />
   </ItemGroup>
 </Project>
