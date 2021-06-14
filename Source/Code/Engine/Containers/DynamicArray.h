@@ -162,6 +162,7 @@ class DynamicArray
 			ArrayLength = 0;
 		}
 
+#if 0
 		template<typename U>
 		void Sort(const U& Comparator)
 		{
@@ -174,6 +175,54 @@ class DynamicArray
 						T Tmp = ArrayData[j];
 						ArrayData[j] = ArrayData[i];
 						ArrayData[i] = Tmp;
+					}
+				}
+			}
+		}
+#endif
+
+		template<typename U>
+		void Sort(const U& Comparator)
+		{
+			struct ArrayRange
+			{
+				size_t Begin;
+				size_t End;
+			};
+
+			const size_t LOCAL_STACK_SIZE = 100;
+
+			ArrayRange ArrayRangeStack[LOCAL_STACK_SIZE];
+			size_t ArrayRangeStackPtr = 0;
+
+			ArrayRangeStack[ArrayRangeStackPtr++] = ArrayRange{ 0, ArrayLength - 1 };
+
+			while (ArrayRangeStackPtr > 0)
+			{
+				ArrayRange CurrentRange = ArrayRangeStack[--ArrayRangeStackPtr];
+
+				if (CurrentRange.Begin < CurrentRange.End)
+				{
+					const T& Pivot = ArrayData[(CurrentRange.Begin + CurrentRange.End) / 2];
+
+					size_t i = CurrentRange.Begin;
+					size_t j = CurrentRange.End;
+
+					while (true)
+					{
+						while (Comparator(ArrayData[i], Pivot) && (i < j)) i++;
+						while (Comparator(Pivot, ArrayData[j]) && (i < j)) j--;
+						if (i >= j)
+						{
+							if (CurrentRange.Begin != j) ArrayRangeStack[ArrayRangeStackPtr++] = ArrayRange{ CurrentRange.Begin, j };
+							if (j + 1 != CurrentRange.End) ArrayRangeStack[ArrayRangeStackPtr++] = ArrayRange{ j + 1, CurrentRange.End };
+							break;
+						}
+						T Tmp = ArrayData[j];
+						ArrayData[j] = ArrayData[i];
+						ArrayData[i] = Tmp;
+						i++;
+						j--;
 					}
 				}
 			}
