@@ -2,7 +2,7 @@
 
 #include <Containers/DynamicArray.h>
 
-#include "../Task.h"
+#include <MultiThreading/Task.h>
 
 class StaticMeshComponent;
 

@@ -105,7 +105,7 @@
     <ClInclude Include="MultiThreading\Task.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MultiThreading\Tasks\FrustumCullingTask.h">
+    <ClInclude Include="Render\Tasks\FrustumCullingTask.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Containers\String.h">
@@ -136,9 +136,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="FileSystem\FileSystem.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="MemoryManager\Stack.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Config\ConfigSystem.h">
@@ -266,7 +263,7 @@
     <ClCompile Include="MultiThreading\Task.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="MultiThreading\Tasks\FrustumCullingTask.cpp">
+    <ClCompile Include="Render\Tasks\FrustumCullingTask.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Containers\String.cpp">

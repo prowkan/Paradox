@@ -231,7 +231,7 @@
     <ClInclude Include="MemoryManager\SystemAllocator.h" />
     <ClInclude Include="MultiThreading\MultiThreadingSystem.h" />
     <ClInclude Include="MultiThreading\Task.h" />
-    <ClInclude Include="MultiThreading\Tasks\FrustumCullingTask.h" />
+    <ClInclude Include="Render\Tasks\FrustumCullingTask.h" />
     <ClInclude Include="MultiThreading\ThreadSafeQueue.h" />
     <ClInclude Include="MultiThreading\WorkerThread.h" />
     <ClInclude Include="Render\ClusterizationSubSystem.h" />
@@ -280,7 +280,7 @@
     <ClCompile Include="MemoryManager\SystemAllocator.cpp" />
     <ClCompile Include="MultiThreading\MultiThreadingSystem.cpp" />
     <ClCompile Include="MultiThreading\Task.cpp" />
-    <ClCompile Include="MultiThreading\Tasks\FrustumCullingTask.cpp" />
+    <ClCompile Include="Render\Tasks\FrustumCullingTask.cpp" />
     <ClCompile Include="MultiThreading\ThreadSafeQueue.cpp" />
     <ClCompile Include="MultiThreading\WorkerThread.cpp" />
     <ClCompile Include="Render\ClusterizationSubSystem.cpp" />

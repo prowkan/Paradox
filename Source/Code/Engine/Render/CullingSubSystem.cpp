@@ -3,9 +3,9 @@
 
 #include "CullingSubSystem.h"
 
-#include <Engine/Engine.h>
+#include "Tasks/FrustumCullingTask.h"
 
-#include <MultiThreading/Tasks/FrustumCullingTask.h>
+#include <Engine/Engine.h>
 
 #include <Game/Components/Common/TransformComponent.h>
 #include <Game/Components/Common/BoundingBoxComponent.h>
