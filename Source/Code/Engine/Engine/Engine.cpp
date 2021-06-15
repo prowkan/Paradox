@@ -17,6 +17,7 @@ void Engine::InitEngine()
 
 	multiThreadingSystem.InitSystem();
 	memoryManager.InitManager();
+	multiThreadingSystem.InitSystem();
 	inputSystem.InitSystem();
 	renderSystem.InitSystem();
 	gameFramework.InitFramework();
