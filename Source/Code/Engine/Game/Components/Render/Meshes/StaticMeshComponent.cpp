@@ -46,7 +46,7 @@ void StaticMeshComponent::LoadFromFile(LevelFile& File)
 			UINT IndexCount;
 		};
 
-		ScopedMemoryBlockArray<BYTE> StaticMeshData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(Engine::GetEngine().GetFileSystem().GetFileSize(StaticMeshResourceName));
+		ScopedMemoryBlockArray<BYTE> StaticMeshData = Engine::GetEngine().GetMemoryManager().GetGlobalStackAllocator().AllocateFromStack<BYTE>(Engine::GetEngine().GetFileSystem().GetFileSize(StaticMeshResourceName));
 		Engine::GetEngine().GetFileSystem().LoadFile(StaticMeshResourceName, StaticMeshData);
 
 		StaticMeshFileHeader *staticMeshFileHeader = (StaticMeshFileHeader*)((BYTE*)StaticMeshData + 2);
@@ -61,7 +61,7 @@ void StaticMeshComponent::LoadFromFile(LevelFile& File)
 
 	if (!Engine::GetEngine().GetResourceManager().IsResourceLoaded(MaterialResourceName))
 	{
-		ScopedMemoryBlockArray<BYTE> MaterialData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(Engine::GetEngine().GetFileSystem().GetFileSize(MaterialResourceName));
+		ScopedMemoryBlockArray<BYTE> MaterialData = Engine::GetEngine().GetMemoryManager().GetGlobalStackAllocator().AllocateFromStack<BYTE>(Engine::GetEngine().GetFileSystem().GetFileSize(MaterialResourceName));
 		Engine::GetEngine().GetFileSystem().LoadFile(MaterialResourceName, MaterialData);
 
 		const char *ShaderModel = "ShaderModel60";
@@ -108,7 +108,7 @@ void StaticMeshComponent::LoadFromFile(LevelFile& File)
 				BOOL Compressed;
 			};
 
-			ScopedMemoryBlockArray<BYTE> TextureData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(Engine::GetEngine().GetFileSystem().GetFileSize(Texture0Name));
+			ScopedMemoryBlockArray<BYTE> TextureData = Engine::GetEngine().GetMemoryManager().GetGlobalStackAllocator().AllocateFromStack<BYTE>(Engine::GetEngine().GetFileSystem().GetFileSize(Texture0Name));
 			Engine::GetEngine().GetFileSystem().LoadFile(Texture0Name, TextureData);
 
 			TextureFileHeader *textureFileHeader = (TextureFileHeader*)((BYTE*)TextureData + 2);
@@ -136,7 +136,7 @@ void StaticMeshComponent::LoadFromFile(LevelFile& File)
 				BOOL Compressed;
 			};
 
-			ScopedMemoryBlockArray<BYTE> TextureData = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<BYTE>(Engine::GetEngine().GetFileSystem().GetFileSize(Texture1Name));
+			ScopedMemoryBlockArray<BYTE> TextureData = Engine::GetEngine().GetMemoryManager().GetGlobalStackAllocator().AllocateFromStack<BYTE>(Engine::GetEngine().GetFileSystem().GetFileSize(Texture1Name));
 			Engine::GetEngine().GetFileSystem().LoadFile(Texture1Name, TextureData);
 
 			TextureFileHeader *textureFileHeader = (TextureFileHeader*)((BYTE*)TextureData + 2);

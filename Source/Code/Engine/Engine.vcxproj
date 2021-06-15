@@ -227,7 +227,7 @@
     <ClInclude Include="MemoryManager\Pool.h" />
     <ClInclude Include="MemoryManager\ScopedMemoryBlock.h" />
     <ClInclude Include="MemoryManager\ScopedMemoryBlockBase.h" />
-    <ClInclude Include="MemoryManager\Stack.h" />
+    <ClInclude Include="MemoryManager\StackAllocator.h" />
     <ClInclude Include="MemoryManager\SystemAllocator.h" />
     <ClInclude Include="MultiThreading\MultiThreadingSystem.h" />
     <ClInclude Include="MultiThreading\Task.h" />
@@ -276,7 +276,7 @@
     <ClCompile Include="MemoryManager\MemoryManager.cpp" />
     <ClCompile Include="MemoryManager\Pool.cpp" />
     <ClCompile Include="MemoryManager\ScopedMemoryBlockBase.cpp" />
-    <ClCompile Include="MemoryManager\Stack.cpp" />
+    <ClCompile Include="MemoryManager\StackAllocator.cpp" />
     <ClCompile Include="MemoryManager\SystemAllocator.cpp" />
     <ClCompile Include="MultiThreading\MultiThreadingSystem.cpp" />
     <ClCompile Include="MultiThreading\Task.cpp" />

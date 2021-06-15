@@ -2000,7 +2000,7 @@ void RenderSystem::InitSystem()
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(SkyPipelineState)));
 		SAFE_DX(SkyPipelineState->SetName((const wchar_t*)u"Sky Pipeline State"));
 
-		ScopedMemoryBlockArray<Texel> SkyTextureTexels = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<Texel>(2048 * 2048);
+		ScopedMemoryBlockArray<Texel> SkyTextureTexels = Engine::GetEngine().GetMemoryManager().GetGlobalStackAllocator().AllocateFromStack<Texel>(2048 * 2048);
 
 		for (int y = 0; y < 2048; y++)
 		{
@@ -2230,7 +2230,7 @@ void RenderSystem::InitSystem()
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(SunPipelineState)));
 		SAFE_DX(SunPipelineState->SetName((const wchar_t*)u"Sun Pipeline State"));
 
-		ScopedMemoryBlockArray<Texel> SunTextureTexels = Engine::GetEngine().GetMemoryManager().GetGlobalStack().AllocateFromStack<Texel>(512 * 512);
+		ScopedMemoryBlockArray<Texel> SunTextureTexels = Engine::GetEngine().GetMemoryManager().GetGlobalStackAllocator().AllocateFromStack<Texel>(512 * 512);
 
 		for (int y = 0; y < 512; y++)
 		{

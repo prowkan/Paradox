@@ -132,7 +132,7 @@
     <ClInclude Include="MemoryManager\ScopedMemoryBlock.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MemoryManager\Stack.h">
+    <ClInclude Include="MemoryManager\StackAllocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="FileSystem\FileSystem.h">
@@ -287,7 +287,7 @@
     <ClCompile Include="Render\ClusterizationSubSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="MemoryManager\Stack.cpp">
+    <ClCompile Include="MemoryManager\StackAllocator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MemoryManager\ScopedMemoryBlockBase.cpp">

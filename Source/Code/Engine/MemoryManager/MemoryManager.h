@@ -2,7 +2,7 @@
 
 #include "Pool.h"
 #include "Heap.h"
-#include "Stack.h"
+#include "StackAllocator.h"
 
 class MetaClass;
 
@@ -16,7 +16,7 @@ class MemoryManager
 		void* AllocateEntity(MetaClass* metaClass);
 		void* AllocateComponent(MetaClass* metaClass);
 
-		Stack& GetGlobalStack() { return GlobalStack; }
+		StackAllocator& GetGlobalStackAllocator() { return GlobalStackAllocator; }
 
 	private:
 
@@ -27,5 +27,5 @@ class MemoryManager
 
 		Heap EntitiesHeap;
 
-		Stack GlobalStack;
+		StackAllocator GlobalStackAllocator;
 };

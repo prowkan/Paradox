@@ -7,5 +7,5 @@
 
 ScopedMemoryBlockBase::~ScopedMemoryBlockBase()
 {
-	Engine::GetEngine().GetMemoryManager().GetGlobalStack().DeAllocateToStack(BlockSize);
+	Engine::GetEngine().GetMemoryManager().GetGlobalStackAllocator().DeAllocateToStack(BlockSize);
 }
