@@ -23,8 +23,6 @@ void MemoryManager::InitManager()
 	BoundingBoxComponentsPool.CreatePool(sizeof(BoundingBoxComponent), 20000);
 	StaticMeshComponentsPool.CreatePool(sizeof(StaticMeshComponent), 20000);
 	PointLightComponentsPool.CreatePool(sizeof(PointLightComponent), 10000);
-
-	GlobalStackAllocator.CreateStackAllocator(20 * 1024 * 1024);
 }
 
 void MemoryManager::ShutdownManager()
@@ -35,8 +33,6 @@ void MemoryManager::ShutdownManager()
 	PointLightComponentsPool.DestroyPool();
 
 	EntitiesHeap.DestroyHeap();
-
-	GlobalStackAllocator.DestroyStackAllocator();
 }
 
 void* MemoryManager::AllocateEntity(MetaClass* metaClass)

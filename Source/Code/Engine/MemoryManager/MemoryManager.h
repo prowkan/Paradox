@@ -2,7 +2,6 @@
 
 #include "Pool.h"
 #include "Heap.h"
-#include "StackAllocator.h"
 
 class MetaClass;
 
@@ -16,8 +15,6 @@ class MemoryManager
 		void* AllocateEntity(MetaClass* metaClass);
 		void* AllocateComponent(MetaClass* metaClass);
 
-		StackAllocator& GetGlobalStackAllocator() { return GlobalStackAllocator; }
-
 	private:
 
 		Pool TransformComponentsPool;
@@ -26,6 +23,4 @@ class MemoryManager
 		Pool PointLightComponentsPool;
 
 		Heap EntitiesHeap;
-
-		StackAllocator GlobalStackAllocator;
 };

@@ -16,6 +16,8 @@
 #include <ResourceManager/Resources/Render/Materials/MaterialResource.h>
 #include <ResourceManager/Resources/Render/Textures/Texture2DResource.h>
 
+#include <MemoryManager/Pointer.h>
+
 struct PointLight
 {
 	XMFLOAT3 Position;
@@ -2000,7 +2002,7 @@ void RenderSystem::InitSystem()
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(SkyPipelineState)));
 		SAFE_DX(SkyPipelineState->SetName((const wchar_t*)u"Sky Pipeline State"));
 
-		ScopedMemoryBlockArray<Texel> SkyTextureTexels = Engine::GetEngine().GetMemoryManager().GetGlobalStackAllocator().AllocateFromStack<Texel>(2048 * 2048);
+		Pointer<Texel[]> SkyTextureTexels = Pointer<Texel[]>::Create(2048 * 2048);
 
 		for (int y = 0; y < 2048; y++)
 		{
@@ -2230,7 +2232,7 @@ void RenderSystem::InitSystem()
 		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(SunPipelineState)));
 		SAFE_DX(SunPipelineState->SetName((const wchar_t*)u"Sun Pipeline State"));
 
-		ScopedMemoryBlockArray<Texel> SunTextureTexels = Engine::GetEngine().GetMemoryManager().GetGlobalStackAllocator().AllocateFromStack<Texel>(512 * 512);
+		Pointer<Texel[]> SunTextureTexels = Pointer<Texel[]>::Create(512 * 512);
 
 		for (int y = 0; y < 512; y++)
 		{
