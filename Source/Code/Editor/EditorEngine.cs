@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Runtime.InteropServices;
+using System.Collections.ObjectModel;
 
 namespace Editor
 {
@@ -55,19 +56,22 @@ namespace Editor
         public static extern void MoveCamera(bool bForward, bool bBackward, bool bLeft, bool bRight);
 
         [DllImport("EditorEngine.NET.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern IntPtr GetEntityClassName(string EntityName);
+        public static extern IntPtr FindEntityByName(string EntityName);
 
         [DllImport("EditorEngine.NET.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern uint GetEntityPropertiesCount(string EntityName);
+        public static extern IntPtr GetEntityClassName(IntPtr Entity);
 
         [DllImport("EditorEngine.NET.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern IntPtr GetEntityPropertyName(string EntityName, uint PropertyIndex);
+        public static extern uint GetEntityPropertiesCount(IntPtr Entity);
 
         [DllImport("EditorEngine.NET.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern ClassPropertyType GetEntityPropertyType(string EntityName, uint PropertyIndex);
+        public static extern IntPtr GetEntityPropertyName(IntPtr Entity, uint PropertyIndex);
 
         [DllImport("EditorEngine.NET.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern IntPtr GetEntityComponentReferenceProperty(string EntityName, string PropertyName);
+        public static extern ClassPropertyType GetEntityPropertyType(IntPtr Entity, uint PropertyIndex);
+
+        [DllImport("EditorEngine.NET.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern IntPtr GetEntityComponentReferenceProperty(IntPtr Entity, string PropertyName);
 
         [DllImport("EditorEngine.NET.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr GetComponentClassName(IntPtr Component);
@@ -128,6 +132,23 @@ namespace Editor
             SetLevelRenderCanvasHandle(LevelRenderCanvasHandle);
             SetEditorViewportSize(EditorViewportWidth, EditorViewportHeight);
             StartApplication();
+
+            Editor.App.Current.Dispatcher.Invoke(new Action(() =>
+            {
+                MainLevelEditorWindow mainLevelEditorWindow = (Editor.MainLevelEditorWindow)Editor.App.Current.MainWindow;
+                ObservableCollection<EntitiesListItem> entitiesListItems = mainLevelEditorWindow.entitiesListItems;
+
+                for (int i = 0; i < 20000; i++)
+                {
+                    entitiesListItems.Add(new EntitiesListItem("StaticMeshEntity_" + i, EditorEngine.FindEntityByName("StaticMeshEntity_" + i)));
+                }
+
+                for (int i = 0; i < 10000; i++)
+                {
+                    entitiesListItems.Add(new EntitiesListItem("PointLightEntity_" + i, EditorEngine.FindEntityByName("PointLightEntity_" + i)));
+                }
+            }));            
+
             RunMainLoop();
             StopApplication();
         }

@@ -18,15 +18,35 @@ using System.Windows.Shapes;
 using System.Windows.Interop;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Collections.ObjectModel;
 
 namespace Editor
 {
+    public struct EntitiesListItem
+    {
+        public string EntityName;
+        public IntPtr Entity;
+
+        public EntitiesListItem(string EntityName, IntPtr Entity)
+        {
+            this.EntityName = EntityName;
+            this.Entity = Entity;
+        }
+
+        public override string ToString()
+        {
+            return EntityName;
+        }
+    }
+
     /// <summary>
     /// Interaction logic for MainLevelEditorWindow.xaml
     /// </summary>
     public partial class MainLevelEditorWindow : Window
     {
-        EditorEngine editorEngine;
+        private EditorEngine editorEngine;
+
+        public ObservableCollection<EntitiesListItem> entitiesListItems;
 
         public MainLevelEditorWindow()
         {
@@ -45,19 +65,9 @@ namespace Editor
             editorEngine.EditorViewportHeight = (uint)this.WFHost.Child.Height;
             editorEngine.StartEditorEngine();
 
-            for (int i = 0; i < 20000; i++)
-            {
-                var EntityItem = new ListBoxItem();
-                EntityItem.Content = "StaticMeshEntity_" + i;
-                LevelEnitiesList.Items.Add(EntityItem);
-            }
+            entitiesListItems = new ObservableCollection<EntitiesListItem>();
 
-            for (int i = 0; i < 10000; i++)
-            {
-                var EntityItem = new ListBoxItem();
-                EntityItem.Content = "PointLightEntity_" + i;
-                LevelEnitiesList.Items.Add(EntityItem);
-            }
+            LevelEnitiesList.ItemsSource = entitiesListItems;
         }
 
         [DllImport("user32.dll")]
@@ -69,18 +79,20 @@ namespace Editor
         private void LevelEnitiesList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             ListBox listBox = (ListBox)sender;
-            ListBoxItem listBoxItem = (ListBoxItem)listBox.Items[listBox.SelectedIndex];
-            string EntityClassName = System.Runtime.InteropServices.Marshal.PtrToStringAnsi(EditorEngine.GetEntityClassName(listBoxItem.Content.ToString()));
+            EntitiesListItem listBoxItem = (EntitiesListItem)listBox.Items[listBox.SelectedIndex];
+            string EntityName = listBoxItem.EntityName;
+            IntPtr Entity = listBoxItem.Entity;
+            string EntityClassName = System.Runtime.InteropServices.Marshal.PtrToStringAnsi(EditorEngine.GetEntityClassName(Entity));
             StatusBarLabel.Content = EntityClassName;
 
             PropertiesStack.Children.Clear();
 
-            uint EntityPropertiesCount = EditorEngine.GetEntityPropertiesCount(listBoxItem.Content.ToString());
+            uint EntityPropertiesCount = EditorEngine.GetEntityPropertiesCount(Entity);
 
             for (uint i = 0; i < EntityPropertiesCount; i++)
             {
-                string EntityPropertyName = System.Runtime.InteropServices.Marshal.PtrToStringAnsi(EditorEngine.GetEntityPropertyName(listBoxItem.Content.ToString(), i));
-                EditorEngine.ClassPropertyType EntityPropertyType = EditorEngine.GetEntityPropertyType(listBoxItem.Content.ToString(), i);
+                string EntityPropertyName = System.Runtime.InteropServices.Marshal.PtrToStringAnsi(EditorEngine.GetEntityPropertyName(Entity, i));
+                EditorEngine.ClassPropertyType EntityPropertyType = EditorEngine.GetEntityPropertyType(Entity, i);
 
                 Label PropertyLabel = new Label();
                 PropertyLabel.Content = EntityPropertyName;
@@ -88,7 +100,7 @@ namespace Editor
 
                 if (EntityPropertyType == EditorEngine.ClassPropertyType.ComponentReference)
                 {
-                    IntPtr ComponentReference = EditorEngine.GetEntityComponentReferenceProperty(listBoxItem.Content.ToString(), EntityPropertyName);
+                    IntPtr ComponentReference = EditorEngine.GetEntityComponentReferenceProperty(Entity, EntityPropertyName);
 
                     uint ComponentPropertiesCount = EditorEngine.GetComponentPropertiesCount(ComponentReference);
 

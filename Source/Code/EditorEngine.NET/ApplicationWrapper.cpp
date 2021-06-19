@@ -75,29 +75,34 @@ extern "C" __declspec(dllexport) void MoveCamera(bool bForward, bool bBackward, 
 	camera.SetCameraLocation(CameraLocation);
 }
 
-extern "C" __declspec(dllexport) const char* GetEntityClassName(const char* EntityName)
+extern "C" __declspec(dllexport) const char* GetEntityClassName(Entity* entity)
 {
-	return Engine::GetEngine().GetGameFramework().GetWorld().FindEntityByName(EntityName)->GetMetaClass()->GetClassName();
+	return entity->GetMetaClass()->GetClassName();
 }
 
-extern "C" __declspec(dllexport) uint32_t GetEntityPropertiesCount(const char* EntityName)
+extern "C" __declspec(dllexport) uint32_t GetEntityPropertiesCount(Entity* entity)
 {
-	return Engine::GetEngine().GetGameFramework().GetWorld().FindEntityByName(EntityName)->GetPropertiesCount();
+	return entity->GetPropertiesCount();
 }
 
-extern "C" __declspec(dllexport) const char* GetEntityPropertyName(const char* EntityName, uint32_t PropertyIndex)
+extern "C" __declspec(dllexport) const Entity* FindEntityByName(const char* EntityName)
 {
-	return Engine::GetEngine().GetGameFramework().GetWorld().FindEntityByName(EntityName)->GetPropertyName(PropertyIndex);
+	return Engine::GetEngine().GetGameFramework().GetWorld().FindEntityByName(EntityName);
 }
 
-extern "C" __declspec(dllexport) ClassPropertyType GetEntityPropertyType(const char* EntityName, uint32_t PropertyIndex)
+extern "C" __declspec(dllexport) const char* GetEntityPropertyName(Entity* entity, uint32_t PropertyIndex)
 {
-	return Engine::GetEngine().GetGameFramework().GetWorld().FindEntityByName(EntityName)->GetPropertyType(PropertyIndex);
+	return entity->GetPropertyName(PropertyIndex);
 }
 
-extern "C" __declspec(dllexport) void* GetEntityComponentReferenceProperty(const char* EntityName, const char* PropertyName)
+extern "C" __declspec(dllexport) ClassPropertyType GetEntityPropertyType(Entity* entity, uint32_t PropertyIndex)
 {
-	return Engine::GetEngine().GetGameFramework().GetWorld().FindEntityByName(EntityName)->GetComponentReferenceProperty(PropertyName);
+	return entity->GetPropertyType(PropertyIndex);
+}
+
+extern "C" __declspec(dllexport) void* GetEntityComponentReferenceProperty(Entity* entity, const char* PropertyName)
+{
+	return entity->GetComponentReferenceProperty(PropertyName);
 }
 
 extern "C" __declspec(dllexport) const char* GetComponentClassName(Component* component)
