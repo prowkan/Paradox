@@ -7,13 +7,15 @@
 #include <Containers/FixedSizeString.h>
 #include <Containers/String.h>
 
-bool Application::EditorFlag;
 bool Application::AppExitFlag;
 HWND Application::MainWindowHandle;
-HWND Application::LevelRenderCanvasHandle;
 atomic<bool> Application::ExceptionFlag;
+#if WITH_EDITOR
+bool Application::EditorFlag;
+HWND Application::LevelRenderCanvasHandle;
 UINT Application::EditorViewportWidth;
 UINT Application::EditorViewportHeight;
+#endif
 
 LRESULT CALLBACK Application::MainWindowProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
@@ -25,12 +27,12 @@ LRESULT CALLBACK Application::MainWindowProc(HWND hWnd, UINT Msg, WPARAM wParam,
 
 LONG WINAPI Application::UnhandledExceptionFilter(_EXCEPTION_POINTERS* ExceptionInfo)
 {
-	if (Application::ExceptionFlag.load(memory_order::memory_order_seq_cst) == true)
+	if (ExceptionFlag.load(memory_order::memory_order_seq_cst) == true)
 	{
 		return EXCEPTION_CONTINUE_EXECUTION;
 	}
 	
-	Application::ExceptionFlag.store(true, memory_order::memory_order_seq_cst);
+	ExceptionFlag.store(true, memory_order::memory_order_seq_cst);
 
 	FixedSizeString<1024> ErrorMessageString;
 	FixedSizeString<256> ExceptionCodeString;
@@ -137,7 +139,9 @@ LONG WINAPI Application::UnhandledExceptionFilter(_EXCEPTION_POINTERS* Exception
 
 void Application::StartApplication(const char16_t* WindowTitle, HINSTANCE hInstance)
 {
+#if WITH_EDITOR
 	Application::EditorFlag = false;
+#endif
 
 	LPTOP_LEVEL_EXCEPTION_FILTER TopLevelExceptionFilter = SetUnhandledExceptionFilter(&Application::UnhandledExceptionFilter);
 
@@ -239,7 +243,7 @@ void Application::RunMainLoop()
 #if WITH_EDITOR
 void Application::EditorStartApplication()
 {
-	Application::EditorFlag = true;
+	EditorFlag = true;
 
 	//LPTOP_LEVEL_EXCEPTION_FILTER TopLevelExceptionFilter = SetUnhandledExceptionFilter(&Application::UnhandledExceptionFilter);
 
@@ -249,7 +253,7 @@ void Application::EditorStartApplication()
 	//Result = SetConsoleTitle((wchar_t*)"");
 	freopen("CONOUT$", "w", stdout);*/
 
-	Application::AppExitFlag = false;
+	AppExitFlag = false;
 	//Application::ExceptionFlag.store(false, memory_order::memory_order_seq_cst);
 
 	Engine::GetEngine().InitEngine();

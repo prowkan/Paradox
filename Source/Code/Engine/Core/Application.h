@@ -17,10 +17,10 @@ class Application
 
 		static HWND GetLevelRenderCanvasHandle() { return LevelRenderCanvasHandle; }
 
-		static bool IsEditor() { return Application::EditorFlag; }
+		static bool IsEditor() { return EditorFlag; }
 
-		static void SetLevelRenderCanvasHandle(HWND LevelRenderCanvasHandle) { Application::LevelRenderCanvasHandle = LevelRenderCanvasHandle; }
-		static void SetAppExitFlag(bool Value) { Application::AppExitFlag = Value; }
+		static void SetLevelRenderCanvasHandle(HWND NewLevelRenderCanvasHandle) { LevelRenderCanvasHandle = NewLevelRenderCanvasHandle; }
+		static void SetAppExitFlag(bool Value) { AppExitFlag = Value; }
 
 		static UINT EditorViewportWidth;
 		static UINT EditorViewportHeight;

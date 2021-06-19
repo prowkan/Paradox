@@ -93,8 +93,24 @@ void RenderSystem::InitSystem()
 	/*ResolutionWidth = DisplayModes[(size_t)DisplayModesCount - 1].Width;
 	ResolutionHeight = DisplayModes[(size_t)DisplayModesCount - 1].Height;*/
 
-	ResolutionWidth = 1280;
-	ResolutionHeight = 720;
+	/*ResolutionWidth = 1280;
+	ResolutionHeight = 720;*/
+
+#if WITH_EDITOR
+	if (Application::IsEditor())
+	{
+		EditorViewportWidth = Application::EditorViewportWidth;
+		EditorViewportHeight = Application::EditorViewportHeight;
+
+		ResolutionWidth = EditorViewportWidth;
+		ResolutionHeight = EditorViewportHeight;
+	}
+	else
+#endif
+	{
+		ResolutionWidth = 1280;
+		ResolutionHeight = 720;
+	}
 
 	SAFE_DX(D3D12CreateDevice(Adapter, D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_11_0, UUIDOF(Device)));
 
@@ -137,11 +153,19 @@ void RenderSystem::InitSystem()
 	SwapChainFullScreenDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER::DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 	SwapChainFullScreenDesc.Windowed = TRUE;
 
+	HWND RenderTargetHandle =
+#if WITH_EDITOR
+		Application::IsEditor()
+		?
+		Application::GetLevelRenderCanvasHandle() :
+#endif
+		Application::GetMainWindowHandle();
+
 	COMRCPtr<IDXGISwapChain1> SwapChain1;
-	SAFE_DX(Factory->CreateSwapChainForHwnd(CommandQueue, Application::GetMainWindowHandle(), &SwapChainDesc, &SwapChainFullScreenDesc, nullptr, &SwapChain1));
+	SAFE_DX(Factory->CreateSwapChainForHwnd(CommandQueue, RenderTargetHandle, &SwapChainDesc, &SwapChainFullScreenDesc, nullptr, &SwapChain1));
 	SAFE_DX(SwapChain1->QueryInterface<IDXGISwapChain4>(&SwapChain));
 
-	SAFE_DX(Factory->MakeWindowAssociation(Application::GetMainWindowHandle(), DXGI_MWA_NO_ALT_ENTER));
+	SAFE_DX(Factory->MakeWindowAssociation(RenderTargetHandle, DXGI_MWA_NO_ALT_ENTER));
 
 	delete[] DisplayModes;
 
