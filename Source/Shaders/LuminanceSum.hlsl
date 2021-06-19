@@ -10,17 +10,10 @@ float4 PS(PSInput PixelShaderInput) : SV_Target
 {
 	int2 Coords = trunc(PixelShaderInput.Position.xy);
 
-	float SummedLuminance = 0.0f;
-
-	[unroll]
-	for (int i = 0; i < 16; i++)
-	{
-		[unroll]
-		for (int j = 0; j < 16; j++)
-		{
-			SummedLuminance += InputLuminanceTexture[int2(Coords.x * 16 + i, Coords.y * 16 + j)];
-		}
-	}
+	float SummedLuminance = InputLuminanceTexture[int2(2 * Coords.x, 2 * Coords.y)].r;
+	SummedLuminance += InputLuminanceTexture[int2(2 * Coords.x + 1, 2 * Coords.y)].r;
+	SummedLuminance += InputLuminanceTexture[int2(2 * Coords.x, 2 * Coords.y + 1)].r;
+	SummedLuminance += InputLuminanceTexture[int2(2 * Coords.x + 1, 2 * Coords.y + 1)].r;
 
 	return float4(SummedLuminance, 0.0f, 0.0f, 0.0f);
 }
