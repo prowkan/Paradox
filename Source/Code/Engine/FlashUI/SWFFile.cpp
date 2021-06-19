@@ -22,7 +22,7 @@ void SWFFile::Close()
 	free(SWFFileData);
 }
 
-uint32_t SWFFile::ReadUnsignedBits(uint32_t BitsCount)
+uint32_t SWFFile::ReadUnsignedBits(const uint32_t BitsCount)
 {
 	uint32_t Value = 0;
 
@@ -46,7 +46,7 @@ uint32_t SWFFile::ReadUnsignedBits(uint32_t BitsCount)
 	return Value;
 }
 
-int32_t SWFFile::ReadSignedBits(uint32_t BitsCount)
+int32_t SWFFile::ReadSignedBits(const uint32_t BitsCount)
 {
 	int32_t Value = 0;
 
@@ -84,30 +84,13 @@ SWFRect SWFFile::ReadRect()
 	return Rect;
 }
 
-bool SWFFile::ReadTag(uint32_t& TagCode, uint32_t& TagLength, void*& TagData)
+void SWFFile::SkipBytes(const size_t BytesCount)
 {
-	if (CurrentByte >= SWFFileSize)
+	if ((CurrentBit % 8) > 0)
 	{
-		TagData = nullptr;
-		return false;
+		CurrentBit = 0;
+		CurrentByte++;
 	}
 
-	uint16_t TagCodeAndlength = Read<uint16_t>();
-
-	TagCode = (TagCodeAndlength & (0b1111111111 << 6)) >> 6;
-	TagLength = TagCodeAndlength & 0b111111;
-
-	if (TagLength == 63)
-	{
-		TagLength = Read<uint32_t>();
-	}
-
-	TagData = malloc(TagLength);
-
-	for (uint32_t i = 0; i < TagLength; i++)
-	{
-		*((uint8_t*)TagData + i) = Read<uint8_t>();
-	}
-
-	return true;
+	CurrentByte += BytesCount;
 }

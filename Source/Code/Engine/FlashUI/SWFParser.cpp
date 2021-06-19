@@ -30,16 +30,49 @@ void SWFParser::ParseFile(SWFFile& File)
 
 	uint32_t TagCode;
 	uint32_t TagLength;
-	void *TagData;
 
-	while (File.ReadTag(TagCode, TagLength, TagData))
+	while (true)
 	{
-		ProcessTag(TagCode, TagLength, TagData);
-		free(TagData);
+		uint16_t TagCodeAndlength = File.Read<uint16_t>();
+
+		TagCode = (TagCodeAndlength & (0b1111111111 << 6)) >> 6;
+		TagLength = TagCodeAndlength & 0b111111;
+
+		if (TagLength == 63)
+		{
+			TagLength = File.Read<uint32_t>();
+		}
+
+		ProcessTag(File, TagCode, TagLength);
+
+		if (TagCode == TAG_END) break;
 	}
 }
 
-void SWFParser::ProcessTag(uint32_t TagCode, uint32_t TagLength, void* TagData)
+void SWFParser::ProcessTag(SWFFile& File, uint32_t TagCode, uint32_t TagLength)
 {
 	cout << TagCode << " " << TagLength << endl;
+
+	switch (TagCode)
+	{
+		default:
+			cout << "Unknown tag." << endl;
+			File.SkipBytes(TagLength);
+			break;
+	}
+}
+
+void SWFParser::ProcessEndTag(SWFFile& File)
+{
+	return;
+}
+
+void SWFParser::ProcessShowFrameTag(SWFFile& File)
+{
+	return;
+}
+
+void SWFParser::ProcessDefineShapeTag(SWFFile& File)
+{
+	
 }

@@ -15,12 +15,12 @@ class SWFFile
 		template<typename T>
 		T Read();
 
-		uint32_t ReadUnsignedBits(uint32_t BitsCount);
-		int32_t ReadSignedBits(uint32_t BitsCount);
+		uint32_t ReadUnsignedBits(const uint32_t BitsCount);
+		int32_t ReadSignedBits(const uint32_t BitsCount);
 
 		SWFRect ReadRect();
 
-		bool ReadTag(uint32_t& TagCode, uint32_t& TagLength, void*& TagData);
+		void SkipBytes(const size_t BytesCount);
 
 	private:
 
