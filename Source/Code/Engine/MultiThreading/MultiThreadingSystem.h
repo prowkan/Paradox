@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ThreadSafeQueue.h"
+#include <Platform/PlatformThread.h>
 
 class Task;
 
@@ -24,7 +25,7 @@ class MultiThreadingSystem
 
 
 		static const int MAX_WORKER_THREADS = 16;
-		HANDLE WorkerThreads[MAX_WORKER_THREADS];
+		PlatformThread WorkerThreads[MAX_WORKER_THREADS];
 		static atomic<bool> WorkerThreadExitFlag;
 		UINT ThreadIndices[MAX_WORKER_THREADS];
 		UINT WorkerThreadsCount;

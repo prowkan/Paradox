@@ -230,7 +230,9 @@
     <ClInclude Include="MultiThreading\MultiThreadingSystem.h" />
     <ClInclude Include="MultiThreading\Task.h" />
     <ClInclude Include="Platform\PCWindows\PCWindowsPlatformMemoryAllocator.h" />
+    <ClInclude Include="Platform\PCWindows\PCWindowsPlatformThread.h" />
     <ClInclude Include="Platform\PlatformMemoryAllocator.h" />
+    <ClInclude Include="Platform\PlatformThread.h" />
     <ClInclude Include="Render\Tasks\FrustumCullingTask.h" />
     <ClInclude Include="MultiThreading\ThreadSafeQueue.h" />
     <ClInclude Include="MultiThreading\WorkerThread.h" />
@@ -280,6 +282,7 @@
     <ClCompile Include="MultiThreading\MultiThreadingSystem.cpp" />
     <ClCompile Include="MultiThreading\Task.cpp" />
     <ClCompile Include="Platform\PCWindows\PCWindowsPlatformMemoryAllocator.cpp" />
+    <ClCompile Include="Platform\PCWindows\PCWindowsPlatformThread.cpp" />
     <ClCompile Include="Render\Tasks\FrustumCullingTask.cpp" />
     <ClCompile Include="MultiThreading\ThreadSafeQueue.cpp" />
     <ClCompile Include="MultiThreading\WorkerThread.cpp" />
