@@ -13,9 +13,12 @@ class InputSystem
 		void ToggleOcclusionBuffer();
 		void ToggleBoundingBoxes();
 
+		void ProcessRawMouseInput(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
+
 	private:
 
-		POINT PreviousCursorPosition, CurrentCursorPosition;
+		//POINT PreviousCursorPosition, CurrentCursorPosition;
+		LONG MouseDeltaX, MouseDeltaY;
 
 		enum class KeyState { Pressed, Released };
 

@@ -18,8 +18,16 @@ void InputSystem::InitSystem()
 		WindowCenter.x = (WindowRect.left + WindowRect.right) / 2;
 		WindowCenter.y = (WindowRect.top + WindowRect.bottom) / 2;
 		Result = SetCursorPos(WindowCenter.x, WindowCenter.y);
-		PreviousCursorPosition.x = WindowCenter.x;
-		PreviousCursorPosition.y = WindowCenter.y;
+		/*PreviousCursorPosition.x = WindowCenter.x;
+		PreviousCursorPosition.y = WindowCenter.y;*/
+
+		RAWINPUTDEVICE RawInputDevice;
+		RawInputDevice.dwFlags = 0;
+		RawInputDevice.hwndTarget = NULL;
+		RawInputDevice.usUsage = 0x0002;
+		RawInputDevice.usUsagePage = 0x0001;
+
+		Result = RegisterRawInputDevices(&RawInputDevice, 1, sizeof(RAWINPUTDEVICE));
 	}
 
 	for (int i = 0; i < 255; i++)
@@ -103,25 +111,29 @@ void InputSystem::TickSystem(float DeltaTime)
 	if (GetAsyncKeyState(VK_LEFT) & 0x8000) CameraRotation.y -= 1.0f * DeltaTime;
 	if (GetAsyncKeyState(VK_RIGHT) & 0x8000) CameraRotation.y += 1.0f * DeltaTime;
 
-	BOOL Result = GetCursorPos(&CurrentCursorPosition);
+	//BOOL Result = GetCursorPos(&CurrentCursorPosition);
 
 	float MouseSensetivity = 0.25f;
 
-	CameraRotation.x += MouseSensetivity * (CurrentCursorPosition.y - PreviousCursorPosition.y) * DeltaTime;
-	CameraRotation.y += MouseSensetivity * (CurrentCursorPosition.x - PreviousCursorPosition.x) * DeltaTime;
+	//CameraRotation.x += MouseSensetivity * (CurrentCursorPosition.y - PreviousCursorPosition.y) * DeltaTime;
+	//CameraRotation.y += MouseSensetivity * (CurrentCursorPosition.x - PreviousCursorPosition.x) * DeltaTime;
+	//CameraRotation.x += MouseSensetivity * (CurrentCursorPosition.y - PreviousCursorPosition.y) * DeltaTime;
+	CameraRotation.x += MouseSensetivity * MouseDeltaY * DeltaTime;
+	//CameraRotation.y += MouseSensetivity * (CurrentCursorPosition.x - PreviousCursorPosition.x) * DeltaTime;
+	CameraRotation.y += MouseSensetivity * MouseDeltaX * DeltaTime;
 
 #if WITH_EDITOR
 	if (!Application::IsEditor())
 #endif
 	{
-		RECT WindowRect;
+		/*RECT WindowRect;
 		Result = GetWindowRect(Application::GetMainWindowHandle(), &WindowRect);
 		POINT WindowCenter;
 		WindowCenter.x = (WindowRect.left + WindowRect.right) / 2;
 		WindowCenter.y = (WindowRect.top + WindowRect.bottom) / 2;
 		Result = SetCursorPos(WindowCenter.x, WindowCenter.y);
 		PreviousCursorPosition.x = WindowCenter.x;
-		PreviousCursorPosition.y = WindowCenter.y;
+		PreviousCursorPosition.y = WindowCenter.y;*/
 	}
 
 	XMFLOAT3 CameraOffset = XMFLOAT3(0.0f, 0.0f, 0.0f);
@@ -147,4 +159,28 @@ void InputSystem::TickSystem(float DeltaTime)
 
 	camera.SetCameraLocation(CameraLocation);
 	camera.SetCameraRotation(CameraRotation);
+
+	MouseDeltaX = 0;
+	MouseDeltaY = 0;
+}
+
+void InputSystem::ProcessRawMouseInput(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
+{
+	UINT RawInputDataSize;
+
+	UINT Result = GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &RawInputDataSize, sizeof(RAWINPUTHEADER));
+
+	BYTE *RawInputData = new BYTE[RawInputDataSize];
+
+	Result = GetRawInputData((HRAWINPUT)lParam, RID_INPUT, RawInputData, &RawInputDataSize, sizeof(RAWINPUTHEADER));
+
+	RAWINPUT& RawInput = *(RAWINPUT*)RawInputData;
+
+	if (RawInput.header.dwType == RIM_TYPEMOUSE)
+	{
+		MouseDeltaX += RawInput.data.mouse.lLastX;
+		MouseDeltaY += RawInput.data.mouse.lLastY;
+	}
+
+	delete[] RawInputData;
 }
