@@ -5,7 +5,7 @@
 
 #include <Containers/DynamicArray.h>
 
-#include <MemoryManager/SystemAllocator.h>
+#include <MemoryManager/SystemMemoryAllocator.h>
 
 String Trim(const String& InputString)
 {
@@ -43,7 +43,7 @@ void ConfigSystem::InitSystem()
 	HANDLE RenderConfigFileHandle = CreateFile((const wchar_t*)u"Config/Render.cfg", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	LARGE_INTEGER RenderConfigFileSize;
 	BOOL Result = GetFileSizeEx(RenderConfigFileHandle, &RenderConfigFileSize);
-	BYTE *RenderConfigFileData = (BYTE*)SystemAllocator::AllocateMemory(RenderConfigFileSize.QuadPart);
+	BYTE *RenderConfigFileData = (BYTE*)SystemMemoryAllocator::AllocateMemory(RenderConfigFileSize.QuadPart);
 	Result = ReadFile(RenderConfigFileHandle, RenderConfigFileData, (DWORD)RenderConfigFileSize.QuadPart, NULL, NULL);
 	Result = CloseHandle(RenderConfigFileHandle);
 
@@ -100,7 +100,7 @@ void ConfigSystem::InitSystem()
 		}
 	}
 
-	SystemAllocator::FreeMemory(RenderConfigFileData);
+	SystemMemoryAllocator::FreeMemory(RenderConfigFileData);
 }
 
 void ConfigSystem::ShutdownSystem()

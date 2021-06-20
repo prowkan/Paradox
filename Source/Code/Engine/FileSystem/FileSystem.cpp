@@ -5,7 +5,7 @@
 
 #include <Containers/DynamicArray.h>
 
-#include <MemoryManager/SystemAllocator.h>
+#include <MemoryManager/SystemMemoryAllocator.h>
 
 struct FileRecord
 {
@@ -153,7 +153,7 @@ void FileSystem::InitSystem()
 
 			ShadersTable.Insert(FileNameKey, ShaderData{});
 			ShadersTable[FileNameKey].Size = (size_t)FileSize.QuadPart;
-			ShadersTable[FileNameKey].Data = SystemAllocator::AllocateMemory(FileSize.QuadPart);
+			ShadersTable[FileNameKey].Data = SystemMemoryAllocator::AllocateMemory(FileSize.QuadPart);
 
 			Result = ReadFile(FileHandle, ShadersTable[FileNameKey].Data, (DWORD)FileSize.QuadPart, NULL, NULL);
 

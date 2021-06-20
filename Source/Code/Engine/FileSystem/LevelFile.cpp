@@ -3,7 +3,7 @@
 
 #include "LevelFile.h"
 
-#include <MemoryManager/SystemAllocator.h>
+#include <MemoryManager/SystemMemoryAllocator.h>
 
 void LevelFile::OpenFile(const wchar_t* FileName)
 {
@@ -11,7 +11,7 @@ void LevelFile::OpenFile(const wchar_t* FileName)
 	LARGE_INTEGER LevelFileSize;
 	BOOL Result = GetFileSizeEx(LevelFile, &LevelFileSize);
 
-	FileData = SystemAllocator::AllocateMemory(LevelFileSize.QuadPart);
+	FileData = SystemMemoryAllocator::AllocateMemory(LevelFileSize.QuadPart);
 	FilePointer = 0;
 
 	Result = ReadFile(LevelFile, FileData, (DWORD)LevelFileSize.QuadPart, NULL, NULL);
@@ -19,6 +19,6 @@ void LevelFile::OpenFile(const wchar_t* FileName)
 
 void LevelFile::CloseFile()
 {
-	SystemAllocator::FreeMemory(FileData);
+	SystemMemoryAllocator::FreeMemory(FileData);
 	BOOL Result = CloseHandle(LevelFile);
 }

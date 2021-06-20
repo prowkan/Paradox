@@ -1,21 +1,21 @@
 // This is an independent project of an individual developer. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 
-#include "SystemAllocator.h"
+#include "PCWindowsPlatformMemoryAllocator.h"
 
-HANDLE SystemAllocator::ProcessHeap;
+HANDLE PCWindowsPlatformMemoryAllocator::ProcessHeap;
 
-void SystemAllocator::InitAllocator()
+void PCWindowsPlatformMemoryAllocator::InitAllocator()
 {
 	ProcessHeap = GetProcessHeap();
 }
 
-void* SystemAllocator::AllocateMemory(const size_t Size)
+void* PCWindowsPlatformMemoryAllocator::AllocateMemory(const size_t Size)
 {
 	return HeapAlloc(ProcessHeap, 0, Size);
 }
 
-void SystemAllocator::FreeMemory(void *Pointer)
+void PCWindowsPlatformMemoryAllocator::FreeMemory(void *Pointer)
 {
 	BOOL Result = HeapFree(ProcessHeap, 0, Pointer);
 }

@@ -17,7 +17,7 @@
 
 #include <Engine/Engine.h>
 
-#include <MemoryManager/SystemAllocator.h>
+#include <MemoryManager/SystemMemoryAllocator.h>
 
 #include <FileSystem/LevelFile.h>
 
@@ -35,7 +35,7 @@ void World::LoadWorld()
 		MetaClass *metaClass = Engine::GetEngine().GetGameFramework().GetMetaClassesTable()[EntityClassName];
 
 		//void *entityPtr = Engine::GetEngine().GetMemoryManager().AllocateEntity(metaClass);
-		void *entityPtr = SystemAllocator::AllocateMemory(metaClass->GetClassSize());
+		void *entityPtr = SystemMemoryAllocator::AllocateMemory(metaClass->GetClassSize());
 		metaClass->ObjectConstructorFunc(entityPtr);
 		Entity *entity = (Entity*)entityPtr;
 		String EntityName = String(metaClass->GetClassName()) + "_" + String((int)metaClass->InstancesCount);
@@ -60,7 +60,7 @@ void World::UnLoadWorld()
 Entity* World::SpawnEntity(MetaClass* metaClass)
 {
 	//void *entityPtr = Engine::GetEngine().GetMemoryManager().AllocateEntity(metaClass);
-	void *entityPtr = SystemAllocator::AllocateMemory(metaClass->GetClassSize());
+	void *entityPtr = SystemMemoryAllocator::AllocateMemory(metaClass->GetClassSize());
 	metaClass->ObjectConstructorFunc(entityPtr);
 	Entity *entity = (Entity*)entityPtr;
 	String EntityName = String(metaClass->GetClassName()) + "_" + String((int)metaClass->InstancesCount);

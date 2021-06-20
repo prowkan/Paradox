@@ -38,4 +38,6 @@
 using namespace std;
 using namespace DirectX;
 
+#define PLATFORM_PC_WINDOW
+
 #define WITH_EDITOR 1

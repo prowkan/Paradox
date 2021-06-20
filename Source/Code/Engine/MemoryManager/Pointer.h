@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SystemAllocator.h"
+#include "SystemMemoryAllocator.h"
 
 template<typename T>
 class Pointer
@@ -11,7 +11,7 @@ class Pointer
 		{
 			Pointer<T> pointer;
 
-			pointer.Data = (T*)SystemAllocator::AllocateMemory(sizeof(T));
+			pointer.Data = (T*)SystemMemoryAllocator::AllocateMemory(sizeof(T));
 
 			return pointer;
 		}
@@ -29,7 +29,7 @@ class Pointer
 
 		~Pointer()
 		{
-			SystemAllocator::FreeMemory(Data);
+			SystemMemoryAllocator::FreeMemory(Data);
 		}
 
 		template<typename U>
@@ -52,7 +52,7 @@ class Pointer<T[]>
 		{
 			Pointer<T[]> pointer;
 
-			pointer.Data = (T*)SystemAllocator::AllocateMemory(sizeof(T) * ElementsCount);
+			pointer.Data = (T*)SystemMemoryAllocator::AllocateMemory(sizeof(T) * ElementsCount);
 
 			return pointer;
 		}
@@ -70,7 +70,7 @@ class Pointer<T[]>
 
 		~Pointer()
 		{
-			SystemAllocator::FreeMemory(Data);
+			SystemMemoryAllocator::FreeMemory(Data);
 		}
 
 		template<typename U>

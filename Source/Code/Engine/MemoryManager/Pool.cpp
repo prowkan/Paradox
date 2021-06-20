@@ -3,11 +3,11 @@
 
 #include "Pool.h"
 
-#include "SystemAllocator.h"
+#include "SystemMemoryAllocator.h"
 
 void Pool::CreatePool(const size_t ObjectSize, const size_t MaxObjectsInPool)
 {
-	PoolData = SystemAllocator::AllocateMemory(ObjectSize * MaxObjectsInPool);
+	PoolData = SystemMemoryAllocator::AllocateMemory(ObjectSize * MaxObjectsInPool);
 
 	this->ObjectSize = ObjectSize;
 	this->ObjectsCount = 0;
@@ -15,7 +15,7 @@ void Pool::CreatePool(const size_t ObjectSize, const size_t MaxObjectsInPool)
 
 void Pool::DestroyPool()
 {
-	SystemAllocator::FreeMemory(PoolData);
+	SystemMemoryAllocator::FreeMemory(PoolData);
 	PoolData = nullptr;
 }
 

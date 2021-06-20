@@ -8,7 +8,7 @@
 
 #include <Engine/Engine.h>
 
-#include <MemoryManager/SystemAllocator.h>
+#include <MemoryManager/SystemMemoryAllocator.h>
 
 #include <FileSystem/LevelFile.h>
 
@@ -31,7 +31,7 @@ void PointLightEntity::LoadFromFile(LevelFile& File)
 		MetaClass *metaClass = Engine::GetEngine().GetGameFramework().GetMetaClassesTable()[ComponentClassName];
 
 		//void *componentPtr = Engine::GetEngine().GetMemoryManager().AllocateComponent(metaClass);
-		void *componentPtr = SystemAllocator::AllocateMemory(metaClass->GetClassSize());
+		void *componentPtr = SystemMemoryAllocator::AllocateMemory(metaClass->GetClassSize());
 		metaClass->ObjectConstructorFunc(componentPtr);
 		Component *component = (Component*)componentPtr;
 		component->SetMetaClass(metaClass);

@@ -7,7 +7,7 @@ StaticReference<Engine> Engine::engine;
 
 void Engine::InitEngine()
 {
-	SystemAllocator::InitAllocator();
+	SystemMemoryAllocator::InitAllocator();
 
 	memoryManager.CreateInstance();
 	configSystem.CreateInstance();

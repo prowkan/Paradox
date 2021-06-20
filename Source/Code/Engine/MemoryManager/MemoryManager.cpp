@@ -3,7 +3,7 @@
 
 #include "MemoryManager.h"
 
-#include "SystemAllocator.h"
+#include "SystemMemoryAllocator.h"
 
 #include <Game/MetaClass.h>
 
