@@ -12,13 +12,13 @@ void InputSystem::InitSystem()
 	if (!Application::IsEditor())
 #endif
 	{
-		RECT WindowRect;
+		/*RECT WindowRect;
 		BOOL Result = GetWindowRect(Application::GetMainWindowHandle(), &WindowRect);
 		POINT WindowCenter;
 		WindowCenter.x = (WindowRect.left + WindowRect.right) / 2;
 		WindowCenter.y = (WindowRect.top + WindowRect.bottom) / 2;
 		Result = SetCursorPos(WindowCenter.x, WindowCenter.y);
-		/*PreviousCursorPosition.x = WindowCenter.x;
+		PreviousCursorPosition.x = WindowCenter.x;
 		PreviousCursorPosition.y = WindowCenter.y;*/
 
 		RAWINPUTDEVICE RawInputDevice;
@@ -27,7 +27,7 @@ void InputSystem::InitSystem()
 		RawInputDevice.usUsage = 0x0002;
 		RawInputDevice.usUsagePage = 0x0001;
 
-		Result = RegisterRawInputDevices(&RawInputDevice, 1, sizeof(RAWINPUTDEVICE));
+		BOOL Result = RegisterRawInputDevices(&RawInputDevice, 1, sizeof(RAWINPUTDEVICE));
 	}
 
 	for (int i = 0; i < 255; i++)
