@@ -3475,6 +3475,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 	SAFE_DX(FrameSyncFences[CurrentFrameIndex]->Signal(0));
 
 	{
+		OPTICK_EVENT("Occlusion Buffer Reprojection");
+
 		D3D12_RESOURCE_DESC ResourceDesc = OcclusionBufferTexture->GetDesc();
 
 		D3D12_PLACED_SUBRESOURCE_FOOTPRINT PlacedSubResourceFootPrint;
@@ -3509,28 +3511,6 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	RenderScene& renderScene = gameFramework.GetWorld().GetRenderScene();
 
-	DynamicArray<StaticMeshComponent*>& AllStaticMeshComponents = renderScene.GetStaticMeshComponents();
-	DynamicArray<StaticMeshComponent*> VisibleStaticMeshComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ViewProjMatrix, true);
-	size_t VisibleStaticMeshComponentsCount = VisibleStaticMeshComponents.GetLength();
-
-	DynamicArray<PointLightComponent*>& AllPointLightComponents = renderScene.GetPointLightComponents();
-	DynamicArray<PointLightComponent*> VisiblePointLightComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisiblePointLightsInFrustum(AllPointLightComponents, ViewProjMatrix);
-
-	Engine::GetEngine().GetRenderSystem().GetClusterizationSubSystem().ClusterizeLights(VisiblePointLightComponents, ViewMatrix);
-
-	DynamicArray<PointLight> PointLights;
-
-	for (PointLightComponent *pointLightComponent : VisiblePointLightComponents)
-	{
-		PointLight pointLight;
-		pointLight.Brightness = pointLightComponent->GetBrightness();
-		pointLight.Color = pointLightComponent->GetColor();
-		pointLight.Position = pointLightComponent->GetTransformComponent()->GetLocation();
-		pointLight.Radius = pointLightComponent->GetRadius();
-
-		PointLights.Add(pointLight);
-	}
-
 	SAFE_DX(CommandAllocators[CurrentFrameIndex]->Reset());
 	SAFE_DX(CommandList->Reset(CommandAllocators[CurrentFrameIndex], nullptr));
 
@@ -3546,8 +3526,6 @@ void RenderSystem::TickSystem(float DeltaTime)
 	CommandList->SetDescriptorHeaps(2, DescriptorHeaps);
 	CommandList->SetGraphicsRootSignature(GraphicsRootSignature);
 	CommandList->SetComputeRootSignature(ComputeRootSignature);
-
-	OPTICK_EVENT("Draw Calls")
 
 	// ===============================================================================================================
 
@@ -3568,92 +3546,74 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	// ===============================================================================================================
 
+	DynamicArray<StaticMeshComponent*> VisibleStaticMeshComponents;
+	size_t VisibleStaticMeshComponentsCount;
+
 	{
-		D3D12_RESOURCE_DESC ResourceDesc = OcclusionBufferTexture->GetDesc();
-
-		D3D12_PLACED_SUBRESOURCE_FOOTPRINT PlacedSubResourceFootPrint;
-
-		UINT NumRows;
-		UINT64 RowSizeInBytes, TotalBytes;
-
-		Device->GetCopyableFootprints(&ResourceDesc, 0, 1, 0, &PlacedSubResourceFootPrint, &NumRows, &RowSizeInBytes, &TotalBytes);
-
-		float *OcclusionBufferData = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetOcclusionBufferData();
-
-		D3D12_RANGE ReadRange, WrittenRange;
-		ReadRange.Begin = 0;
-		ReadRange.End = TotalBytes;
-
-		WrittenRange.Begin = 0;
-		WrittenRange.End = 0;
-
-		void *MappedData;
-
-		OcclusionBufferTextureReadback[CurrentFrameIndex]->Map(0, &ReadRange, &MappedData);
-
-		for (UINT i = 0; i < NumRows; i++)
+		DynamicArray<StaticMeshComponent*>& AllStaticMeshComponents = renderScene.GetStaticMeshComponents();
+				
 		{
-			memcpy((BYTE*)OcclusionBufferData + i * RowSizeInBytes, (BYTE*)MappedData + i * PlacedSubResourceFootPrint.Footprint.RowPitch, RowSizeInBytes);
+			OPTICK_EVENT("Main Camera Objects Culling")
+
+			VisibleStaticMeshComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ViewProjMatrix, true);			
 		}
 
-		OcclusionBufferTextureReadback[CurrentFrameIndex]->Unmap(0, &WrittenRange);
-
-		Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().ReProjectOcclusionBuffer(ViewProjMatrix, CurrentFrameIndex);
-	}
-
-	// ===============================================================================================================
-
-	{
-		D3D12_RANGE ReadRange, WrittenRange;
-		ReadRange.Begin = 0;
-		ReadRange.End = 0;
+		VisibleStaticMeshComponentsCount = VisibleStaticMeshComponents.GetLength();
 
 		void *ConstantBufferData;
 		SIZE_T ConstantBufferOffset = 0;
 
-		SAFE_DX(CPUConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
-
-		for (size_t k = 0; k < VisibleStaticMeshComponentsCount; k++)
 		{
-			GBufferOpaquePassConstantBuffer& ConstantBuffer = *((GBufferOpaquePassConstantBuffer*)((BYTE*)ConstantBufferData + ConstantBufferOffset));
+			OPTICK_EVENT("Main Camera Objects Constants Filling")
 
-			XMMATRIX WorldMatrix = VisibleStaticMeshComponents[k]->GetTransformComponent()->GetTransformMatrix();
-			XMMATRIX WVPMatrix = WorldMatrix * ViewProjMatrix;
+			D3D12_RANGE ReadRange, WrittenRange;
+			ReadRange.Begin = 0;
+			ReadRange.End = 0;
 
-			XMFLOAT3X4 VectorTransformMatrix;
+			SAFE_DX(CPUConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
 
-			float Determinant =
-				WorldMatrix.m[0][0] * (WorldMatrix.m[1][1] * WorldMatrix.m[2][2] - WorldMatrix.m[2][1] * WorldMatrix.m[1][2]) -
-				WorldMatrix.m[1][0] * (WorldMatrix.m[0][1] * WorldMatrix.m[2][2] - WorldMatrix.m[2][1] * WorldMatrix.m[0][2]) +
-				WorldMatrix.m[2][0] * (WorldMatrix.m[0][1] * WorldMatrix.m[1][2] - WorldMatrix.m[1][1] * WorldMatrix.m[0][2]);
+			for (size_t k = 0; k < VisibleStaticMeshComponentsCount; k++)
+			{
+				GBufferOpaquePassConstantBuffer& ConstantBuffer = *((GBufferOpaquePassConstantBuffer*)((BYTE*)ConstantBufferData + ConstantBufferOffset));
 
-			VectorTransformMatrix.m[0][0] = (WorldMatrix.m[1][1] * WorldMatrix.m[2][2] - WorldMatrix.m[2][1] * WorldMatrix.m[1][2]) / Determinant;
-			VectorTransformMatrix.m[1][0] = -(WorldMatrix.m[0][1] * WorldMatrix.m[2][2] - WorldMatrix.m[2][1] * WorldMatrix.m[0][2]) / Determinant;
-			VectorTransformMatrix.m[2][0] = (WorldMatrix.m[0][1] * WorldMatrix.m[1][2] - WorldMatrix.m[1][1] * WorldMatrix.m[0][2]) / Determinant;
+				XMMATRIX WorldMatrix = VisibleStaticMeshComponents[k]->GetTransformComponent()->GetTransformMatrix();
+				XMMATRIX WVPMatrix = WorldMatrix * ViewProjMatrix;
 
-			VectorTransformMatrix.m[0][1] = -(WorldMatrix.m[1][0] * WorldMatrix.m[2][2] - WorldMatrix.m[2][0] * WorldMatrix.m[1][2]) / Determinant;
-			VectorTransformMatrix.m[1][1] = (WorldMatrix.m[0][0] * WorldMatrix.m[2][2] - WorldMatrix.m[2][0] * WorldMatrix.m[0][2]) / Determinant;
-			VectorTransformMatrix.m[2][1] = -(WorldMatrix.m[0][0] * WorldMatrix.m[1][0] - WorldMatrix.m[0][2] * WorldMatrix.m[1][2]) / Determinant;
+				XMFLOAT3X4 VectorTransformMatrix;
 
-			VectorTransformMatrix.m[0][2] = (WorldMatrix.m[1][0] * WorldMatrix.m[2][1] - WorldMatrix.m[2][0] * WorldMatrix.m[1][1]) / Determinant;
-			VectorTransformMatrix.m[1][2] = -(WorldMatrix.m[0][0] * WorldMatrix.m[2][1] - WorldMatrix.m[2][0] * WorldMatrix.m[0][1]) / Determinant;
-			VectorTransformMatrix.m[2][2] = (WorldMatrix.m[0][0] * WorldMatrix.m[1][1] - WorldMatrix.m[1][0] * WorldMatrix.m[0][1]) / Determinant;
+				float Determinant =
+					WorldMatrix.m[0][0] * (WorldMatrix.m[1][1] * WorldMatrix.m[2][2] - WorldMatrix.m[2][1] * WorldMatrix.m[1][2]) -
+					WorldMatrix.m[1][0] * (WorldMatrix.m[0][1] * WorldMatrix.m[2][2] - WorldMatrix.m[2][1] * WorldMatrix.m[0][2]) +
+					WorldMatrix.m[2][0] * (WorldMatrix.m[0][1] * WorldMatrix.m[1][2] - WorldMatrix.m[1][1] * WorldMatrix.m[0][2]);
 
-			VectorTransformMatrix.m[0][3] = 0.0f;
-			VectorTransformMatrix.m[1][3] = 0.0f;
-			VectorTransformMatrix.m[2][3] = 0.0f;
+				VectorTransformMatrix.m[0][0] = (WorldMatrix.m[1][1] * WorldMatrix.m[2][2] - WorldMatrix.m[2][1] * WorldMatrix.m[1][2]) / Determinant;
+				VectorTransformMatrix.m[1][0] = -(WorldMatrix.m[0][1] * WorldMatrix.m[2][2] - WorldMatrix.m[2][1] * WorldMatrix.m[0][2]) / Determinant;
+				VectorTransformMatrix.m[2][0] = (WorldMatrix.m[0][1] * WorldMatrix.m[1][2] - WorldMatrix.m[1][1] * WorldMatrix.m[0][2]) / Determinant;
 
-			ConstantBuffer.WVPMatrix = WVPMatrix;
-			ConstantBuffer.WorldMatrix = WorldMatrix;
-			ConstantBuffer.VectorTransformMatrix = VectorTransformMatrix;
+				VectorTransformMatrix.m[0][1] = -(WorldMatrix.m[1][0] * WorldMatrix.m[2][2] - WorldMatrix.m[2][0] * WorldMatrix.m[1][2]) / Determinant;
+				VectorTransformMatrix.m[1][1] = (WorldMatrix.m[0][0] * WorldMatrix.m[2][2] - WorldMatrix.m[2][0] * WorldMatrix.m[0][2]) / Determinant;
+				VectorTransformMatrix.m[2][1] = -(WorldMatrix.m[0][0] * WorldMatrix.m[1][0] - WorldMatrix.m[0][2] * WorldMatrix.m[1][2]) / Determinant;
 
-			ConstantBufferOffset += 256;
+				VectorTransformMatrix.m[0][2] = (WorldMatrix.m[1][0] * WorldMatrix.m[2][1] - WorldMatrix.m[2][0] * WorldMatrix.m[1][1]) / Determinant;
+				VectorTransformMatrix.m[1][2] = -(WorldMatrix.m[0][0] * WorldMatrix.m[2][1] - WorldMatrix.m[2][0] * WorldMatrix.m[0][1]) / Determinant;
+				VectorTransformMatrix.m[2][2] = (WorldMatrix.m[0][0] * WorldMatrix.m[1][1] - WorldMatrix.m[1][0] * WorldMatrix.m[0][1]) / Determinant;
+
+				VectorTransformMatrix.m[0][3] = 0.0f;
+				VectorTransformMatrix.m[1][3] = 0.0f;
+				VectorTransformMatrix.m[2][3] = 0.0f;
+
+				ConstantBuffer.WVPMatrix = WVPMatrix;
+				ConstantBuffer.WorldMatrix = WorldMatrix;
+				ConstantBuffer.VectorTransformMatrix = VectorTransformMatrix;
+
+				ConstantBufferOffset += 256;
+			}
+
+			WrittenRange.Begin = 0;
+			WrittenRange.End = ConstantBufferOffset;
+
+			CPUConstantBuffers[CurrentFrameIndex]->Unmap(0, &WrittenRange);
 		}
-
-		WrittenRange.Begin = 0;
-		WrittenRange.End = ConstantBufferOffset;
-
-		CPUConstantBuffers[CurrentFrameIndex]->Unmap(0, &WrittenRange);
 
 		ResourceBarriers[2].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		ResourceBarriers[2].Transition.pResource = GPUConstantBuffer;
@@ -3709,51 +3669,55 @@ void RenderSystem::TickSystem(float DeltaTime)
 		CommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
 		SamplerGPUHandle.ptr += SamplerHandleSize;
 
-		for (size_t k = 0; k < VisibleStaticMeshComponentsCount; k++)
 		{
-			StaticMeshComponent *staticMeshComponent = VisibleStaticMeshComponents[k];
+			OPTICK_EVENT("Main Camera Draw Calls")
 
-			RenderMesh *renderMesh = staticMeshComponent->GetStaticMesh()->GetRenderMesh();
-			RenderMaterial *renderMaterial = staticMeshComponent->GetMaterial()->GetRenderMaterial();
-			MaterialResource *material = staticMeshComponent->GetMaterial();
-			RenderTexture *renderTexture0 = material->GetTexture(0)->GetRenderTexture();
-			RenderTexture *renderTexture1 = material->GetTexture(1)->GetRenderTexture();
+			for (size_t k = 0; k < VisibleStaticMeshComponentsCount; k++)
+			{
+				StaticMeshComponent *staticMeshComponent = VisibleStaticMeshComponents[k];
 
-			UINT DestRangeSize = 3;
-			UINT SourceRangeSizes[3] = { 1, 1, 1 };
-			D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[3] = { ConstantBufferCBVs[k], renderTexture0->TextureSRV, renderTexture1->TextureSRV };
+				RenderMesh *renderMesh = staticMeshComponent->GetStaticMesh()->GetRenderMesh();
+				RenderMaterial *renderMaterial = staticMeshComponent->GetMaterial()->GetRenderMaterial();
+				MaterialResource *material = staticMeshComponent->GetMaterial();
+				RenderTexture *renderTexture0 = material->GetTexture(0)->GetRenderTexture();
+				RenderTexture *renderTexture1 = material->GetTexture(1)->GetRenderTexture();
 
-			Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 3, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+				UINT DestRangeSize = 3;
+				UINT SourceRangeSizes[3] = { 1, 1, 1 };
+				D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[3] = { ConstantBufferCBVs[k], renderTexture0->TextureSRV, renderTexture1->TextureSRV };
 
-			ResourceCPUHandle.ptr += 3 * ResourceHandleSize;
+				Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 3, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-			D3D12_VERTEX_BUFFER_VIEW VertexBufferViews[3];
-			VertexBufferViews[0].BufferLocation = renderMesh->VertexBufferAddresses[0];
-			VertexBufferViews[0].SizeInBytes = sizeof(XMFLOAT3) * 9 * 9 * 6;
-			VertexBufferViews[0].StrideInBytes = sizeof(XMFLOAT3);
-			VertexBufferViews[1].BufferLocation = renderMesh->VertexBufferAddresses[1];
-			VertexBufferViews[1].SizeInBytes = sizeof(XMFLOAT2) * 9 * 9 * 6;
-			VertexBufferViews[1].StrideInBytes = sizeof(XMFLOAT2);
-			VertexBufferViews[2].BufferLocation = renderMesh->VertexBufferAddresses[2];
-			VertexBufferViews[2].SizeInBytes = 3 * sizeof(XMFLOAT3) * 9 * 9 * 6;
-			VertexBufferViews[2].StrideInBytes = 3 * sizeof(XMFLOAT3);
+				ResourceCPUHandle.ptr += 3 * ResourceHandleSize;
 
-			D3D12_INDEX_BUFFER_VIEW IndexBufferView;
-			IndexBufferView.BufferLocation = renderMesh->IndexBufferAddress;
-			IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
-			IndexBufferView.SizeInBytes = sizeof(WORD) * 8 * 8 * 6 * 6;
+				D3D12_VERTEX_BUFFER_VIEW VertexBufferViews[3];
+				VertexBufferViews[0].BufferLocation = renderMesh->VertexBufferAddresses[0];
+				VertexBufferViews[0].SizeInBytes = sizeof(XMFLOAT3) * 9 * 9 * 6;
+				VertexBufferViews[0].StrideInBytes = sizeof(XMFLOAT3);
+				VertexBufferViews[1].BufferLocation = renderMesh->VertexBufferAddresses[1];
+				VertexBufferViews[1].SizeInBytes = sizeof(XMFLOAT2) * 9 * 9 * 6;
+				VertexBufferViews[1].StrideInBytes = sizeof(XMFLOAT2);
+				VertexBufferViews[2].BufferLocation = renderMesh->VertexBufferAddresses[2];
+				VertexBufferViews[2].SizeInBytes = 3 * sizeof(XMFLOAT3) * 9 * 9 * 6;
+				VertexBufferViews[2].StrideInBytes = 3 * sizeof(XMFLOAT3);
 
-			CommandList->IASetVertexBuffers(0, 3, VertexBufferViews);
-			CommandList->IASetIndexBuffer(&IndexBufferView);
+				D3D12_INDEX_BUFFER_VIEW IndexBufferView;
+				IndexBufferView.BufferLocation = renderMesh->IndexBufferAddress;
+				IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
+				IndexBufferView.SizeInBytes = sizeof(WORD) * 8 * 8 * 6 * 6;
 
-			CommandList->SetPipelineState(renderMaterial->GBufferOpaquePassPipelineState);
+				CommandList->IASetVertexBuffers(0, 3, VertexBufferViews);
+				CommandList->IASetIndexBuffer(&IndexBufferView);
 
-			CommandList->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-			CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+				CommandList->SetPipelineState(renderMaterial->GBufferOpaquePassPipelineState);
 
-			ResourceGPUHandle.ptr += 3 * ResourceHandleSize;
+				CommandList->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+				CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
 
-			CommandList->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
+				ResourceGPUHandle.ptr += 3 * ResourceHandleSize;
+
+				CommandList->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
+			}
 		}
 	}
 
@@ -3921,8 +3885,14 @@ void RenderSystem::TickSystem(float DeltaTime)
 			SIZE_T ConstantBufferOffset = 0;
 
 			DynamicArray<StaticMeshComponent*>& AllStaticMeshComponents = Engine::GetEngine().GetGameFramework().GetWorld().GetRenderScene().GetStaticMeshComponents();
-			DynamicArray<StaticMeshComponent*> VisbleStaticMeshComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ShadowViewProjMatrices[i], false);
+			DynamicArray<StaticMeshComponent*> VisbleStaticMeshComponents;
 			size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.GetLength();
+
+			{
+				OPTICK_EVENT("Shadow Frustum Objects Culling");
+
+				VisbleStaticMeshComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ShadowViewProjMatrices[i], false);
+			}
 
 			D3D12_RANGE ReadRange, WrittenRange;
 			ReadRange.Begin = 0;
@@ -3930,24 +3900,28 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			void *ConstantBufferData;
 
-			SAFE_DX(CPUConstantBuffers2[i][CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
-
-			for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
 			{
-				XMMATRIX WorldMatrix = VisbleStaticMeshComponents[k]->GetTransformComponent()->GetTransformMatrix();
-				XMMATRIX WVPMatrix = WorldMatrix * ShadowViewProjMatrices[i];
+				OPTICK_EVENT("Shadow Frustum Objects Constants Filling");
 
-				ShadowMapPassConstantBuffer& ConstantBuffer = *((ShadowMapPassConstantBuffer*)((BYTE*)ConstantBufferData + ConstantBufferOffset));
+				SAFE_DX(CPUConstantBuffers2[i][CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
 
-				ConstantBuffer.WVPMatrix = WVPMatrix;
+				for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
+				{
+					XMMATRIX WorldMatrix = VisbleStaticMeshComponents[k]->GetTransformComponent()->GetTransformMatrix();
+					XMMATRIX WVPMatrix = WorldMatrix * ShadowViewProjMatrices[i];
 
-				ConstantBufferOffset += 256;
+					ShadowMapPassConstantBuffer& ConstantBuffer = *((ShadowMapPassConstantBuffer*)((BYTE*)ConstantBufferData + ConstantBufferOffset));
+
+					ConstantBuffer.WVPMatrix = WVPMatrix;
+
+					ConstantBufferOffset += 256;
+				}
+
+				WrittenRange.Begin = 0;
+				WrittenRange.End = ConstantBufferOffset;
+
+				CPUConstantBuffers2[i][CurrentFrameIndex]->Unmap(0, &WrittenRange);
 			}
-
-			WrittenRange.Begin = 0;
-			WrittenRange.End = ConstantBufferOffset;
-
-			CPUConstantBuffers2[i][CurrentFrameIndex]->Unmap(0, &WrittenRange);
 
 			if (i == 0)
 			{
@@ -4007,43 +3981,47 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			CommandList->ClearDepthStencilView(CascadedShadowMapTexturesDSVs[i], D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
-			for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
 			{
-				StaticMeshComponent *staticMeshComponent = VisbleStaticMeshComponents[k];
+				OPTICK_EVENT("Shadow Map Draw Calls")
 
-				RenderMesh *renderMesh = staticMeshComponent->GetStaticMesh()->GetRenderMesh();
-				RenderMaterial *renderMaterial = staticMeshComponent->GetMaterial()->GetRenderMaterial();
-				RenderTexture *renderTexture0 = staticMeshComponent->GetMaterial()->GetTexture(0)->GetRenderTexture();
-				RenderTexture *renderTexture1 = staticMeshComponent->GetMaterial()->GetTexture(1)->GetRenderTexture();
+				for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
+				{
+					StaticMeshComponent *staticMeshComponent = VisbleStaticMeshComponents[k];
 
-				UINT DestRangeSize = 1;
-				UINT SourceRangeSizes[1] = { 1 };
-				D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[1] = { ConstantBufferCBVs2[i][k] };
+					RenderMesh *renderMesh = staticMeshComponent->GetStaticMesh()->GetRenderMesh();
+					RenderMaterial *renderMaterial = staticMeshComponent->GetMaterial()->GetRenderMaterial();
+					RenderTexture *renderTexture0 = staticMeshComponent->GetMaterial()->GetTexture(0)->GetRenderTexture();
+					RenderTexture *renderTexture1 = staticMeshComponent->GetMaterial()->GetTexture(1)->GetRenderTexture();
 
-				Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+					UINT DestRangeSize = 1;
+					UINT SourceRangeSizes[1] = { 1 };
+					D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[1] = { ConstantBufferCBVs2[i][k] };
 
-				ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
+					Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-				D3D12_VERTEX_BUFFER_VIEW VertexBufferView;
-				VertexBufferView.BufferLocation = renderMesh->VertexBufferAddresses[0];
-				VertexBufferView.SizeInBytes = sizeof(XMFLOAT3) * 9 * 9 * 6;
-				VertexBufferView.StrideInBytes = sizeof(XMFLOAT3);
+					ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
-				D3D12_INDEX_BUFFER_VIEW IndexBufferView;
-				IndexBufferView.BufferLocation = renderMesh->IndexBufferAddress;
-				IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
-				IndexBufferView.SizeInBytes = sizeof(WORD) * 8 * 8 * 6 * 6;
+					D3D12_VERTEX_BUFFER_VIEW VertexBufferView;
+					VertexBufferView.BufferLocation = renderMesh->VertexBufferAddresses[0];
+					VertexBufferView.SizeInBytes = sizeof(XMFLOAT3) * 9 * 9 * 6;
+					VertexBufferView.StrideInBytes = sizeof(XMFLOAT3);
 
-				CommandList->IASetVertexBuffers(0, 1, &VertexBufferView);
-				CommandList->IASetIndexBuffer(&IndexBufferView);
+					D3D12_INDEX_BUFFER_VIEW IndexBufferView;
+					IndexBufferView.BufferLocation = renderMesh->IndexBufferAddress;
+					IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
+					IndexBufferView.SizeInBytes = sizeof(WORD) * 8 * 8 * 6 * 6;
 
-				CommandList->SetPipelineState(renderMaterial->ShadowMapPassPipelineState);
+					CommandList->IASetVertexBuffers(0, 1, &VertexBufferView);
+					CommandList->IASetIndexBuffer(&IndexBufferView);
 
-				CommandList->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+					CommandList->SetPipelineState(renderMaterial->ShadowMapPassPipelineState);
 
-				ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
+					CommandList->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
-				CommandList->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
+					ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
+
+					CommandList->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
+				}
 			}
 		}
 	}
@@ -4215,6 +4193,28 @@ void RenderSystem::TickSystem(float DeltaTime)
 	// ===============================================================================================================
 
 	{
+		DynamicArray<PointLight> PointLights;
+
+		{
+			OPTICK_EVENT("Light Culling and Clusterization")
+
+			DynamicArray<PointLightComponent*>& AllPointLightComponents = renderScene.GetPointLightComponents();
+			DynamicArray<PointLightComponent*> VisiblePointLightComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisiblePointLightsInFrustum(AllPointLightComponents, ViewProjMatrix);
+
+			Engine::GetEngine().GetRenderSystem().GetClusterizationSubSystem().ClusterizeLights(VisiblePointLightComponents, ViewMatrix);
+
+			for (PointLightComponent *pointLightComponent : VisiblePointLightComponents)
+			{
+				PointLight pointLight;
+				pointLight.Brightness = pointLightComponent->GetBrightness();
+				pointLight.Color = pointLightComponent->GetColor();
+				pointLight.Position = pointLightComponent->GetTransformComponent()->GetLocation();
+				pointLight.Radius = pointLightComponent->GetRadius();
+
+				PointLights.Add(pointLight);
+			}
+		}
+
 		D3D12_RANGE ReadRange, WrittenRange;
 		ReadRange.Begin = 0;
 		ReadRange.End = 0;
