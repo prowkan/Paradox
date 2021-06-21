@@ -3466,13 +3466,54 @@ void RenderSystem::TickSystem(float DeltaTime)
 	ShadowViewProjMatrices[2] = ShadowViewMatrices[2] * ShadowProjMatrices[2];
 	ShadowViewProjMatrices[3] = ShadowViewMatrices[3] * ShadowProjMatrices[3];
 
+	if (FrameSyncFences[CurrentFrameIndex]->GetCompletedValue() != 1)
+	{
+		SAFE_DX(FrameSyncFences[CurrentFrameIndex]->SetEventOnCompletion(1, FrameSyncEvent));
+		DWORD WaitResult = WaitForSingleObject(FrameSyncEvent, INFINITE);
+	}
+
+	SAFE_DX(FrameSyncFences[CurrentFrameIndex]->Signal(0));
+
+	{
+		D3D12_RESOURCE_DESC ResourceDesc = OcclusionBufferTexture->GetDesc();
+
+		D3D12_PLACED_SUBRESOURCE_FOOTPRINT PlacedSubResourceFootPrint;
+
+		UINT NumRows;
+		UINT64 RowSizeInBytes, TotalBytes;
+
+		Device->GetCopyableFootprints(&ResourceDesc, 0, 1, 0, &PlacedSubResourceFootPrint, &NumRows, &RowSizeInBytes, &TotalBytes);
+
+		float *OcclusionBufferData = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetOcclusionBufferData();
+
+		D3D12_RANGE ReadRange, WrittenRange;
+		ReadRange.Begin = 0;
+		ReadRange.End = TotalBytes;
+
+		WrittenRange.Begin = 0;
+		WrittenRange.End = 0;
+
+		void *MappedData;
+
+		OcclusionBufferTextureReadback[CurrentFrameIndex]->Map(0, &ReadRange, &MappedData);
+
+		for (UINT i = 0; i < NumRows; i++)
+		{
+			memcpy((BYTE*)OcclusionBufferData + i * RowSizeInBytes, (BYTE*)MappedData + i * PlacedSubResourceFootPrint.Footprint.RowPitch, RowSizeInBytes);
+		}
+
+		OcclusionBufferTextureReadback[CurrentFrameIndex]->Unmap(0, &WrittenRange);
+
+		Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().ReProjectOcclusionBuffer(ViewProjMatrix, CurrentFrameIndex);
+	}
+
 	RenderScene& renderScene = gameFramework.GetWorld().GetRenderScene();
 
-	DynamicArray<StaticMeshComponent*> AllStaticMeshComponents = renderScene.GetStaticMeshComponents();
+	DynamicArray<StaticMeshComponent*>& AllStaticMeshComponents = renderScene.GetStaticMeshComponents();
 	DynamicArray<StaticMeshComponent*> VisibleStaticMeshComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ViewProjMatrix, true);
 	size_t VisibleStaticMeshComponentsCount = VisibleStaticMeshComponents.GetLength();
 
-	DynamicArray<PointLightComponent*> AllPointLightComponents = renderScene.GetPointLightComponents();
+	DynamicArray<PointLightComponent*>& AllPointLightComponents = renderScene.GetPointLightComponents();
 	DynamicArray<PointLightComponent*> VisiblePointLightComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisiblePointLightsInFrustum(AllPointLightComponents, ViewProjMatrix);
 
 	Engine::GetEngine().GetRenderSystem().GetClusterizationSubSystem().ClusterizeLights(VisiblePointLightComponents, ViewMatrix);
@@ -3489,14 +3530,6 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		PointLights.Add(pointLight);
 	}
-
-	if (FrameSyncFences[CurrentFrameIndex]->GetCompletedValue() != 1)
-	{
-		SAFE_DX(FrameSyncFences[CurrentFrameIndex]->SetEventOnCompletion(1, FrameSyncEvent));
-		DWORD WaitResult = WaitForSingleObject(FrameSyncEvent, INFINITE);
-	}
-
-	SAFE_DX(FrameSyncFences[CurrentFrameIndex]->Signal(0));
 
 	SAFE_DX(CommandAllocators[CurrentFrameIndex]->Reset());
 	SAFE_DX(CommandList->Reset(CommandAllocators[CurrentFrameIndex], nullptr));
@@ -3887,7 +3920,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		{
 			SIZE_T ConstantBufferOffset = 0;
 
-			DynamicArray<StaticMeshComponent*> AllStaticMeshComponents = Engine::GetEngine().GetGameFramework().GetWorld().GetRenderScene().GetStaticMeshComponents();
+			DynamicArray<StaticMeshComponent*>& AllStaticMeshComponents = Engine::GetEngine().GetGameFramework().GetWorld().GetRenderScene().GetStaticMeshComponents();
 			DynamicArray<StaticMeshComponent*> VisbleStaticMeshComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ShadowViewProjMatrices[i], false);
 			size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.GetLength();
 
