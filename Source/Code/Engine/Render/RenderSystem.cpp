@@ -3885,14 +3885,15 @@ void RenderSystem::TickSystem(float DeltaTime)
 			SIZE_T ConstantBufferOffset = 0;
 
 			DynamicArray<StaticMeshComponent*>& AllStaticMeshComponents = Engine::GetEngine().GetGameFramework().GetWorld().GetRenderScene().GetStaticMeshComponents();
-			DynamicArray<StaticMeshComponent*> VisbleStaticMeshComponents;
-			size_t VisbleStaticMeshComponentsCount = VisbleStaticMeshComponents.GetLength();
+			DynamicArray<StaticMeshComponent*> VisibleStaticMeshComponents;
 
 			{
 				OPTICK_EVENT("Shadow Frustum Objects Culling");
 
-				VisbleStaticMeshComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ShadowViewProjMatrices[i], false);
+				VisibleStaticMeshComponents = Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().GetVisibleStaticMeshesInFrustum(AllStaticMeshComponents, ShadowViewProjMatrices[i], false);
 			}
+
+			size_t VisibleStaticMeshComponentsCount = VisibleStaticMeshComponents.GetLength();
 
 			D3D12_RANGE ReadRange, WrittenRange;
 			ReadRange.Begin = 0;
@@ -3905,9 +3906,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 				SAFE_DX(CPUConstantBuffers2[i][CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
 
-				for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
+				for (size_t k = 0; k < VisibleStaticMeshComponentsCount; k++)
 				{
-					XMMATRIX WorldMatrix = VisbleStaticMeshComponents[k]->GetTransformComponent()->GetTransformMatrix();
+					XMMATRIX WorldMatrix = VisibleStaticMeshComponents[k]->GetTransformComponent()->GetTransformMatrix();
 					XMMATRIX WVPMatrix = WorldMatrix * ShadowViewProjMatrices[i];
 
 					ShadowMapPassConstantBuffer& ConstantBuffer = *((ShadowMapPassConstantBuffer*)((BYTE*)ConstantBufferData + ConstantBufferOffset));
@@ -3984,9 +3985,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 			{
 				OPTICK_EVENT("Shadow Map Draw Calls")
 
-				for (size_t k = 0; k < VisbleStaticMeshComponentsCount; k++)
+				for (size_t k = 0; k < VisibleStaticMeshComponentsCount; k++)
 				{
-					StaticMeshComponent *staticMeshComponent = VisbleStaticMeshComponents[k];
+					StaticMeshComponent *staticMeshComponent = VisibleStaticMeshComponents[k];
 
 					RenderMesh *renderMesh = staticMeshComponent->GetStaticMesh()->GetRenderMesh();
 					RenderMaterial *renderMaterial = staticMeshComponent->GetMaterial()->GetRenderMaterial();
