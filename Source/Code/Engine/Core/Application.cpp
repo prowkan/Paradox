@@ -230,9 +230,6 @@ void Application::RunMainLoop()
 			LRESULT lResult = DispatchMessage(&Message);
 		}
 
-		if (GetAsyncKeyState(VK_ESCAPE) & 0x8000)
-			Application::AppExitFlag = true;
-
 		NewTime = GetTickCount64();
 
 		DeltaTime = float(NewTime - CurrentTime) / 1000.0f;
