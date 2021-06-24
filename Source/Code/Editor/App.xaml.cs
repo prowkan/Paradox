@@ -44,6 +44,8 @@ namespace Editor
                 return;
             }
 
+            ConsoleManager.ShowConsole();
+
             MainLevelEditorWindow mainLevelEditorWindow = new MainLevelEditorWindow();
             mainLevelEditorWindow.Show();
         }
