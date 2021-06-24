@@ -122,6 +122,8 @@ namespace Editor
                         {
                             float Value = EditorEngine.GetComponentFloatProperty(ComponentReference, ComponentPropertyName);
                             TextBox textBox = new TextBox();
+                            textBox.Text = Value.ToString();
+                            textBox.Width = 50.0;
                             textBox.TextChanged += (object Sender, TextChangedEventArgs Args) =>
                             {
                                 string NewValueStr = ((TextBox)Sender).Text;
@@ -137,8 +139,6 @@ namespace Editor
 
                                 }
                             };
-                            textBox.Text = Value.ToString();
-                            textBox.Width = 50.0;
                             PropertyStackPanel.Children.Add(textBox);
                         }
                         else if (ComponentPropertyType == EditorEngine.ClassPropertyType.Vector)
@@ -153,6 +153,12 @@ namespace Editor
                             TextBox textBoxX = new TextBox();
                             TextBox textBoxY = new TextBox();
                             TextBox textBoxZ = new TextBox();
+                            textBoxX.Text = Value.X.ToString();
+                            textBoxX.Width = 50.0;
+                            textBoxY.Text = Value.Y.ToString();
+                            textBoxY.Width = 50.0;
+                            textBoxZ.Text = Value.Z.ToString();
+                            textBoxZ.Width = 50.0;
                             textBoxX.TextChanged += (object Sender, TextChangedEventArgs Args) =>
                             {
                                 string NewValueStr = ((TextBox)Sender).Text;
@@ -207,12 +213,6 @@ namespace Editor
 
                                 }
                             };
-                            textBoxX.Text = Value.X.ToString();
-                            textBoxX.Width = 50.0;
-                            textBoxY.Text = Value.Y.ToString();
-                            textBoxY.Width = 50.0;
-                            textBoxZ.Text = Value.Z.ToString();
-                            textBoxZ.Width = 50.0;
                             PropertyStackPanel.Children.Add(labelX);
                             PropertyStackPanel.Children.Add(textBoxX);
                             PropertyStackPanel.Children.Add(labelY);
