@@ -23,8 +23,12 @@ class SWFFile
 		uint32_t ReadUnsignedBits(const uint32_t BitsCount);
 		int32_t ReadSignedBits(const uint32_t BitsCount);
 
+		uint32_t ReadEncodedU32();
+
 		SWFRect ReadRect();
 		SWFRGB ReadRGB();
+
+		void ReadString();
 
 		void SkipBytes(const size_t BytesCount);
 

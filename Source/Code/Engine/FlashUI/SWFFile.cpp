@@ -70,6 +70,22 @@ int32_t SWFFile::ReadSignedBits(const uint32_t BitsCount)
 	return Value;
 }
 
+uint32_t SWFFile::ReadEncodedU32()
+{
+	uint32_t Value = 0;
+
+	for (int i = 0; i < 5; i++)
+	{
+		uint8_t Byte = Read<uint8_t>();
+
+		Value |= ((Byte & (0b01111111)) << (i * 7));
+
+		if (((Byte & 0b10000000) >> 7) == 0) break;
+	}
+
+	return Value;
+}
+
 SWFRect SWFFile::ReadRect()
 {
 	SWFRect Rect;
@@ -104,4 +120,19 @@ void SWFFile::SkipBytes(const size_t BytesCount)
 	}
 
 	CurrentByte += BytesCount;
+}
+
+void SWFFile::ReadString()
+{
+	char Ch;
+
+	while (true)
+	{
+		Ch = Read<char>();
+
+		if (Ch == 0)
+		{
+			break;
+		}
+	}
 }

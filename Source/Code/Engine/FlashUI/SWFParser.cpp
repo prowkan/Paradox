@@ -71,6 +71,10 @@ void SWFParser::ProcessTag(SWFFile& File, uint32_t TagCode, uint32_t TagLength)
 			cout << "FileAttributes tag." << endl;
 			ProcessFileAttributesTag(File);
 			break;
+		case TAG_DEFINE_SCENE_AND_FRAME_LABEL_DATA:
+			cout << "DefineSceneAndFrameLabelData tag." << endl;
+			ProcessDefineSceneAndFrameLabelDataTag(File);
+			break;
 		default:
 			cout << "Unknown tag." << endl;
 			File.SkipBytes(TagLength);
@@ -98,8 +102,6 @@ void SWFParser::ProcessSetBackgroundColorTag(SWFFile& File)
 	SWFRGB BackgroundColor = File.ReadRGB();
 
 	cout << "R = " << (uint32_t)BackgroundColor.R << " G = " << (uint32_t)BackgroundColor.G << " B = " << (uint32_t)BackgroundColor.B << endl;
-
-	return;
 }
 
 void SWFParser::ProcessFileAttributesTag(SWFFile& File)
@@ -112,4 +114,23 @@ void SWFParser::ProcessFileAttributesTag(SWFFile& File)
 	Reserved = File.ReadUnsignedBits(2);
 	uint32_t UseNetwork = File.ReadUnsignedBits(1);
 	Reserved = File.ReadUnsignedBits(24);
+}
+
+void SWFParser::ProcessDefineSceneAndFrameLabelDataTag(SWFFile& File)
+{
+	uint32_t SceneCount = File.ReadEncodedU32();
+
+	for (uint32_t i = 0; i < SceneCount; i++)
+	{
+		uint32_t Offset = File.ReadEncodedU32();
+		File.ReadString();
+	}
+
+	uint32_t FrameLabelsCount = File.ReadEncodedU32();
+
+	for (uint32_t i = 0; i < FrameLabelsCount; i++)
+	{
+		uint32_t FrameLabelNum = File.ReadEncodedU32();
+		File.ReadString();
+	}
 }
