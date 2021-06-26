@@ -5,6 +5,11 @@ struct SWFRect
 	uint32_t XMin, XMax, YMin, YMax;
 };
 
+struct SWFRGB
+{
+	uint8_t R, G, B;
+};
+
 class SWFFile
 {
 	public:
@@ -19,8 +24,11 @@ class SWFFile
 		int32_t ReadSignedBits(const uint32_t BitsCount);
 
 		SWFRect ReadRect();
+		SWFRGB ReadRGB();
 
 		void SkipBytes(const size_t BytesCount);
+
+		bool IsEndOfFile() { return CurrentByte == SWFFileSize; }
 
 	private:
 

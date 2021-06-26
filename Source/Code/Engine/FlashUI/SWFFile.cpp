@@ -84,6 +84,17 @@ SWFRect SWFFile::ReadRect()
 	return Rect;
 }
 
+SWFRGB SWFFile::ReadRGB()
+{
+	SWFRGB RGB;
+
+	RGB.R = Read<uint8_t>();
+	RGB.G = Read<uint8_t>();
+	RGB.B = Read<uint8_t>();
+
+	return RGB;
+}
+
 void SWFFile::SkipBytes(const size_t BytesCount)
 {
 	if ((CurrentBit % 8) > 0)
