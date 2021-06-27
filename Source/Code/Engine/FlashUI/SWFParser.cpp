@@ -24,7 +24,7 @@ void SWFParser::ParseFile(SWFFile& File)
 	FrameRateParts[0] = File.Read<uint8_t>();
 	FrameRateParts[1] = File.Read<uint8_t>();
 
-	float FrameRate = (float)FrameRateParts[1];
+	float FrameRate = (float)FrameRateParts[1] + ((float)FrameRateParts[0] / 256.0f);
 
 	uint16_t FramesCount = File.Read<uint16_t>();
 
