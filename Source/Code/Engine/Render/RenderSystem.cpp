@@ -2385,7 +2385,7 @@ void RenderSystem::InitSystem()
 		ResourceDesc.Alignment = 0;
 		ResourceDesc.DepthOrArraySize = 1;
 		ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-		ResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+		ResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE;
 		ResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
 		ResourceDesc.Height = ResolutionHeight;
 		ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_UNKNOWN;
@@ -2414,14 +2414,7 @@ void RenderSystem::InitSystem()
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory8)));
 		SAFE_DX(GPUMemory1->SetName((const wchar_t*)u"HDR Scene Color Texture Resolve Pass Data GPU Heap"));
 
-		D3D12_CLEAR_VALUE ClearValue;
-		ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
-		ClearValue.Color[0] = 0.0f;
-		ClearValue.Color[1] = 0.0f;
-		ClearValue.Color[2] = 0.0f;
-		ClearValue.Color[3] = 0.0f;
-
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory8, ResolvedHDRSceneColorTextureOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(ResolvedHDRSceneColorTexture)));
+		SAFE_DX(Device->CreatePlacedResource(GPUMemory8, ResolvedHDRSceneColorTextureOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(ResolvedHDRSceneColorTexture)));
 		SAFE_DX(ResolvedHDRSceneColorTexture->SetName((const wchar_t*)u"Resolved HDR Scene Color Texture"));
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
