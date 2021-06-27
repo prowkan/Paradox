@@ -31,8 +31,12 @@ class SWFFile
 		void ReadString();
 
 		void SkipBytes(const size_t BytesCount);
+		void AlignToByte();
 
 		bool IsEndOfFile() { return CurrentByte == SWFFileSize; }
+
+		static const uint32_t TWIPS_IN_PIXEL = 20;
+		static const uint32_t BITS_PER_RECT_COORD = 5;
 
 	private:
 
@@ -40,10 +44,7 @@ class SWFFile
 		SIZE_T SWFFileSize;
 
 		SIZE_T CurrentByte;
-		SIZE_T CurrentBit;
-
-		const uint32_t TWIPS_IN_PIXEL = 20;
-		const uint32_t BITS_PER_RECT_COORD = 5;
+		SIZE_T CurrentBit;		
 };
 
 template<typename T>

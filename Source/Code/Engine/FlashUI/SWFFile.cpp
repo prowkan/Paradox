@@ -64,8 +64,10 @@ uint64_t SWFFile::ReadUnsignedBits(const uint8_t BitsCount)
 		}
 		else
 		{
-			uint8_t Mask = ((1 << BitsToRead) - 1) << (8 - RemainingBits);
-			Value |= (Byte & Mask);
+			uint8_t Byte = *(uint8_t*)(SWFFileData + CurrentByte);
+
+			uint8_t Mask = ((1 << RemainingBits) - 1) << (8 - RemainingBits);
+			Value |= ((Byte & Mask) >> (8 - RemainingBits));
 
 			CurrentBit = RemainingBits;
 
@@ -142,6 +144,15 @@ void SWFFile::SkipBytes(const size_t BytesCount)
 	}
 
 	CurrentByte += BytesCount;
+}
+
+void SWFFile::AlignToByte()
+{
+	if ((CurrentBit % 8) > 0)
+	{
+		CurrentBit = 0;
+		CurrentByte++;
+	}
 }
 
 void SWFFile::ReadString()
