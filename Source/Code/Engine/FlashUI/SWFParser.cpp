@@ -71,6 +71,10 @@ void SWFParser::ProcessTag(SWFFile& File, uint32_t TagCode, uint32_t TagLength)
 			cout << "SetBackgroundColor tag." << endl;
 			ProcessSetBackgroundColorTag(File);
 			break;
+		case TAG_PLACE_OBJECT_2:
+			cout << "PlaceObject2 tag." << endl;
+			ProcessPlaceObject2Tag(File);
+			break;
 		case TAG_FILE_ATTRIBUTES:
 			cout << "FileAttributes tag." << endl;
 			ProcessFileAttributesTag(File);
@@ -205,6 +209,30 @@ void SWFParser::ProcessSetBackgroundColorTag(SWFFile& File)
 	SWFRGB BackgroundColor = File.ReadRGB();
 
 	cout << "R = " << (uint32_t)BackgroundColor.R << " G = " << (uint32_t)BackgroundColor.G << " B = " << (uint32_t)BackgroundColor.B << endl;
+}
+
+void SWFParser::ProcessPlaceObject2Tag(SWFFile& File)
+{
+	uint8_t HasClipActions = (uint8_t)File.ReadUnsignedBits(1);
+	uint8_t HasClipDepth = (uint8_t)File.ReadUnsignedBits(1);
+	uint8_t HasName = (uint8_t)File.ReadUnsignedBits(1);
+	uint8_t HasRatio = (uint8_t)File.ReadUnsignedBits(1);
+	uint8_t HasColorTransform = (uint8_t)File.ReadUnsignedBits(1);
+	uint8_t HasMatrix = (uint8_t)File.ReadUnsignedBits(1);
+	uint8_t HasCharacter = (uint8_t)File.ReadUnsignedBits(1);
+	uint8_t HasMove = (uint8_t)File.ReadUnsignedBits(1);
+
+	uint16_t Depth = File.Read<uint16_t>();
+
+	if (HasCharacter)
+	{
+		uint16_t CharacterId = File.Read<uint16_t>();
+	}
+
+	if (HasMatrix)
+	{
+		SWFMatrix Matrix = File.ReadMatrix();
+	}
 }
 
 void SWFParser::ProcessFileAttributesTag(SWFFile& File)

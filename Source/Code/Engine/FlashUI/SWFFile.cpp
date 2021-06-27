@@ -135,6 +135,37 @@ SWFRGB SWFFile::ReadRGB()
 	return RGB;
 }
 
+SWFMatrix SWFFile::ReadMatrix()
+{
+	SWFMatrix Matrix;
+
+	uint8_t HasScale = (uint8_t)ReadUnsignedBits(1);
+
+	if (HasScale)
+	{
+		uint8_t ScaleBits = (uint8_t)ReadUnsignedBits(5);
+	}
+
+	uint8_t HasRotate = (uint8_t)ReadUnsignedBits(1);
+
+	if (HasRotate)
+	{
+		uint8_t RotateBits = (uint8_t)ReadUnsignedBits(5);
+	}
+
+	uint8_t TranslateBits = (uint8_t)ReadUnsignedBits(5);
+
+	int32_t TranslateX = (int32_t)ReadSignedBits(TranslateBits);
+	int32_t TranslateY = (int32_t)ReadSignedBits(TranslateBits);
+
+	Matrix.HasScale = HasScale;
+	Matrix.HasRotate = HasRotate;
+	Matrix.TranslateX = TranslateX;
+	Matrix.TranslateY = TranslateY;
+
+	return Matrix;
+}
+
 void SWFFile::SkipBytes(const size_t BytesCount)
 {
 	if ((CurrentBit % 8) > 0)

@@ -10,6 +10,15 @@ struct SWFRGB
 	uint8_t R, G, B;
 };
 
+struct SWFMatrix
+{
+	uint8_t HasScale : 1;
+	uint8_t HasRotate : 1;
+	float ScaleX, ScaleY;
+	float RotateSkew0, RotateSkew1;
+	int32_t TranslateX, TranslateY;
+};
+
 class SWFFile
 {
 	public:
@@ -27,6 +36,7 @@ class SWFFile
 
 		SWFRect ReadRect();
 		SWFRGB ReadRGB();
+		SWFMatrix ReadMatrix();
 
 		void ReadString();
 

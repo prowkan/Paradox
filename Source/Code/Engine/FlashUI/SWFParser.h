@@ -16,6 +16,7 @@ class SWFParser
 		static void ProcessShowFrameTag(SWFFile& File);
 		static void ProcessDefineShapeTag(SWFFile& File);
 		static void ProcessSetBackgroundColorTag(SWFFile& File);
+		static void ProcessPlaceObject2Tag(SWFFile& File);
 		static void ProcessFileAttributesTag(SWFFile& File);
 		static void ProcessDefineSceneAndFrameLabelDataTag(SWFFile& File);
 
