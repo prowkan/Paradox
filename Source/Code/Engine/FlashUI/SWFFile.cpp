@@ -22,52 +22,74 @@ void SWFFile::Close()
 	free(SWFFileData);
 }
 
-uint32_t SWFFile::ReadUnsignedBits(const uint32_t BitsCount)
+uint64_t SWFFile::ReadUnsignedBits(const uint8_t BitsCount)
 {
-	uint32_t Value = 0;
+	uint64_t Value = 0;
 
-	uint8_t CurrentByte = *(uint8_t*)(SWFFileData + this->CurrentByte);
+	uint8_t Byte = *(uint8_t*)(SWFFileData + CurrentByte);
 
-	for (uint32_t CurrentBit = 0; CurrentBit < BitsCount; CurrentBit++)
+	SIZE_T RemainingBitsInCurrentByte = 8 - CurrentBit;
+	SIZE_T AdditionalBytesCount = 0;
+	if (BitsCount > RemainingBitsInCurrentByte)
 	{
-		Value |= (((1 << (7 - this->CurrentBit)) & CurrentByte) >> (7 - this->CurrentBit)) << (BitsCount - CurrentBit - 1);
+		AdditionalBytesCount = (BitsCount - RemainingBitsInCurrentByte) / 8 + ((BitsCount - RemainingBitsInCurrentByte) % 8 == 0 ? 0 : 1);
+	}
 
-		this->CurrentBit++;
+	uint8_t BitsToRead = min(BitsCount, (uint8_t)RemainingBitsInCurrentByte);
 
-		if (this->CurrentBit >= 8)
+	uint8_t Mask = ((1 << BitsToRead) - 1) << (8 - (CurrentBit + BitsToRead));
+	Value |= ((Byte & Mask) >> (8 - (CurrentBit + BitsToRead))) << (BitsCount - BitsToRead);
+
+	CurrentBit += BitsToRead;
+
+	if (CurrentBit == 8)
+	{
+		this->CurrentBit = 0;
+		this->CurrentByte++;
+	}
+
+	SIZE_T RemainingBits = BitsCount - RemainingBitsInCurrentByte;
+
+	for (SIZE_T i = 0; i < AdditionalBytesCount; i++)
+	{
+		if (i < AdditionalBytesCount - 1)
 		{
-			this->CurrentBit = 0;
-			this->CurrentByte++;
+			uint8_t Byte = *(uint8_t*)(SWFFileData + CurrentByte);
 
-			CurrentByte = *(uint8_t*)(SWFFileData + this->CurrentByte);
+			Value |= (Byte << (RemainingBits - 8));
+
+			CurrentByte++;
+
+			RemainingBits -= 8;
+		}
+		else
+		{
+			uint8_t Mask = ((1 << BitsToRead) - 1) << (8 - RemainingBits);
+			Value |= (Byte & Mask);
+
+			CurrentBit = RemainingBits;
+
+			if (CurrentBit == 8)
+			{
+				this->CurrentBit = 0;
+				this->CurrentByte++;
+			}
 		}
 	}
 
 	return Value;
 }
 
-int32_t SWFFile::ReadSignedBits(const uint32_t BitsCount)
+int64_t SWFFile::ReadSignedBits(const uint8_t BitsCount)
 {
-	int32_t Value = 0;
+	uint64_t Value = ReadUnsignedBits(BitsCount);
 
-	uint8_t CurrentByte = *(uint8_t*)(SWFFileData + this->CurrentByte);
-
-	for (uint32_t CurrentBit = 0; CurrentBit < BitsCount; CurrentBit++)
+	if ((Value & (1ull << ((uint64_t)BitsCount - 1ull))) > 0)
 	{
-		Value |= (((1 << (7 - this->CurrentBit)) & CurrentByte) >> (7 - this->CurrentBit)) << (BitsCount - CurrentBit - 1);
-
-		this->CurrentBit++;
-
-		if (this->CurrentBit >= 8)
-		{
-			this->CurrentBit = 0;
-			this->CurrentByte++;
-
-			CurrentByte = *(uint8_t*)(SWFFileData + this->CurrentByte);
-		}
+		Value |= (((1ull << (64 - (uint64_t)BitsCount)) - 1ull) << (uint64_t)BitsCount);
 	}
 
-	return Value;
+	return *((int64_t*)&Value);
 }
 
 uint32_t SWFFile::ReadEncodedU32()
@@ -90,7 +112,7 @@ SWFRect SWFFile::ReadRect()
 {
 	SWFRect Rect;
 
-	uint32_t BitsPerCoords = ReadUnsignedBits(BITS_PER_RECT_COORD);
+	uint8_t BitsPerCoords = (uint8_t)ReadUnsignedBits(BITS_PER_RECT_COORD);
 
 	Rect.XMin = ReadSignedBits(BitsPerCoords) / TWIPS_IN_PIXEL;
 	Rect.XMax = ReadSignedBits(BitsPerCoords) / TWIPS_IN_PIXEL;

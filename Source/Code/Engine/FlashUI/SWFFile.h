@@ -2,7 +2,7 @@
 
 struct SWFRect
 {
-	uint32_t XMin, XMax, YMin, YMax;
+	int64_t XMin, XMax, YMin, YMax;
 };
 
 struct SWFRGB
@@ -20,8 +20,8 @@ class SWFFile
 		template<typename T>
 		T Read();
 
-		uint32_t ReadUnsignedBits(const uint32_t BitsCount);
-		int32_t ReadSignedBits(const uint32_t BitsCount);
+		uint64_t ReadUnsignedBits(const uint8_t BitsCount);
+		int64_t ReadSignedBits(const uint8_t BitsCount);
 
 		uint32_t ReadEncodedU32();
 
