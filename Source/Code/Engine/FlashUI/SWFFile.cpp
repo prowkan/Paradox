@@ -158,8 +158,6 @@ SWFMatrix SWFFile::ReadMatrix()
 	int32_t TranslateX = (int32_t)ReadSignedBits(TranslateBits);
 	int32_t TranslateY = (int32_t)ReadSignedBits(TranslateBits);
 
-	Matrix.HasScale = HasScale;
-	Matrix.HasRotate = HasRotate;
 	Matrix.TranslateX = TranslateX;
 	Matrix.TranslateY = TranslateY;
 

@@ -12,8 +12,6 @@ struct SWFRGB
 
 struct SWFMatrix
 {
-	uint8_t HasScale : 1;
-	uint8_t HasRotate : 1;
 	float ScaleX, ScaleY;
 	float RotateSkew0, RotateSkew1;
 	int32_t TranslateX, TranslateY;
