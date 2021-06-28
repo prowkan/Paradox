@@ -183,7 +183,7 @@ void SWFParser::ProcessDefineShapeTag(SWFFile& File)
 				if (!GeneralLineFlag)
 				{
 					//VerticalLineFlag = (uint8_t)File.ReadSignedBits(1);
-					VerticalLineFlag = (uint8_t)File.ReadUnsignedBits(1); // Согласно спецификации SWF должно быть unsigned, но т. к. бит один, то если он будет единичным, он будет распространен во все биты слева
+					VerticalLineFlag = (uint8_t)File.ReadUnsignedBits(1); // Согласно спецификации SWF должно быть signed, но т. к. бит один, то если он будет единичным, он будет распространен во все биты слева
 				}
 
 				if (GeneralLineFlag == 1 || VerticalLineFlag == 0)
