@@ -5,15 +5,16 @@
 
 #include <Engine/Engine.h>
 
-void StaticMeshResource::CreateResource(const void* ResourceData)
+void StaticMeshResource::CreateResource(const String& ResourceName, const void* ResourceData)
 {
+	Resource::CreateResource(ResourceName, ResourceData);
+
 	StaticMeshResourceCreateInfo& staticMeshResourceCreateInfo = *(StaticMeshResourceCreateInfo*)ResourceData;
 
 	RenderMeshCreateInfo renderMeshCreateInfo;
 	renderMeshCreateInfo.IndexCount = staticMeshResourceCreateInfo.IndexCount;
-	renderMeshCreateInfo.IndexData = staticMeshResourceCreateInfo.IndexData;
 	renderMeshCreateInfo.VertexCount = staticMeshResourceCreateInfo.VertexCount;
-	renderMeshCreateInfo.VertexData = staticMeshResourceCreateInfo.VertexData;
+	renderMeshCreateInfo.MeshData = staticMeshResourceCreateInfo.MeshData;
 
 	renderMesh = Engine::GetEngine().GetRenderSystem().CreateRenderMesh(renderMeshCreateInfo);
 }

@@ -27,15 +27,53 @@ void GameFramework::InitFramework()
 	StaticMeshComponent::InitMetaClass();
 	PointLightComponent::InitMetaClass();
 
-	MetaClassesTable.emplace(Entity::GetMetaClassStatic()->GetClassName(), Entity::GetMetaClassStatic());
-	MetaClassesTable.emplace(StaticMeshEntity::GetMetaClassStatic()->GetClassName(), StaticMeshEntity::GetMetaClassStatic());
-	MetaClassesTable.emplace(PointLightEntity::GetMetaClassStatic()->GetClassName(), PointLightEntity::GetMetaClassStatic());
+#ifdef _DEBUG
+	/*StaticMeshEntity::GetMetaClassStatic()->ClassProperties.Insert("TransformComponent", new ClassProperty(ClassPropertyType::ComponentReference, 64));
+	StaticMeshEntity::GetMetaClassStatic()->ClassProperties.Insert("BoundingBoxComponent", new ClassProperty(ClassPropertyType::ComponentReference, 72));
+	StaticMeshEntity::GetMetaClassStatic()->ClassProperties.Insert("StaticMeshComponent", new ClassProperty(ClassPropertyType::ComponentReference, 80));
+	
+	PointLightEntity::GetMetaClassStatic()->ClassProperties.Insert("TransformComponent", new ClassProperty(ClassPropertyType::ComponentReference, 64));
+	PointLightEntity::GetMetaClassStatic()->ClassProperties.Insert("PoingLightComponent", new ClassProperty(ClassPropertyType::ComponentReference, 72));*/
 
-	MetaClassesTable.emplace(Component::GetMetaClassStatic()->GetClassName(), Component::GetMetaClassStatic());
-	MetaClassesTable.emplace(TransformComponent::GetMetaClassStatic()->GetClassName(), TransformComponent::GetMetaClassStatic());
-	MetaClassesTable.emplace(BoundingBoxComponent::GetMetaClassStatic()->GetClassName(), BoundingBoxComponent::GetMetaClassStatic());
-	MetaClassesTable.emplace(StaticMeshComponent::GetMetaClassStatic()->GetClassName(), StaticMeshComponent::GetMetaClassStatic());
-	MetaClassesTable.emplace(PointLightComponent::GetMetaClassStatic()->GetClassName(), PointLightComponent::GetMetaClassStatic());
+	StaticMeshEntity::GetMetaClassStatic()->ClassProperties.Insert("TransformComponent", new ClassProperty(ClassPropertyType::ComponentReference, 56));
+	StaticMeshEntity::GetMetaClassStatic()->ClassProperties.Insert("BoundingBoxComponent", new ClassProperty(ClassPropertyType::ComponentReference, 64));
+	StaticMeshEntity::GetMetaClassStatic()->ClassProperties.Insert("StaticMeshComponent", new ClassProperty(ClassPropertyType::ComponentReference, 72));
+
+	PointLightEntity::GetMetaClassStatic()->ClassProperties.Insert("TransformComponent", new ClassProperty(ClassPropertyType::ComponentReference, 56));
+	PointLightEntity::GetMetaClassStatic()->ClassProperties.Insert("PoingLightComponent", new ClassProperty(ClassPropertyType::ComponentReference, 64));
+#else
+	StaticMeshEntity::GetMetaClassStatic()->ClassProperties.Insert("TransformComponent", new ClassProperty(ClassPropertyType::ComponentReference, 56));
+	StaticMeshEntity::GetMetaClassStatic()->ClassProperties.Insert("BoundingBoxComponent", new ClassProperty(ClassPropertyType::ComponentReference, 64));
+	StaticMeshEntity::GetMetaClassStatic()->ClassProperties.Insert("StaticMeshComponent", new ClassProperty(ClassPropertyType::ComponentReference, 72));
+
+	PointLightEntity::GetMetaClassStatic()->ClassProperties.Insert("TransformComponent", new ClassProperty(ClassPropertyType::ComponentReference, 56));
+	PointLightEntity::GetMetaClassStatic()->ClassProperties.Insert("PoingLightComponent", new ClassProperty(ClassPropertyType::ComponentReference, 64));
+#endif
+
+	TransformComponent::GetMetaClassStatic()->ClassProperties.Insert("Location", new ClassProperty(ClassPropertyType::Vector, 32));
+	TransformComponent::GetMetaClassStatic()->ClassProperties.Insert("Rotation", new ClassProperty(ClassPropertyType::Rotator, 44));
+	TransformComponent::GetMetaClassStatic()->ClassProperties.Insert("Scale", new ClassProperty(ClassPropertyType::Vector, 56));
+	TransformComponent::GetMetaClassStatic()->ClassProperties.Insert("PivotPoint", new ClassProperty(ClassPropertyType::Vector, 68));
+	
+	BoundingBoxComponent::GetMetaClassStatic()->ClassProperties.Insert("Center", new ClassProperty(ClassPropertyType::Vector, 32));
+	BoundingBoxComponent::GetMetaClassStatic()->ClassProperties.Insert("HalfSize", new ClassProperty(ClassPropertyType::Vector, 44));
+	
+	StaticMeshComponent::GetMetaClassStatic()->ClassProperties.Insert("StaticMesh", new ClassProperty(ClassPropertyType::ResourceReference, 32));
+	StaticMeshComponent::GetMetaClassStatic()->ClassProperties.Insert("Material", new ClassProperty(ClassPropertyType::ResourceReference, 40));
+	
+	PointLightComponent::GetMetaClassStatic()->ClassProperties.Insert("Brightness", new ClassProperty(ClassPropertyType::Float, 32));
+	PointLightComponent::GetMetaClassStatic()->ClassProperties.Insert("Radius", new ClassProperty(ClassPropertyType::Float, 36));
+	PointLightComponent::GetMetaClassStatic()->ClassProperties.Insert("Color", new ClassProperty(ClassPropertyType::Color, 40));
+	
+	MetaClassesTable.Insert(Entity::GetMetaClassStatic()->GetClassName(), Entity::GetMetaClassStatic());
+	MetaClassesTable.Insert(StaticMeshEntity::GetMetaClassStatic()->GetClassName(), StaticMeshEntity::GetMetaClassStatic());
+	MetaClassesTable.Insert(PointLightEntity::GetMetaClassStatic()->GetClassName(), PointLightEntity::GetMetaClassStatic());
+
+	MetaClassesTable.Insert(Component::GetMetaClassStatic()->GetClassName(), Component::GetMetaClassStatic());
+	MetaClassesTable.Insert(TransformComponent::GetMetaClassStatic()->GetClassName(), TransformComponent::GetMetaClassStatic());
+	MetaClassesTable.Insert(BoundingBoxComponent::GetMetaClassStatic()->GetClassName(), BoundingBoxComponent::GetMetaClassStatic());
+	MetaClassesTable.Insert(StaticMeshComponent::GetMetaClassStatic()->GetClassName(), StaticMeshComponent::GetMetaClassStatic());
+	MetaClassesTable.Insert(PointLightComponent::GetMetaClassStatic()->GetClassName(), PointLightComponent::GetMetaClassStatic());
 
 	camera.InitCamera();
 	world.LoadWorld();

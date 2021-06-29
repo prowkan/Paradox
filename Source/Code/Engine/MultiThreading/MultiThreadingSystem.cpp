@@ -20,7 +20,7 @@ void MultiThreadingSystem::InitSystem()
 	for (UINT i = 0; i < WorkerThreadsCount; i++)
 	{
 		ThreadIndices[i] = i;
-		WorkerThreads[i] = CreateThread(NULL, 0, &WorkerThreadFunc, &ThreadIndices[i], 0, NULL); //-V513
+		WorkerThreads[i] = PlatformThread::Create(&WorkerThreadFunc, &ThreadIndices[i]);
 	}
 }
 
@@ -30,10 +30,6 @@ void MultiThreadingSystem::ShutdownSystem()
 
 	for (UINT i = 0; i < WorkerThreadsCount; i++)
 	{
-		DWORD WaitResult = WaitForSingleObject(WorkerThreads[i], INFINITE);
-
-		BOOL Result = CloseHandle(WorkerThreads[i]);
-	
-		WorkerThreads[i] = INVALID_HANDLE_VALUE;
+		WorkerThreads[i].WaitForFinishAndDestroy();
 	}
 }

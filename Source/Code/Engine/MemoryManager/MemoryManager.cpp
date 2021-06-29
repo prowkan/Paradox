@@ -3,7 +3,7 @@
 
 #include "MemoryManager.h"
 
-#include "SystemAllocator.h"
+#include "SystemMemoryAllocator.h"
 
 #include <Game/MetaClass.h>
 
@@ -17,16 +17,12 @@
 
 void MemoryManager::InitManager()
 {
-	SystemAllocator::ProcessHeap = GetProcessHeap();
-
 	EntitiesHeap.CreateHeap(20000 * sizeof(StaticMeshEntity) + 10000 * sizeof(PointLightEntity));
 
 	TransformComponentsPool.CreatePool(sizeof(TransformComponent), 30000);
 	BoundingBoxComponentsPool.CreatePool(sizeof(BoundingBoxComponent), 20000);
 	StaticMeshComponentsPool.CreatePool(sizeof(StaticMeshComponent), 20000);
 	PointLightComponentsPool.CreatePool(sizeof(PointLightComponent), 10000);
-
-	GlobalStack.CreateStack(10 * 1024 * 1024);
 }
 
 void MemoryManager::ShutdownManager()
@@ -37,8 +33,6 @@ void MemoryManager::ShutdownManager()
 	PointLightComponentsPool.DestroyPool();
 
 	EntitiesHeap.DestroyHeap();
-
-	GlobalStack.DestroyStack();
 }
 
 void* MemoryManager::AllocateEntity(MetaClass* metaClass)

@@ -6,37 +6,60 @@
 #include <FlashUI/SWFFile.h>
 #include <FlashUI/SWFParser.h>
 
-Engine Engine::engine;
+StaticReference<Engine> Engine::engine;
 
 void Engine::InitEngine()
 {
+	SystemMemoryAllocator::InitAllocator();
+
 	SWFFile File;
 	File.Open(u"GameContent/UI/Test.swf");
 	SWFParser::ParseFile(File);
 	File.Close();
 
-	multiThreadingSystem.InitSystem();
-	memoryManager.InitManager();
-	multiThreadingSystem.InitSystem();
-	inputSystem.InitSystem();
-	renderSystem.InitSystem();
-	gameFramework.InitFramework();
+	memoryManager.CreateInstance();
+	configSystem.CreateInstance();
+	multiThreadingSystem.CreateInstance();
+	inputSystem.CreateInstance();
+	renderSystem.CreateInstance();
+	fileSystem.CreateInstance();
+	gameFramework.CreateInstance();
+	resourceManager.CreateInstance();
+
+	memoryManager->InitManager();
+	configSystem->InitSystem();
+	multiThreadingSystem->InitSystem();
+	fileSystem->InitSystem();
+	inputSystem->InitSystem();
+	renderSystem->InitSystem();
+	gameFramework->InitFramework();
 }
 
 void Engine::ShutdownEngine()
 {
-	inputSystem.ShutdownSystem();
-	gameFramework.ShutdownFramework();
-	renderSystem.ShutdownSystem();
-	multiThreadingSystem.ShutdownSystem();
-	memoryManager.ShutdownManager();
+	inputSystem->ShutdownSystem();
+	gameFramework->ShutdownFramework();
+	renderSystem->ShutdownSystem();
+	fileSystem->ShutdownSystem();
+	multiThreadingSystem->ShutdownSystem();
+	memoryManager->ShutdownManager();
+	configSystem->ShutdownSystem();
+
+	memoryManager.DestroyInstance();
+	configSystem.DestroyInstance();
+	multiThreadingSystem.DestroyInstance();
+	inputSystem.DestroyInstance();
+	renderSystem.DestroyInstance();
+	fileSystem.DestroyInstance();
+	gameFramework.DestroyInstance();
+	resourceManager.DestroyInstance();
 }
 
 void Engine::TickEngine(float DeltaTime)
 {
 	OPTICK_FRAME("Main Thread")
 
-	inputSystem.TickSystem(DeltaTime);
-	gameFramework.TickFramework(DeltaTime);
-	renderSystem.TickSystem(DeltaTime);
+	inputSystem->TickSystem(DeltaTime);
+	gameFramework->TickFramework(DeltaTime);
+	renderSystem->TickSystem(DeltaTime);
 }

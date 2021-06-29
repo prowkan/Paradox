@@ -3,12 +3,14 @@
 #include <stdio.h>
 
 #include <iostream>
-#include <string>
-#include <vector>
-#include <map>
-#include <queue>
+#include <fstream>
+//#include <string>
+//#include <vector>
+//#include <map>
+//#include <queue>
 #include <atomic>
 #include <mutex>
+#include <chrono>
 
 #include <Windows.h>
 #include <DbgHelp.h>
@@ -35,3 +37,7 @@
 
 using namespace std;
 using namespace DirectX;
+
+#define PLATFORM_PC_WINDOW
+
+#define WITH_EDITOR 1

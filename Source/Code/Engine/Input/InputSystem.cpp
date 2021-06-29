@@ -8,14 +8,30 @@
 
 void InputSystem::InitSystem()
 {
-	RECT WindowRect;
-	BOOL Result = GetWindowRect(Application::GetMainWindowHandle(), &WindowRect);
-	POINT WindowCenter;
-	WindowCenter.x = (WindowRect.left + WindowRect.right) / 2;
-	WindowCenter.y = (WindowRect.top + WindowRect.bottom) / 2;
-	Result = SetCursorPos(WindowCenter.x, WindowCenter.y);
-	PreviousCursorPosition.x = WindowCenter.x;
-	PreviousCursorPosition.y = WindowCenter.y;
+#if WITH_EDITOR
+	if (!Application::IsEditor())
+#endif
+	{
+		RAWINPUTDEVICE RawInputDevice;
+		RawInputDevice.dwFlags = 0;
+		RawInputDevice.hwndTarget = NULL;
+		RawInputDevice.usUsage = 0x0002;
+		RawInputDevice.usUsagePage = 0x0001;
+
+		BOOL Result = RegisterRawInputDevices(&RawInputDevice, 1, sizeof(RAWINPUTDEVICE));
+	}
+
+	for (int i = 0; i < 255; i++)
+	{
+		KeyStates[i] = KeyState::Released;
+	}
+
+	OnPressedKeyBindings[VK_F2] = Delegate<void>(this, &InputSystem::ToggleOcclusionBuffer);
+	OnPressedKeyBindings[VK_F3] = Delegate<void>(this, &InputSystem::ToggleBoundingBoxes);
+	
+	OnReleasedKeyBindings[VK_ESCAPE] = Delegate<void>(this, &InputSystem::EscapeKeyHandler);
+
+	IsMouseCaptured = false;
 }
 
 void InputSystem::ShutdownSystem()
@@ -23,9 +39,87 @@ void InputSystem::ShutdownSystem()
 
 }
 
+void InputSystem::ToggleOcclusionBuffer()
+{
+	Engine::GetEngine().GetRenderSystem().ToggleOcclusionBuffer();
+}
+
+void InputSystem::ToggleBoundingBoxes()
+{
+	Engine::GetEngine().GetRenderSystem().ToggleBoundingBoxes();
+}
+
+void InputSystem::EscapeKeyHandler()
+{
+	if (IsMouseCaptured)
+	{
+		IsMouseCaptured = false;
+		int Result = ShowCursor(TRUE);
+	}
+	else
+	{
+		Application::SetAppExitFlag(true);
+	}
+}
+
 void InputSystem::TickSystem(float DeltaTime)
 {
 	if (GetForegroundWindow() != Application::GetMainWindowHandle()) return;
+
+	bool WasKeyPressed[255];
+	bool WasKeyReleased[255];
+
+	for (int i = 0; i < 255; i++)
+	{
+		WasKeyPressed[i] = false;
+		WasKeyReleased[i] = false;
+	}
+
+	for (int i = 0; i < 255; i++)
+	{
+		if (GetAsyncKeyState(i) & 0x8000)
+		{
+			if (KeyStates[i] == KeyState::Released)
+			{
+				WasKeyPressed[i] = true;
+				KeyStates[i] = KeyState::Pressed;
+			}
+		}
+		else
+		{
+			if (KeyStates[i] == KeyState::Pressed)
+			{
+				WasKeyReleased[i] = true;
+				KeyStates[i] = KeyState::Released;
+			}
+		}
+	}
+
+	for (int i = 0; i < 255; i++)
+	{
+		if (WasKeyPressed[i] && OnPressedKeyBindings[i] != nullptr)
+		{
+			OnPressedKeyBindings[i]();
+		}
+
+		if (WasKeyReleased[i] && OnReleasedKeyBindings[i] != nullptr)
+		{
+			OnReleasedKeyBindings[i]();
+		}
+	}
+
+	if (GetAsyncKeyState(VK_LBUTTON) & 0x8000)
+	{
+		if (!IsMouseCaptured)
+		{
+			IsMouseCaptured = true;
+			int Result = ShowCursor(FALSE);
+
+			RECT MainWindowRect;
+			BOOL bResult = GetWindowRect(Application::GetMainWindowHandle(), &MainWindowRect);
+			bResult = ClipCursor(&MainWindowRect);
+		}
+	}	
 
 	Camera& camera = Engine::GetEngine().GetGameFramework().GetCamera();
 
@@ -37,21 +131,10 @@ void InputSystem::TickSystem(float DeltaTime)
 	if (GetAsyncKeyState(VK_LEFT) & 0x8000) CameraRotation.y -= 1.0f * DeltaTime;
 	if (GetAsyncKeyState(VK_RIGHT) & 0x8000) CameraRotation.y += 1.0f * DeltaTime;
 
-	BOOL Result = GetCursorPos(&CurrentCursorPosition);
-
 	float MouseSensetivity = 0.25f;
 
-	CameraRotation.x += MouseSensetivity * (CurrentCursorPosition.y - PreviousCursorPosition.y) * DeltaTime;
-	CameraRotation.y += MouseSensetivity * (CurrentCursorPosition.x - PreviousCursorPosition.x) * DeltaTime;
-
-	RECT WindowRect;
-	Result = GetWindowRect(Application::GetMainWindowHandle(), &WindowRect);
-	POINT WindowCenter;
-	WindowCenter.x = (WindowRect.left + WindowRect.right) / 2;
-	WindowCenter.y = (WindowRect.top + WindowRect.bottom) / 2;
-	Result = SetCursorPos(WindowCenter.x, WindowCenter.y);
-	PreviousCursorPosition.x = WindowCenter.x;
-	PreviousCursorPosition.y = WindowCenter.y;
+	CameraRotation.x += MouseSensetivity * MouseDeltaY * DeltaTime;
+	CameraRotation.y += MouseSensetivity * MouseDeltaX * DeltaTime;
 
 	XMFLOAT3 CameraOffset = XMFLOAT3(0.0f, 0.0f, 0.0f);
 
@@ -76,4 +159,30 @@ void InputSystem::TickSystem(float DeltaTime)
 
 	camera.SetCameraLocation(CameraLocation);
 	camera.SetCameraRotation(CameraRotation);
+
+	MouseDeltaX = 0;
+	MouseDeltaY = 0;
+}
+
+void InputSystem::ProcessRawMouseInput(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
+{
+	if (!IsMouseCaptured) return;
+
+	UINT RawInputDataSize;
+
+	UINT Result = GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &RawInputDataSize, sizeof(RAWINPUTHEADER));
+
+	BYTE *RawInputData = new BYTE[RawInputDataSize];
+
+	Result = GetRawInputData((HRAWINPUT)lParam, RID_INPUT, RawInputData, &RawInputDataSize, sizeof(RAWINPUTHEADER));
+
+	RAWINPUT& RawInput = *(RAWINPUT*)RawInputData;
+
+	if (RawInput.header.dwType == RIM_TYPEMOUSE)
+	{
+		MouseDeltaX += RawInput.data.mouse.lLastX;
+		MouseDeltaY += RawInput.data.mouse.lLastY;
+	}
+
+	delete[] RawInputData;
 }

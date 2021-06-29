@@ -19,6 +19,8 @@ class StaticMeshComponent : public Component
 		virtual void RegisterComponent() override;
 		virtual void UnRegisterComponent() override;
 
+		virtual void LoadFromFile(LevelFile& File) override;
+
 		StaticMeshResource* GetStaticMesh() { return StaticMesh; }
 		void SetStaticMesh(StaticMeshResource* NewStaticMesh) { StaticMesh = NewStaticMesh; }
 

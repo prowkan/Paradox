@@ -1,5 +1,8 @@
 #pragma once
 
+#include <Containers/String.h>
+#include <Containers/HashTable.h>
+
 #include "Resource.h"
 
 class ResourceManager
@@ -7,27 +10,29 @@ class ResourceManager
 	public:
 
 		template<typename T>
-		void AddResource(const string& ResourceName, const void* ResourceData)
+		void AddResource(const String& ResourceName, const void* ResourceData)
 		{
 			T* resource = new T();
-			resource->CreateResource(ResourceData);
-			ResourceTable.emplace(ResourceName, resource);
+			resource->CreateResource(ResourceName, ResourceData);
+			ResourceTable.Insert(ResourceName, resource);
 		}
 
 		template<typename T>
-		T* GetResource(const string& ResourceName) { return (T*)ResourceTable[ResourceName]; }
+		T* GetResource(const String& ResourceName) { return (T*)ResourceTable[ResourceName]; }
+
+		bool IsResourceLoaded(const String& ResourceName) { return ResourceTable.HasKey(ResourceName); }
 
 		void DestroyAllResources()
 		{
 			for (auto& It : ResourceTable)
 			{
-				It.second->DestroyResource();
+				It->Value->DestroyResource();
 			}
 
-			ResourceTable.clear();
+			//ResourceTable.clear();
 		}
 
 	private:
 
-		map<string, Resource*> ResourceTable;
+		HashTable<String, Resource*> ResourceTable;
 };

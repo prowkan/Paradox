@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?> 
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="DynamicArray&lt;*&gt;">
+    <DisplayString>{{ Length = { ArrayLength } }}</DisplayString>
+    <Expand>
+      <Item Name="[Length]">ArrayLength</Item>
+      <Item Name="[Capacity]">ArrayCapacity</Item>
+      <ArrayItems>
+        <Size>ArrayLength</Size>
+        <ValuePointer>ArrayData</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+  <Type Name="HashTable&lt;*,*&gt;">
+    <DisplayString>{{ ItemsCount = { Size } TableSize = { TableSize } }}</DisplayString>
+    <Expand>
+      <CustomListItems>
+        <Variable Name="NodeIndex" InitialValue="0"/>
+        <Variable Name="NodesCount" InitialValue="TableSize"/>
+        <Variable Name="NodePtr" InitialValue="Nodes[NodeIndex]"/>
+        <Loop>
+          <If Condition="Nodes[NodeIndex] != nullptr">
+            <Exec>NodePtr = Nodes[NodeIndex]</Exec>
+            <Loop>
+              <Item Name="[{NodePtr->Key.StringData,s}]">NodePtr->Value</Item>
+              <Exec>NodePtr = NodePtr->Next</Exec>
+              <Break Condition="NodePtr == nullptr"/>
+            </Loop>
+          </If>
+          <Exec>NodeIndex++</Exec>
+          <Break Condition="NodeIndex == NodesCount"/>
+        </Loop>
+      </CustomListItems>
+    </Expand>
+  </Type>
+  <Type Name="StringTemplate&lt;*&gt;">
+    <DisplayString>{ StringData,s }</DisplayString>
+  </Type>
+  <Type Name="StaticReference&lt;*&gt;">
+    <DisplayString>{ *($T1*)DataStorage }</DisplayString>
+    <Expand>
+      <ExpandedItem>*($T1*)DataStorage</ExpandedItem>
+    </Expand>
+  </Type>
+</AutoVisualizer>
