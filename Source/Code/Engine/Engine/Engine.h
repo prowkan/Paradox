@@ -1,8 +1,12 @@
 #pragma once
 
+#include <Containers/StaticReference.h>
+
 #include <MultiThreading/MultiThreadingSystem.h>
 #include <MemoryManager/MemoryManager.h>
 
+#include <Config/ConfigSystem.h>
+#include <FileSystem/FileSystem.h>
 #include <Input/InputSystem.h>
 #include <Render/RenderSystem.h>
 
@@ -23,6 +27,8 @@ class Engine
 		MultiThreadingSystem& GetMultiThreadingSystem() { return multiThreadingSystem; }
 		MemoryManager& GetMemoryManager() { return memoryManager; }
 
+		ConfigSystem& GetConfigSystem() { return configSystem; }
+		FileSystem& GetFileSystem() { return fileSystem; }
 		InputSystem& GetInputSystem() { return inputSystem; }
 		RenderSystem& GetRenderSystem() { return renderSystem; }
 
@@ -32,15 +38,17 @@ class Engine
 
 	private:
 
-		static Engine engine;
+		static StaticReference<Engine> engine;
 
-		MultiThreadingSystem multiThreadingSystem;
-		MemoryManager memoryManager;
+		StaticReference<MultiThreadingSystem> multiThreadingSystem;
+		StaticReference<MemoryManager> memoryManager;
 
-		InputSystem inputSystem;
-		RenderSystem renderSystem;
+		StaticReference<ConfigSystem> configSystem;
+		StaticReference<FileSystem> fileSystem;
+		StaticReference<InputSystem> inputSystem;
+		StaticReference<RenderSystem> renderSystem;
 
-		ResourceManager resourceManager;
+		StaticReference<ResourceManager> resourceManager;
 
-		GameFramework gameFramework;
+		StaticReference<GameFramework> gameFramework;
 };

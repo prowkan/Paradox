@@ -5,8 +5,10 @@
 
 #include <Engine/Engine.h>
 
-void Texture2DResource::CreateResource(const void* ResourceData)
+void Texture2DResource::CreateResource(const String& ResourceName, const void* ResourceData)
 {
+	Resource::CreateResource(ResourceName, ResourceData);
+
 	Texture2DResourceCreateInfo& texture2DResourceCreateInfo = *(Texture2DResourceCreateInfo*)ResourceData;
 
 	RenderTextureCreateInfo renderTextureCreateInfo;
@@ -14,6 +16,7 @@ void Texture2DResource::CreateResource(const void* ResourceData)
 	renderTextureCreateInfo.MIPLevels = texture2DResourceCreateInfo.MIPLevels;
 	renderTextureCreateInfo.SRGB = texture2DResourceCreateInfo.SRGB;
 	renderTextureCreateInfo.Compressed = texture2DResourceCreateInfo.Compressed;
+	renderTextureCreateInfo.CompressionType = texture2DResourceCreateInfo.CompressionType;
 	renderTextureCreateInfo.TexelData = texture2DResourceCreateInfo.TexelData;
 	renderTextureCreateInfo.Width = texture2DResourceCreateInfo.Width;
 

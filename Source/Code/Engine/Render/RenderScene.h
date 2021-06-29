@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Containers/DynamicArray.h>
+
 class StaticMeshComponent;
 class PointLightComponent;
 
@@ -7,14 +9,14 @@ class RenderScene
 {
 	public:
 
-		void RegisterStaticMeshComponent(StaticMeshComponent* staticMeshComponent) { StaticMeshComponents.push_back(staticMeshComponent); }
-		void RegisterPointLightComponent(PointLightComponent* pointLightComponent) { PointLightComponents.push_back(pointLightComponent); }
+		void RegisterStaticMeshComponent(StaticMeshComponent* staticMeshComponent) { StaticMeshComponents.Add(staticMeshComponent); }
+		void RegisterPointLightComponent(PointLightComponent* pointLightComponent) { PointLightComponents.Add(pointLightComponent); }
 
-		vector<StaticMeshComponent*>& GetStaticMeshComponents() { return StaticMeshComponents; }
-		vector<PointLightComponent*>& GetPointLightComponents() { return PointLightComponents; }
+		DynamicArray<StaticMeshComponent*>& GetStaticMeshComponents() { return StaticMeshComponents; }
+		DynamicArray<PointLightComponent*>& GetPointLightComponents() { return PointLightComponents; }
 
 	private:
 
-		vector<StaticMeshComponent*> StaticMeshComponents;
-		vector<PointLightComponent*> PointLightComponents;
+		DynamicArray<StaticMeshComponent*> StaticMeshComponents;
+		DynamicArray<PointLightComponent*> PointLightComponents;
 };
