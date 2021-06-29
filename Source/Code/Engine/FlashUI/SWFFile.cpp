@@ -112,6 +112,8 @@ uint32_t SWFFile::ReadEncodedU32()
 
 SWFRect SWFFile::ReadRect()
 {
+	AlignToByte();
+
 	SWFRect Rect;
 
 	uint8_t BitsPerCoords = (uint8_t)ReadUnsignedBits(BITS_PER_RECT_COORD);
