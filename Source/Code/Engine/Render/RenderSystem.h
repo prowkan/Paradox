@@ -166,6 +166,9 @@ class RenderSystem
 		COMRCPtr<ID3D12Resource> GPUCameraConstantBuffer, CPUCameraConstantBuffers[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE CameraConstantBufferCBV;
 
+		COMRCPtr<ID3D12Resource> GPURenderTargetConstantBuffer, CPURenderTargetConstantBuffers[2];
+		D3D12_CPU_DESCRIPTOR_HANDLE RenderTargetConstantBufferCBV;
+
 		COMRCPtr<ID3D12Heap> GPUMemory0, CPUMemory0;
 
 		// ===============================================================================================================
@@ -227,8 +230,11 @@ class RenderSystem
 		COMRCPtr<ID3D12Resource> HDRSceneColorTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE HDRSceneColorTextureRTV, HDRSceneColorTextureSRV;
 
-		COMRCPtr<ID3D12Resource> GPUDeferredLightingConstantBuffer, CPUDeferredLightingConstantBuffers[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE DeferredLightingConstantBufferCBV;
+		COMRCPtr<ID3D12Resource> GPULightingConstantBuffer, CPULightingConstantBuffers[2];
+		D3D12_CPU_DESCRIPTOR_HANDLE LightingConstantBufferCBV;
+
+		COMRCPtr<ID3D12Resource> GPUClusteredShadingConstantBuffer, CPUClusteredShadingConstantBuffers[2];
+		D3D12_CPU_DESCRIPTOR_HANDLE ClusteredShadingConstantBufferCBV;
 
 		COMRCPtr<ID3D12Resource> GPULightClustersBuffer, CPULightClustersBuffers[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE LightClustersBufferSRV;
