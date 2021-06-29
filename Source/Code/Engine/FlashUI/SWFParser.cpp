@@ -75,6 +75,10 @@ void SWFParser::ProcessTag(SWFFile& File, uint32_t TagCode, uint32_t TagLength)
 			cout << "PlaceObject2 tag." << endl;
 			ProcessPlaceObject2Tag(File);
 			break;
+		case TAG_DEFINE_EDIT_TEXT:
+			cout << "DefineEditText tag." << endl;
+			ProcessDefineEditTextTag(File);
+			break;
 		case TAG_FILE_ATTRIBUTES:
 			cout << "FileAttributes tag." << endl;
 			ProcessFileAttributesTag(File);
@@ -86,6 +90,10 @@ void SWFParser::ProcessTag(SWFFile& File, uint32_t TagCode, uint32_t TagLength)
 		case TAG_DEFINE_SCENE_AND_FRAME_LABEL_DATA:
 			cout << "DefineSceneAndFrameLabelData tag." << endl;
 			ProcessDefineSceneAndFrameLabelDataTag(File);
+			break;
+		case TAG_DEFINE_FONT_NAME:
+			cout << "DefineFontName tag." << endl;
+			ProcessDefineFontNameTag(File);
 			break;
 		default:
 			cout << "Unknown tag." << endl;
@@ -236,6 +244,73 @@ void SWFParser::ProcessPlaceObject2Tag(SWFFile& File)
 	if (HasMatrix)
 	{
 		SWFMatrix Matrix = File.ReadMatrix();
+	}
+}
+
+void SWFParser::ProcessDefineEditTextTag(SWFFile& File)
+{
+	uint16_t CharacterId = File.Read<uint16_t>();
+
+	SWFRect Bounds = File.ReadRect();
+
+	File.AlignToByte();
+
+	uint8_t HasText = (uint8_t)File.ReadUnsignedBits(1);
+	uint8_t WordWrap = (uint8_t)File.ReadUnsignedBits(1);
+	uint8_t Multiline = (uint8_t)File.ReadUnsignedBits(1);
+	uint8_t Password = (uint8_t)File.ReadUnsignedBits(1);
+	uint8_t ReadOnly = (uint8_t)File.ReadUnsignedBits(1);
+	uint8_t HasTextColor = (uint8_t)File.ReadUnsignedBits(1);
+	uint8_t HasMaxLength = (uint8_t)File.ReadUnsignedBits(1);
+	uint8_t HasFont = (uint8_t)File.ReadUnsignedBits(1);
+	uint8_t HasFontClass = (uint8_t)File.ReadUnsignedBits(1);
+	uint8_t AutoSize = (uint8_t)File.ReadUnsignedBits(1);
+	uint8_t HasLayout = (uint8_t)File.ReadUnsignedBits(1);
+	uint8_t NoSelect = (uint8_t)File.ReadUnsignedBits(1);
+	uint8_t Border = (uint8_t)File.ReadUnsignedBits(1);
+	uint8_t WasStatic = (uint8_t)File.ReadUnsignedBits(1);
+	uint8_t HTML = (uint8_t)File.ReadUnsignedBits(1);
+	uint8_t UseOutlines = (uint8_t)File.ReadUnsignedBits(1);
+
+	if (HasFont)
+	{
+		uint16_t FontId = File.Read<uint16_t>();
+	}
+
+	if (HasFontClass)
+	{
+		File.ReadString();
+	}
+
+	if (HasFont)
+	{
+		uint16_t FontHeight = File.Read<uint16_t>();
+	}
+
+	if (HasTextColor)
+	{
+		SWFRGBA TextColor = File.ReadRGBA();
+	}
+
+	if (HasMaxLength)
+	{
+		uint16_t MaxLength = File.Read<uint16_t>();
+	}
+
+	if (HasLayout)
+	{
+		uint8_t Align = File.Read<uint8_t>();
+		uint16_t LeftMargin = File.Read<uint16_t>();
+		uint16_t RightMargin = File.Read<uint16_t>();
+		uint16_t Indent = File.Read<uint16_t>();
+		int16_t Leading = File.Read<int16_t>();
+	}
+
+	File.ReadString();
+
+	if (HasText)
+	{
+		File.ReadString();
 	}
 }
 
@@ -447,4 +522,11 @@ void SWFParser::ProcessDefineSceneAndFrameLabelDataTag(SWFFile& File)
 		uint32_t FrameLabelNum = File.ReadEncodedU32();
 		File.ReadString();
 	}
+}
+
+void SWFParser::ProcessDefineFontNameTag(SWFFile& File)
+{
+	uint16_t FontId = File.Read<uint16_t>();
+	File.ReadString();
+	File.ReadString();
 }
