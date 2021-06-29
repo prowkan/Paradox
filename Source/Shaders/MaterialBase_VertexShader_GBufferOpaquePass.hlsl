@@ -17,24 +17,31 @@ struct VSOutput
 	float3 Binormal : BINORMAL;
 };
 
-struct VSConstants
+struct VSCameraConstants
 {
-	float4x4 WVPMatrix;
+	float4x4 ViewProjMatrix;
+};
+
+struct VSObjectConstants
+{
 	float4x4 WorldMatrix;
 	float3x3 VectorTransformMatrix;
 };
 
-ConstantBuffer<VSConstants> VertexShaderConstants : register(b0);
+ConstantBuffer<VSCameraConstants> VertexShaderCameraConstants : register(b0);
+ConstantBuffer<VSObjectConstants> VertexShaderObjectConstants : register(b1);
 
 VSOutput VS(VSInput VertexShaderInput)
 {
 	VSOutput VertexShaderOutput;
 
-	VertexShaderOutput.Position = mul(float4(VertexShaderInput.Position, 1.0f), VertexShaderConstants.WVPMatrix);
+	float4x4 WVPMatrix = mul(VertexShaderObjectConstants.WorldMatrix, VertexShaderCameraConstants.ViewProjMatrix);
+
+	VertexShaderOutput.Position = mul(float4(VertexShaderInput.Position, 1.0f), WVPMatrix);
 	VertexShaderOutput.TexCoord = VertexShaderInput.TexCoord;
-	VertexShaderOutput.Normal = normalize(mul(VertexShaderInput.Normal, VertexShaderConstants.VectorTransformMatrix));
-	VertexShaderOutput.Tangent = normalize(mul(VertexShaderInput.Tangent, VertexShaderConstants.VectorTransformMatrix));
-	VertexShaderOutput.Binormal = normalize(mul(VertexShaderInput.Binormal, VertexShaderConstants.VectorTransformMatrix));
+	VertexShaderOutput.Normal = normalize(mul(VertexShaderInput.Normal, VertexShaderObjectConstants.VectorTransformMatrix));
+	VertexShaderOutput.Tangent = normalize(mul(VertexShaderInput.Tangent, VertexShaderObjectConstants.VectorTransformMatrix));
+	VertexShaderOutput.Binormal = normalize(mul(VertexShaderInput.Binormal, VertexShaderObjectConstants.VectorTransformMatrix));
 
 	return VertexShaderOutput;
 }
