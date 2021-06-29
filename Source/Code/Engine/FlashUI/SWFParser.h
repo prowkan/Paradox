@@ -18,6 +18,7 @@ class SWFParser
 		static void ProcessSetBackgroundColorTag(SWFFile& File);
 		static void ProcessPlaceObject2Tag(SWFFile& File);
 		static void ProcessFileAttributesTag(SWFFile& File);
+		static void ProcessDefineFont3Tag(SWFFile& File);
 		static void ProcessDefineSceneAndFrameLabelDataTag(SWFFile& File);
 
 		static const uint32_t TAG_END = 0;

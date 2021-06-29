@@ -79,6 +79,10 @@ void SWFParser::ProcessTag(SWFFile& File, uint32_t TagCode, uint32_t TagLength)
 			cout << "FileAttributes tag." << endl;
 			ProcessFileAttributesTag(File);
 			break;
+		case TAG_DEFINE_FONT_3:
+			cout << "DefineFont3 tag." << endl;
+			ProcessDefineFont3Tag(File);
+			break;
 		case TAG_DEFINE_SCENE_AND_FRAME_LABEL_DATA:
 			cout << "DefineSceneAndFrameLabelData tag." << endl;
 			ProcessDefineSceneAndFrameLabelDataTag(File);
@@ -245,6 +249,185 @@ void SWFParser::ProcessFileAttributesTag(SWFFile& File)
 	Reserved = File.ReadUnsignedBits(2);
 	uint32_t UseNetwork = File.ReadUnsignedBits(1);
 	Reserved = File.ReadUnsignedBits(24);
+}
+
+void SWFParser::ProcessDefineFont3Tag(SWFFile& File)
+{
+	uint16_t FontId = File.Read<uint16_t>();
+
+	uint8_t HasLayout = (uint8_t)File.ReadUnsignedBits(1);
+	uint8_t ShiftJIS = (uint8_t)File.ReadUnsignedBits(1);
+	uint8_t SmallText = (uint8_t)File.ReadUnsignedBits(1);
+	uint8_t ANSI = (uint8_t)File.ReadUnsignedBits(1);
+	uint8_t WideOffsets = (uint8_t)File.ReadUnsignedBits(1);
+	uint8_t WideCodes = (uint8_t)File.ReadUnsignedBits(1);
+	uint8_t Italic = (uint8_t)File.ReadUnsignedBits(1);
+	uint8_t Bold = (uint8_t)File.ReadUnsignedBits(1);
+
+	uint8_t LanguageCode = File.Read<uint8_t>();
+	uint8_t FontNameLen = File.Read<uint8_t>();
+
+	char *FontName = new char[FontNameLen];
+
+	for (int i = 0; i < FontNameLen; i++)
+	{
+		FontName[i] = File.Read<char>();
+	}
+
+	delete FontName;
+
+	uint16_t NumGliphs = File.Read<uint16_t>();
+
+	if (WideOffsets)
+	{
+		for (int i = 0; i < NumGliphs; i++)
+		{
+			uint32_t Offset = File.Read<uint32_t>();
+		}
+	}
+	else
+	{
+		for (int i = 0; i < NumGliphs; i++)
+		{
+			uint16_t Offset = File.Read<uint16_t>();
+		}
+	}
+
+	if (WideOffsets)
+	{
+		uint32_t CodeTableOffset = File.Read<uint32_t>();
+	}
+	else
+	{
+		uint16_t CodeTableOffset = File.Read<uint16_t>();
+	}
+
+	for (int i = 0; i < NumGliphs; i++)
+	{
+		File.AlignToByte();
+
+		uint8_t NumFillBits = (uint8_t)File.ReadUnsignedBits(4);
+		uint8_t NumLineBits = (uint8_t)File.ReadUnsignedBits(4);
+
+		while (true)
+		{
+			uint8_t TypeFlag = (uint8_t)File.ReadUnsignedBits(1);
+
+			if (TypeFlag == 0)
+			{
+				uint8_t StateNewStyles = (uint8_t)File.ReadUnsignedBits(1);
+				uint8_t StateLineStyle = (uint8_t)File.ReadUnsignedBits(1);
+				uint8_t StateFillStyle1 = (uint8_t)File.ReadUnsignedBits(1);
+				uint8_t StateFillStyle0 = (uint8_t)File.ReadUnsignedBits(1);
+				uint8_t StateMoveTo = (uint8_t)File.ReadUnsignedBits(1);
+
+				if ((StateNewStyles == 0) && (StateLineStyle == 0) && (StateFillStyle1 == 0) && (StateFillStyle0 == 0) && (StateMoveTo == 0))
+				{
+					break;
+				}
+				else
+				{
+					if (StateMoveTo)
+					{
+						uint8_t MoveBitsCount = (uint8_t)File.ReadUnsignedBits(5);
+						int64_t MoveDeltaX = File.ReadSignedBits(MoveBitsCount) / SWFFile::TWIPS_IN_PIXEL;
+						int64_t MoveDeltaY = File.ReadSignedBits(MoveBitsCount) / SWFFile::TWIPS_IN_PIXEL;
+					}
+
+					if (StateFillStyle0)
+					{
+						uint64_t FillStyle0 = File.ReadUnsignedBits(NumFillBits);
+					}
+
+					if (StateFillStyle1)
+					{
+						uint64_t FillStyle1 = File.ReadUnsignedBits(NumFillBits);
+					}
+
+					if (StateLineStyle)
+					{
+						uint64_t LineStyle = File.ReadUnsignedBits(NumLineBits);
+					}
+				}
+			}
+			else
+			{
+				uint8_t StraightFlag = (uint8_t)File.ReadUnsignedBits(1);
+
+				if (StraightFlag)
+				{
+					uint8_t NumBits = (uint8_t)File.ReadUnsignedBits(4);
+
+					uint8_t GeneralLineFlag = (uint8_t)File.ReadUnsignedBits(1);
+					uint8_t VerticalLineFlag = 0;
+
+					if (!GeneralLineFlag)
+					{
+						//VerticalLineFlag = (uint8_t)File.ReadSignedBits(1);
+						VerticalLineFlag = (uint8_t)File.ReadUnsignedBits(1); // Согласно спецификации SWF должно быть signed, но т. к. бит один, то если он будет единичным, он будет распространен во все биты слева
+					}
+
+					if (GeneralLineFlag == 1 || VerticalLineFlag == 0)
+					{
+						int64_t DeltaX = File.ReadSignedBits(NumBits + 2) / SWFFile::TWIPS_IN_PIXEL;
+					}
+
+					if (GeneralLineFlag == 1 || VerticalLineFlag == 1)
+					{
+						int64_t DeltaY = File.ReadSignedBits(NumBits + 2) / SWFFile::TWIPS_IN_PIXEL;
+					}
+				}
+				else
+				{
+					uint8_t NumBits = (uint8_t)File.ReadUnsignedBits(4);
+					int64_t ControlDeltaX = File.ReadSignedBits(NumBits + 2);
+					int64_t ControlDeltaY = File.ReadSignedBits(NumBits + 2);
+					int64_t AnchorDeltaX = File.ReadSignedBits(NumBits + 2);
+					int64_t AnchorDeltaY = File.ReadSignedBits(NumBits + 2);
+				}
+			}
+		}
+	}
+
+	for (int i = 0; i < NumGliphs; i++)
+	{
+		uint16_t Code = File.Read<uint16_t>();
+	}
+
+	if (HasLayout)
+	{
+		uint16_t FontAscent = File.Read<uint16_t>();
+		uint16_t FontDescent = File.Read<uint16_t>();
+		int16_t FontLeading = File.Read<int16_t>();
+
+		for (int i = 0; i < NumGliphs; i++)
+		{
+			int16_t FontAdvanceTable = File.Read<int16_t>();
+		}
+
+		for (int i = 0; i < NumGliphs; i++)
+		{
+			SWFRect FontBoundsTable = File.ReadRect();
+		}
+
+		uint16_t KerningCount = File.Read<uint16_t>();
+
+		for (int i = 0; i < KerningCount; i++)
+		{
+			if (WideCodes)
+			{
+				uint16_t KerningCode1 = File.Read<uint16_t>();
+				uint16_t KerningCode2 = File.Read<uint16_t>();
+			}
+			else
+			{
+				uint8_t KerningCode1 = File.Read<uint8_t>();
+				uint8_t KerningCode2 = File.Read<uint8_t>();
+			}
+
+			int16_t KerningAdjustment = File.Read<int16_t>();
+		}
+	}
 }
 
 void SWFParser::ProcessDefineSceneAndFrameLabelDataTag(SWFFile& File)
