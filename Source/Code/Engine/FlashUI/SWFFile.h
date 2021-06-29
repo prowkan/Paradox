@@ -10,6 +10,11 @@ struct SWFRGB
 	uint8_t R, G, B;
 };
 
+struct SWFRGBA
+{
+	uint8_t R, G, B, A;
+};
+
 struct SWFMatrix
 {
 	float ScaleX, ScaleY;
@@ -34,6 +39,7 @@ class SWFFile
 
 		SWFRect ReadRect();
 		SWFRGB ReadRGB();
+		SWFRGBA ReadRGBA();
 		SWFMatrix ReadMatrix();
 
 		void ReadString();

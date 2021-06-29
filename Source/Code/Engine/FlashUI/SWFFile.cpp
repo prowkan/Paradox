@@ -187,6 +187,18 @@ SWFRGB SWFFile::ReadRGB()
 	return RGB;
 }
 
+SWFRGBA SWFFile::ReadRGBA()
+{
+	SWFRGBA RGBA;
+
+	RGBA.R = Read<uint8_t>();
+	RGBA.G = Read<uint8_t>();
+	RGBA.B = Read<uint8_t>();
+	RGBA.A = Read<uint8_t>();
+
+	return RGBA;
+}
+
 SWFMatrix SWFFile::ReadMatrix()
 {
 	SWFMatrix Matrix;
