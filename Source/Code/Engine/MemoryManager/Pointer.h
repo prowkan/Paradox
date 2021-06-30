@@ -12,6 +12,7 @@ class Pointer
 			Pointer<T> pointer;
 
 			pointer.Data = (T*)SystemMemoryAllocator::AllocateMemory(sizeof(T));
+			new (pointer.Data) T();
 
 			return pointer;
 		}
@@ -24,11 +25,12 @@ class Pointer
 		Pointer(const Pointer<T>& OtherPointer)
 		{
 			Data = (T*)SystemMemoryAllocator::AllocateMemory(sizeof(T));
-			memcpy(Data, OtherPointer.Data, sizeof(T));
+			new (Data) T(*OtherPointer.Data);
 		}
 
 		~Pointer()
 		{
+			Data->~T();
 			SystemMemoryAllocator::FreeMemory(Data);
 		}
 
@@ -53,6 +55,10 @@ class Pointer<T[]>
 			Pointer<T[]> pointer;
 
 			pointer.Data = (T*)SystemMemoryAllocator::AllocateMemory(sizeof(T) * ElementsCount);
+			for (size_t i = 0; i < ElementsCount; i++)
+			{
+				new (&pointer.Data[i]) T();
+			}
 			pointer.ElementsCount = ElementsCount;
 
 			return pointer;
@@ -67,11 +73,18 @@ class Pointer<T[]>
 		{
 			Data = (T*)SystemMemoryAllocator::AllocateMemory(sizeof(T) * OtherPointer.ElementsCount);
 			ElementsCount = OtherPointer.ElementsCount;
-			memcpy(Data, OtherPointer.Data, sizeof(T));
+			for (size_t i = 0; i < ElementsCount; i++)
+			{
+				new (&Data[i]) T(OtherPointer.Data[i]);
+			}
 		}
 
 		~Pointer()
 		{
+			for (size_t i = 0; i < ElementsCount; i++)
+			{
+				Data[i].~T();
+			}
 			SystemMemoryAllocator::FreeMemory(Data);
 		}
 
