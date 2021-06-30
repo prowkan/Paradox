@@ -70,6 +70,15 @@ struct SunConstantBuffer
 	XMFLOAT3 SunPosition;
 };
 
+inline SIZE_T RenderSystem::GetOffsetForResource(D3D12_RESOURCE_DESC& ResourceDesc, D3D12_HEAP_DESC& HeapDesc)
+{
+	D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDesc);
+	SIZE_T ResourceOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + ((HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment == 0) ? 0 : (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment));
+	HeapDesc.SizeInBytes = ResourceOffset + ResourceAllocationInfo.SizeInBytes;
+
+	return ResourceOffset;
+}
+
 void RenderSystem::InitSystem()
 {
 	UINT FactoryCreationFlags = 0;
@@ -554,25 +563,16 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ConstantBufferResourceDesc);
-
-		SIZE_T GPUCameraConstantBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = GPUCameraConstantBufferOffset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ConstantBufferResourceDesc);
-
-		SIZE_T GPURenderTargetConstantBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = GPURenderTargetConstantBufferOffset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T GPUCameraConstantBufferOffset = GetOffsetForResource(ConstantBufferResourceDesc, HeapDesc);
+		SIZE_T GPURenderTargetConstantBufferOffset = GetOffsetForResource(ConstantBufferResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory0)));
 		SAFE_DX(GPUMemory0->SetName((const wchar_t*)u"Camera Constants Data GPU Heap"));
 
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory0, GPUCameraConstantBufferOffset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUCameraConstantBuffer)));
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory0, GPURenderTargetConstantBufferOffset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPURenderTargetConstantBuffer)));
-		SAFE_DX(GPUCameraConstantBuffer->SetName((const wchar_t*)u"CPU Camera Constant Buffer"));
-		SAFE_DX(GPURenderTargetConstantBuffer->SetName((const wchar_t*)u"CPU Render Target Constant Buffer"));
+		SAFE_DX(GPUCameraConstantBuffer->SetName((const wchar_t*)u"GPU Camera Constant Buffer"));
+		SAFE_DX(GPURenderTargetConstantBuffer->SetName((const wchar_t*)u"GPU Render Target Constant Buffer"));
 
 		HeapDesc.Alignment = 0;
 		HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE;
@@ -583,25 +583,10 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		SIZE_T CPUCameraConstantBuffer0Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUCameraConstantBuffer0Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ConstantBufferResourceDesc);
-
-		SIZE_T CPUCameraConstantBuffer1Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUCameraConstantBuffer1Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ConstantBufferResourceDesc);
-
-		SIZE_T CPURenderTargetConstantBuffer0Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPURenderTargetConstantBuffer0Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ConstantBufferResourceDesc);
-
-		SIZE_T CPURenderTargetConstantBuffer1Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPURenderTargetConstantBuffer1Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ConstantBufferResourceDesc);
+		SIZE_T CPUCameraConstantBuffer0Offset = GetOffsetForResource(ConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CPUCameraConstantBuffer1Offset = GetOffsetForResource(ConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CPURenderTargetConstantBuffer0Offset = GetOffsetForResource(ConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CPURenderTargetConstantBuffer1Offset = GetOffsetForResource(ConstantBufferResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory0)));
 		SAFE_DX(CPUMemory0->SetName((const wchar_t*)u"Camera Constants Data CPU Heap"));
@@ -702,27 +687,10 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &GBufferTexture0ResourceDesc);
-
-		SIZE_T GBufferTexture0Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = GBufferTexture0Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &GBufferTexture1ResourceDesc);
-
-		SIZE_T GBufferTexture1Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = GBufferTexture1Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &DepthBufferTextureResourceDesc);
-
-		SIZE_T DepthBufferTextureOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = DepthBufferTextureOffset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &GBufferOpaquePassConstantBufferResourceDesc);
-
-		SIZE_T GPUConstantBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = GPUConstantBufferOffset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T GBufferTexture0Offset = GetOffsetForResource(GBufferTexture0ResourceDesc, HeapDesc);
+		SIZE_T GBufferTexture1Offset = GetOffsetForResource(GBufferTexture1ResourceDesc, HeapDesc);
+		SIZE_T DepthBufferTextureOffset = GetOffsetForResource(DepthBufferTextureResourceDesc, HeapDesc);
+		SIZE_T GPUConstantBufferOffset = GetOffsetForResource(GBufferOpaquePassConstantBufferResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory1)));
 		SAFE_DX(GPUMemory1->SetName((const wchar_t*)u"G-Buffer Opaque Pass Data GPU Heap"));
@@ -762,15 +730,8 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		SIZE_T CPUConstantBuffer0Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUConstantBuffer0Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &GBufferOpaquePassConstantBufferResourceDesc);
-
-		SIZE_T CPUConstantBuffer1Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUConstantBuffer1Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &GBufferOpaquePassConstantBufferResourceDesc);
+		SIZE_T CPUConstantBuffer0Offset = GetOffsetForResource(GBufferOpaquePassConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CPUConstantBuffer1Offset = GetOffsetForResource(GBufferOpaquePassConstantBufferResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory1)));
 		SAFE_DX(CPUMemory1->SetName((const wchar_t*)u"G-Buffer Opaque Pass Data CPU Heap"));
@@ -868,12 +829,7 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDesc);
-
-		SIZE_T ResolvedDepthBufferTextureOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ResolvedDepthBufferTextureOffset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T ResolvedDepthBufferTextureOffset = GetOffsetForResource(ResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory2)));
 		SAFE_DX(GPUMemory2->SetName((const wchar_t*)u"Depth Resolve Pass Data GPU Heap"));
@@ -928,12 +884,7 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDesc);
-
-		SIZE_T OcclusionBufferTextureOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.SizeInBytes - HeapDesc.SizeInBytes % ResourceAllocationInfo.SizeInBytes);
-		HeapDesc.SizeInBytes = OcclusionBufferTextureOffset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T OcclusionBufferTextureOffset = GetOffsetForResource(ResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory3)));
 		SAFE_DX(GPUMemory3->SetName((const wchar_t*)u"Occlusion Buffer Pass Data GPU Heap"));
@@ -976,15 +927,8 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDesc);
-
-		SIZE_T OcclusionBufferReadbackBuffer0Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = OcclusionBufferReadbackBuffer0Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDesc);
-
-		SIZE_T OcclusionBufferReadbackBuffer1Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = OcclusionBufferReadbackBuffer1Offset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T OcclusionBufferReadbackBuffer0Offset = GetOffsetForResource(ResourceDesc, HeapDesc);
+		SIZE_T OcclusionBufferReadbackBuffer1Offset = GetOffsetForResource(ResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory3)));
 		SAFE_DX(CPUMemory3->SetName((const wchar_t*)u"Occlsuon Buffer Pass Data CPU Heap"));
@@ -1088,52 +1032,16 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo;
+		SIZE_T CascadedShadowMapTexture0Offset = GetOffsetForResource(ShadowMapTextureResourceDesc, HeapDesc);
+		SIZE_T CascadedShadowMapTexture1Offset = GetOffsetForResource(ShadowMapTextureResourceDesc, HeapDesc);
+		SIZE_T CascadedShadowMapTexture2Offset = GetOffsetForResource(ShadowMapTextureResourceDesc, HeapDesc);
+		SIZE_T CascadedShadowMapTexture3Offset = GetOffsetForResource(ShadowMapTextureResourceDesc, HeapDesc);
 
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapTextureResourceDesc);
-
-		SIZE_T CascadedShadowMapTexture0Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CascadedShadowMapTexture0Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapTextureResourceDesc);
-
-		SIZE_T CascadedShadowMapTexture1Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CascadedShadowMapTexture1Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapTextureResourceDesc);
-
-		SIZE_T CascadedShadowMapTexture2Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CascadedShadowMapTexture2Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapTextureResourceDesc);
-
-		SIZE_T CascadedShadowMapTexture3Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CascadedShadowMapTexture3Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapPassConstantBufferResourceDesc);
-
-		SIZE_T ConstantBuffer0Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ConstantBuffer0Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapPassConstantBufferResourceDesc);
-
-		SIZE_T ConstantBuffer1Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ConstantBuffer1Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapPassConstantBufferResourceDesc);
-
-		SIZE_T ConstantBuffer2Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ConstantBuffer2Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapPassConstantBufferResourceDesc);
-
-		SIZE_T ConstantBuffer3Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ConstantBuffer3Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapCameraConstantBufferResourceDesc);
-
-		SIZE_T CameraConstantBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CameraConstantBufferOffset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T ConstantBuffer0Offset = GetOffsetForResource(ShadowMapPassConstantBufferResourceDesc, HeapDesc);
+		SIZE_T ConstantBuffer1Offset = GetOffsetForResource(ShadowMapPassConstantBufferResourceDesc, HeapDesc);
+		SIZE_T ConstantBuffer2Offset = GetOffsetForResource(ShadowMapPassConstantBufferResourceDesc, HeapDesc);
+		SIZE_T ConstantBuffer3Offset = GetOffsetForResource(ShadowMapPassConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CameraConstantBufferOffset = GetOffsetForResource(ShadowMapCameraConstantBufferResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory4)));
 		SAFE_DX(GPUMemory4->SetName((const wchar_t*)u"Shadow Map Pass Data GPU Heap"));
@@ -1173,55 +1081,16 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapPassConstantBufferResourceDesc);
-
-		SIZE_T ConstantBuffer00Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ConstantBuffer00Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapPassConstantBufferResourceDesc);
-
-		SIZE_T ConstantBuffer01Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ConstantBuffer01Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapPassConstantBufferResourceDesc);
-
-		SIZE_T ConstantBuffer10Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ConstantBuffer10Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapPassConstantBufferResourceDesc);
-
-		SIZE_T ConstantBuffer11Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ConstantBuffer11Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapPassConstantBufferResourceDesc);
-
-		SIZE_T ConstantBuffer20Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ConstantBuffer20Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapPassConstantBufferResourceDesc);
-
-		SIZE_T ConstantBuffer21Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ConstantBuffer21Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapPassConstantBufferResourceDesc);
-
-		SIZE_T ConstantBuffer30Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ConstantBuffer30Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapPassConstantBufferResourceDesc);
-
-		SIZE_T ConstantBuffer31Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ConstantBuffer31Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapCameraConstantBufferResourceDesc);
-
-		SIZE_T CPUCameraConstantBufferOffset0 = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUCameraConstantBufferOffset0 + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapCameraConstantBufferResourceDesc);
-
-		SIZE_T CPUCameraConstantBufferOffset1 = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUCameraConstantBufferOffset1 + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T ConstantBuffer00Offset = GetOffsetForResource(ShadowMapPassConstantBufferResourceDesc, HeapDesc);
+		SIZE_T ConstantBuffer01Offset = GetOffsetForResource(ShadowMapPassConstantBufferResourceDesc, HeapDesc);
+		SIZE_T ConstantBuffer10Offset = GetOffsetForResource(ShadowMapPassConstantBufferResourceDesc, HeapDesc);
+		SIZE_T ConstantBuffer11Offset = GetOffsetForResource(ShadowMapPassConstantBufferResourceDesc, HeapDesc);
+		SIZE_T ConstantBuffer20Offset = GetOffsetForResource(ShadowMapPassConstantBufferResourceDesc, HeapDesc);
+		SIZE_T ConstantBuffer21Offset = GetOffsetForResource(ShadowMapPassConstantBufferResourceDesc, HeapDesc);
+		SIZE_T ConstantBuffer30Offset = GetOffsetForResource(ShadowMapPassConstantBufferResourceDesc, HeapDesc);
+		SIZE_T ConstantBuffer31Offset = GetOffsetForResource(ShadowMapPassConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CPUCameraConstantBufferOffset0 = GetOffsetForResource(ShadowMapPassConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CPUCameraConstantBufferOffset1 = GetOffsetForResource(ShadowMapPassConstantBufferResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory4)));
 		SAFE_DX(CPUMemory4->SetName((const wchar_t*)u"Shadow Map Pass Data CPU Heap"));
@@ -1357,8 +1226,6 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo;
-
 		D3D12_CLEAR_VALUE ClearValue;
 		ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_R8_UNORM;
 		ClearValue.Color[0] = 0.0f;
@@ -1366,15 +1233,8 @@ void RenderSystem::InitSystem()
 		ClearValue.Color[2] = 0.0f;
 		ClearValue.Color[3] = 0.0f;
 
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMaskTextureResourceDesc);
-
-		SIZE_T ShadowMaskTextureOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ShadowMaskTextureOffset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowResolveConstantBufferResourceDesc);
-
-		SIZE_T GPUConstantBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = GPUConstantBufferOffset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T ShadowMaskTextureOffset = GetOffsetForResource(ShadowMaskTextureResourceDesc, HeapDesc);
+		SIZE_T GPUConstantBufferOffset = GetOffsetForResource(ShadowResolveConstantBufferResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory5)));
 		SAFE_DX(GPUMemory5->SetName((const wchar_t*)u"Shadow Resolve Pass Data GPU Heap"));
@@ -1394,15 +1254,8 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowResolveConstantBufferResourceDesc);
-
-		SIZE_T CPUConstantBuffer0Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUConstantBuffer0Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowResolveConstantBufferResourceDesc);
-
-		SIZE_T CPUConstantBuffer1Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUConstantBuffer1Offset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T CPUConstantBuffer0Offset = GetOffsetForResource(ShadowResolveConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CPUConstantBuffer1Offset = GetOffsetForResource(ShadowResolveConstantBufferResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory5)));
 		SAFE_DX(CPUMemory5->SetName((const wchar_t*)u"Shadow Resolve Pass Data CPU Heap"));
@@ -1557,37 +1410,12 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &HDRSceneColorTextureResourceDesc);
-
-		SIZE_T HDRSceneColorTextureOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = HDRSceneColorTextureOffset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ConstantBufferResourceDesc);
-
-		SIZE_T GPULightingConstantBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = GPULightingConstantBufferOffset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ConstantBufferResourceDesc);
-
-		SIZE_T GPUClusteredShadingConstantBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = GPUClusteredShadingConstantBufferOffset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &LightClustersBufferResourceDesc);
-
-		SIZE_T GPULightClustersBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = GPULightClustersBufferOffset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &LightIndicesBufferResourceDesc);
-
-		SIZE_T GPULightIndicesBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = GPULightIndicesBufferOffset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &PointLightsBufferResourceDesc);
-
-		SIZE_T GPUPointLightsBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = GPUPointLightsBufferOffset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T HDRSceneColorTextureOffset = GetOffsetForResource(HDRSceneColorTextureResourceDesc, HeapDesc);
+		SIZE_T GPULightingConstantBufferOffset = GetOffsetForResource(ConstantBufferResourceDesc, HeapDesc);
+		SIZE_T GPUClusteredShadingConstantBufferOffset = GetOffsetForResource(ConstantBufferResourceDesc, HeapDesc);
+		SIZE_T GPULightClustersBufferOffset = GetOffsetForResource(LightClustersBufferResourceDesc, HeapDesc);
+		SIZE_T GPULightIndicesBufferOffset = GetOffsetForResource(LightIndicesBufferResourceDesc, HeapDesc);
+		SIZE_T GPUPointLightsBufferOffset = GetOffsetForResource(PointLightsBufferResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory6)));
 		SAFE_DX(GPUMemory6->SetName((const wchar_t*)u"Deferred Lighting Pass Data GPU Heap"));
@@ -1623,55 +1451,16 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ConstantBufferResourceDesc);
-
-		SIZE_T CPULightingConstantBuffer0Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPULightingConstantBuffer0Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ConstantBufferResourceDesc);
-
-		SIZE_T CPULightingConstantBuffer1Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPULightingConstantBuffer1Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ConstantBufferResourceDesc);
-
-		SIZE_T CPUClusteredShadingConstantBuffer0Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUClusteredShadingConstantBuffer0Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ConstantBufferResourceDesc);
-
-		SIZE_T CPUClusteredShadingConstantBuffer1Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUClusteredShadingConstantBuffer1Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &LightClustersBufferResourceDesc);
-
-		SIZE_T CPULightClustersBufferOffset0 = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPULightClustersBufferOffset0 + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &LightClustersBufferResourceDesc);
-
-		SIZE_T CPULightClustersBufferOffset1 = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPULightClustersBufferOffset1 + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &LightIndicesBufferResourceDesc);
-
-		SIZE_T CPULightIndicesBufferOffset0 = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPULightIndicesBufferOffset0 + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &LightIndicesBufferResourceDesc);
-
-		SIZE_T CPULightIndicesBufferOffset1 = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPULightIndicesBufferOffset1 + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &PointLightsBufferResourceDesc);
-
-		SIZE_T CPUPointLightsBufferOffset0 = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUPointLightsBufferOffset0 + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &PointLightsBufferResourceDesc);
-
-		SIZE_T CPUPointLightsBufferOffset1 = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUPointLightsBufferOffset1 + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T CPULightingConstantBuffer0Offset = GetOffsetForResource(ConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CPULightingConstantBuffer1Offset = GetOffsetForResource(ConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CPUClusteredShadingConstantBuffer0Offset = GetOffsetForResource(ConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CPUClusteredShadingConstantBuffer1Offset = GetOffsetForResource(ConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CPULightClustersBufferOffset0 = GetOffsetForResource(LightClustersBufferResourceDesc, HeapDesc);
+		SIZE_T CPULightClustersBufferOffset1 = GetOffsetForResource(LightClustersBufferResourceDesc, HeapDesc);
+		SIZE_T CPULightIndicesBufferOffset0 = GetOffsetForResource(LightIndicesBufferResourceDesc, HeapDesc);
+		SIZE_T CPULightIndicesBufferOffset1 = GetOffsetForResource(LightIndicesBufferResourceDesc, HeapDesc);
+		SIZE_T CPUPointLightsBufferOffset0 = GetOffsetForResource(PointLightsBufferResourceDesc, HeapDesc);
+		SIZE_T CPUPointLightsBufferOffset1 = GetOffsetForResource(PointLightsBufferResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory6)));
 		SAFE_DX(CPUMemory6->SetName((const wchar_t*)u"Deferred Lighting Pass Data GPU Heap"));
@@ -1997,47 +1786,14 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SkyVertexBufferResourceDesc);
-
-		SIZE_T SkyVertexBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SkyVertexBufferOffset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SkyIndexBufferResourceDesc);
-
-		SIZE_T SkyIndexBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SkyIndexBufferOffset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SunVertexBufferResourceDesc);
-
-		SIZE_T SunVertexBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SunVertexBufferOffset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SunIndexBufferResourceDesc);
-
-		SIZE_T SunIndexBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SunIndexBufferOffset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SkyTextureResourceDesc);
-
-		SIZE_T SkyTextureOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SkyTextureOffset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SunTextureResourceDesc);
-
-		SIZE_T SunTextureOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SunTextureOffset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SkyConstantBufferResourceDesc);
-
-		SIZE_T GPUSkyConstantBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = GPUSkyConstantBufferOffset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SunConstantBufferResourceDesc);
-
-		SIZE_T GPUSunConstantBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = GPUSunConstantBufferOffset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T SkyVertexBufferOffset = GetOffsetForResource(SkyVertexBufferResourceDesc, HeapDesc);
+		SIZE_T SkyIndexBufferOffset = GetOffsetForResource(SkyIndexBufferResourceDesc, HeapDesc);
+		SIZE_T SunVertexBufferOffset = GetOffsetForResource(SunVertexBufferResourceDesc, HeapDesc);
+		SIZE_T SunIndexBufferOffset = GetOffsetForResource(SunIndexBufferResourceDesc, HeapDesc);
+		SIZE_T SkyTextureOffset = GetOffsetForResource(SkyTextureResourceDesc, HeapDesc);
+		SIZE_T SunTextureOffset = GetOffsetForResource(SunTextureResourceDesc, HeapDesc);
+		SIZE_T GPUSkyConstantBufferOffset = GetOffsetForResource(SkyConstantBufferResourceDesc, HeapDesc);
+		SIZE_T GPUSunConstantBufferOffset = GetOffsetForResource(SunConstantBufferResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory7)));
 		SAFE_DX(GPUMemory7->SetName((const wchar_t*)u"Sky and Fog Pass Data GPU Heap"));
@@ -2068,25 +1824,10 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SkyConstantBufferResourceDesc);
-
-		SIZE_T CPUSkyConstantBufferOffset0 = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUSkyConstantBufferOffset0 + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SkyConstantBufferResourceDesc);
-
-		SIZE_T CPUSkyConstantBufferOffset1 = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUSkyConstantBufferOffset1 + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SunConstantBufferResourceDesc);
-
-		SIZE_T CPUSunConstantBufferOffset0 = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUSunConstantBufferOffset0 + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SunConstantBufferResourceDesc);
-
-		SIZE_T CPUSunConstantBufferOffset1 = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUSunConstantBufferOffset1 + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T CPUSkyConstantBufferOffset0 = GetOffsetForResource(SkyConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CPUSkyConstantBufferOffset1 = GetOffsetForResource(SkyConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CPUSunConstantBufferOffset0 = GetOffsetForResource(SunConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CPUSunConstantBufferOffset1 = GetOffsetForResource(SunConstantBufferResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory7)));
 		SAFE_DX(CPUMemory7->SetName((const wchar_t*)u"Sky and Fog Pass Data GPU Heap"));
@@ -2612,12 +2353,7 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDesc);
-
-		SIZE_T ResolvedHDRSceneColorTextureOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ResolvedHDRSceneColorTextureOffset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T ResolvedHDRSceneColorTextureOffset = GetOffsetForResource(ResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory8)));
 		SAFE_DX(GPUMemory1->SetName((const wchar_t*)u"HDR Scene Color Texture Resolve Pass Data GPU Heap"));
@@ -2688,72 +2424,19 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SceneLuminanceTexturesResourceDescs[0]);
-
-		SIZE_T SceneLuminanceTexture0Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SceneLuminanceTexture0Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SceneLuminanceTexturesResourceDescs[1]);
-
-		SIZE_T SceneLuminanceTexture1Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SceneLuminanceTexture1Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SceneLuminanceTexturesResourceDescs[2]);
-
-		SIZE_T SceneLuminanceTexture2Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SceneLuminanceTexture2Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SceneLuminanceTexturesResourceDescs[3]);
-
-		SIZE_T SceneLuminanceTexture3Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SceneLuminanceTexture3Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SceneLuminanceTexturesResourceDescs[4]);
-
-		SIZE_T SceneLuminanceTexture4Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SceneLuminanceTexture4Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SceneLuminanceTexturesResourceDescs[5]);
-
-		SIZE_T SceneLuminanceTexture5Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SceneLuminanceTexture5Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SceneLuminanceTexturesResourceDescs[6]);
-
-		SIZE_T SceneLuminanceTexture6Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SceneLuminanceTexture6Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SceneLuminanceTexturesResourceDescs[7]);
-
-		SIZE_T SceneLuminanceTexture7Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SceneLuminanceTexture7Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SceneLuminanceTexturesResourceDescs[8]);
-
-		SIZE_T SceneLuminanceTexture8Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SceneLuminanceTexture8Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SceneLuminanceTexturesResourceDescs[9]);
-
-		SIZE_T SceneLuminanceTexture9Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SceneLuminanceTexture9Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SceneLuminanceTexturesResourceDescs[10]);
-
-		SIZE_T SceneLuminanceTexture10Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SceneLuminanceTexture10Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SceneLuminanceTexturesResourceDescs[11]);
-
-		SIZE_T SceneLuminanceTexture11Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SceneLuminanceTexture11Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &AverageLuminanceTextureResourceDesc);
-
-		SIZE_T AverageLuminanceTextureOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = AverageLuminanceTextureOffset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T SceneLuminanceTexture0Offset = GetOffsetForResource(SceneLuminanceTexturesResourceDescs[0], HeapDesc);
+		SIZE_T SceneLuminanceTexture1Offset = GetOffsetForResource(SceneLuminanceTexturesResourceDescs[1], HeapDesc);
+		SIZE_T SceneLuminanceTexture2Offset = GetOffsetForResource(SceneLuminanceTexturesResourceDescs[2], HeapDesc);
+		SIZE_T SceneLuminanceTexture3Offset = GetOffsetForResource(SceneLuminanceTexturesResourceDescs[3], HeapDesc);
+		SIZE_T SceneLuminanceTexture4Offset = GetOffsetForResource(SceneLuminanceTexturesResourceDescs[4], HeapDesc);
+		SIZE_T SceneLuminanceTexture5Offset = GetOffsetForResource(SceneLuminanceTexturesResourceDescs[5], HeapDesc);
+		SIZE_T SceneLuminanceTexture6Offset = GetOffsetForResource(SceneLuminanceTexturesResourceDescs[6], HeapDesc);
+		SIZE_T SceneLuminanceTexture7Offset = GetOffsetForResource(SceneLuminanceTexturesResourceDescs[7], HeapDesc);
+		SIZE_T SceneLuminanceTexture8Offset = GetOffsetForResource(SceneLuminanceTexturesResourceDescs[8], HeapDesc);
+		SIZE_T SceneLuminanceTexture9Offset = GetOffsetForResource(SceneLuminanceTexturesResourceDescs[9], HeapDesc);
+		SIZE_T SceneLuminanceTexture10Offset = GetOffsetForResource(SceneLuminanceTexturesResourceDescs[10], HeapDesc);
+		SIZE_T SceneLuminanceTexture11Offset = GetOffsetForResource(SceneLuminanceTexturesResourceDescs[11], HeapDesc);
+		SIZE_T AverageLuminanceTextureOffset = GetOffsetForResource(AverageLuminanceTextureResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory9)));
 		SAFE_DX(GPUMemory9->SetName((const wchar_t*)u"Scene Luminance Pass Data GPU Heap"));
@@ -2965,22 +2648,9 @@ void RenderSystem::InitSystem()
 
 		for (int i = 0; i < 7; i++)
 		{
-			D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo;
-
-			ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDescs[0][i]);
-
-			BloomTexturesOffsets[0][i] = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-			HeapDesc.SizeInBytes = BloomTexturesOffsets[0][i] + ResourceAllocationInfo.SizeInBytes;
-
-			ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDescs[1][i]);
-
-			BloomTexturesOffsets[1][i] = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-			HeapDesc.SizeInBytes = BloomTexturesOffsets[1][i] + ResourceAllocationInfo.SizeInBytes;
-
-			ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDescs[2][i]);
-
-			BloomTexturesOffsets[2][i] = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-			HeapDesc.SizeInBytes = BloomTexturesOffsets[2][i] + ResourceAllocationInfo.SizeInBytes;
+			BloomTexturesOffsets[0][i] = GetOffsetForResource(ResourceDescs[0][i], HeapDesc);
+			BloomTexturesOffsets[1][i] = GetOffsetForResource(ResourceDescs[1][i], HeapDesc);
+			BloomTexturesOffsets[2][i] = GetOffsetForResource(ResourceDescs[2][i], HeapDesc);
 		}
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory10)));
@@ -3214,12 +2884,7 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDesc);
-
-		SIZE_T ToneMappedImageTextureOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ToneMappedImageTextureOffset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T ToneMappedImageTextureOffset = GetOffsetForResource(ResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory11)));
 		SAFE_DX(GPUMemory11->SetName((const wchar_t*)u"HDR Tone Mapping Pass Data GPU Heap"));
@@ -3297,12 +2962,7 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDesc);
-
-		SIZE_T OcclusionBufferTextureOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.SizeInBytes - HeapDesc.SizeInBytes % ResourceAllocationInfo.SizeInBytes);
-		HeapDesc.SizeInBytes = OcclusionBufferTextureOffset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T OcclusionBufferTextureOffset = GetOffsetForResource(ResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory12)));
 		SAFE_DX(GPUMemory12->SetName((const wchar_t*)u"Debug Occlusion Pass Data GPU Heap"));
@@ -3338,15 +2998,8 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDesc);
-
-		SIZE_T OcclusionBufferReadbackBuffer0Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = OcclusionBufferReadbackBuffer0Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDesc);
-
-		SIZE_T OcclusionBufferReadbackBuffer1Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = OcclusionBufferReadbackBuffer1Offset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T OcclusionBufferReadbackBuffer0Offset = GetOffsetForResource(ResourceDesc, HeapDesc);
+		SIZE_T OcclusionBufferReadbackBuffer1Offset = GetOffsetForResource(ResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory12)));
 		SAFE_DX(CPUMemory12->SetName((const wchar_t*)u"Debug Occlusion Pass Data CPU Heap"));
@@ -3440,17 +3093,8 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ConstantBufferResourceDesc);
-
-		SIZE_T GPUConstantBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = GPUConstantBufferOffset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &IndexBufferResourceDesc);
-
-		SIZE_T IndexBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = IndexBufferOffset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T GPUConstantBufferOffset = GetOffsetForResource(ConstantBufferResourceDesc, HeapDesc);
+		SIZE_T IndexBufferOffset = GetOffsetForResource(IndexBufferResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory13)));
 		SAFE_DX(GPUMemory13->SetName((const wchar_t*)u"Debug Bounding Boxes Pass Data GPU Heap"));
@@ -3469,15 +3113,8 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		SIZE_T CPUConstantBuffer0Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUConstantBuffer0Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ConstantBufferResourceDesc);
-
-		SIZE_T CPUConstantBuffer1Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUConstantBuffer1Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ConstantBufferResourceDesc);
+		SIZE_T CPUConstantBuffer0Offset = GetOffsetForResource(ConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CPUConstantBuffer1Offset = GetOffsetForResource(ConstantBufferResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory13)));
 		SAFE_DX(CPUMemory13->SetName((const wchar_t*)u"Debug Bounding Boxes Pass Data CPU Heap"));

@@ -350,4 +350,6 @@ class RenderSystem
 		UINT EditorViewportWidth;
 		UINT EditorViewportHeight;
 	#endif
+
+		inline SIZE_T GetOffsetForResource(D3D12_RESOURCE_DESC& ResourceDesc, D3D12_HEAP_DESC& HeapDesc);
 };
