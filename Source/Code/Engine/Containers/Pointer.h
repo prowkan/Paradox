@@ -1,18 +1,19 @@
 #pragma once
 
-#include "SystemMemoryAllocator.h"
+#include <MemoryManager/SystemMemoryAllocator.h>
 
 template<typename T>
 class Pointer
 {
 	public:
 
-		static Pointer<T> Create()
+		template<typename ...ArgTypes>
+		static Pointer<T> Create(ArgTypes... Args)
 		{
 			Pointer<T> pointer;
 
 			pointer.Data = (T*)SystemMemoryAllocator::AllocateMemory(sizeof(T));
-			new (pointer.Data) T();
+			new (pointer.Data) T(Args...);
 
 			return pointer;
 		}
@@ -50,14 +51,15 @@ class Pointer<T[]>
 {
 	public:
 
-		static Pointer<T[]> Create(const size_t ElementsCount)
+		template<typename ...ArgTypes>
+		static Pointer<T[]> Create(const size_t ElementsCount, ArgTypes... Args)
 		{
 			Pointer<T[]> pointer;
 
 			pointer.Data = (T*)SystemMemoryAllocator::AllocateMemory(sizeof(T) * ElementsCount);
 			for (size_t i = 0; i < ElementsCount; i++)
 			{
-				new (&pointer.Data[i]) T();
+				new (&pointer.Data[i]) T(Args...);
 			}
 			pointer.ElementsCount = ElementsCount;
 
