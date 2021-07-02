@@ -68,8 +68,102 @@ struct Texel
 	BYTE R, G, B, A;
 };
 
-#define SAFE_DX(Func) CheckDXCallResult(Func, u#Func);
+#define SAFE_DX(Func) RenderSystem::CheckDXCallResult(Func, u#Func);
 #define UUIDOF(Value) __uuidof(Value), (void**)&Value
+
+class DescriptorHeap
+{
+	public:
+
+		DescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE DescriptorsType, UINT DescriptorsCount, ID3D12Device* Device, const char16_t* DebugHeapName = nullptr)
+		{
+			D3D12_DESCRIPTOR_HEAP_DESC DescriptorHeapDesc;
+			DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+			DescriptorHeapDesc.NodeMask = 0;
+			DescriptorHeapDesc.NumDescriptors = DescriptorsCount;
+			DescriptorHeapDesc.Type = DescriptorsType;
+
+			HRESULT hr = Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(DXDescriptorHeap));
+			if (DebugHeapName) hr = DXDescriptorHeap->SetName((LPCWSTR)DebugHeapName);
+
+			FirstDescriptor = DXDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr;
+			DescriptorSize = Device->GetDescriptorHandleIncrementSize(DescriptorsType);
+			AllocatedDescriptorsCount = 0;
+		}
+
+		D3D12_CPU_DESCRIPTOR_HANDLE AllocateDescriptor()
+		{
+			D3D12_CPU_DESCRIPTOR_HANDLE Descriptor;
+			Descriptor.ptr = FirstDescriptor + AllocatedDescriptorsCount * DescriptorSize;
+			AllocatedDescriptorsCount++;
+
+			return Descriptor;
+		}
+
+	private:
+
+		COMRCPtr<ID3D12DescriptorHeap> DXDescriptorHeap;
+
+		SIZE_T FirstDescriptor;
+		SIZE_T DescriptorSize;
+		UINT AllocatedDescriptorsCount;
+};
+
+class DescriptorTable
+{
+	public:
+
+		void SetConstantBuffer(D3D12_CPU_DESCRIPTOR_HANDLE Descriptor, UINT SlotIndex)
+		{
+			Descriptors[SlotIndex] = Descriptor;
+		}
+
+		void SetBuffer(D3D12_CPU_DESCRIPTOR_HANDLE Descriptor, UINT SlotIndex)
+		{
+			Descriptors[SlotIndex] = Descriptor;
+		}
+
+		void SetRWBuffer(D3D12_CPU_DESCRIPTOR_HANDLE Descriptor, UINT SlotIndex)
+		{
+			Descriptors[SlotIndex] = Descriptor;
+		}
+
+		void SetTexture(D3D12_CPU_DESCRIPTOR_HANDLE Descriptor, UINT SlotIndex)
+		{
+			Descriptors[SlotIndex] = Descriptor;
+		}
+
+		void SetRWTexture(D3D12_CPU_DESCRIPTOR_HANDLE Descriptor, UINT SlotIndex)
+		{
+			Descriptors[SlotIndex] = Descriptor;
+		}
+
+		void UpdateTable(ID3D12Device* Device)
+		{
+			//Device->CopyDescriptors(1, &FirstCPUDescriptor, &TableSize, , Descriptors, , );
+		}
+
+		operator D3D12_GPU_DESCRIPTOR_HANDLE()
+		{
+			return FirstGPUDescriptor;
+		}
+
+	private:
+		
+		UINT TableSize;
+
+		D3D12_CPU_DESCRIPTOR_HANDLE *Descriptors;
+
+		D3D12_CPU_DESCRIPTOR_HANDLE FirstCPUDescriptor;
+		D3D12_GPU_DESCRIPTOR_HANDLE FirstGPUDescriptor;
+};
+
+class FrameDescriptorHeap
+{
+	public:
+
+	private:
+};
 
 class RenderSystem
 {
@@ -131,12 +225,16 @@ class RenderSystem
 		COMRCPtr<ID3D12Fence> FrameSyncFences[2], CopySyncFence;
 		HANDLE FrameSyncEvent, CopySyncEvent;
 
-		COMRCPtr<ID3D12DescriptorHeap> RTDescriptorHeap, DSDescriptorHeap, CBSRUADescriptorHeap, SamplersDescriptorHeap;
-		COMRCPtr<ID3D12DescriptorHeap> ConstantBufferDescriptorHeap, TexturesDescriptorHeap;
+		/*COMRCPtr<ID3D12DescriptorHeap> RTDescriptorHeap, DSDescriptorHeap, CBSRUADescriptorHeap, SamplersDescriptorHeap;
+		COMRCPtr<ID3D12DescriptorHeap> ConstantBufferDescriptorHeap, TexturesDescriptorHeap;*/
+
+		DescriptorHeap *RTDescriptorHeap, *DSDescriptorHeap, *CBSRUADescriptorHeap, *SamplersDescriptorHeap;
+		DescriptorHeap *ConstantBufferDescriptorHeap, *TexturesDescriptorHeap;
+
 		COMRCPtr<ID3D12DescriptorHeap> FrameResourcesDescriptorHeaps[2], FrameSamplersDescriptorHeaps[2];
 
-		UINT RTDescriptorsCount = 0, DSDescriptorsCount = 0, CBSRUADescriptorsCount = 0, SamplersDescriptorsCount = 0;
-		UINT ConstantBufferDescriptorsCount = 0, TexturesDescriptorsCount = 0;
+		//UINT RTDescriptorsCount = 0, DSDescriptorsCount = 0, CBSRUADescriptorsCount = 0, SamplersDescriptorsCount = 0;
+		//UINT ConstantBufferDescriptorsCount = 0, TexturesDescriptorsCount = 0;
 
 		COMRCPtr<ID3D12RootSignature> GraphicsRootSignature, ComputeRootSignature;
 
@@ -346,8 +444,18 @@ class RenderSystem
 
 		static const UINT MAX_MIP_LEVELS_IN_TEXTURE = 16;
 
+		static const UINT MAX_PENDING_BARRIERS = 1000;
+
+		D3D12_RESOURCE_BARRIER PendingResourceBarriers[MAX_PENDING_BARRIERS];
+		UINT PendingResourceBarriersCount = 0;
+
+		void ApplyPendingBarriers();
+		void SwitchResourceState(ID3D12Resource* Resource, UINT SubResourceIndex, D3D12_RESOURCE_STATES OldState, D3D12_RESOURCE_STATES NewState);
+
 	#if WITH_EDITOR
 		UINT EditorViewportWidth;
 		UINT EditorViewportHeight;
 	#endif
+
+		inline SIZE_T GetOffsetForResource(D3D12_RESOURCE_DESC& ResourceDesc, D3D12_HEAP_DESC& HeapDesc);
 };
