@@ -221,59 +221,14 @@ void RenderSystem::InitSystem()
 	CopySyncEvent = CreateEvent(NULL, FALSE, FALSE, (const wchar_t*)u"CopySyncEvent");
 
 	D3D12_DESCRIPTOR_HEAP_DESC DescriptorHeapDesc;
-	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
-	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	DescriptorHeapDesc.NodeMask = 0;
-	DescriptorHeapDesc.NumDescriptors = 42;
-	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+	
+	RTDescriptorHeap = new DescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 42, Device, u"Render Targets Descriptor Heap");
+	DSDescriptorHeap = new DescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 5, Device, u"Depth-Stencils Descriptor Heap");
+	CBSRUADescriptorHeap = new DescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 63, Device, u"Constant Buffer/Shader Resource/Unordered Access Views Descriptor Heap");
+	SamplersDescriptorHeap = new DescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 4, Device, u"Samplers Descriptor Heap");
 
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(RTDescriptorHeap)));
-	SAFE_DX(RTDescriptorHeap->SetName((const wchar_t*)u"Render Targets Descriptor Heap"));
-
-	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
-	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	DescriptorHeapDesc.NodeMask = 0;
-	DescriptorHeapDesc.NumDescriptors = 5;
-	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(DSDescriptorHeap)));
-	SAFE_DX(DSDescriptorHeap->SetName((const wchar_t*)u"Depth-Stencils Descriptor Heap"));
-
-	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
-	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	DescriptorHeapDesc.NodeMask = 0;
-	DescriptorHeapDesc.NumDescriptors = 63;
-	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(CBSRUADescriptorHeap)));
-	SAFE_DX(CBSRUADescriptorHeap->SetName((const wchar_t*)u"Constant Buffer/Shader Resource/Unordered Access Views Descriptor Heap"));
-
-	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
-	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	DescriptorHeapDesc.NodeMask = 0;
-	DescriptorHeapDesc.NumDescriptors = 4;
-	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
-
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(SamplersDescriptorHeap)));
-	SAFE_DX(SamplersDescriptorHeap->SetName((const wchar_t*)u"Samplers Descriptor Heap"));
-
-	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
-	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	DescriptorHeapDesc.NodeMask = 0;
-	DescriptorHeapDesc.NumDescriptors = 120000;
-	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(ConstantBufferDescriptorHeap)));
-	SAFE_DX(ConstantBufferDescriptorHeap->SetName((const wchar_t*)u"Constant Buffers Descriptor Heap"));
-
-	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
-	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	DescriptorHeapDesc.NodeMask = 0;
-	DescriptorHeapDesc.NumDescriptors = 8000;
-	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(TexturesDescriptorHeap)));
-	SAFE_DX(TexturesDescriptorHeap->SetName((const wchar_t*)u"Textures Descriptor Heap"));
+	ConstantBufferDescriptorHeap = new DescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 120000, Device, u"Constant Buffers Descriptor Heap");
+	TexturesDescriptorHeap = new DescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 8000, Device, u"Textures Descriptor Heap");
 
 	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
@@ -399,10 +354,8 @@ void RenderSystem::InitSystem()
 		RTVDesc.Texture2D.PlaneSlice = 0;
 		RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2D;
 
-		BackBufferTexturesRTVs[0].ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		RTDescriptorsCount++;
-		BackBufferTexturesRTVs[1].ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		RTDescriptorsCount++;
+		BackBufferTexturesRTVs[0] = RTDescriptorHeap->AllocateDescriptor();
+		BackBufferTexturesRTVs[1] = RTDescriptorHeap->AllocateDescriptor();
 
 		Device->CreateRenderTargetView(BackBufferTextures[0], &RTVDesc, BackBufferTexturesRTVs[0]);
 		Device->CreateRenderTargetView(BackBufferTextures[1], &RTVDesc, BackBufferTexturesRTVs[1]);
@@ -427,8 +380,7 @@ void RenderSystem::InitSystem()
 		SamplerDesc.MinLOD = 0;
 		SamplerDesc.MipLODBias = 0.0f;
 
-		TextureSampler.ptr = SamplersDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + SamplersDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-		SamplersDescriptorsCount++;
+		TextureSampler = SamplersDescriptorHeap->AllocateDescriptor();
 
 		Device->CreateSampler(&SamplerDesc, TextureSampler);
 
@@ -442,8 +394,7 @@ void RenderSystem::InitSystem()
 		SamplerDesc.MinLOD = 0;
 		SamplerDesc.MipLODBias = 0.0f;
 
-		ShadowMapSampler.ptr = SamplersDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + SamplersDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-		SamplersDescriptorsCount++;
+		ShadowMapSampler = SamplersDescriptorHeap->AllocateDescriptor();
 
 		Device->CreateSampler(&SamplerDesc, ShadowMapSampler);
 
@@ -457,8 +408,7 @@ void RenderSystem::InitSystem()
 		SamplerDesc.MinLOD = 0;
 		SamplerDesc.MipLODBias = 0.0f;
 
-		BiLinearSampler.ptr = SamplersDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + SamplersDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-		SamplersDescriptorsCount++;
+		BiLinearSampler = SamplersDescriptorHeap->AllocateDescriptor();
 
 		Device->CreateSampler(&SamplerDesc, BiLinearSampler);
 
@@ -472,8 +422,7 @@ void RenderSystem::InitSystem()
 		SamplerDesc.MinLOD = 0;
 		SamplerDesc.MipLODBias = 0.0f;
 
-		MinSampler.ptr = SamplersDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + SamplersDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-		SamplersDescriptorsCount++;
+		MinSampler = SamplersDescriptorHeap->AllocateDescriptor();
 
 		Device->CreateSampler(&SamplerDesc, MinSampler);
 	}
@@ -604,16 +553,14 @@ void RenderSystem::InitSystem()
 		CBVDesc.BufferLocation = GPUCameraConstantBuffer->GetGPUVirtualAddress();
 		CBVDesc.SizeInBytes = 256;
 
-		CameraConstantBufferCBV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		CameraConstantBufferCBV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateConstantBufferView(&CBVDesc, CameraConstantBufferCBV);
 
 		CBVDesc.BufferLocation = GPURenderTargetConstantBuffer->GetGPUVirtualAddress();
 		CBVDesc.SizeInBytes = 256;
 
-		RenderTargetConstantBufferCBV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		RenderTargetConstantBufferCBV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateConstantBufferView(&CBVDesc, RenderTargetConstantBufferCBV);
 	}
@@ -744,10 +691,8 @@ void RenderSystem::InitSystem()
 		D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
 		RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2DMS;
 
-		GBufferTexturesRTVs[0].ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		RTDescriptorsCount++;
-		GBufferTexturesRTVs[1].ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		RTDescriptorsCount++;
+		GBufferTexturesRTVs[0] = RTDescriptorHeap->AllocateDescriptor();
+		GBufferTexturesRTVs[1] = RTDescriptorHeap->AllocateDescriptor();
 
 		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 		Device->CreateRenderTargetView(GBufferTextures[0], &RTVDesc, GBufferTexturesRTVs[0]);
@@ -759,10 +704,8 @@ void RenderSystem::InitSystem()
 		SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2DMS;
 
-		GBufferTexturesSRVs[0].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
-		GBufferTexturesSRVs[1].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		GBufferTexturesSRVs[0] = CBSRUADescriptorHeap->AllocateDescriptor();
+		GBufferTexturesSRVs[1] = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 		Device->CreateShaderResourceView(GBufferTextures[0], &SRVDesc, GBufferTexturesSRVs[0]);
@@ -775,8 +718,7 @@ void RenderSystem::InitSystem()
 		DSVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 		DSVDesc.ViewDimension = D3D12_DSV_DIMENSION::D3D12_DSV_DIMENSION_TEXTURE2DMS;
 
-		DepthBufferTextureDSV.ptr = DSDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + DSDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-		DSDescriptorsCount++;
+		DepthBufferTextureDSV = DSDescriptorHeap->AllocateDescriptor();
 
 		Device->CreateDepthStencilView(DepthBufferTexture, &DSVDesc, DepthBufferTextureDSV);
 
@@ -784,8 +726,7 @@ void RenderSystem::InitSystem()
 		SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2DMS;
 
-		DepthBufferTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		DepthBufferTextureSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateShaderResourceView(DepthBufferTexture, &SRVDesc, DepthBufferTextureSRV);
 
@@ -795,8 +736,7 @@ void RenderSystem::InitSystem()
 			CBVDesc.BufferLocation = GPUGBufferOpaquePassObjectsConstantBuffer->GetGPUVirtualAddress() + i * 256;
 			CBVDesc.SizeInBytes = 256;
 
-			GBufferOpaquePassObjectsConstantBufferCBVs[i].ptr = ConstantBufferDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + ConstantBufferDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			ConstantBufferDescriptorsCount++;
+			GBufferOpaquePassObjectsConstantBufferCBVs[i] = ConstantBufferDescriptorHeap->AllocateDescriptor();
 
 			Device->CreateConstantBufferView(&CBVDesc, GBufferOpaquePassObjectsConstantBufferCBVs[i]);
 		}
@@ -851,8 +791,7 @@ void RenderSystem::InitSystem()
 		SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
-		ResolvedDepthBufferTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		ResolvedDepthBufferTextureSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateShaderResourceView(ResolvedDepthBufferTexture, &SRVDesc, ResolvedDepthBufferTextureSRV);
 	}
@@ -944,8 +883,7 @@ void RenderSystem::InitSystem()
 		RTVDesc.Texture2D.PlaneSlice = 0;
 		RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2D;
 
-		OcclusionBufferTextureRTV.ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		RTDescriptorsCount++;
+		OcclusionBufferTextureRTV = RTDescriptorHeap->AllocateDescriptor();
 
 		Device->CreateRenderTargetView(OcclusionBufferTexture, &RTVDesc, OcclusionBufferTextureRTV);
 
@@ -1123,14 +1061,10 @@ void RenderSystem::InitSystem()
 		DSVDesc.Texture2D.MipSlice = 0;
 		DSVDesc.ViewDimension = D3D12_DSV_DIMENSION::D3D12_DSV_DIMENSION_TEXTURE2D;
 
-		CascadedShadowMapTexturesDSVs[0].ptr = DSDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + DSDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-		DSDescriptorsCount++;
-		CascadedShadowMapTexturesDSVs[1].ptr = DSDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + DSDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-		DSDescriptorsCount++;
-		CascadedShadowMapTexturesDSVs[2].ptr = DSDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + DSDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-		DSDescriptorsCount++;
-		CascadedShadowMapTexturesDSVs[3].ptr = DSDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + DSDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-		DSDescriptorsCount++;
+		CascadedShadowMapTexturesDSVs[0] = DSDescriptorHeap->AllocateDescriptor();
+		CascadedShadowMapTexturesDSVs[1] = DSDescriptorHeap->AllocateDescriptor();
+		CascadedShadowMapTexturesDSVs[2] = DSDescriptorHeap->AllocateDescriptor();
+		CascadedShadowMapTexturesDSVs[3] = DSDescriptorHeap->AllocateDescriptor();
 
 		Device->CreateDepthStencilView(CascadedShadowMapTextures[0], &DSVDesc, CascadedShadowMapTexturesDSVs[0]);
 		Device->CreateDepthStencilView(CascadedShadowMapTextures[1], &DSVDesc, CascadedShadowMapTexturesDSVs[1]);
@@ -1146,14 +1080,10 @@ void RenderSystem::InitSystem()
 		SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
-		CascadedShadowMapTexturesSRVs[0].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
-		CascadedShadowMapTexturesSRVs[1].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
-		CascadedShadowMapTexturesSRVs[2].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
-		CascadedShadowMapTexturesSRVs[3].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		CascadedShadowMapTexturesSRVs[0] = CBSRUADescriptorHeap->AllocateDescriptor();
+		CascadedShadowMapTexturesSRVs[1] = CBSRUADescriptorHeap->AllocateDescriptor();
+		CascadedShadowMapTexturesSRVs[2] = CBSRUADescriptorHeap->AllocateDescriptor();
+		CascadedShadowMapTexturesSRVs[3] = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateShaderResourceView(CascadedShadowMapTextures[0], &SRVDesc, CascadedShadowMapTexturesSRVs[0]);
 		Device->CreateShaderResourceView(CascadedShadowMapTextures[1], &SRVDesc, CascadedShadowMapTexturesSRVs[1]);
@@ -1162,8 +1092,7 @@ void RenderSystem::InitSystem()
 
 		for (int j = 0; j < 4; j++)
 		{
-			ShadowMapCameraConstantBufferCBVs[j].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			CBSRUADescriptorsCount++;
+			ShadowMapCameraConstantBufferCBVs[j] = CBSRUADescriptorHeap->AllocateDescriptor();
 
 			D3D12_CONSTANT_BUFFER_VIEW_DESC CBVDesc;
 			CBVDesc.BufferLocation = GPUShadowMapCameraConstantBuffer->GetGPUVirtualAddress() + j * 256;
@@ -1177,9 +1106,8 @@ void RenderSystem::InitSystem()
 				CBVDesc.BufferLocation = GPUShadowMapPassObjectsConstantBuffers[j]->GetGPUVirtualAddress() + i * 256;
 				CBVDesc.SizeInBytes = 256;
 
-				ShadowMapPassObjectsConstantBufferCBVs[j][i].ptr = ConstantBufferDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + ConstantBufferDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-				ConstantBufferDescriptorsCount++;
-
+				ShadowMapPassObjectsConstantBufferCBVs[j][i] = ConstantBufferDescriptorHeap->AllocateDescriptor();
+				
 				Device->CreateConstantBufferView(&CBVDesc, ShadowMapPassObjectsConstantBufferCBVs[j][i]);
 			}
 		}
@@ -1271,8 +1199,7 @@ void RenderSystem::InitSystem()
 		RTVDesc.Texture2D.PlaneSlice = 0;
 		RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2D;
 
-		ShadowMaskTextureRTV.ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		RTDescriptorsCount++;
+		ShadowMaskTextureRTV = RTDescriptorHeap->AllocateDescriptor();
 
 		Device->CreateRenderTargetView(ShadowMaskTexture, &RTVDesc, ShadowMaskTextureRTV);
 
@@ -1285,8 +1212,7 @@ void RenderSystem::InitSystem()
 		SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
-		ShadowMaskTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		ShadowMaskTextureSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateShaderResourceView(ShadowMaskTexture, &SRVDesc, ShadowMaskTextureSRV);
 
@@ -1294,8 +1220,7 @@ void RenderSystem::InitSystem()
 		CBVDesc.BufferLocation = GPUShadowResolveConstantBuffer->GetGPUVirtualAddress();
 		CBVDesc.SizeInBytes = 256;
 
-		ShadowResolveConstantBufferCBV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		ShadowResolveConstantBufferCBV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateConstantBufferView(&CBVDesc, ShadowResolveConstantBufferCBV);
 
@@ -1493,8 +1418,7 @@ void RenderSystem::InitSystem()
 		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
 		RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2DMS;
 
-		HDRSceneColorTextureRTV.ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		RTDescriptorsCount++;
+		HDRSceneColorTextureRTV = RTDescriptorHeap->AllocateDescriptor();
 
 		Device->CreateRenderTargetView(HDRSceneColorTexture, &RTVDesc, HDRSceneColorTextureRTV);
 
@@ -1503,8 +1427,7 @@ void RenderSystem::InitSystem()
 		SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2DMS;
 
-		HDRSceneColorTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		HDRSceneColorTextureSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateShaderResourceView(HDRSceneColorTexture, &SRVDesc, HDRSceneColorTextureSRV);
 
@@ -1512,16 +1435,14 @@ void RenderSystem::InitSystem()
 		CBVDesc.BufferLocation = GPULightingConstantBuffer->GetGPUVirtualAddress();
 		CBVDesc.SizeInBytes = 256;
 
-		LightingConstantBufferCBV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		LightingConstantBufferCBV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateConstantBufferView(&CBVDesc, LightingConstantBufferCBV);
 
 		CBVDesc.BufferLocation = GPUClusteredShadingConstantBuffer->GetGPUVirtualAddress();
 		CBVDesc.SizeInBytes = 256;
 
-		ClusteredShadingConstantBufferCBV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		ClusteredShadingConstantBufferCBV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateConstantBufferView(&CBVDesc, ClusteredShadingConstantBufferCBV);
 
@@ -1533,8 +1454,7 @@ void RenderSystem::InitSystem()
 		SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_BUFFER;
 
-		LightClustersBufferSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		LightClustersBufferSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateShaderResourceView(GPULightClustersBuffer, &SRVDesc, LightClustersBufferSRV);
 
@@ -1546,8 +1466,7 @@ void RenderSystem::InitSystem()
 		SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_BUFFER;
 
-		LightIndicesBufferSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		LightIndicesBufferSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateShaderResourceView(GPULightIndicesBuffer, &SRVDesc, LightIndicesBufferSRV);
 
@@ -1559,8 +1478,7 @@ void RenderSystem::InitSystem()
 		SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_BUFFER;
 
-		PointLightsBufferSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		PointLightsBufferSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateShaderResourceView(GPUPointLightsBuffer, &SRVDesc, PointLightsBufferSRV);
 
@@ -1898,8 +1816,7 @@ void RenderSystem::InitSystem()
 		CBVDesc.BufferLocation = GPUSkyConstantBuffer->GetGPUVirtualAddress();
 		CBVDesc.SizeInBytes = 256;
 
-		SkyConstantBufferCBV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		SkyConstantBufferCBV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateConstantBufferView(&CBVDesc, SkyConstantBufferCBV);
 
@@ -2066,8 +1983,7 @@ void RenderSystem::InitSystem()
 		SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
-		SkyTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		++CBSRUADescriptorsCount;
+		SkyTextureSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateShaderResourceView(SkyTexture, &SRVDesc, SkyTextureSRV);
 
@@ -2123,8 +2039,7 @@ void RenderSystem::InitSystem()
 		CBVDesc.BufferLocation = GPUSunConstantBuffer->GetGPUVirtualAddress();
 		CBVDesc.SizeInBytes = 256;
 
-		SunConstantBufferCBV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		SunConstantBufferCBV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateConstantBufferView(&CBVDesc, SunConstantBufferCBV);
 
@@ -2287,8 +2202,7 @@ void RenderSystem::InitSystem()
 		SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
-		SunTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		++CBSRUADescriptorsCount;
+		SunTextureSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateShaderResourceView(SunTexture, &SRVDesc, SunTextureSRV);
 
@@ -2370,8 +2284,7 @@ void RenderSystem::InitSystem()
 		SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
-		ResolvedHDRSceneColorTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		ResolvedHDRSceneColorTextureSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateShaderResourceView(ResolvedHDRSceneColorTexture, &SRVDesc, ResolvedHDRSceneColorTextureSRV);
 	}
@@ -2484,8 +2397,7 @@ void RenderSystem::InitSystem()
 
 		for (int i = 0; i < 12; i++)
 		{
-			SceneLuminanceTexturesRTVs[i].ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-			RTDescriptorsCount++;
+			SceneLuminanceTexturesRTVs[i] = RTDescriptorHeap->AllocateDescriptor();
 
 			Device->CreateRenderTargetView(SceneLuminanceTextures[i], &RTVDesc, SceneLuminanceTexturesRTVs[i]);
 		}
@@ -2501,8 +2413,7 @@ void RenderSystem::InitSystem()
 
 		for (int i = 0; i < 12; i++)
 		{
-			SceneLuminanceTexturesSRVs[i].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			CBSRUADescriptorsCount++;
+			SceneLuminanceTexturesSRVs[i] = CBSRUADescriptorHeap->AllocateDescriptor();
 
 			Device->CreateShaderResourceView(SceneLuminanceTextures[i], &SRVDesc, SceneLuminanceTexturesSRVs[i]);
 		}
@@ -2512,8 +2423,7 @@ void RenderSystem::InitSystem()
 		RTVDesc.Texture2D.PlaneSlice = 0;
 		RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2D;
 
-		AverageLuminanceTextureRTV.ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		RTDescriptorsCount++;
+		AverageLuminanceTextureRTV = RTDescriptorHeap->AllocateDescriptor();
 
 		Device->CreateRenderTargetView(AverageLuminanceTexture, &RTVDesc, AverageLuminanceTextureRTV);
 
@@ -2525,8 +2435,7 @@ void RenderSystem::InitSystem()
 		SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
-		AverageLuminanceTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		AverageLuminanceTextureSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateShaderResourceView(AverageLuminanceTexture, &SRVDesc, AverageLuminanceTextureSRV);
 
@@ -2686,12 +2595,9 @@ void RenderSystem::InitSystem()
 
 		for (int i = 0; i < 7; i++)
 		{
-			BloomTexturesRTVs[0][i].ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-			RTDescriptorsCount++;
-			BloomTexturesRTVs[1][i].ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-			RTDescriptorsCount++;
-			BloomTexturesRTVs[2][i].ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-			RTDescriptorsCount++;
+			BloomTexturesRTVs[0][i] = RTDescriptorHeap->AllocateDescriptor();
+			BloomTexturesRTVs[1][i] = RTDescriptorHeap->AllocateDescriptor();
+			BloomTexturesRTVs[2][i] = RTDescriptorHeap->AllocateDescriptor();
 
 			Device->CreateRenderTargetView(BloomTextures[0][i], &RTVDesc, BloomTexturesRTVs[0][i]);
 			Device->CreateRenderTargetView(BloomTextures[1][i], &RTVDesc, BloomTexturesRTVs[1][i]);
@@ -2709,12 +2615,9 @@ void RenderSystem::InitSystem()
 
 		for (int i = 0; i < 7; i++)
 		{
-			BloomTexturesSRVs[0][i].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			CBSRUADescriptorsCount++;
-			BloomTexturesSRVs[1][i].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			CBSRUADescriptorsCount++;
-			BloomTexturesSRVs[2][i].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			CBSRUADescriptorsCount++;
+			BloomTexturesSRVs[0][i] = CBSRUADescriptorHeap->AllocateDescriptor();
+			BloomTexturesSRVs[1][i] = CBSRUADescriptorHeap->AllocateDescriptor();
+			BloomTexturesSRVs[2][i] = CBSRUADescriptorHeap->AllocateDescriptor();
 
 			Device->CreateShaderResourceView(BloomTextures[0][i], &SRVDesc, BloomTexturesSRVs[0][i]);
 			Device->CreateShaderResourceView(BloomTextures[1][i], &SRVDesc, BloomTexturesSRVs[1][i]);
@@ -2903,8 +2806,7 @@ void RenderSystem::InitSystem()
 		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 		RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2DMS;
 
-		ToneMappedImageTextureRTV.ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		RTDescriptorsCount++;
+		ToneMappedImageTextureRTV = RTDescriptorHeap->AllocateDescriptor();
 
 		Device->CreateRenderTargetView(ToneMappedImageTexture, &RTVDesc, ToneMappedImageTextureRTV);
 
@@ -3018,8 +2920,7 @@ void RenderSystem::InitSystem()
 		SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
-		DebugOcclusionBufferTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		DebugOcclusionBufferTextureSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateShaderResourceView(DebugOcclusionBufferTexture, &SRVDesc, DebugOcclusionBufferTextureSRV);
 
@@ -3130,8 +3031,7 @@ void RenderSystem::InitSystem()
 			CBVDesc.BufferLocation = GPUConstantBuffer3->GetGPUVirtualAddress() + i * 256;
 			CBVDesc.SizeInBytes = 256;
 
-			ConstantBufferCBVs3[i].ptr = ConstantBufferDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + ConstantBufferDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			ConstantBufferDescriptorsCount++;
+			ConstantBufferCBVs3[i] = ConstantBufferDescriptorHeap->AllocateDescriptor();
 
 			Device->CreateConstantBufferView(&CBVDesc, ConstantBufferCBVs3[i]);
 		}
@@ -3269,6 +3169,14 @@ void RenderSystem::ShutdownSystem()
 	}
 
 	RenderTextureDestructionQueue.Clear();
+
+	delete RTDescriptorHeap;
+	delete DSDescriptorHeap;
+	delete CBSRUADescriptorHeap;
+	delete SamplersDescriptorHeap;
+
+	delete ConstantBufferDescriptorHeap;
+	delete TexturesDescriptorHeap;
 
 	BOOL Result;
 
@@ -5735,8 +5643,7 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 	SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 	SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
-	renderTexture->TextureSRV.ptr = TexturesDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + TexturesDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	++TexturesDescriptorsCount;
+	renderTexture->TextureSRV = TexturesDescriptorHeap->AllocateDescriptor();
 
 	Device->CreateShaderResourceView(renderTexture->Texture, &SRVDesc, renderTexture->TextureSRV);
 
@@ -5860,7 +5767,7 @@ inline void RenderSystem::CheckDXCallResult(HRESULT hr, const char16_t* Function
 		char16_t DXErrorMessageBuffer[2048];
 		char16_t DXErrorCodeBuffer[512];
 
-		const char16_t *DXErrorCodePtr = GetDXErrorMessageFromHRESULT(hr);
+		const char16_t *DXErrorCodePtr = RenderSystem::GetDXErrorMessageFromHRESULT(hr);
 
 		if (DXErrorCodePtr) wcscpy((wchar_t*)DXErrorCodeBuffer, (const wchar_t*)DXErrorCodePtr);
 		else wsprintf((wchar_t*)DXErrorCodeBuffer, (const wchar_t*)u"0x%08X (неизвестный код)", hr);
