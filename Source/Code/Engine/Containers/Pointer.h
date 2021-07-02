@@ -52,6 +52,11 @@ class Pointer
 			return Data;
 		}
 
+		T& operator*()
+		{
+			return *Data;
+		}
+
 		template<typename U>
 		operator U*()
 		{
