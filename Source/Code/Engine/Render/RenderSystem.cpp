@@ -26,16 +26,25 @@ struct PointLight
 	float Brightness;
 };
 
+struct CameraConstantBuffer
+{
+	XMMATRIX ViewProjMatrix;
+	XMMATRIX InvViewProjMatrix;
+	XMFLOAT3 CameraWorldPosition;
+	float NearZ, FarZ;
+};
+
 struct GBufferOpaquePassConstantBuffer
 {
-	XMMATRIX WVPMatrix;
+	//XMMATRIX WVPMatrix;
 	XMMATRIX WorldMatrix;
 	XMFLOAT3X4 VectorTransformMatrix;
 };
 
 struct ShadowMapPassConstantBuffer
 {
-	XMMATRIX WVPMatrix;
+	//XMMATRIX WVPMatrix;
+	XMMATRIX WorldMatrix;
 };
 
 struct ShadowResolveConstantBuffer
@@ -60,6 +69,15 @@ struct SunConstantBuffer
 	XMMATRIX ProjMatrix;
 	XMFLOAT3 SunPosition;
 };
+
+inline SIZE_T RenderSystem::GetOffsetForResource(D3D12_RESOURCE_DESC& ResourceDesc, D3D12_HEAP_DESC& HeapDesc)
+{
+	D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDesc);
+	SIZE_T ResourceOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + ((HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment == 0) ? 0 : (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment));
+	HeapDesc.SizeInBytes = ResourceOffset + ResourceAllocationInfo.SizeInBytes;
+
+	return ResourceOffset;
+}
 
 void RenderSystem::InitSystem()
 {
@@ -118,19 +136,37 @@ void RenderSystem::InitSystem()
 	CommandQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAGS::D3D12_COMMAND_QUEUE_FLAG_NONE;
 	CommandQueueDesc.NodeMask = 0;
 	CommandQueueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY::D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
+
 	CommandQueueDesc.Type = D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT;
+	SAFE_DX(Device->CreateCommandQueue(&CommandQueueDesc, UUIDOF(GraphicsCommandQueue)));
+	CommandQueueDesc.Type = D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COMPUTE;
+	SAFE_DX(Device->CreateCommandQueue(&CommandQueueDesc, UUIDOF(ComputeCommandQueue)));
+	CommandQueueDesc.Type = D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COPY;
+	SAFE_DX(Device->CreateCommandQueue(&CommandQueueDesc, UUIDOF(CopyCommandQueue)));
+	SAFE_DX(GraphicsCommandQueue->SetName((const wchar_t*)u"Graphics Command Queue"));
+	SAFE_DX(ComputeCommandQueue->SetName((const wchar_t*)u"Compute Command Queue"));
+	SAFE_DX(CopyCommandQueue->SetName((const wchar_t*)u"Copy Command Queue"));
 
-	SAFE_DX(Device->CreateCommandQueue(&CommandQueueDesc, UUIDOF(CommandQueue)));
-	SAFE_DX(CommandQueue->SetName((const wchar_t*)u"Graphics Command Queue"));
+	SAFE_DX(Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT, UUIDOF(GraphicsCommandAllocators[0])));
+	SAFE_DX(Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT, UUIDOF(GraphicsCommandAllocators[1])));
+	SAFE_DX(Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COMPUTE, UUIDOF(ComputeCommandAllocators[0])));
+	SAFE_DX(Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COMPUTE, UUIDOF(ComputeCommandAllocators[1])));
+	SAFE_DX(Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COPY, UUIDOF(CopyCommandAllocator)));
+	SAFE_DX(GraphicsCommandAllocators[0]->SetName((const wchar_t*)u"Graphics Command Allocator 0"));
+	SAFE_DX(GraphicsCommandAllocators[1]->SetName((const wchar_t*)u"Graphics Command Allocator 1"));
+	SAFE_DX(ComputeCommandAllocators[0]->SetName((const wchar_t*)u"Compute Command Allocator 0"));
+	SAFE_DX(ComputeCommandAllocators[1]->SetName((const wchar_t*)u"Compute Command Allocator 1"));
+	SAFE_DX(CopyCommandAllocator->SetName((const wchar_t*)u"Copy Command Allocator"));
 
-	SAFE_DX(Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT, UUIDOF(CommandAllocators[0])));
-	SAFE_DX(Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT, UUIDOF(CommandAllocators[1])));
-	SAFE_DX(CommandAllocators[0]->SetName((const wchar_t*)u"Graphics Command Allocator 0"));
-	SAFE_DX(CommandAllocators[1]->SetName((const wchar_t*)u"Graphics Command Allocator 1"));
-
-	SAFE_DX(Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT, CommandAllocators[0], nullptr, UUIDOF(CommandList)));
-	SAFE_DX(CommandList->SetName((const wchar_t*)u"Graphics Command List"));
-	SAFE_DX(CommandList->Close());
+	SAFE_DX(Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT, GraphicsCommandAllocators[0], nullptr, UUIDOF(GraphicsCommandList)));
+	SAFE_DX(GraphicsCommandList->SetName((const wchar_t*)u"Graphics Command List"));
+	SAFE_DX(GraphicsCommandList->Close());
+	SAFE_DX(Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COMPUTE, ComputeCommandAllocators[0], nullptr, UUIDOF(ComputeCommandList)));
+	SAFE_DX(ComputeCommandList->SetName((const wchar_t*)u"Compute Command List"));
+	SAFE_DX(ComputeCommandList->Close());
+	SAFE_DX(Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COPY, CopyCommandAllocator, nullptr, UUIDOF(CopyCommandList)));
+	SAFE_DX(CopyCommandList->SetName((const wchar_t*)u"Copy Command List"));
+	SAFE_DX(CopyCommandList->Close());
 
 	DXGI_SWAP_CHAIN_DESC1 SwapChainDesc;
 	SwapChainDesc.AlphaMode = DXGI_ALPHA_MODE::DXGI_ALPHA_MODE_UNSPECIFIED;
@@ -162,7 +198,7 @@ void RenderSystem::InitSystem()
 		Application::GetMainWindowHandle();
 
 	COMRCPtr<IDXGISwapChain1> SwapChain1;
-	SAFE_DX(Factory->CreateSwapChainForHwnd(CommandQueue, RenderTargetHandle, &SwapChainDesc, &SwapChainFullScreenDesc, nullptr, &SwapChain1));
+	SAFE_DX(Factory->CreateSwapChainForHwnd(GraphicsCommandQueue, RenderTargetHandle, &SwapChainDesc, &SwapChainFullScreenDesc, nullptr, &SwapChain1));
 	SAFE_DX(SwapChain1->QueryInterface<IDXGISwapChain4>(&SwapChain));
 
 	SAFE_DX(Factory->MakeWindowAssociation(RenderTargetHandle, DXGI_MWA_NO_ALT_ENTER));
@@ -185,59 +221,14 @@ void RenderSystem::InitSystem()
 	CopySyncEvent = CreateEvent(NULL, FALSE, FALSE, (const wchar_t*)u"CopySyncEvent");
 
 	D3D12_DESCRIPTOR_HEAP_DESC DescriptorHeapDesc;
-	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
-	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	DescriptorHeapDesc.NodeMask = 0;
-	DescriptorHeapDesc.NumDescriptors = 42;
-	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+	
+	RTDescriptorHeap = new DescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 42, Device, u"Render Targets Descriptor Heap");
+	DSDescriptorHeap = new DescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 5, Device, u"Depth-Stencils Descriptor Heap");
+	CBSRUADescriptorHeap = new DescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 63, Device, u"Constant Buffer/Shader Resource/Unordered Access Views Descriptor Heap");
+	SamplersDescriptorHeap = new DescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 4, Device, u"Samplers Descriptor Heap");
 
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(RTDescriptorHeap)));
-	SAFE_DX(RTDescriptorHeap->SetName((const wchar_t*)u"Render Targets Descriptor Heap"));
-
-	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
-	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	DescriptorHeapDesc.NodeMask = 0;
-	DescriptorHeapDesc.NumDescriptors = 5;
-	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(DSDescriptorHeap)));
-	SAFE_DX(DSDescriptorHeap->SetName((const wchar_t*)u"Depth-Stencils Descriptor Heap"));
-
-	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
-	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	DescriptorHeapDesc.NodeMask = 0;
-	DescriptorHeapDesc.NumDescriptors = 55;
-	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(CBSRUADescriptorHeap)));
-	SAFE_DX(CBSRUADescriptorHeap->SetName((const wchar_t*)u"Constant Buffer/Shader Resource/Unordered Access Views Descriptor Heap"));
-
-	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
-	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	DescriptorHeapDesc.NodeMask = 0;
-	DescriptorHeapDesc.NumDescriptors = 4;
-	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
-
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(SamplersDescriptorHeap)));
-	SAFE_DX(SamplersDescriptorHeap->SetName((const wchar_t*)u"Samplers Descriptor Heap"));
-
-	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
-	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	DescriptorHeapDesc.NodeMask = 0;
-	DescriptorHeapDesc.NumDescriptors = 120000;
-	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(ConstantBufferDescriptorHeap)));
-	SAFE_DX(ConstantBufferDescriptorHeap->SetName((const wchar_t*)u"Constant Buffers Descriptor Heap"));
-
-	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
-	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	DescriptorHeapDesc.NodeMask = 0;
-	DescriptorHeapDesc.NumDescriptors = 8000;
-	DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-
-	SAFE_DX(Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(TexturesDescriptorHeap)));
-	SAFE_DX(TexturesDescriptorHeap->SetName((const wchar_t*)u"Textures Descriptor Heap"));
+	ConstantBufferDescriptorHeap = new DescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 120000, Device, u"Constant Buffers Descriptor Heap");
+	TexturesDescriptorHeap = new DescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 8000, Device, u"Textures Descriptor Heap");
 
 	ZeroMemory(&DescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
 	DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
@@ -263,7 +254,7 @@ void RenderSystem::InitSystem()
 
 	D3D12_DESCRIPTOR_RANGE DescriptorRanges[4];
 	DescriptorRanges[0].BaseShaderRegister = 0;
-	DescriptorRanges[0].NumDescriptors = 1;
+	DescriptorRanges[0].NumDescriptors = 4;
 	DescriptorRanges[0].OffsetInDescriptorsFromTableStart = 0;
 	DescriptorRanges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE::D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	DescriptorRanges[0].RegisterSpace = 0;
@@ -363,10 +354,8 @@ void RenderSystem::InitSystem()
 		RTVDesc.Texture2D.PlaneSlice = 0;
 		RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2D;
 
-		BackBufferTexturesRTVs[0].ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		RTDescriptorsCount++;
-		BackBufferTexturesRTVs[1].ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		RTDescriptorsCount++;
+		BackBufferTexturesRTVs[0] = RTDescriptorHeap->AllocateDescriptor();
+		BackBufferTexturesRTVs[1] = RTDescriptorHeap->AllocateDescriptor();
 
 		Device->CreateRenderTargetView(BackBufferTextures[0], &RTVDesc, BackBufferTexturesRTVs[0]);
 		Device->CreateRenderTargetView(BackBufferTextures[1], &RTVDesc, BackBufferTexturesRTVs[1]);
@@ -391,8 +380,7 @@ void RenderSystem::InitSystem()
 		SamplerDesc.MinLOD = 0;
 		SamplerDesc.MipLODBias = 0.0f;
 
-		TextureSampler.ptr = SamplersDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + SamplersDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-		SamplersDescriptorsCount++;
+		TextureSampler = SamplersDescriptorHeap->AllocateDescriptor();
 
 		Device->CreateSampler(&SamplerDesc, TextureSampler);
 
@@ -406,8 +394,7 @@ void RenderSystem::InitSystem()
 		SamplerDesc.MinLOD = 0;
 		SamplerDesc.MipLODBias = 0.0f;
 
-		ShadowMapSampler.ptr = SamplersDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + SamplersDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-		SamplersDescriptorsCount++;
+		ShadowMapSampler = SamplersDescriptorHeap->AllocateDescriptor();
 
 		Device->CreateSampler(&SamplerDesc, ShadowMapSampler);
 
@@ -421,8 +408,7 @@ void RenderSystem::InitSystem()
 		SamplerDesc.MinLOD = 0;
 		SamplerDesc.MipLODBias = 0.0f;
 
-		BiLinearSampler.ptr = SamplersDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + SamplersDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-		SamplersDescriptorsCount++;
+		BiLinearSampler = SamplersDescriptorHeap->AllocateDescriptor();
 
 		Device->CreateSampler(&SamplerDesc, BiLinearSampler);
 
@@ -436,8 +422,7 @@ void RenderSystem::InitSystem()
 		SamplerDesc.MinLOD = 0;
 		SamplerDesc.MipLODBias = 0.0f;
 
-		MinSampler.ptr = SamplersDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + SamplersDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-		SamplersDescriptorsCount++;
+		MinSampler = SamplersDescriptorHeap->AllocateDescriptor();
 
 		Device->CreateSampler(&SamplerDesc, MinSampler);
 	}
@@ -498,6 +483,86 @@ void RenderSystem::InitSystem()
 
 		SAFE_DX(Device->CreatePlacedResource(UploadHeap, 0, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(UploadBuffer)));
 		SAFE_DX(UploadBuffer->SetName((const wchar_t*)u"Upload Buffer"));
+	}
+
+	// ===============================================================================================================
+
+	{
+		D3D12_RESOURCE_DESC ConstantBufferResourceDesc;
+		ZeroMemory(&ConstantBufferResourceDesc, sizeof(D3D12_RESOURCE_DESC));
+		ConstantBufferResourceDesc.Alignment = 0;
+		ConstantBufferResourceDesc.DepthOrArraySize = 1;
+		ConstantBufferResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER;
+		ConstantBufferResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE;
+		ConstantBufferResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
+		ConstantBufferResourceDesc.Height = 1;
+		ConstantBufferResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+		ConstantBufferResourceDesc.MipLevels = 1;
+		ConstantBufferResourceDesc.SampleDesc.Count = 1;
+		ConstantBufferResourceDesc.SampleDesc.Quality = 0;
+		ConstantBufferResourceDesc.Width = 256;
+
+		D3D12_HEAP_DESC HeapDesc;
+		HeapDesc.Alignment = D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT;
+		HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE;
+		HeapDesc.Properties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_NOT_AVAILABLE;
+		HeapDesc.Properties.CreationNodeMask = 0;
+		HeapDesc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_L1;
+		HeapDesc.Properties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_CUSTOM;
+		HeapDesc.Properties.VisibleNodeMask = 0;
+		HeapDesc.SizeInBytes = 0;
+
+		SIZE_T GPUCameraConstantBufferOffset = GetOffsetForResource(ConstantBufferResourceDesc, HeapDesc);
+		SIZE_T GPURenderTargetConstantBufferOffset = GetOffsetForResource(ConstantBufferResourceDesc, HeapDesc);
+
+		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory0)));
+		SAFE_DX(GPUMemory0->SetName((const wchar_t*)u"Camera Constants Data GPU Heap"));
+
+		SAFE_DX(Device->CreatePlacedResource(GPUMemory0, GPUCameraConstantBufferOffset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUCameraConstantBuffer)));
+		SAFE_DX(Device->CreatePlacedResource(GPUMemory0, GPURenderTargetConstantBufferOffset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPURenderTargetConstantBuffer)));
+		SAFE_DX(GPUCameraConstantBuffer->SetName((const wchar_t*)u"GPU Camera Constant Buffer"));
+		SAFE_DX(GPURenderTargetConstantBuffer->SetName((const wchar_t*)u"GPU Render Target Constant Buffer"));
+
+		HeapDesc.Alignment = 0;
+		HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE;
+		HeapDesc.Properties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_WRITE_COMBINE;
+		HeapDesc.Properties.CreationNodeMask = 0;
+		HeapDesc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_L0;
+		HeapDesc.Properties.Type = D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_CUSTOM;
+		HeapDesc.Properties.VisibleNodeMask = 0;
+		HeapDesc.SizeInBytes = 0;
+
+		SIZE_T CPUCameraConstantBuffer0Offset = GetOffsetForResource(ConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CPUCameraConstantBuffer1Offset = GetOffsetForResource(ConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CPURenderTargetConstantBuffer0Offset = GetOffsetForResource(ConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CPURenderTargetConstantBuffer1Offset = GetOffsetForResource(ConstantBufferResourceDesc, HeapDesc);
+
+		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory0)));
+		SAFE_DX(CPUMemory0->SetName((const wchar_t*)u"Camera Constants Data CPU Heap"));
+
+		SAFE_DX(Device->CreatePlacedResource(CPUMemory0, CPUCameraConstantBuffer0Offset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUCameraConstantBuffers[0])));
+		SAFE_DX(Device->CreatePlacedResource(CPUMemory0, CPUCameraConstantBuffer1Offset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUCameraConstantBuffers[1])));
+		SAFE_DX(Device->CreatePlacedResource(CPUMemory0, CPURenderTargetConstantBuffer0Offset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPURenderTargetConstantBuffers[0])));
+		SAFE_DX(Device->CreatePlacedResource(CPUMemory0, CPURenderTargetConstantBuffer1Offset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPURenderTargetConstantBuffers[1])));
+		SAFE_DX(CPUCameraConstantBuffers[0]->SetName((const wchar_t*)u"CPU Camera Constant Buffers 0"));
+		SAFE_DX(CPUCameraConstantBuffers[1]->SetName((const wchar_t*)u"CPU Camera Constant Buffers 1"));
+		SAFE_DX(CPURenderTargetConstantBuffers[0]->SetName((const wchar_t*)u"CPU Render Target Constant Buffers 1"));
+		SAFE_DX(CPURenderTargetConstantBuffers[1]->SetName((const wchar_t*)u"CPU Render Target Constant Buffers 1"));
+
+		D3D12_CONSTANT_BUFFER_VIEW_DESC CBVDesc;
+		CBVDesc.BufferLocation = GPUCameraConstantBuffer->GetGPUVirtualAddress();
+		CBVDesc.SizeInBytes = 256;
+
+		CameraConstantBufferCBV = CBSRUADescriptorHeap->AllocateDescriptor();
+
+		Device->CreateConstantBufferView(&CBVDesc, CameraConstantBufferCBV);
+
+		CBVDesc.BufferLocation = GPURenderTargetConstantBuffer->GetGPUVirtualAddress();
+		CBVDesc.SizeInBytes = 256;
+
+		RenderTargetConstantBufferCBV = CBSRUADescriptorHeap->AllocateDescriptor();
+
+		Device->CreateConstantBufferView(&CBVDesc, RenderTargetConstantBufferCBV);
 	}
 
 	// ===============================================================================================================
@@ -569,27 +634,10 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &GBufferTexture0ResourceDesc);
-
-		SIZE_T GBufferTexture0Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = GBufferTexture0Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &GBufferTexture1ResourceDesc);
-
-		SIZE_T GBufferTexture1Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = GBufferTexture1Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &DepthBufferTextureResourceDesc);
-
-		SIZE_T DepthBufferTextureOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = DepthBufferTextureOffset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &GBufferOpaquePassConstantBufferResourceDesc);
-
-		SIZE_T GPUConstantBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = GPUConstantBufferOffset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T GBufferTexture0Offset = GetOffsetForResource(GBufferTexture0ResourceDesc, HeapDesc);
+		SIZE_T GBufferTexture1Offset = GetOffsetForResource(GBufferTexture1ResourceDesc, HeapDesc);
+		SIZE_T DepthBufferTextureOffset = GetOffsetForResource(DepthBufferTextureResourceDesc, HeapDesc);
+		SIZE_T GPUConstantBufferOffset = GetOffsetForResource(GBufferOpaquePassConstantBufferResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory1)));
 		SAFE_DX(GPUMemory1->SetName((const wchar_t*)u"G-Buffer Opaque Pass Data GPU Heap"));
@@ -617,8 +665,8 @@ void RenderSystem::InitSystem()
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory1, DepthBufferTextureOffset, &DepthBufferTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE, &ClearValue, UUIDOF(DepthBufferTexture)));
 		SAFE_DX(DepthBufferTexture->SetName((const wchar_t*)u"Depth Buffer Texture"));
 
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory1, GPUConstantBufferOffset, &GBufferOpaquePassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUConstantBuffer)));
-		SAFE_DX(GPUConstantBuffer->SetName((const wchar_t*)u"GPU Constant Buffer"));
+		SAFE_DX(Device->CreatePlacedResource(GPUMemory1, GPUConstantBufferOffset, &GBufferOpaquePassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUGBufferOpaquePassObjectsConstantBuffer)));
+		SAFE_DX(GPUGBufferOpaquePassObjectsConstantBuffer->SetName((const wchar_t*)u"GPU G-Buffer Opaque Pass Objects Constant Buffer"));
 
 		HeapDesc.Alignment = 0;
 		HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE;
@@ -629,31 +677,22 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		SIZE_T CPUConstantBuffer0Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUConstantBuffer0Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &GBufferOpaquePassConstantBufferResourceDesc);
-
-		SIZE_T CPUConstantBuffer1Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUConstantBuffer1Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &GBufferOpaquePassConstantBufferResourceDesc);
+		SIZE_T CPUConstantBuffer0Offset = GetOffsetForResource(GBufferOpaquePassConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CPUConstantBuffer1Offset = GetOffsetForResource(GBufferOpaquePassConstantBufferResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory1)));
 		SAFE_DX(CPUMemory1->SetName((const wchar_t*)u"G-Buffer Opaque Pass Data CPU Heap"));
 
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory1, CPUConstantBuffer0Offset, &GBufferOpaquePassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUConstantBuffers[0])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory1, CPUConstantBuffer1Offset, &GBufferOpaquePassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUConstantBuffers[1])));
-		SAFE_DX(CPUConstantBuffers[0]->SetName((const wchar_t*)u"CPU Constant Buffers 0"));
-		SAFE_DX(CPUConstantBuffers[1]->SetName((const wchar_t*)u"CPU Constant Buffers 1"));
+		SAFE_DX(Device->CreatePlacedResource(CPUMemory1, CPUConstantBuffer0Offset, &GBufferOpaquePassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUGBufferOpaquePassObjectsConstantBuffers[0])));
+		SAFE_DX(Device->CreatePlacedResource(CPUMemory1, CPUConstantBuffer1Offset, &GBufferOpaquePassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUGBufferOpaquePassObjectsConstantBuffers[1])));
+		SAFE_DX(CPUGBufferOpaquePassObjectsConstantBuffers[0]->SetName((const wchar_t*)u"CPU G-Buffer Opaque Pass Objects Constant Buffers 0"));
+		SAFE_DX(CPUGBufferOpaquePassObjectsConstantBuffers[1]->SetName((const wchar_t*)u"CPU G-Buffer Opaque Pass Objects Constant Buffers 1"));
 
 		D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
 		RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2DMS;
 
-		GBufferTexturesRTVs[0].ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		RTDescriptorsCount++;
-		GBufferTexturesRTVs[1].ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		RTDescriptorsCount++;
+		GBufferTexturesRTVs[0] = RTDescriptorHeap->AllocateDescriptor();
+		GBufferTexturesRTVs[1] = RTDescriptorHeap->AllocateDescriptor();
 
 		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 		Device->CreateRenderTargetView(GBufferTextures[0], &RTVDesc, GBufferTexturesRTVs[0]);
@@ -665,10 +704,8 @@ void RenderSystem::InitSystem()
 		SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2DMS;
 
-		GBufferTexturesSRVs[0].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
-		GBufferTexturesSRVs[1].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		GBufferTexturesSRVs[0] = CBSRUADescriptorHeap->AllocateDescriptor();
+		GBufferTexturesSRVs[1] = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 		Device->CreateShaderResourceView(GBufferTextures[0], &SRVDesc, GBufferTexturesSRVs[0]);
@@ -681,8 +718,7 @@ void RenderSystem::InitSystem()
 		DSVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 		DSVDesc.ViewDimension = D3D12_DSV_DIMENSION::D3D12_DSV_DIMENSION_TEXTURE2DMS;
 
-		DepthBufferTextureDSV.ptr = DSDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + DSDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-		DSDescriptorsCount++;
+		DepthBufferTextureDSV = DSDescriptorHeap->AllocateDescriptor();
 
 		Device->CreateDepthStencilView(DepthBufferTexture, &DSVDesc, DepthBufferTextureDSV);
 
@@ -690,21 +726,19 @@ void RenderSystem::InitSystem()
 		SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2DMS;
 
-		DepthBufferTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		DepthBufferTextureSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateShaderResourceView(DepthBufferTexture, &SRVDesc, DepthBufferTextureSRV);
 
 		for (int i = 0; i < 20000; i++)
 		{
 			D3D12_CONSTANT_BUFFER_VIEW_DESC CBVDesc;
-			CBVDesc.BufferLocation = GPUConstantBuffer->GetGPUVirtualAddress() + i * 256;
+			CBVDesc.BufferLocation = GPUGBufferOpaquePassObjectsConstantBuffer->GetGPUVirtualAddress() + i * 256;
 			CBVDesc.SizeInBytes = 256;
 
-			ConstantBufferCBVs[i].ptr = ConstantBufferDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + ConstantBufferDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			ConstantBufferDescriptorsCount++;
+			GBufferOpaquePassObjectsConstantBufferCBVs[i] = ConstantBufferDescriptorHeap->AllocateDescriptor();
 
-			Device->CreateConstantBufferView(&CBVDesc, ConstantBufferCBVs[i]);
+			Device->CreateConstantBufferView(&CBVDesc, GBufferOpaquePassObjectsConstantBufferCBVs[i]);
 		}
 	}
 
@@ -735,12 +769,7 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDesc);
-
-		SIZE_T ResolvedDepthBufferTextureOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ResolvedDepthBufferTextureOffset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T ResolvedDepthBufferTextureOffset = GetOffsetForResource(ResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory2)));
 		SAFE_DX(GPUMemory2->SetName((const wchar_t*)u"Depth Resolve Pass Data GPU Heap"));
@@ -762,8 +791,7 @@ void RenderSystem::InitSystem()
 		SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
-		ResolvedDepthBufferTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		ResolvedDepthBufferTextureSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateShaderResourceView(ResolvedDepthBufferTexture, &SRVDesc, ResolvedDepthBufferTextureSRV);
 	}
@@ -795,12 +823,7 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDesc);
-
-		SIZE_T OcclusionBufferTextureOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.SizeInBytes - HeapDesc.SizeInBytes % ResourceAllocationInfo.SizeInBytes);
-		HeapDesc.SizeInBytes = OcclusionBufferTextureOffset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T OcclusionBufferTextureOffset = GetOffsetForResource(ResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory3)));
 		SAFE_DX(GPUMemory3->SetName((const wchar_t*)u"Occlusion Buffer Pass Data GPU Heap"));
@@ -843,15 +866,8 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDesc);
-
-		SIZE_T OcclusionBufferReadbackBuffer0Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = OcclusionBufferReadbackBuffer0Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDesc);
-
-		SIZE_T OcclusionBufferReadbackBuffer1Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = OcclusionBufferReadbackBuffer1Offset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T OcclusionBufferReadbackBuffer0Offset = GetOffsetForResource(ResourceDesc, HeapDesc);
+		SIZE_T OcclusionBufferReadbackBuffer1Offset = GetOffsetForResource(ResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory3)));
 		SAFE_DX(CPUMemory3->SetName((const wchar_t*)u"Occlsuon Buffer Pass Data CPU Heap"));
@@ -867,8 +883,7 @@ void RenderSystem::InitSystem()
 		RTVDesc.Texture2D.PlaneSlice = 0;
 		RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2D;
 
-		OcclusionBufferTextureRTV.ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		RTDescriptorsCount++;
+		OcclusionBufferTextureRTV = RTDescriptorHeap->AllocateDescriptor();
 
 		Device->CreateRenderTargetView(OcclusionBufferTexture, &RTVDesc, OcclusionBufferTextureRTV);
 
@@ -931,6 +946,20 @@ void RenderSystem::InitSystem()
 		ShadowMapPassConstantBufferResourceDesc.SampleDesc.Quality = 0;
 		ShadowMapPassConstantBufferResourceDesc.Width = 256 * 20000;
 
+		D3D12_RESOURCE_DESC ShadowMapCameraConstantBufferResourceDesc;
+		ZeroMemory(&ShadowMapCameraConstantBufferResourceDesc, sizeof(D3D12_RESOURCE_DESC));
+		ShadowMapCameraConstantBufferResourceDesc.Alignment = 0;
+		ShadowMapCameraConstantBufferResourceDesc.DepthOrArraySize = 1;
+		ShadowMapCameraConstantBufferResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER;
+		ShadowMapCameraConstantBufferResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE;
+		ShadowMapCameraConstantBufferResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
+		ShadowMapCameraConstantBufferResourceDesc.Height = 1;
+		ShadowMapCameraConstantBufferResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+		ShadowMapCameraConstantBufferResourceDesc.MipLevels = 1;
+		ShadowMapCameraConstantBufferResourceDesc.SampleDesc.Count = 1;
+		ShadowMapCameraConstantBufferResourceDesc.SampleDesc.Quality = 0;
+		ShadowMapCameraConstantBufferResourceDesc.Width = 256 * 4;
+
 		D3D12_HEAP_DESC HeapDesc;
 		HeapDesc.Alignment = D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT;
 		HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE;
@@ -941,47 +970,16 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo;
+		SIZE_T CascadedShadowMapTexture0Offset = GetOffsetForResource(ShadowMapTextureResourceDesc, HeapDesc);
+		SIZE_T CascadedShadowMapTexture1Offset = GetOffsetForResource(ShadowMapTextureResourceDesc, HeapDesc);
+		SIZE_T CascadedShadowMapTexture2Offset = GetOffsetForResource(ShadowMapTextureResourceDesc, HeapDesc);
+		SIZE_T CascadedShadowMapTexture3Offset = GetOffsetForResource(ShadowMapTextureResourceDesc, HeapDesc);
 
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapTextureResourceDesc);
-
-		SIZE_T CascadedShadowMapTexture0Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CascadedShadowMapTexture0Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapTextureResourceDesc);
-
-		SIZE_T CascadedShadowMapTexture1Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CascadedShadowMapTexture1Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapTextureResourceDesc);
-
-		SIZE_T CascadedShadowMapTexture2Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CascadedShadowMapTexture2Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapTextureResourceDesc);
-
-		SIZE_T CascadedShadowMapTexture3Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CascadedShadowMapTexture3Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapPassConstantBufferResourceDesc);
-
-		SIZE_T ConstantBuffer0Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ConstantBuffer0Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapPassConstantBufferResourceDesc);
-
-		SIZE_T ConstantBuffer1Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ConstantBuffer1Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapPassConstantBufferResourceDesc);
-
-		SIZE_T ConstantBuffer2Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ConstantBuffer2Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapPassConstantBufferResourceDesc);
-
-		SIZE_T ConstantBuffer3Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ConstantBuffer3Offset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T ConstantBuffer0Offset = GetOffsetForResource(ShadowMapPassConstantBufferResourceDesc, HeapDesc);
+		SIZE_T ConstantBuffer1Offset = GetOffsetForResource(ShadowMapPassConstantBufferResourceDesc, HeapDesc);
+		SIZE_T ConstantBuffer2Offset = GetOffsetForResource(ShadowMapPassConstantBufferResourceDesc, HeapDesc);
+		SIZE_T ConstantBuffer3Offset = GetOffsetForResource(ShadowMapPassConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CameraConstantBufferOffset = GetOffsetForResource(ShadowMapCameraConstantBufferResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory4)));
 		SAFE_DX(GPUMemory4->SetName((const wchar_t*)u"Shadow Map Pass Data GPU Heap"));
@@ -1000,14 +998,17 @@ void RenderSystem::InitSystem()
 		SAFE_DX(CascadedShadowMapTextures[2]->SetName((const wchar_t*)u"Cascaded Shadow Map Textures [2]"));
 		SAFE_DX(CascadedShadowMapTextures[3]->SetName((const wchar_t*)u"Cascaded Shadow Map Textures [3]"));
 
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory4, ConstantBuffer0Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUConstantBuffers2[0])));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory4, ConstantBuffer1Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUConstantBuffers2[1])));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory4, ConstantBuffer2Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUConstantBuffers2[2])));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory4, ConstantBuffer3Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUConstantBuffers2[3])));
-		SAFE_DX(GPUConstantBuffers2[0]->SetName((const wchar_t*)u"GPU Constant Buffer 2 [0]"));
-		SAFE_DX(GPUConstantBuffers2[1]->SetName((const wchar_t*)u"GPU Constant Buffer 2 [1]"));
-		SAFE_DX(GPUConstantBuffers2[2]->SetName((const wchar_t*)u"GPU Constant Buffer 2 [2]"));
-		SAFE_DX(GPUConstantBuffers2[3]->SetName((const wchar_t*)u"GPU Constant Buffer 2 [3]"));
+		SAFE_DX(Device->CreatePlacedResource(GPUMemory4, ConstantBuffer0Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUShadowMapPassObjectsConstantBuffers[0])));
+		SAFE_DX(Device->CreatePlacedResource(GPUMemory4, ConstantBuffer1Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUShadowMapPassObjectsConstantBuffers[1])));
+		SAFE_DX(Device->CreatePlacedResource(GPUMemory4, ConstantBuffer2Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUShadowMapPassObjectsConstantBuffers[2])));
+		SAFE_DX(Device->CreatePlacedResource(GPUMemory4, ConstantBuffer3Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUShadowMapPassObjectsConstantBuffers[3])));
+		SAFE_DX(GPUShadowMapPassObjectsConstantBuffers[0]->SetName((const wchar_t*)u"GPU Shadow Map Pass Objects Constant Buffer [0]"));
+		SAFE_DX(GPUShadowMapPassObjectsConstantBuffers[1]->SetName((const wchar_t*)u"GPU Shadow Map Pass Objects Constant Buffer [1]"));
+		SAFE_DX(GPUShadowMapPassObjectsConstantBuffers[2]->SetName((const wchar_t*)u"GPU Shadow Map Pass Objects Constant Buffer [2]"));
+		SAFE_DX(GPUShadowMapPassObjectsConstantBuffers[3]->SetName((const wchar_t*)u"GPU Shadow Map Pass Objects Constant Buffer [3]"));
+
+		SAFE_DX(Device->CreatePlacedResource(GPUMemory4, CameraConstantBufferOffset, &ShadowMapCameraConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUShadowMapCameraConstantBuffer)));
+		SAFE_DX(GPUShadowMapCameraConstantBuffer->SetName((const wchar_t*)u"GPU Shadow Map Camera Constant Buffer"));
 
 		HeapDesc.Alignment = D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT;
 		HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE;
@@ -1018,65 +1019,41 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapPassConstantBufferResourceDesc);
-
-		SIZE_T ConstantBuffer00Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ConstantBuffer00Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapPassConstantBufferResourceDesc);
-
-		SIZE_T ConstantBuffer01Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ConstantBuffer01Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapPassConstantBufferResourceDesc);
-
-		SIZE_T ConstantBuffer10Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ConstantBuffer10Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapPassConstantBufferResourceDesc);
-
-		SIZE_T ConstantBuffer11Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ConstantBuffer11Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapPassConstantBufferResourceDesc);
-
-		SIZE_T ConstantBuffer20Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ConstantBuffer20Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapPassConstantBufferResourceDesc);
-
-		SIZE_T ConstantBuffer21Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ConstantBuffer21Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapPassConstantBufferResourceDesc);
-
-		SIZE_T ConstantBuffer30Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ConstantBuffer30Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMapPassConstantBufferResourceDesc);
-
-		SIZE_T ConstantBuffer31Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ConstantBuffer31Offset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T ConstantBuffer00Offset = GetOffsetForResource(ShadowMapPassConstantBufferResourceDesc, HeapDesc);
+		SIZE_T ConstantBuffer01Offset = GetOffsetForResource(ShadowMapPassConstantBufferResourceDesc, HeapDesc);
+		SIZE_T ConstantBuffer10Offset = GetOffsetForResource(ShadowMapPassConstantBufferResourceDesc, HeapDesc);
+		SIZE_T ConstantBuffer11Offset = GetOffsetForResource(ShadowMapPassConstantBufferResourceDesc, HeapDesc);
+		SIZE_T ConstantBuffer20Offset = GetOffsetForResource(ShadowMapPassConstantBufferResourceDesc, HeapDesc);
+		SIZE_T ConstantBuffer21Offset = GetOffsetForResource(ShadowMapPassConstantBufferResourceDesc, HeapDesc);
+		SIZE_T ConstantBuffer30Offset = GetOffsetForResource(ShadowMapPassConstantBufferResourceDesc, HeapDesc);
+		SIZE_T ConstantBuffer31Offset = GetOffsetForResource(ShadowMapPassConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CPUCameraConstantBufferOffset0 = GetOffsetForResource(ShadowMapPassConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CPUCameraConstantBufferOffset1 = GetOffsetForResource(ShadowMapPassConstantBufferResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory4)));
 		SAFE_DX(CPUMemory4->SetName((const wchar_t*)u"Shadow Map Pass Data CPU Heap"));
 
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, ConstantBuffer00Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUConstantBuffers2[0][0])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, ConstantBuffer10Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUConstantBuffers2[1][0])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, ConstantBuffer20Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUConstantBuffers2[2][0])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, ConstantBuffer30Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUConstantBuffers2[3][0])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, ConstantBuffer01Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUConstantBuffers2[0][1])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, ConstantBuffer11Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUConstantBuffers2[1][1])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, ConstantBuffer21Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUConstantBuffers2[2][1])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, ConstantBuffer31Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUConstantBuffers2[3][1])));
-		SAFE_DX(CPUConstantBuffers2[0][0]->SetName((const wchar_t*)u"CPU Constant Buffer 2 [0] 0"));
-		SAFE_DX(CPUConstantBuffers2[1][0]->SetName((const wchar_t*)u"CPU Constant Buffer 2 [1] 0"));
-		SAFE_DX(CPUConstantBuffers2[2][0]->SetName((const wchar_t*)u"CPU Constant Buffer 2 [2] 0"));
-		SAFE_DX(CPUConstantBuffers2[3][0]->SetName((const wchar_t*)u"CPU Constant Buffer 2 [3] 0"));
-		SAFE_DX(CPUConstantBuffers2[0][1]->SetName((const wchar_t*)u"CPU Constant Buffer 2 [0] 1"));
-		SAFE_DX(CPUConstantBuffers2[1][1]->SetName((const wchar_t*)u"CPU Constant Buffer 2 [1] 1"));
-		SAFE_DX(CPUConstantBuffers2[2][1]->SetName((const wchar_t*)u"CPU Constant Buffer 2 [2] 1"));
-		SAFE_DX(CPUConstantBuffers2[3][1]->SetName((const wchar_t*)u"CPU Constant Buffer 2 [3] 1"));
+		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, ConstantBuffer00Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUShadowMapPassObjectsConstantBuffers[0][0])));
+		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, ConstantBuffer10Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUShadowMapPassObjectsConstantBuffers[1][0])));
+		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, ConstantBuffer20Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUShadowMapPassObjectsConstantBuffers[2][0])));
+		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, ConstantBuffer30Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUShadowMapPassObjectsConstantBuffers[3][0])));
+		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, ConstantBuffer01Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUShadowMapPassObjectsConstantBuffers[0][1])));
+		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, ConstantBuffer11Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUShadowMapPassObjectsConstantBuffers[1][1])));
+		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, ConstantBuffer21Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUShadowMapPassObjectsConstantBuffers[2][1])));
+		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, ConstantBuffer31Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUShadowMapPassObjectsConstantBuffers[3][1])));
+		SAFE_DX(CPUShadowMapPassObjectsConstantBuffers[0][0]->SetName((const wchar_t*)u"CPU Shadow Map Pass Objects Constant Buffer [0] 0"));
+		SAFE_DX(CPUShadowMapPassObjectsConstantBuffers[1][0]->SetName((const wchar_t*)u"CPU Shadow Map Pass Objects Constant Buffer [1] 0"));
+		SAFE_DX(CPUShadowMapPassObjectsConstantBuffers[2][0]->SetName((const wchar_t*)u"CPU Shadow Map Pass Objects Constant Buffer [2] 0"));
+		SAFE_DX(CPUShadowMapPassObjectsConstantBuffers[3][0]->SetName((const wchar_t*)u"CPU Shadow Map Pass Objects Constant Buffer [3] 0"));
+		SAFE_DX(CPUShadowMapPassObjectsConstantBuffers[0][1]->SetName((const wchar_t*)u"CPU Shadow Map Pass Objects Constant Buffer [0] 1"));
+		SAFE_DX(CPUShadowMapPassObjectsConstantBuffers[1][1]->SetName((const wchar_t*)u"CPU Shadow Map Pass Objects Constant Buffer [1] 1"));
+		SAFE_DX(CPUShadowMapPassObjectsConstantBuffers[2][1]->SetName((const wchar_t*)u"CPU Shadow Map Pass Objects Constant Buffer [2] 1"));
+		SAFE_DX(CPUShadowMapPassObjectsConstantBuffers[3][1]->SetName((const wchar_t*)u"CPU Shadow Map Pass Objects Constant Buffer [3] 1"));
+
+		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, CPUCameraConstantBufferOffset0, &ShadowMapCameraConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUShadowMapCameraConstantBuffers[0])));
+		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, CPUCameraConstantBufferOffset1, &ShadowMapCameraConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUShadowMapCameraConstantBuffers[1])));
+		SAFE_DX(CPUShadowMapCameraConstantBuffers[0]->SetName((const wchar_t*)u"CPU Shadow Map Camera Constant Buffer 0"));
+		SAFE_DX(CPUShadowMapCameraConstantBuffers[1]->SetName((const wchar_t*)u"CPU Shadow Map Camera Constant Buffer 1"));
 
 		D3D12_DEPTH_STENCIL_VIEW_DESC DSVDesc;
 		DSVDesc.Flags = D3D12_DSV_FLAGS::D3D12_DSV_FLAG_NONE;
@@ -1084,14 +1061,10 @@ void RenderSystem::InitSystem()
 		DSVDesc.Texture2D.MipSlice = 0;
 		DSVDesc.ViewDimension = D3D12_DSV_DIMENSION::D3D12_DSV_DIMENSION_TEXTURE2D;
 
-		CascadedShadowMapTexturesDSVs[0].ptr = DSDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + DSDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-		DSDescriptorsCount++;
-		CascadedShadowMapTexturesDSVs[1].ptr = DSDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + DSDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-		DSDescriptorsCount++;
-		CascadedShadowMapTexturesDSVs[2].ptr = DSDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + DSDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-		DSDescriptorsCount++;
-		CascadedShadowMapTexturesDSVs[3].ptr = DSDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + DSDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-		DSDescriptorsCount++;
+		CascadedShadowMapTexturesDSVs[0] = DSDescriptorHeap->AllocateDescriptor();
+		CascadedShadowMapTexturesDSVs[1] = DSDescriptorHeap->AllocateDescriptor();
+		CascadedShadowMapTexturesDSVs[2] = DSDescriptorHeap->AllocateDescriptor();
+		CascadedShadowMapTexturesDSVs[3] = DSDescriptorHeap->AllocateDescriptor();
 
 		Device->CreateDepthStencilView(CascadedShadowMapTextures[0], &DSVDesc, CascadedShadowMapTexturesDSVs[0]);
 		Device->CreateDepthStencilView(CascadedShadowMapTextures[1], &DSVDesc, CascadedShadowMapTexturesDSVs[1]);
@@ -1107,14 +1080,10 @@ void RenderSystem::InitSystem()
 		SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
-		CascadedShadowMapTexturesSRVs[0].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
-		CascadedShadowMapTexturesSRVs[1].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
-		CascadedShadowMapTexturesSRVs[2].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
-		CascadedShadowMapTexturesSRVs[3].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		CascadedShadowMapTexturesSRVs[0] = CBSRUADescriptorHeap->AllocateDescriptor();
+		CascadedShadowMapTexturesSRVs[1] = CBSRUADescriptorHeap->AllocateDescriptor();
+		CascadedShadowMapTexturesSRVs[2] = CBSRUADescriptorHeap->AllocateDescriptor();
+		CascadedShadowMapTexturesSRVs[3] = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateShaderResourceView(CascadedShadowMapTextures[0], &SRVDesc, CascadedShadowMapTexturesSRVs[0]);
 		Device->CreateShaderResourceView(CascadedShadowMapTextures[1], &SRVDesc, CascadedShadowMapTexturesSRVs[1]);
@@ -1123,16 +1092,23 @@ void RenderSystem::InitSystem()
 
 		for (int j = 0; j < 4; j++)
 		{
+			ShadowMapCameraConstantBufferCBVs[j] = CBSRUADescriptorHeap->AllocateDescriptor();
+
+			D3D12_CONSTANT_BUFFER_VIEW_DESC CBVDesc;
+			CBVDesc.BufferLocation = GPUShadowMapCameraConstantBuffer->GetGPUVirtualAddress() + j * 256;
+			CBVDesc.SizeInBytes = 256;
+
+			Device->CreateConstantBufferView(&CBVDesc, ShadowMapCameraConstantBufferCBVs[j]);
+
 			for (int i = 0; i < 20000; i++)
 			{
 				D3D12_CONSTANT_BUFFER_VIEW_DESC CBVDesc;
-				CBVDesc.BufferLocation = GPUConstantBuffers2[j]->GetGPUVirtualAddress() + i * 256;
+				CBVDesc.BufferLocation = GPUShadowMapPassObjectsConstantBuffers[j]->GetGPUVirtualAddress() + i * 256;
 				CBVDesc.SizeInBytes = 256;
 
-				ConstantBufferCBVs2[j][i].ptr = ConstantBufferDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + ConstantBufferDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-				ConstantBufferDescriptorsCount++;
-
-				Device->CreateConstantBufferView(&CBVDesc, ConstantBufferCBVs2[j][i]);
+				ShadowMapPassObjectsConstantBufferCBVs[j][i] = ConstantBufferDescriptorHeap->AllocateDescriptor();
+				
+				Device->CreateConstantBufferView(&CBVDesc, ShadowMapPassObjectsConstantBufferCBVs[j][i]);
 			}
 		}
 	}
@@ -1178,8 +1154,6 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo;
-
 		D3D12_CLEAR_VALUE ClearValue;
 		ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_R8_UNORM;
 		ClearValue.Color[0] = 0.0f;
@@ -1187,15 +1161,8 @@ void RenderSystem::InitSystem()
 		ClearValue.Color[2] = 0.0f;
 		ClearValue.Color[3] = 0.0f;
 
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowMaskTextureResourceDesc);
-
-		SIZE_T ShadowMaskTextureOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ShadowMaskTextureOffset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowResolveConstantBufferResourceDesc);
-
-		SIZE_T GPUConstantBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = GPUConstantBufferOffset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T ShadowMaskTextureOffset = GetOffsetForResource(ShadowMaskTextureResourceDesc, HeapDesc);
+		SIZE_T GPUConstantBufferOffset = GetOffsetForResource(ShadowResolveConstantBufferResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory5)));
 		SAFE_DX(GPUMemory5->SetName((const wchar_t*)u"Shadow Resolve Pass Data GPU Heap"));
@@ -1215,15 +1182,8 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowResolveConstantBufferResourceDesc);
-
-		SIZE_T CPUConstantBuffer0Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUConstantBuffer0Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ShadowResolveConstantBufferResourceDesc);
-
-		SIZE_T CPUConstantBuffer1Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUConstantBuffer1Offset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T CPUConstantBuffer0Offset = GetOffsetForResource(ShadowResolveConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CPUConstantBuffer1Offset = GetOffsetForResource(ShadowResolveConstantBufferResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory5)));
 		SAFE_DX(CPUMemory5->SetName((const wchar_t*)u"Shadow Resolve Pass Data CPU Heap"));
@@ -1239,8 +1199,7 @@ void RenderSystem::InitSystem()
 		RTVDesc.Texture2D.PlaneSlice = 0;
 		RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2D;
 
-		ShadowMaskTextureRTV.ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		RTDescriptorsCount++;
+		ShadowMaskTextureRTV = RTDescriptorHeap->AllocateDescriptor();
 
 		Device->CreateRenderTargetView(ShadowMaskTexture, &RTVDesc, ShadowMaskTextureRTV);
 
@@ -1253,8 +1212,7 @@ void RenderSystem::InitSystem()
 		SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
-		ShadowMaskTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		ShadowMaskTextureSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateShaderResourceView(ShadowMaskTexture, &SRVDesc, ShadowMaskTextureSRV);
 
@@ -1262,8 +1220,7 @@ void RenderSystem::InitSystem()
 		CBVDesc.BufferLocation = GPUShadowResolveConstantBuffer->GetGPUVirtualAddress();
 		CBVDesc.SizeInBytes = 256;
 
-		ShadowResolveConstantBufferCBV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		ShadowResolveConstantBufferCBV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateConstantBufferView(&CBVDesc, ShadowResolveConstantBufferCBV);
 
@@ -1312,19 +1269,19 @@ void RenderSystem::InitSystem()
 		HDRSceneColorTextureResourceDesc.SampleDesc.Quality = 0;
 		HDRSceneColorTextureResourceDesc.Width = ResolutionWidth;
 
-		D3D12_RESOURCE_DESC DeferredLightingConstantBufferResourceDesc;
-		ZeroMemory(&DeferredLightingConstantBufferResourceDesc, sizeof(D3D12_RESOURCE_DESC));
-		DeferredLightingConstantBufferResourceDesc.Alignment = 0;
-		DeferredLightingConstantBufferResourceDesc.DepthOrArraySize = 1;
-		DeferredLightingConstantBufferResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER;
-		DeferredLightingConstantBufferResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE;
-		DeferredLightingConstantBufferResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
-		DeferredLightingConstantBufferResourceDesc.Height = 1;
-		DeferredLightingConstantBufferResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-		DeferredLightingConstantBufferResourceDesc.MipLevels = 1;
-		DeferredLightingConstantBufferResourceDesc.SampleDesc.Count = 1;
-		DeferredLightingConstantBufferResourceDesc.SampleDesc.Quality = 0;
-		DeferredLightingConstantBufferResourceDesc.Width = 256;
+		D3D12_RESOURCE_DESC ConstantBufferResourceDesc;
+		ZeroMemory(&ConstantBufferResourceDesc, sizeof(D3D12_RESOURCE_DESC));
+		ConstantBufferResourceDesc.Alignment = 0;
+		ConstantBufferResourceDesc.DepthOrArraySize = 1;
+		ConstantBufferResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER;
+		ConstantBufferResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE;
+		ConstantBufferResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
+		ConstantBufferResourceDesc.Height = 1;
+		ConstantBufferResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+		ConstantBufferResourceDesc.MipLevels = 1;
+		ConstantBufferResourceDesc.SampleDesc.Count = 1;
+		ConstantBufferResourceDesc.SampleDesc.Quality = 0;
+		ConstantBufferResourceDesc.Width = 256;
 
 		D3D12_RESOURCE_DESC LightClustersBufferResourceDesc;
 		ZeroMemory(&LightClustersBufferResourceDesc, sizeof(D3D12_RESOURCE_DESC));
@@ -1378,32 +1335,12 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &HDRSceneColorTextureResourceDesc);
-
-		SIZE_T HDRSceneColorTextureOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = HDRSceneColorTextureOffset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &DeferredLightingConstantBufferResourceDesc);
-
-		SIZE_T GPUConstantBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = GPUConstantBufferOffset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &LightClustersBufferResourceDesc);
-
-		SIZE_T GPULightClustersBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = GPULightClustersBufferOffset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &LightIndicesBufferResourceDesc);
-
-		SIZE_T GPULightIndicesBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = GPULightIndicesBufferOffset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &PointLightsBufferResourceDesc);
-
-		SIZE_T GPUPointLightsBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = GPUPointLightsBufferOffset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T HDRSceneColorTextureOffset = GetOffsetForResource(HDRSceneColorTextureResourceDesc, HeapDesc);
+		SIZE_T GPULightingConstantBufferOffset = GetOffsetForResource(ConstantBufferResourceDesc, HeapDesc);
+		SIZE_T GPUClusteredShadingConstantBufferOffset = GetOffsetForResource(ConstantBufferResourceDesc, HeapDesc);
+		SIZE_T GPULightClustersBufferOffset = GetOffsetForResource(LightClustersBufferResourceDesc, HeapDesc);
+		SIZE_T GPULightIndicesBufferOffset = GetOffsetForResource(LightIndicesBufferResourceDesc, HeapDesc);
+		SIZE_T GPUPointLightsBufferOffset = GetOffsetForResource(PointLightsBufferResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory6)));
 		SAFE_DX(GPUMemory6->SetName((const wchar_t*)u"Deferred Lighting Pass Data GPU Heap"));
@@ -1418,8 +1355,10 @@ void RenderSystem::InitSystem()
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory6, HDRSceneColorTextureOffset, &HDRSceneColorTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(HDRSceneColorTexture)));
 		SAFE_DX(HDRSceneColorTexture->SetName((const wchar_t*)u"HDR Scene Color Texture"));
 
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory6, GPUConstantBufferOffset, &DeferredLightingConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUDeferredLightingConstantBuffer)));
-		SAFE_DX(GPUDeferredLightingConstantBuffer->SetName((const wchar_t*)u"GPU Deferred Lighting Constant Buffer"));
+		SAFE_DX(Device->CreatePlacedResource(GPUMemory6, GPULightingConstantBufferOffset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPULightingConstantBuffer)));
+		SAFE_DX(Device->CreatePlacedResource(GPUMemory6, GPUClusteredShadingConstantBufferOffset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUClusteredShadingConstantBuffer)));
+		SAFE_DX(GPULightingConstantBuffer->SetName((const wchar_t*)u"GPU Lighting Constant Buffer"));
+		SAFE_DX(GPUClusteredShadingConstantBuffer->SetName((const wchar_t*)u"GPU Clustered Shading Constant Buffer"));
 
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory6, GPULightClustersBufferOffset, &LightClustersBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(GPULightClustersBuffer)));
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory6, GPULightIndicesBufferOffset, &LightIndicesBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(GPULightIndicesBuffer)));
@@ -1437,53 +1376,28 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &DeferredLightingConstantBufferResourceDesc);
-
-		SIZE_T CPUConstantBuffer0Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUConstantBuffer0Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &DeferredLightingConstantBufferResourceDesc);
-
-		SIZE_T CPUConstantBuffer1Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUConstantBuffer1Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &LightClustersBufferResourceDesc);
-
-		SIZE_T CPULightClustersBufferOffset0 = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPULightClustersBufferOffset0 + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &LightClustersBufferResourceDesc);
-
-		SIZE_T CPULightClustersBufferOffset1 = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPULightClustersBufferOffset1 + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &LightIndicesBufferResourceDesc);
-
-		SIZE_T CPULightIndicesBufferOffset0 = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPULightIndicesBufferOffset0 + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &LightIndicesBufferResourceDesc);
-
-		SIZE_T CPULightIndicesBufferOffset1 = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPULightIndicesBufferOffset1 + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &PointLightsBufferResourceDesc);
-
-		SIZE_T CPUPointLightsBufferOffset0 = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUPointLightsBufferOffset0 + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &PointLightsBufferResourceDesc);
-
-		SIZE_T CPUPointLightsBufferOffset1 = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUPointLightsBufferOffset1 + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T CPULightingConstantBuffer0Offset = GetOffsetForResource(ConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CPULightingConstantBuffer1Offset = GetOffsetForResource(ConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CPUClusteredShadingConstantBuffer0Offset = GetOffsetForResource(ConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CPUClusteredShadingConstantBuffer1Offset = GetOffsetForResource(ConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CPULightClustersBufferOffset0 = GetOffsetForResource(LightClustersBufferResourceDesc, HeapDesc);
+		SIZE_T CPULightClustersBufferOffset1 = GetOffsetForResource(LightClustersBufferResourceDesc, HeapDesc);
+		SIZE_T CPULightIndicesBufferOffset0 = GetOffsetForResource(LightIndicesBufferResourceDesc, HeapDesc);
+		SIZE_T CPULightIndicesBufferOffset1 = GetOffsetForResource(LightIndicesBufferResourceDesc, HeapDesc);
+		SIZE_T CPUPointLightsBufferOffset0 = GetOffsetForResource(PointLightsBufferResourceDesc, HeapDesc);
+		SIZE_T CPUPointLightsBufferOffset1 = GetOffsetForResource(PointLightsBufferResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory6)));
 		SAFE_DX(CPUMemory6->SetName((const wchar_t*)u"Deferred Lighting Pass Data GPU Heap"));
 
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory6, CPUConstantBuffer0Offset, &DeferredLightingConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUDeferredLightingConstantBuffers[0])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory6, CPUConstantBuffer1Offset, &DeferredLightingConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUDeferredLightingConstantBuffers[1])));
-		SAFE_DX(CPUDeferredLightingConstantBuffers[0]->SetName((const wchar_t*)u"CPU Deferred Lighting Constant Buffer 0"));
-		SAFE_DX(CPUDeferredLightingConstantBuffers[1]->SetName((const wchar_t*)u"CPU Deferred Lighting Constant Buffer 1"));
+		SAFE_DX(Device->CreatePlacedResource(CPUMemory6, CPULightingConstantBuffer0Offset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPULightingConstantBuffers[0])));
+		SAFE_DX(Device->CreatePlacedResource(CPUMemory6, CPULightingConstantBuffer1Offset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPULightingConstantBuffers[1])));
+		SAFE_DX(Device->CreatePlacedResource(CPUMemory6, CPUClusteredShadingConstantBuffer0Offset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUClusteredShadingConstantBuffers[0])));
+		SAFE_DX(Device->CreatePlacedResource(CPUMemory6, CPUClusteredShadingConstantBuffer1Offset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUClusteredShadingConstantBuffers[1])));
+		SAFE_DX(CPULightingConstantBuffers[0]->SetName((const wchar_t*)u"CPU Lighting Constant Buffer 0"));
+		SAFE_DX(CPULightingConstantBuffers[1]->SetName((const wchar_t*)u"CPU Lighting Constant Buffer 1"));
+		SAFE_DX(CPUClusteredShadingConstantBuffers[0]->SetName((const wchar_t*)u"CPU Clustered Shading Constant Buffer 1"));
+		SAFE_DX(CPUClusteredShadingConstantBuffers[1]->SetName((const wchar_t*)u"CPU Clustered Shading Constant Buffer 1"));
 
 		SAFE_DX(Device->CreatePlacedResource(CPUMemory6, CPULightClustersBufferOffset0, &LightClustersBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPULightClustersBuffers[0])));
 		SAFE_DX(Device->CreatePlacedResource(CPUMemory6, CPULightClustersBufferOffset1, &LightClustersBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPULightClustersBuffers[1])));
@@ -1504,8 +1418,7 @@ void RenderSystem::InitSystem()
 		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
 		RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2DMS;
 
-		HDRSceneColorTextureRTV.ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		RTDescriptorsCount++;
+		HDRSceneColorTextureRTV = RTDescriptorHeap->AllocateDescriptor();
 
 		Device->CreateRenderTargetView(HDRSceneColorTexture, &RTVDesc, HDRSceneColorTextureRTV);
 
@@ -1514,19 +1427,24 @@ void RenderSystem::InitSystem()
 		SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2DMS;
 
-		HDRSceneColorTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		HDRSceneColorTextureSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateShaderResourceView(HDRSceneColorTexture, &SRVDesc, HDRSceneColorTextureSRV);
 
 		D3D12_CONSTANT_BUFFER_VIEW_DESC CBVDesc;
-		CBVDesc.BufferLocation = GPUDeferredLightingConstantBuffer->GetGPUVirtualAddress();
+		CBVDesc.BufferLocation = GPULightingConstantBuffer->GetGPUVirtualAddress();
 		CBVDesc.SizeInBytes = 256;
 
-		DeferredLightingConstantBufferCBV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		LightingConstantBufferCBV = CBSRUADescriptorHeap->AllocateDescriptor();
 
-		Device->CreateConstantBufferView(&CBVDesc, DeferredLightingConstantBufferCBV);
+		Device->CreateConstantBufferView(&CBVDesc, LightingConstantBufferCBV);
+
+		CBVDesc.BufferLocation = GPUClusteredShadingConstantBuffer->GetGPUVirtualAddress();
+		CBVDesc.SizeInBytes = 256;
+
+		ClusteredShadingConstantBufferCBV = CBSRUADescriptorHeap->AllocateDescriptor();
+
+		Device->CreateConstantBufferView(&CBVDesc, ClusteredShadingConstantBufferCBV);
 
 		SRVDesc.Buffer.FirstElement = 0;
 		SRVDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAGS::D3D12_BUFFER_SRV_FLAG_NONE;
@@ -1536,8 +1454,7 @@ void RenderSystem::InitSystem()
 		SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_BUFFER;
 
-		LightClustersBufferSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		LightClustersBufferSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateShaderResourceView(GPULightClustersBuffer, &SRVDesc, LightClustersBufferSRV);
 
@@ -1549,8 +1466,7 @@ void RenderSystem::InitSystem()
 		SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_BUFFER;
 
-		LightIndicesBufferSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		LightIndicesBufferSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateShaderResourceView(GPULightIndicesBuffer, &SRVDesc, LightIndicesBufferSRV);
 
@@ -1562,8 +1478,7 @@ void RenderSystem::InitSystem()
 		SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_BUFFER;
 
-		PointLightsBufferSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		PointLightsBufferSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateShaderResourceView(GPUPointLightsBuffer, &SRVDesc, PointLightsBufferSRV);
 
@@ -1789,59 +1704,26 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SkyVertexBufferResourceDesc);
-
-		SIZE_T SkyVertexBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SkyVertexBufferOffset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SkyIndexBufferResourceDesc);
-
-		SIZE_T SkyIndexBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SkyIndexBufferOffset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SunVertexBufferResourceDesc);
-
-		SIZE_T SunVertexBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SunVertexBufferOffset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SunIndexBufferResourceDesc);
-
-		SIZE_T SunIndexBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SunIndexBufferOffset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SkyTextureResourceDesc);
-
-		SIZE_T SkyTextureOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SkyTextureOffset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SunTextureResourceDesc);
-
-		SIZE_T SunTextureOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SunTextureOffset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SkyConstantBufferResourceDesc);
-
-		SIZE_T GPUSkyConstantBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = GPUSkyConstantBufferOffset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SunConstantBufferResourceDesc);
-
-		SIZE_T GPUSunConstantBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = GPUSunConstantBufferOffset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T SkyVertexBufferOffset = GetOffsetForResource(SkyVertexBufferResourceDesc, HeapDesc);
+		SIZE_T SkyIndexBufferOffset = GetOffsetForResource(SkyIndexBufferResourceDesc, HeapDesc);
+		SIZE_T SunVertexBufferOffset = GetOffsetForResource(SunVertexBufferResourceDesc, HeapDesc);
+		SIZE_T SunIndexBufferOffset = GetOffsetForResource(SunIndexBufferResourceDesc, HeapDesc);
+		SIZE_T SkyTextureOffset = GetOffsetForResource(SkyTextureResourceDesc, HeapDesc);
+		SIZE_T SunTextureOffset = GetOffsetForResource(SunTextureResourceDesc, HeapDesc);
+		SIZE_T GPUSkyConstantBufferOffset = GetOffsetForResource(SkyConstantBufferResourceDesc, HeapDesc);
+		SIZE_T GPUSunConstantBufferOffset = GetOffsetForResource(SunConstantBufferResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory7)));
 		SAFE_DX(GPUMemory7->SetName((const wchar_t*)u"Sky and Fog Pass Data GPU Heap"));
 
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory7, SkyVertexBufferOffset, &SkyVertexBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(SkyVertexBuffer)));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory7, SkyIndexBufferOffset, &SkyIndexBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(SkyIndexBuffer)));
+		SAFE_DX(Device->CreatePlacedResource(GPUMemory7, SkyVertexBufferOffset, &SkyVertexBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON, nullptr, UUIDOF(SkyVertexBuffer)));
+		SAFE_DX(Device->CreatePlacedResource(GPUMemory7, SkyIndexBufferOffset, &SkyIndexBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON, nullptr, UUIDOF(SkyIndexBuffer)));
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory7, GPUSkyConstantBufferOffset, &SkyConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUSkyConstantBuffer)));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory7, SkyTextureOffset, &SkyTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(SkyTexture)));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory7, SunVertexBufferOffset, &SunVertexBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(SunVertexBuffer)));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory7, SunIndexBufferOffset, &SunIndexBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(SunIndexBuffer)));
+		SAFE_DX(Device->CreatePlacedResource(GPUMemory7, SkyTextureOffset, &SkyTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON, nullptr, UUIDOF(SkyTexture)));
+		SAFE_DX(Device->CreatePlacedResource(GPUMemory7, SunVertexBufferOffset, &SunVertexBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON, nullptr, UUIDOF(SunVertexBuffer)));
+		SAFE_DX(Device->CreatePlacedResource(GPUMemory7, SunIndexBufferOffset, &SunIndexBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON, nullptr, UUIDOF(SunIndexBuffer)));
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory7, GPUSunConstantBufferOffset, &SunConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUSunConstantBuffer)));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory7, SunTextureOffset, &SunTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(SunTexture)));
+		SAFE_DX(Device->CreatePlacedResource(GPUMemory7, SunTextureOffset, &SunTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON, nullptr, UUIDOF(SunTexture)));
 		SAFE_DX(SkyVertexBuffer->SetName((const wchar_t*)u"Sky Vertex Buffer"));
 		SAFE_DX(SkyIndexBuffer->SetName((const wchar_t*)u"Sky Index Buffer"));
 		SAFE_DX(GPUSkyConstantBuffer->SetName((const wchar_t*)u"GPU Sky Constant Buffer"));
@@ -1860,25 +1742,10 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SkyConstantBufferResourceDesc);
-
-		SIZE_T CPUSkyConstantBufferOffset0 = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUSkyConstantBufferOffset0 + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SkyConstantBufferResourceDesc);
-
-		SIZE_T CPUSkyConstantBufferOffset1 = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUSkyConstantBufferOffset1 + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SunConstantBufferResourceDesc);
-
-		SIZE_T CPUSunConstantBufferOffset0 = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUSunConstantBufferOffset0 + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SunConstantBufferResourceDesc);
-
-		SIZE_T CPUSunConstantBufferOffset1 = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUSunConstantBufferOffset1 + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T CPUSkyConstantBufferOffset0 = GetOffsetForResource(SkyConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CPUSkyConstantBufferOffset1 = GetOffsetForResource(SkyConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CPUSunConstantBufferOffset0 = GetOffsetForResource(SunConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CPUSunConstantBufferOffset1 = GetOffsetForResource(SunConstantBufferResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory7)));
 		SAFE_DX(CPUMemory7->SetName((const wchar_t*)u"Sky and Fog Pass Data GPU Heap"));
@@ -1906,13 +1773,13 @@ void RenderSystem::InitSystem()
 		memcpy((BYTE*)MappedData + sizeof(Vertex) * SkyMeshVertexCount, SkyMeshIndices, sizeof(WORD) * SkyMeshIndexCount);
 		UploadBuffer->Unmap(0, &WrittenRange);
 
-		SAFE_DX(CommandAllocators[0]->Reset());
-		SAFE_DX(CommandList->Reset(CommandAllocators[0], nullptr));
+		SAFE_DX(CopyCommandAllocator->Reset());
+		SAFE_DX(CopyCommandList->Reset(CopyCommandAllocator, nullptr));
 
-		CommandList->CopyBufferRegion(SkyVertexBuffer, 0, UploadBuffer, 0, sizeof(Vertex) * SkyMeshVertexCount);
-		CommandList->CopyBufferRegion(SkyIndexBuffer, 0, UploadBuffer, sizeof(Vertex) * SkyMeshVertexCount, sizeof(WORD) * SkyMeshIndexCount);
+		CopyCommandList->CopyBufferRegion(SkyVertexBuffer, 0, UploadBuffer, 0, sizeof(Vertex) * SkyMeshVertexCount);
+		CopyCommandList->CopyBufferRegion(SkyIndexBuffer, 0, UploadBuffer, sizeof(Vertex) * SkyMeshVertexCount, sizeof(WORD) * SkyMeshIndexCount);
 
-		D3D12_RESOURCE_BARRIER ResourceBarriers[2];
+		/*D3D12_RESOURCE_BARRIER ResourceBarriers[2];
 		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		ResourceBarriers[0].Transition.pResource = SkyVertexBuffer;
 		ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
@@ -1926,13 +1793,13 @@ void RenderSystem::InitSystem()
 		ResourceBarriers[1].Transition.Subresource = 0;
 		ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(2, ResourceBarriers);
+		CommandList->ResourceBarrier(2, ResourceBarriers);*/
 
-		SAFE_DX(CommandList->Close());
+		SAFE_DX(CopyCommandList->Close());
 
-		CommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CommandList);
+		CopyCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CopyCommandList);
 
-		SAFE_DX(CommandQueue->Signal(CopySyncFence, 1));
+		SAFE_DX(CopyCommandQueue->Signal(CopySyncFence, 1));
 
 		if (CopySyncFence->GetCompletedValue() != 1)
 		{
@@ -1949,8 +1816,7 @@ void RenderSystem::InitSystem()
 		CBVDesc.BufferLocation = GPUSkyConstantBuffer->GetGPUVirtualAddress();
 		CBVDesc.SizeInBytes = 256;
 
-		SkyConstantBufferCBV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		SkyConstantBufferCBV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateConstantBufferView(&CBVDesc, SkyConstantBufferCBV);
 
@@ -2068,8 +1934,8 @@ void RenderSystem::InitSystem()
 
 		UploadBuffer->Unmap(0, &WrittenRange);
 
-		SAFE_DX(CommandAllocators[0]->Reset());
-		SAFE_DX(CommandList->Reset(CommandAllocators[0], nullptr));
+		SAFE_DX(CopyCommandAllocator->Reset());
+		SAFE_DX(CopyCommandList->Reset(CopyCommandAllocator, nullptr));
 
 		D3D12_TEXTURE_COPY_LOCATION SourceTextureCopyLocation, DestTextureCopyLocation;
 
@@ -2082,9 +1948,9 @@ void RenderSystem::InitSystem()
 		SourceTextureCopyLocation.PlacedFootprint = PlacedSubResourceFootPrint;
 		DestTextureCopyLocation.SubresourceIndex = 0;
 
-		CommandList->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
+		CopyCommandList->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
 
-		D3D12_RESOURCE_BARRIER ResourceBarrier;
+		/*D3D12_RESOURCE_BARRIER ResourceBarrier;
 		ResourceBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		ResourceBarrier.Transition.pResource = SkyTexture;
 		ResourceBarrier.Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
@@ -2092,13 +1958,13 @@ void RenderSystem::InitSystem()
 		ResourceBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 		ResourceBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(1, &ResourceBarrier);
+		CopyCommandList->ResourceBarrier(1, &ResourceBarrier);*/
 
-		SAFE_DX(CommandList->Close());
+		SAFE_DX(CopyCommandList->Close());
 
-		CommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CommandList);
+		CopyCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CopyCommandList);
 
-		SAFE_DX(CommandQueue->Signal(CopySyncFence, 1));
+		SAFE_DX(CopyCommandQueue->Signal(CopySyncFence, 1));
 
 		if (CopySyncFence->GetCompletedValue() != 1)
 		{
@@ -2117,8 +1983,7 @@ void RenderSystem::InitSystem()
 		SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
-		SkyTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		++CBSRUADescriptorsCount;
+		SkyTextureSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateShaderResourceView(SkyTexture, &SRVDesc, SkyTextureSRV);
 
@@ -2133,13 +1998,13 @@ void RenderSystem::InitSystem()
 		memcpy((BYTE*)MappedData + sizeof(Vertex) * SunMeshVertexCount, SunMeshIndices, sizeof(WORD) * SunMeshIndexCount);
 		UploadBuffer->Unmap(0, &WrittenRange);
 
-		SAFE_DX(CommandAllocators[0]->Reset());
-		SAFE_DX(CommandList->Reset(CommandAllocators[0], nullptr));
+		SAFE_DX(CopyCommandAllocator->Reset());
+		SAFE_DX(CopyCommandList->Reset(CopyCommandAllocator, nullptr));
 
-		CommandList->CopyBufferRegion(SunVertexBuffer, 0, UploadBuffer, 0, sizeof(Vertex) * SunMeshVertexCount);
-		CommandList->CopyBufferRegion(SunIndexBuffer, 0, UploadBuffer, sizeof(Vertex) * SunMeshVertexCount, sizeof(WORD) * SunMeshIndexCount);
+		CopyCommandList->CopyBufferRegion(SunVertexBuffer, 0, UploadBuffer, 0, sizeof(Vertex) * SunMeshVertexCount);
+		CopyCommandList->CopyBufferRegion(SunIndexBuffer, 0, UploadBuffer, sizeof(Vertex) * SunMeshVertexCount, sizeof(WORD) * SunMeshIndexCount);
 
-		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		/*ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		ResourceBarriers[0].Transition.pResource = SunVertexBuffer;
 		ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
 		ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
@@ -2152,13 +2017,13 @@ void RenderSystem::InitSystem()
 		ResourceBarriers[1].Transition.Subresource = 0;
 		ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(2, ResourceBarriers);
+		CommandList->ResourceBarrier(2, ResourceBarriers);*/
 
-		SAFE_DX(CommandList->Close());
+		SAFE_DX(CopyCommandList->Close());
 
-		CommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CommandList);
+		CopyCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CopyCommandList);
 
-		SAFE_DX(CommandQueue->Signal(CopySyncFence, 1));
+		SAFE_DX(CopyCommandQueue->Signal(CopySyncFence, 1));
 
 		if (CopySyncFence->GetCompletedValue() != 1)
 		{
@@ -2174,8 +2039,7 @@ void RenderSystem::InitSystem()
 		CBVDesc.BufferLocation = GPUSunConstantBuffer->GetGPUVirtualAddress();
 		CBVDesc.SizeInBytes = 256;
 
-		SunConstantBufferCBV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		SunConstantBufferCBV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateConstantBufferView(&CBVDesc, SunConstantBufferCBV);
 
@@ -2293,8 +2157,8 @@ void RenderSystem::InitSystem()
 
 		UploadBuffer->Unmap(0, &WrittenRange);
 
-		SAFE_DX(CommandAllocators[0]->Reset());
-		SAFE_DX(CommandList->Reset(CommandAllocators[0], nullptr));
+		SAFE_DX(CopyCommandAllocator->Reset());
+		SAFE_DX(CopyCommandList->Reset(CopyCommandAllocator, nullptr));
 
 		SourceTextureCopyLocation.pResource = UploadBuffer;
 		SourceTextureCopyLocation.Type = D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
@@ -2305,22 +2169,22 @@ void RenderSystem::InitSystem()
 		SourceTextureCopyLocation.PlacedFootprint = PlacedSubResourceFootPrint;
 		DestTextureCopyLocation.SubresourceIndex = 0;
 
-		CommandList->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
+		CopyCommandList->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
 
-		ResourceBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		/*ResourceBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		ResourceBarrier.Transition.pResource = SunTexture;
 		ResourceBarrier.Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
 		ResourceBarrier.Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
 		ResourceBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 		ResourceBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(1, &ResourceBarrier);
+		CopyCommandList->ResourceBarrier(1, &ResourceBarrier);*/
 
-		SAFE_DX(CommandList->Close());
+		SAFE_DX(CopyCommandList->Close());
 
-		CommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CommandList);
+		CopyCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CopyCommandList);
 
-		SAFE_DX(CommandQueue->Signal(CopySyncFence, 1));
+		SAFE_DX(CopyCommandQueue->Signal(CopySyncFence, 1));
 
 		if (CopySyncFence->GetCompletedValue() != 1)
 		{
@@ -2338,8 +2202,7 @@ void RenderSystem::InitSystem()
 		SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
-		SunTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		++CBSRUADescriptorsCount;
+		SunTextureSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateShaderResourceView(SunTexture, &SRVDesc, SunTextureSRV);
 
@@ -2404,12 +2267,7 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDesc);
-
-		SIZE_T ResolvedHDRSceneColorTextureOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ResolvedHDRSceneColorTextureOffset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T ResolvedHDRSceneColorTextureOffset = GetOffsetForResource(ResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory8)));
 		SAFE_DX(GPUMemory1->SetName((const wchar_t*)u"HDR Scene Color Texture Resolve Pass Data GPU Heap"));
@@ -2426,8 +2284,7 @@ void RenderSystem::InitSystem()
 		SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
-		ResolvedHDRSceneColorTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		ResolvedHDRSceneColorTextureSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateShaderResourceView(ResolvedHDRSceneColorTexture, &SRVDesc, ResolvedHDRSceneColorTextureSRV);
 	}
@@ -2480,72 +2337,19 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SceneLuminanceTexturesResourceDescs[0]);
-
-		SIZE_T SceneLuminanceTexture0Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SceneLuminanceTexture0Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SceneLuminanceTexturesResourceDescs[1]);
-
-		SIZE_T SceneLuminanceTexture1Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SceneLuminanceTexture1Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SceneLuminanceTexturesResourceDescs[2]);
-
-		SIZE_T SceneLuminanceTexture2Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SceneLuminanceTexture2Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SceneLuminanceTexturesResourceDescs[3]);
-
-		SIZE_T SceneLuminanceTexture3Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SceneLuminanceTexture3Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SceneLuminanceTexturesResourceDescs[4]);
-
-		SIZE_T SceneLuminanceTexture4Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SceneLuminanceTexture4Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SceneLuminanceTexturesResourceDescs[5]);
-
-		SIZE_T SceneLuminanceTexture5Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SceneLuminanceTexture5Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SceneLuminanceTexturesResourceDescs[6]);
-
-		SIZE_T SceneLuminanceTexture6Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SceneLuminanceTexture6Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SceneLuminanceTexturesResourceDescs[7]);
-
-		SIZE_T SceneLuminanceTexture7Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SceneLuminanceTexture7Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SceneLuminanceTexturesResourceDescs[8]);
-
-		SIZE_T SceneLuminanceTexture8Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SceneLuminanceTexture8Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SceneLuminanceTexturesResourceDescs[9]);
-
-		SIZE_T SceneLuminanceTexture9Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SceneLuminanceTexture9Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SceneLuminanceTexturesResourceDescs[10]);
-
-		SIZE_T SceneLuminanceTexture10Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SceneLuminanceTexture10Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &SceneLuminanceTexturesResourceDescs[11]);
-
-		SIZE_T SceneLuminanceTexture11Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = SceneLuminanceTexture11Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &AverageLuminanceTextureResourceDesc);
-
-		SIZE_T AverageLuminanceTextureOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = AverageLuminanceTextureOffset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T SceneLuminanceTexture0Offset = GetOffsetForResource(SceneLuminanceTexturesResourceDescs[0], HeapDesc);
+		SIZE_T SceneLuminanceTexture1Offset = GetOffsetForResource(SceneLuminanceTexturesResourceDescs[1], HeapDesc);
+		SIZE_T SceneLuminanceTexture2Offset = GetOffsetForResource(SceneLuminanceTexturesResourceDescs[2], HeapDesc);
+		SIZE_T SceneLuminanceTexture3Offset = GetOffsetForResource(SceneLuminanceTexturesResourceDescs[3], HeapDesc);
+		SIZE_T SceneLuminanceTexture4Offset = GetOffsetForResource(SceneLuminanceTexturesResourceDescs[4], HeapDesc);
+		SIZE_T SceneLuminanceTexture5Offset = GetOffsetForResource(SceneLuminanceTexturesResourceDescs[5], HeapDesc);
+		SIZE_T SceneLuminanceTexture6Offset = GetOffsetForResource(SceneLuminanceTexturesResourceDescs[6], HeapDesc);
+		SIZE_T SceneLuminanceTexture7Offset = GetOffsetForResource(SceneLuminanceTexturesResourceDescs[7], HeapDesc);
+		SIZE_T SceneLuminanceTexture8Offset = GetOffsetForResource(SceneLuminanceTexturesResourceDescs[8], HeapDesc);
+		SIZE_T SceneLuminanceTexture9Offset = GetOffsetForResource(SceneLuminanceTexturesResourceDescs[9], HeapDesc);
+		SIZE_T SceneLuminanceTexture10Offset = GetOffsetForResource(SceneLuminanceTexturesResourceDescs[10], HeapDesc);
+		SIZE_T SceneLuminanceTexture11Offset = GetOffsetForResource(SceneLuminanceTexturesResourceDescs[11], HeapDesc);
+		SIZE_T AverageLuminanceTextureOffset = GetOffsetForResource(AverageLuminanceTextureResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory9)));
 		SAFE_DX(GPUMemory9->SetName((const wchar_t*)u"Scene Luminance Pass Data GPU Heap"));
@@ -2593,8 +2397,7 @@ void RenderSystem::InitSystem()
 
 		for (int i = 0; i < 12; i++)
 		{
-			SceneLuminanceTexturesRTVs[i].ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-			RTDescriptorsCount++;
+			SceneLuminanceTexturesRTVs[i] = RTDescriptorHeap->AllocateDescriptor();
 
 			Device->CreateRenderTargetView(SceneLuminanceTextures[i], &RTVDesc, SceneLuminanceTexturesRTVs[i]);
 		}
@@ -2610,8 +2413,7 @@ void RenderSystem::InitSystem()
 
 		for (int i = 0; i < 12; i++)
 		{
-			SceneLuminanceTexturesSRVs[i].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			CBSRUADescriptorsCount++;
+			SceneLuminanceTexturesSRVs[i] = CBSRUADescriptorHeap->AllocateDescriptor();
 
 			Device->CreateShaderResourceView(SceneLuminanceTextures[i], &SRVDesc, SceneLuminanceTexturesSRVs[i]);
 		}
@@ -2621,8 +2423,7 @@ void RenderSystem::InitSystem()
 		RTVDesc.Texture2D.PlaneSlice = 0;
 		RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2D;
 
-		AverageLuminanceTextureRTV.ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		RTDescriptorsCount++;
+		AverageLuminanceTextureRTV = RTDescriptorHeap->AllocateDescriptor();
 
 		Device->CreateRenderTargetView(AverageLuminanceTexture, &RTVDesc, AverageLuminanceTextureRTV);
 
@@ -2634,8 +2435,7 @@ void RenderSystem::InitSystem()
 		SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
-		AverageLuminanceTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		AverageLuminanceTextureSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateShaderResourceView(AverageLuminanceTexture, &SRVDesc, AverageLuminanceTextureSRV);
 
@@ -2757,22 +2557,9 @@ void RenderSystem::InitSystem()
 
 		for (int i = 0; i < 7; i++)
 		{
-			D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo;
-
-			ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDescs[0][i]);
-
-			BloomTexturesOffsets[0][i] = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-			HeapDesc.SizeInBytes = BloomTexturesOffsets[0][i] + ResourceAllocationInfo.SizeInBytes;
-
-			ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDescs[1][i]);
-
-			BloomTexturesOffsets[1][i] = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-			HeapDesc.SizeInBytes = BloomTexturesOffsets[1][i] + ResourceAllocationInfo.SizeInBytes;
-
-			ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDescs[2][i]);
-
-			BloomTexturesOffsets[2][i] = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-			HeapDesc.SizeInBytes = BloomTexturesOffsets[2][i] + ResourceAllocationInfo.SizeInBytes;
+			BloomTexturesOffsets[0][i] = GetOffsetForResource(ResourceDescs[0][i], HeapDesc);
+			BloomTexturesOffsets[1][i] = GetOffsetForResource(ResourceDescs[1][i], HeapDesc);
+			BloomTexturesOffsets[2][i] = GetOffsetForResource(ResourceDescs[2][i], HeapDesc);
 		}
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory10)));
@@ -2808,12 +2595,9 @@ void RenderSystem::InitSystem()
 
 		for (int i = 0; i < 7; i++)
 		{
-			BloomTexturesRTVs[0][i].ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-			RTDescriptorsCount++;
-			BloomTexturesRTVs[1][i].ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-			RTDescriptorsCount++;
-			BloomTexturesRTVs[2][i].ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-			RTDescriptorsCount++;
+			BloomTexturesRTVs[0][i] = RTDescriptorHeap->AllocateDescriptor();
+			BloomTexturesRTVs[1][i] = RTDescriptorHeap->AllocateDescriptor();
+			BloomTexturesRTVs[2][i] = RTDescriptorHeap->AllocateDescriptor();
 
 			Device->CreateRenderTargetView(BloomTextures[0][i], &RTVDesc, BloomTexturesRTVs[0][i]);
 			Device->CreateRenderTargetView(BloomTextures[1][i], &RTVDesc, BloomTexturesRTVs[1][i]);
@@ -2831,12 +2615,9 @@ void RenderSystem::InitSystem()
 
 		for (int i = 0; i < 7; i++)
 		{
-			BloomTexturesSRVs[0][i].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			CBSRUADescriptorsCount++;
-			BloomTexturesSRVs[1][i].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			CBSRUADescriptorsCount++;
-			BloomTexturesSRVs[2][i].ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			CBSRUADescriptorsCount++;
+			BloomTexturesSRVs[0][i] = CBSRUADescriptorHeap->AllocateDescriptor();
+			BloomTexturesSRVs[1][i] = CBSRUADescriptorHeap->AllocateDescriptor();
+			BloomTexturesSRVs[2][i] = CBSRUADescriptorHeap->AllocateDescriptor();
 
 			Device->CreateShaderResourceView(BloomTextures[0][i], &SRVDesc, BloomTexturesSRVs[0][i]);
 			Device->CreateShaderResourceView(BloomTextures[1][i], &SRVDesc, BloomTexturesSRVs[1][i]);
@@ -3006,12 +2787,7 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDesc);
-
-		SIZE_T ToneMappedImageTextureOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = ToneMappedImageTextureOffset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T ToneMappedImageTextureOffset = GetOffsetForResource(ResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory11)));
 		SAFE_DX(GPUMemory11->SetName((const wchar_t*)u"HDR Tone Mapping Pass Data GPU Heap"));
@@ -3030,8 +2806,7 @@ void RenderSystem::InitSystem()
 		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 		RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2DMS;
 
-		ToneMappedImageTextureRTV.ptr = RTDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + RTDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		RTDescriptorsCount++;
+		ToneMappedImageTextureRTV = RTDescriptorHeap->AllocateDescriptor();
 
 		Device->CreateRenderTargetView(ToneMappedImageTexture, &RTVDesc, ToneMappedImageTextureRTV);
 
@@ -3089,12 +2864,7 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDesc);
-
-		SIZE_T OcclusionBufferTextureOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.SizeInBytes - HeapDesc.SizeInBytes % ResourceAllocationInfo.SizeInBytes);
-		HeapDesc.SizeInBytes = OcclusionBufferTextureOffset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T OcclusionBufferTextureOffset = GetOffsetForResource(ResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory12)));
 		SAFE_DX(GPUMemory12->SetName((const wchar_t*)u"Debug Occlusion Pass Data GPU Heap"));
@@ -3130,15 +2900,8 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDesc);
-
-		SIZE_T OcclusionBufferReadbackBuffer0Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = OcclusionBufferReadbackBuffer0Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDesc);
-
-		SIZE_T OcclusionBufferReadbackBuffer1Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = OcclusionBufferReadbackBuffer1Offset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T OcclusionBufferReadbackBuffer0Offset = GetOffsetForResource(ResourceDesc, HeapDesc);
+		SIZE_T OcclusionBufferReadbackBuffer1Offset = GetOffsetForResource(ResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory12)));
 		SAFE_DX(CPUMemory12->SetName((const wchar_t*)u"Debug Occlusion Pass Data CPU Heap"));
@@ -3157,8 +2920,7 @@ void RenderSystem::InitSystem()
 		SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
-		DebugOcclusionBufferTextureSRV.ptr = CBSRUADescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + CBSRUADescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		CBSRUADescriptorsCount++;
+		DebugOcclusionBufferTextureSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateShaderResourceView(DebugOcclusionBufferTexture, &SRVDesc, DebugOcclusionBufferTextureSRV);
 
@@ -3232,23 +2994,14 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ConstantBufferResourceDesc);
-
-		SIZE_T GPUConstantBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = GPUConstantBufferOffset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &IndexBufferResourceDesc);
-
-		SIZE_T IndexBufferOffset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = IndexBufferOffset + ResourceAllocationInfo.SizeInBytes;
+		SIZE_T GPUConstantBufferOffset = GetOffsetForResource(ConstantBufferResourceDesc, HeapDesc);
+		SIZE_T IndexBufferOffset = GetOffsetForResource(IndexBufferResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory13)));
 		SAFE_DX(GPUMemory13->SetName((const wchar_t*)u"Debug Bounding Boxes Pass Data GPU Heap"));
 
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory13, GPUConstantBufferOffset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUConstantBuffer3)));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory13, IndexBufferOffset, &IndexBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(BoundingBoxIndexBuffer)));
+		SAFE_DX(Device->CreatePlacedResource(GPUMemory13, IndexBufferOffset, &IndexBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON, nullptr, UUIDOF(BoundingBoxIndexBuffer)));
 		SAFE_DX(GPUConstantBuffer3->SetName((const wchar_t*)u"GPU Constant Buffer 3"));
 		SAFE_DX(BoundingBoxIndexBuffer->SetName((const wchar_t*)u"Bounding Box Index Buffer"));
 
@@ -3261,15 +3014,8 @@ void RenderSystem::InitSystem()
 		HeapDesc.Properties.VisibleNodeMask = 0;
 		HeapDesc.SizeInBytes = 0;
 
-		SIZE_T CPUConstantBuffer0Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUConstantBuffer0Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ConstantBufferResourceDesc);
-
-		SIZE_T CPUConstantBuffer1Offset = (HeapDesc.SizeInBytes == 0) ? 0 : HeapDesc.SizeInBytes + (ResourceAllocationInfo.Alignment - HeapDesc.SizeInBytes % ResourceAllocationInfo.Alignment);
-		HeapDesc.SizeInBytes = CPUConstantBuffer1Offset + ResourceAllocationInfo.SizeInBytes;
-
-		ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ConstantBufferResourceDesc);
+		SIZE_T CPUConstantBuffer0Offset = GetOffsetForResource(ConstantBufferResourceDesc, HeapDesc);
+		SIZE_T CPUConstantBuffer1Offset = GetOffsetForResource(ConstantBufferResourceDesc, HeapDesc);
 
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory13)));
 		SAFE_DX(CPUMemory13->SetName((const wchar_t*)u"Debug Bounding Boxes Pass Data CPU Heap"));
@@ -3285,8 +3031,7 @@ void RenderSystem::InitSystem()
 			CBVDesc.BufferLocation = GPUConstantBuffer3->GetGPUVirtualAddress() + i * 256;
 			CBVDesc.SizeInBytes = 256;
 
-			ConstantBufferCBVs3[i].ptr = ConstantBufferDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + ConstantBufferDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			ConstantBufferDescriptorsCount++;
+			ConstantBufferCBVs3[i] = ConstantBufferDescriptorHeap->AllocateDescriptor();
 
 			Device->CreateConstantBufferView(&CBVDesc, ConstantBufferCBVs3[i]);
 		}
@@ -3320,12 +3065,12 @@ void RenderSystem::InitSystem()
 		memcpy((BYTE*)MappedData, BoundingBoxIndices, 24 * sizeof(uint16_t));
 		UploadBuffer->Unmap(0, &WrittenRange);
 
-		SAFE_DX(CommandAllocators[0]->Reset());
-		SAFE_DX(CommandList->Reset(CommandAllocators[0], nullptr));
+		SAFE_DX(CopyCommandAllocator->Reset());
+		SAFE_DX(CopyCommandList->Reset(CopyCommandAllocator, nullptr));
 
-		CommandList->CopyBufferRegion(BoundingBoxIndexBuffer, 0, UploadBuffer, 0, 24 * sizeof(uint16_t));
+		CopyCommandList->CopyBufferRegion(BoundingBoxIndexBuffer, 0, UploadBuffer, 0, 24 * sizeof(uint16_t));
 
-		D3D12_RESOURCE_BARRIER ResourceBarrier;
+		/*D3D12_RESOURCE_BARRIER ResourceBarrier;
 		ResourceBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		ResourceBarrier.Transition.pResource = BoundingBoxIndexBuffer;
 		ResourceBarrier.Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_INDEX_BUFFER;
@@ -3333,13 +3078,13 @@ void RenderSystem::InitSystem()
 		ResourceBarrier.Transition.Subresource = 0;
 		ResourceBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-		CommandList->ResourceBarrier(1, &ResourceBarrier);
+		CopyCommandList->ResourceBarrier(1, &ResourceBarrier);*/
 
-		SAFE_DX(CommandList->Close());
+		SAFE_DX(CopyCommandList->Close());
 
-		CommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CommandList);
+		CopyCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CopyCommandList);
 
-		SAFE_DX(CommandQueue->Signal(CopySyncFence, 1));
+		SAFE_DX(CopyCommandQueue->Signal(CopySyncFence, 1));
 
 		if (CopySyncFence->GetCompletedValue() != 1)
 		{
@@ -3425,6 +3170,14 @@ void RenderSystem::ShutdownSystem()
 
 	RenderTextureDestructionQueue.Clear();
 
+	delete RTDescriptorHeap;
+	delete DSDescriptorHeap;
+	delete CBSRUADescriptorHeap;
+	delete SamplersDescriptorHeap;
+
+	delete ConstantBufferDescriptorHeap;
+	delete TexturesDescriptorHeap;
+
 	BOOL Result;
 
 	Result = CloseHandle(FrameSyncEvent);
@@ -3504,8 +3257,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	RenderScene& renderScene = gameFramework.GetWorld().GetRenderScene();
 
-	SAFE_DX(CommandAllocators[CurrentFrameIndex]->Reset());
-	SAFE_DX(CommandList->Reset(CommandAllocators[CurrentFrameIndex], nullptr));
+	SAFE_DX(GraphicsCommandAllocators[CurrentFrameIndex]->Reset());
+	SAFE_DX(GraphicsCommandList->Reset(GraphicsCommandAllocators[CurrentFrameIndex], nullptr));
 
 	D3D12_CPU_DESCRIPTOR_HANDLE ResourceCPUHandle = FrameResourcesDescriptorHeaps[CurrentFrameIndex]->GetCPUDescriptorHandleForHeapStart();
 	D3D12_GPU_DESCRIPTOR_HANDLE ResourceGPUHandle = FrameResourcesDescriptorHeaps[CurrentFrameIndex]->GetGPUDescriptorHandleForHeapStart();
@@ -3516,26 +3269,14 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	ID3D12DescriptorHeap *DescriptorHeaps[2] = { FrameResourcesDescriptorHeaps[CurrentFrameIndex], FrameSamplersDescriptorHeaps[CurrentFrameIndex] };
 
-	CommandList->SetDescriptorHeaps(2, DescriptorHeaps);
-	CommandList->SetGraphicsRootSignature(GraphicsRootSignature);
-	CommandList->SetComputeRootSignature(ComputeRootSignature);
+	GraphicsCommandList->SetDescriptorHeaps(2, DescriptorHeaps);
+	GraphicsCommandList->SetGraphicsRootSignature(GraphicsRootSignature);
+	GraphicsCommandList->SetComputeRootSignature(ComputeRootSignature);
 
 	// ===============================================================================================================
 
-	D3D12_RESOURCE_BARRIER ResourceBarriers[8];
-	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[0].Transition.pResource = GBufferTextures[0];
-	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-	ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[0].Transition.Subresource = 0;
-	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-	ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[1].Transition.pResource = GBufferTextures[1];
-	ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-	ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[1].Transition.Subresource = 0;
-	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	SwitchResourceState(GBufferTextures[0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
+	SwitchResourceState(GBufferTextures[1], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	// ===============================================================================================================
 
@@ -3563,14 +3304,47 @@ void RenderSystem::TickSystem(float DeltaTime)
 			ReadRange.Begin = 0;
 			ReadRange.End = 0;
 
-			SAFE_DX(CPUConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
+			SAFE_DX(CPUCameraConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
+
+			CameraConstantBuffer& ConstantBuffer = *((CameraConstantBuffer*)ConstantBufferData);
+
+			XMMATRIX InvViewProjMatrix = XMMatrixInverse(nullptr, ViewProjMatrix);
+
+			ConstantBuffer.ViewProjMatrix = ViewProjMatrix;
+			ConstantBuffer.InvViewProjMatrix = InvViewProjMatrix;
+			ConstantBuffer.CameraWorldPosition = CameraLocation;
+			ConstantBuffer.NearZ = 1000.0f;
+			ConstantBuffer.FarZ = 0.01f;
+
+			WrittenRange.Begin = 0;
+			WrittenRange.End = 256;
+
+			CPUCameraConstantBuffers[CurrentFrameIndex]->Unmap(0, &WrittenRange);
+
+			ReadRange.Begin = 0;
+			ReadRange.End = 0;
+
+			SAFE_DX(CPURenderTargetConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
+
+			*(float*)(ConstantBufferData) = 1280.0f;
+			*(float*)((BYTE*)ConstantBufferData + 4) = 720.0f;
+
+			WrittenRange.Begin = 0;
+			WrittenRange.End = 256;
+
+			CPURenderTargetConstantBuffers[CurrentFrameIndex]->Unmap(0, &WrittenRange);
+
+			ReadRange.Begin = 0;
+			ReadRange.End = 0;
+
+			SAFE_DX(CPUGBufferOpaquePassObjectsConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
 
 			for (size_t k = 0; k < VisibleStaticMeshComponentsCount; k++)
 			{
 				GBufferOpaquePassConstantBuffer& ConstantBuffer = *((GBufferOpaquePassConstantBuffer*)((BYTE*)ConstantBufferData + ConstantBufferOffset));
 
 				XMMATRIX WorldMatrix = VisibleStaticMeshComponents[k]->GetTransformComponent()->GetTransformMatrix();
-				XMMATRIX WVPMatrix = WorldMatrix * ViewProjMatrix;
+				//XMMATRIX WVPMatrix = WorldMatrix * ViewProjMatrix;
 
 				XMFLOAT3X4 VectorTransformMatrix;
 
@@ -3595,7 +3369,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 				VectorTransformMatrix.m[1][3] = 0.0f;
 				VectorTransformMatrix.m[2][3] = 0.0f;
 
-				ConstantBuffer.WVPMatrix = WVPMatrix;
+				//ConstantBuffer.WVPMatrix = WVPMatrix;
 				ConstantBuffer.WorldMatrix = WorldMatrix;
 				ConstantBuffer.VectorTransformMatrix = VectorTransformMatrix;
 
@@ -3605,32 +3379,28 @@ void RenderSystem::TickSystem(float DeltaTime)
 			WrittenRange.Begin = 0;
 			WrittenRange.End = ConstantBufferOffset;
 
-			CPUConstantBuffers[CurrentFrameIndex]->Unmap(0, &WrittenRange);
+			CPUGBufferOpaquePassObjectsConstantBuffers[CurrentFrameIndex]->Unmap(0, &WrittenRange);
 		}
 
-		ResourceBarriers[2].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[2].Transition.pResource = GPUConstantBuffer;
-		ResourceBarriers[2].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-		ResourceBarriers[2].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-		ResourceBarriers[2].Transition.Subresource = 0;
-		ResourceBarriers[2].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		SwitchResourceState(GPUCameraConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
+		SwitchResourceState(GPUGBufferOpaquePassObjectsConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
+		SwitchResourceState(GPURenderTargetConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
 
-		CommandList->ResourceBarrier(3, ResourceBarriers);
+		ApplyPendingBarriers();
 
-		CommandList->CopyBufferRegion(GPUConstantBuffer, 0, CPUConstantBuffers[CurrentFrameIndex], 0, ConstantBufferOffset);
+		GraphicsCommandList->CopyBufferRegion(GPUCameraConstantBuffer, 0, CPUCameraConstantBuffers[CurrentFrameIndex], 0, 256);
+		GraphicsCommandList->CopyBufferRegion(GPURenderTargetConstantBuffer, 0, CPURenderTargetConstantBuffers[CurrentFrameIndex], 0, 256);
+		GraphicsCommandList->CopyBufferRegion(GPUGBufferOpaquePassObjectsConstantBuffer, 0, CPUGBufferOpaquePassObjectsConstantBuffers[CurrentFrameIndex], 0, ConstantBufferOffset);
 
-		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[0].Transition.pResource = GPUConstantBuffer;
-		ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-		ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-		ResourceBarriers[0].Transition.Subresource = 0;
-		ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		SwitchResourceState(GPUCameraConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+		SwitchResourceState(GPUGBufferOpaquePassObjectsConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+		SwitchResourceState(GPURenderTargetConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 
-		CommandList->ResourceBarrier(1, ResourceBarriers);
+		ApplyPendingBarriers();
 
-		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-		CommandList->OMSetRenderTargets(2, GBufferTexturesRTVs, TRUE, &DepthBufferTextureDSV);
+		GraphicsCommandList->OMSetRenderTargets(2, GBufferTexturesRTVs, TRUE, &DepthBufferTextureDSV);
 
 		D3D12_VIEWPORT Viewport;
 		Viewport.Height = float(ResolutionHeight);
@@ -3640,7 +3410,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		Viewport.TopLeftY = 0.0f;
 		Viewport.Width = float(ResolutionWidth);
 
-		CommandList->RSSetViewports(1, &Viewport);
+		GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 		D3D12_RECT ScissorRect;
 		ScissorRect.bottom = ResolutionHeight;
@@ -3648,18 +3418,18 @@ void RenderSystem::TickSystem(float DeltaTime)
 		ScissorRect.right = ResolutionWidth;
 		ScissorRect.top = 0;
 
-		CommandList->RSSetScissorRects(1, &ScissorRect);
+		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
 		float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
-		CommandList->ClearRenderTargetView(GBufferTexturesRTVs[0], ClearColor, 0, nullptr);
-		CommandList->ClearRenderTargetView(GBufferTexturesRTVs[1], ClearColor, 0, nullptr);
-		CommandList->ClearDepthStencilView(DepthBufferTextureDSV, D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_STENCIL, 0.0f, 0, 0, nullptr);
+		GraphicsCommandList->ClearRenderTargetView(GBufferTexturesRTVs[0], ClearColor, 0, nullptr);
+		GraphicsCommandList->ClearRenderTargetView(GBufferTexturesRTVs[1], ClearColor, 0, nullptr);
+		GraphicsCommandList->ClearDepthStencilView(DepthBufferTextureDSV, D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_STENCIL, 0.0f, 0, 0, nullptr);
 
 		Device->CopyDescriptorsSimple(1, SamplerCPUHandle, TextureSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 		SamplerCPUHandle.ptr += SamplerHandleSize;
 
-		CommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
 		SamplerGPUHandle.ptr += SamplerHandleSize;
 
 		{
@@ -3675,13 +3445,13 @@ void RenderSystem::TickSystem(float DeltaTime)
 				RenderTexture *renderTexture0 = material->GetTexture(0)->GetRenderTexture();
 				RenderTexture *renderTexture1 = material->GetTexture(1)->GetRenderTexture();
 
-				UINT DestRangeSize = 3;
-				UINT SourceRangeSizes[3] = { 1, 1, 1 };
-				D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[3] = { ConstantBufferCBVs[k], renderTexture0->TextureSRV, renderTexture1->TextureSRV };
+				UINT DestRangeSize = 4;
+				UINT SourceRangeSizes[4] = { 1, 1, 1, 1 };
+				D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[4] = { CameraConstantBufferCBV, GBufferOpaquePassObjectsConstantBufferCBVs[k], renderTexture0->TextureSRV, renderTexture1->TextureSRV };
 
-				Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 3, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+				Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 4, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-				ResourceCPUHandle.ptr += 3 * ResourceHandleSize;
+				ResourceCPUHandle.ptr += 4 * ResourceHandleSize;
 
 				D3D12_VERTEX_BUFFER_VIEW VertexBufferViews[3];
 				VertexBufferViews[0].BufferLocation = renderMesh->VertexBufferAddresses[0];
@@ -3699,73 +3469,52 @@ void RenderSystem::TickSystem(float DeltaTime)
 				IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
 				IndexBufferView.SizeInBytes = sizeof(WORD) * 8 * 8 * 6 * 6;
 
-				CommandList->IASetVertexBuffers(0, 3, VertexBufferViews);
-				CommandList->IASetIndexBuffer(&IndexBufferView);
+				GraphicsCommandList->IASetVertexBuffers(0, 3, VertexBufferViews);
+				GraphicsCommandList->IASetIndexBuffer(&IndexBufferView);
 
-				CommandList->SetPipelineState(renderMaterial->GBufferOpaquePassPipelineState);
+				GraphicsCommandList->SetPipelineState(renderMaterial->GBufferOpaquePassPipelineState);
 
-				CommandList->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-				CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+				GraphicsCommandList->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+				GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 2 * ResourceHandleSize });
 
-				ResourceGPUHandle.ptr += 3 * ResourceHandleSize;
+				ResourceGPUHandle.ptr += 4 * ResourceHandleSize;
 
-				CommandList->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
+				GraphicsCommandList->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
 			}
 		}
 	}
 
 	// ===============================================================================================================
 
-	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[0].Transition.pResource = DepthBufferTexture;
-	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
-	ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE;
-	ResourceBarriers[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-	ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[1].Transition.pResource = ResolvedDepthBufferTexture;
-	ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST;
-	ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	SwitchResourceState(DepthBufferTexture, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE);
+	SwitchResourceState(ResolvedDepthBufferTexture, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST);
 
 	// ===============================================================================================================
 
 	{
-		CommandList->ResourceBarrier(2, ResourceBarriers);
+		ApplyPendingBarriers();
 
-		COMRCPtr<ID3D12GraphicsCommandList1> CommandList1;
+		COMRCPtr<ID3D12GraphicsCommandList1> GraphicsCommandList1;
 
-		CommandList->QueryInterface<ID3D12GraphicsCommandList1>(&CommandList1);
+		GraphicsCommandList->QueryInterface<ID3D12GraphicsCommandList1>(&GraphicsCommandList1);
 
-		CommandList1->ResolveSubresourceRegion(ResolvedDepthBufferTexture, 0, 0, 0, DepthBufferTexture, 0, nullptr, DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT_S8X24_UINT, D3D12_RESOLVE_MODE::D3D12_RESOLVE_MODE_MAX);
+		GraphicsCommandList1->ResolveSubresourceRegion(ResolvedDepthBufferTexture, 0, 0, 0, DepthBufferTexture, 0, nullptr, DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT_S8X24_UINT, D3D12_RESOLVE_MODE::D3D12_RESOLVE_MODE_MAX);
 	}
 
 	// ===============================================================================================================
 
-	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[0].Transition.pResource = ResolvedDepthBufferTexture;
-	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST;
-	ResourceBarriers[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	SwitchResourceState(ResolvedDepthBufferTexture, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 	// ===============================================================================================================
 
 	{
-		ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[1].Transition.pResource = OcclusionBufferTexture;
-		ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-		ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_SOURCE;
-		ResourceBarriers[1].Transition.Subresource = 0;
-		ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		SwitchResourceState(OcclusionBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-		CommandList->ResourceBarrier(2, ResourceBarriers);
+		ApplyPendingBarriers();
 
-		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-		CommandList->OMSetRenderTargets(1, &OcclusionBufferTextureRTV, TRUE, nullptr);
+		GraphicsCommandList->OMSetRenderTargets(1, &OcclusionBufferTextureRTV, TRUE, nullptr);
 
 		D3D12_VIEWPORT Viewport;
 		Viewport.Height = 144.0f;
@@ -3775,7 +3524,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		Viewport.TopLeftY = 0.0f;
 		Viewport.Width = 256.0f;
 
-		CommandList->RSSetViewports(1, &Viewport);
+		GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 		D3D12_RECT ScissorRect;
 		ScissorRect.bottom = 144;
@@ -3783,14 +3532,14 @@ void RenderSystem::TickSystem(float DeltaTime)
 		ScissorRect.right = 256;
 		ScissorRect.top = 0;
 
-		CommandList->RSSetScissorRects(1, &ScissorRect);
+		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-		CommandList->DiscardResource(OcclusionBufferTexture, nullptr);
+		GraphicsCommandList->DiscardResource(OcclusionBufferTexture, nullptr);
 
 		Device->CopyDescriptorsSimple(1, SamplerCPUHandle, MinSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 		SamplerCPUHandle.ptr += SamplerHandleSize;
 
-		CommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
 		SamplerGPUHandle.ptr += SamplerHandleSize;
 
 		UINT DestRangeSize = 1;
@@ -3801,22 +3550,17 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->SetPipelineState(OcclusionBufferPipelineState);
+		GraphicsCommandList->SetPipelineState(OcclusionBufferPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 		ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->DrawInstanced(4, 1, 0, 0);
+		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 
-		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[0].Transition.pResource = OcclusionBufferTexture;
-		ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_SOURCE;
-		ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-		ResourceBarriers[0].Transition.Subresource = 0;
-		ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		SwitchResourceState(OcclusionBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_SOURCE);
 
-		CommandList->ResourceBarrier(1, ResourceBarriers);
+		ApplyPendingBarriers();
 
 		D3D12_RESOURCE_DESC ResourceDesc = OcclusionBufferTexture->GetDesc();
 
@@ -3837,42 +3581,49 @@ void RenderSystem::TickSystem(float DeltaTime)
 		DestTextureCopyLocation.pResource = OcclusionBufferTextureReadback[CurrentFrameIndex];
 		DestTextureCopyLocation.Type = D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 
-		CommandList->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
+		GraphicsCommandList->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
 	}
 
 	// ===============================================================================================================
 
-	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[0].Transition.pResource = CascadedShadowMapTextures[0];
-	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE;
-	ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[0].Transition.Subresource = 0;
-	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-	ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[1].Transition.pResource = CascadedShadowMapTextures[1];
-	ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE;
-	ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[1].Transition.Subresource = 0;
-	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-	ResourceBarriers[2].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[2].Transition.pResource = CascadedShadowMapTextures[2];
-	ResourceBarriers[2].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE;
-	ResourceBarriers[2].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[2].Transition.Subresource = 0;
-	ResourceBarriers[2].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-	ResourceBarriers[3].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[3].Transition.pResource = CascadedShadowMapTextures[3];
-	ResourceBarriers[3].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE;
-	ResourceBarriers[3].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[3].Transition.Subresource = 0;
-	ResourceBarriers[3].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	SwitchResourceState(CascadedShadowMapTextures[0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE);
+	SwitchResourceState(CascadedShadowMapTextures[1], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE);
+	SwitchResourceState(CascadedShadowMapTextures[2], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE);
+	SwitchResourceState(CascadedShadowMapTextures[3], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
 	// ===============================================================================================================
 
 	{
+		D3D12_RANGE ReadRange, WrittenRange;
+		ReadRange.Begin = 0;
+		ReadRange.End = 0;
+
+		void *ConstantBufferData;
+
+		SAFE_DX(CPUShadowMapCameraConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
+
+		for (int i = 0; i < 4; i++)
+		{
+			CameraConstantBuffer& ConstantBuffer = *((CameraConstantBuffer*)((BYTE*)ConstantBufferData + i * 256));
+
+			ConstantBuffer.ViewProjMatrix = ShadowViewProjMatrices[i];
+		}
+
+		WrittenRange.Begin = 0;
+		WrittenRange.End = 256 * 4;
+
+		CPUShadowMapCameraConstantBuffers[CurrentFrameIndex]->Unmap(0, &WrittenRange);
+
+		SwitchResourceState(GPUShadowMapCameraConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
+
+		ApplyPendingBarriers();
+
+		GraphicsCommandList->CopyBufferRegion(GPUShadowMapCameraConstantBuffer, 0, CPUShadowMapCameraConstantBuffers[CurrentFrameIndex], 0, 256 * 4);
+
+		SwitchResourceState(GPUShadowMapCameraConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+
+		ApplyPendingBarriers();
+
 		for (int i = 0; i < 4; i++)
 		{
 			SIZE_T ConstantBufferOffset = 0;
@@ -3897,16 +3648,17 @@ void RenderSystem::TickSystem(float DeltaTime)
 			{
 				OPTICK_EVENT("Shadow Frustum Objects Constants Filling");
 
-				SAFE_DX(CPUConstantBuffers2[i][CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
+				SAFE_DX(CPUShadowMapPassObjectsConstantBuffers[i][CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
 
 				for (size_t k = 0; k < VisibleStaticMeshComponentsCount; k++)
 				{
 					XMMATRIX WorldMatrix = VisibleStaticMeshComponents[k]->GetTransformComponent()->GetTransformMatrix();
-					XMMATRIX WVPMatrix = WorldMatrix * ShadowViewProjMatrices[i];
+					//XMMATRIX WVPMatrix = WorldMatrix * ShadowViewProjMatrices[i];
 
 					ShadowMapPassConstantBuffer& ConstantBuffer = *((ShadowMapPassConstantBuffer*)((BYTE*)ConstantBufferData + ConstantBufferOffset));
 
-					ConstantBuffer.WVPMatrix = WVPMatrix;
+					//ConstantBuffer.WVPMatrix = WVPMatrix;
+					ConstantBuffer.WorldMatrix = WorldMatrix;
 
 					ConstantBufferOffset += 256;
 				}
@@ -3914,46 +3666,22 @@ void RenderSystem::TickSystem(float DeltaTime)
 				WrittenRange.Begin = 0;
 				WrittenRange.End = ConstantBufferOffset;
 
-				CPUConstantBuffers2[i][CurrentFrameIndex]->Unmap(0, &WrittenRange);
+				CPUShadowMapPassObjectsConstantBuffers[i][CurrentFrameIndex]->Unmap(0, &WrittenRange);
 			}
 
-			if (i == 0)
-			{
-				ResourceBarriers[4].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-				ResourceBarriers[4].Transition.pResource = GPUConstantBuffers2[i];
-				ResourceBarriers[4].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-				ResourceBarriers[4].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-				ResourceBarriers[4].Transition.Subresource = 0;
-				ResourceBarriers[4].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+			SwitchResourceState(GPUShadowMapPassObjectsConstantBuffers[i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
 
-				CommandList->ResourceBarrier(5, ResourceBarriers);
-			}
-			else
-			{
-				ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-				ResourceBarriers[0].Transition.pResource = GPUConstantBuffers2[i];
-				ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-				ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-				ResourceBarriers[0].Transition.Subresource = 0;
-				ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+			ApplyPendingBarriers();
 
-				CommandList->ResourceBarrier(1, ResourceBarriers);
-			}
+			GraphicsCommandList->CopyBufferRegion(GPUShadowMapPassObjectsConstantBuffers[i], 0, CPUShadowMapPassObjectsConstantBuffers[i][CurrentFrameIndex], 0, ConstantBufferOffset);
 
-			CommandList->CopyBufferRegion(GPUConstantBuffers2[i], 0, CPUConstantBuffers2[i][CurrentFrameIndex], 0, ConstantBufferOffset);
+			SwitchResourceState(GPUShadowMapPassObjectsConstantBuffers[i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 
-			ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-			ResourceBarriers[0].Transition.pResource = GPUConstantBuffers2[i];
-			ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-			ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-			ResourceBarriers[0].Transition.Subresource = 0;
-			ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+			ApplyPendingBarriers();
 
-			CommandList->ResourceBarrier(1, ResourceBarriers);
+			GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-			CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-			CommandList->OMSetRenderTargets(0, nullptr, TRUE, &CascadedShadowMapTexturesDSVs[i]);
+			GraphicsCommandList->OMSetRenderTargets(0, nullptr, TRUE, &CascadedShadowMapTexturesDSVs[i]);
 
 			D3D12_VIEWPORT Viewport;
 			Viewport.Height = 2048.0f;
@@ -3963,7 +3691,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 			Viewport.TopLeftY = 0.0f;
 			Viewport.Width = 2048.0f;
 
-			CommandList->RSSetViewports(1, &Viewport);
+			GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 			D3D12_RECT ScissorRect;
 			ScissorRect.bottom = 2048;
@@ -3971,9 +3699,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 			ScissorRect.right = 2048;
 			ScissorRect.top = 0;
 
-			CommandList->RSSetScissorRects(1, &ScissorRect);
+			GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-			CommandList->ClearDepthStencilView(CascadedShadowMapTexturesDSVs[i], D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+			GraphicsCommandList->ClearDepthStencilView(CascadedShadowMapTexturesDSVs[i], D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 			{
 				OPTICK_EVENT("Shadow Map Draw Calls")
@@ -3987,13 +3715,13 @@ void RenderSystem::TickSystem(float DeltaTime)
 					RenderTexture *renderTexture0 = staticMeshComponent->GetMaterial()->GetTexture(0)->GetRenderTexture();
 					RenderTexture *renderTexture1 = staticMeshComponent->GetMaterial()->GetTexture(1)->GetRenderTexture();
 
-					UINT DestRangeSize = 1;
-					UINT SourceRangeSizes[1] = { 1 };
-					D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[1] = { ConstantBufferCBVs2[i][k] };
+					UINT DestRangeSize = 2;
+					UINT SourceRangeSizes[2] = { 1, 1 };
+					D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[2] = { ShadowMapCameraConstantBufferCBVs[i], ShadowMapPassObjectsConstantBufferCBVs[i][k] };
 
-					Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 1, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+					Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 2, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-					ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
+					ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
 
 					D3D12_VERTEX_BUFFER_VIEW VertexBufferView;
 					VertexBufferView.BufferLocation = renderMesh->VertexBufferAddresses[0];
@@ -4005,16 +3733,16 @@ void RenderSystem::TickSystem(float DeltaTime)
 					IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
 					IndexBufferView.SizeInBytes = sizeof(WORD) * 8 * 8 * 6 * 6;
 
-					CommandList->IASetVertexBuffers(0, 1, &VertexBufferView);
-					CommandList->IASetIndexBuffer(&IndexBufferView);
+					GraphicsCommandList->IASetVertexBuffers(0, 1, &VertexBufferView);
+					GraphicsCommandList->IASetIndexBuffer(&IndexBufferView);
 
-					CommandList->SetPipelineState(renderMaterial->ShadowMapPassPipelineState);
+					GraphicsCommandList->SetPipelineState(renderMaterial->ShadowMapPassPipelineState);
 
-					CommandList->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+					GraphicsCommandList->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
-					ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
+					ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
-					CommandList->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
+					GraphicsCommandList->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
 				}
 			}
 		}
@@ -4022,40 +3750,11 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	// ===============================================================================================================
 
-	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[0].Transition.pResource = ShadowMaskTexture;
-	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-	ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[0].Transition.Subresource = 0;
-	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-	ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[1].Transition.pResource = CascadedShadowMapTextures[0];
-	ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE;
-	ResourceBarriers[1].Transition.Subresource = 0;
-	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-	ResourceBarriers[2].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[2].Transition.pResource = CascadedShadowMapTextures[1];
-	ResourceBarriers[2].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[2].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE;
-	ResourceBarriers[2].Transition.Subresource = 0;
-	ResourceBarriers[2].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-	ResourceBarriers[3].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[3].Transition.pResource = CascadedShadowMapTextures[2];
-	ResourceBarriers[3].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[3].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE;
-	ResourceBarriers[3].Transition.Subresource = 0;
-	ResourceBarriers[3].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-	ResourceBarriers[4].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[4].Transition.pResource = CascadedShadowMapTextures[3];
-	ResourceBarriers[4].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[4].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE;
-	ResourceBarriers[4].Transition.Subresource = 0;
-	ResourceBarriers[4].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	SwitchResourceState(ShadowMaskTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
+	SwitchResourceState(CascadedShadowMapTextures[0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	SwitchResourceState(CascadedShadowMapTextures[1], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	SwitchResourceState(CascadedShadowMapTextures[2], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	SwitchResourceState(CascadedShadowMapTextures[3], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 	// ===============================================================================================================
 
@@ -4086,29 +3785,19 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CPUShadowResolveConstantBuffers[CurrentFrameIndex]->Unmap(0, &WrittenRange);
 
-		ResourceBarriers[5].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[5].Transition.pResource = GPUShadowResolveConstantBuffer;
-		ResourceBarriers[5].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-		ResourceBarriers[5].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-		ResourceBarriers[5].Transition.Subresource = 0;
-		ResourceBarriers[5].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		SwitchResourceState(GPUShadowResolveConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
 
-		CommandList->ResourceBarrier(6, ResourceBarriers);
+		ApplyPendingBarriers();
 
-		CommandList->CopyBufferRegion(GPUShadowResolveConstantBuffer, 0, CPUShadowResolveConstantBuffers[CurrentFrameIndex], 0, 256);
+		GraphicsCommandList->CopyBufferRegion(GPUShadowResolveConstantBuffer, 0, CPUShadowResolveConstantBuffers[CurrentFrameIndex], 0, 256);
 
-		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[0].Transition.pResource = GPUShadowResolveConstantBuffer;
-		ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-		ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-		ResourceBarriers[0].Transition.Subresource = 0;
-		ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		SwitchResourceState(GPUShadowResolveConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 
-		CommandList->ResourceBarrier(1, ResourceBarriers);
+		ApplyPendingBarriers();
 
-		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-		CommandList->OMSetRenderTargets(1, &ShadowMaskTextureRTV, TRUE, nullptr);
+		GraphicsCommandList->OMSetRenderTargets(1, &ShadowMaskTextureRTV, TRUE, nullptr);
 
 		D3D12_VIEWPORT Viewport;
 		Viewport.Height = float(ResolutionHeight);
@@ -4118,7 +3807,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		Viewport.TopLeftY = 0.0f;
 		Viewport.Width = float(ResolutionWidth);
 
-		CommandList->RSSetViewports(1, &Viewport);
+		GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 		D3D12_RECT ScissorRect;
 		ScissorRect.bottom = ResolutionHeight;
@@ -4126,14 +3815,14 @@ void RenderSystem::TickSystem(float DeltaTime)
 		ScissorRect.right = ResolutionWidth;
 		ScissorRect.top = 0;
 
-		CommandList->RSSetScissorRects(1, &ScissorRect);
+		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-		CommandList->DiscardResource(ShadowMaskTexture, nullptr);
+		GraphicsCommandList->DiscardResource(ShadowMaskTexture, nullptr);
 
 		Device->CopyDescriptorsSimple(1, SamplerCPUHandle, ShadowMapSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 		SamplerCPUHandle.ptr += SamplerHandleSize;
 
-		CommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
 		SamplerGPUHandle.ptr += SamplerHandleSize;
 
 		UINT DestRangeSize = 6;
@@ -4144,45 +3833,22 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		ResourceCPUHandle.ptr += 6 * ResourceHandleSize;
 
-		CommandList->SetPipelineState(ShadowResolvePipelineState);
+		GraphicsCommandList->SetPipelineState(ShadowResolvePipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
 
 		ResourceGPUHandle.ptr += 6 * ResourceHandleSize;
 
-		CommandList->DrawInstanced(4, 1, 0, 0);
+		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 	}
 
 	// ===============================================================================================================
 
-	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[0].Transition.pResource = GBufferTextures[0];
-	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-	ResourceBarriers[0].Transition.Subresource = 0;
-	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-	ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[1].Transition.pResource = GBufferTextures[1];
-	ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-	ResourceBarriers[1].Transition.Subresource = 0;
-	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-	ResourceBarriers[2].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[2].Transition.pResource = HDRSceneColorTexture;
-	ResourceBarriers[2].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-	ResourceBarriers[2].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[2].Transition.Subresource = 0;
-	ResourceBarriers[2].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-	ResourceBarriers[3].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[3].Transition.pResource = ShadowMaskTexture;
-	ResourceBarriers[3].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[3].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-	ResourceBarriers[3].Transition.Subresource = 0;
-	ResourceBarriers[3].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	SwitchResourceState(GBufferTextures[0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	SwitchResourceState(GBufferTextures[1], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	SwitchResourceState(ShadowMaskTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	SwitchResourceState(HDRSceneColorTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	// ===============================================================================================================
 
@@ -4215,19 +3881,28 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		void *ConstantBufferData;
 
-		SAFE_DX(CPUDeferredLightingConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
-
-		XMMATRIX InvViewProjMatrix = XMMatrixInverse(nullptr, ViewProjMatrix);
-
-		DeferredLightingConstantBuffer& ConstantBuffer = *((DeferredLightingConstantBuffer*)((BYTE*)ConstantBufferData));
-
-		ConstantBuffer.InvViewProjMatrix = InvViewProjMatrix;
-		ConstantBuffer.CameraWorldPosition = CameraLocation;
+		SAFE_DX(CPULightingConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
+		
+		*(XMFLOAT3*)(ConstantBufferData) = XMFLOAT3(0.0f, 0.0f, 0.0f);
 
 		WrittenRange.Begin = 0;
 		WrittenRange.End = 256;
 
-		CPUDeferredLightingConstantBuffers[CurrentFrameIndex]->Unmap(0, &WrittenRange);
+		CPULightingConstantBuffers[CurrentFrameIndex]->Unmap(0, &WrittenRange);
+
+		ReadRange.Begin = 0;
+		ReadRange.End = 0;
+
+		SAFE_DX(CPUClusteredShadingConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
+
+		*(UINT*)((BYTE*)ConstantBufferData) = ClusterizationSubSystem::CLUSTERS_COUNT_X;
+		*(UINT*)((BYTE*)ConstantBufferData + 4) = ClusterizationSubSystem::CLUSTERS_COUNT_Y;
+		*(UINT*)((BYTE*)ConstantBufferData + 8) = ClusterizationSubSystem::CLUSTERS_COUNT_Z;
+
+		WrittenRange.Begin = 0;
+		WrittenRange.End = 256;
+
+		CPUClusteredShadingConstantBuffers[CurrentFrameIndex]->Unmap(0, &WrittenRange);
 
 		void *DynamicBufferData;
 
@@ -4258,74 +3933,31 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CPUPointLightsBuffers[CurrentFrameIndex]->Unmap(0, &WrittenRange);
 
-		ResourceBarriers[4].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[4].Transition.pResource = GPUDeferredLightingConstantBuffer;
-		ResourceBarriers[4].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-		ResourceBarriers[4].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-		ResourceBarriers[4].Transition.Subresource = 0;
-		ResourceBarriers[4].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		SwitchResourceState(GPULightingConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
+		SwitchResourceState(GPUClusteredShadingConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
+		SwitchResourceState(GPULightClustersBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
+		SwitchResourceState(GPULightIndicesBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
+		SwitchResourceState(GPUPointLightsBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
 
-		ResourceBarriers[5].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[5].Transition.pResource = GPULightClustersBuffer;
-		ResourceBarriers[5].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-		ResourceBarriers[5].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-		ResourceBarriers[5].Transition.Subresource = 0;
-		ResourceBarriers[5].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		ApplyPendingBarriers();
 
-		ResourceBarriers[6].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[6].Transition.pResource = GPULightIndicesBuffer;
-		ResourceBarriers[6].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-		ResourceBarriers[6].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-		ResourceBarriers[6].Transition.Subresource = 0;
-		ResourceBarriers[6].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		GraphicsCommandList->CopyBufferRegion(GPULightingConstantBuffer, 0, CPULightingConstantBuffers[CurrentFrameIndex], 0, 256);
+		GraphicsCommandList->CopyBufferRegion(GPUClusteredShadingConstantBuffer, 0, CPUClusteredShadingConstantBuffers[CurrentFrameIndex], 0, 256);
+		GraphicsCommandList->CopyBufferRegion(GPULightClustersBuffer, 0, CPULightClustersBuffers[CurrentFrameIndex], 0, ClusterizationSubSystem::CLUSTERS_COUNT_X * ClusterizationSubSystem::CLUSTERS_COUNT_Y * ClusterizationSubSystem::CLUSTERS_COUNT_Z * sizeof(LightCluster));
+		GraphicsCommandList->CopyBufferRegion(GPULightIndicesBuffer, 0, CPULightIndicesBuffers[CurrentFrameIndex], 0, Engine::GetEngine().GetRenderSystem().GetClusterizationSubSystem().GetTotalIndexCount() * sizeof(uint16_t));
+		GraphicsCommandList->CopyBufferRegion(GPUPointLightsBuffer, 0, CPUPointLightsBuffers[CurrentFrameIndex], 0, PointLights.GetLength() * sizeof(PointLight));
 
-		ResourceBarriers[7].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[7].Transition.pResource = GPUPointLightsBuffer;
-		ResourceBarriers[7].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-		ResourceBarriers[7].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-		ResourceBarriers[7].Transition.Subresource = 0;
-		ResourceBarriers[7].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		SwitchResourceState(GPULightingConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+		SwitchResourceState(GPUClusteredShadingConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+		SwitchResourceState(GPULightClustersBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		SwitchResourceState(GPULightIndicesBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		SwitchResourceState(GPUPointLightsBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
-		CommandList->ResourceBarrier(8, ResourceBarriers);
+		ApplyPendingBarriers();
 
-		CommandList->CopyBufferRegion(GPUDeferredLightingConstantBuffer, 0, CPUDeferredLightingConstantBuffers[CurrentFrameIndex], 0, 256);
-		CommandList->CopyBufferRegion(GPULightClustersBuffer, 0, CPULightClustersBuffers[CurrentFrameIndex], 0, ClusterizationSubSystem::CLUSTERS_COUNT_X * ClusterizationSubSystem::CLUSTERS_COUNT_Y * ClusterizationSubSystem::CLUSTERS_COUNT_Z * sizeof(LightCluster));
-		CommandList->CopyBufferRegion(GPULightIndicesBuffer, 0, CPULightIndicesBuffers[CurrentFrameIndex], 0, Engine::GetEngine().GetRenderSystem().GetClusterizationSubSystem().GetTotalIndexCount() * sizeof(uint16_t));
-		CommandList->CopyBufferRegion(GPUPointLightsBuffer, 0, CPUPointLightsBuffers[CurrentFrameIndex], 0, PointLights.GetLength() * sizeof(PointLight));
+		GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[0].Transition.pResource = GPUDeferredLightingConstantBuffer;
-		ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-		ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-		ResourceBarriers[0].Transition.Subresource = 0;
-		ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-		ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[1].Transition.pResource = GPULightClustersBuffer;
-		ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-		ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-		ResourceBarriers[1].Transition.Subresource = 0;
-		ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-		ResourceBarriers[2].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[2].Transition.pResource = GPULightIndicesBuffer;
-		ResourceBarriers[2].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-		ResourceBarriers[2].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-		ResourceBarriers[2].Transition.Subresource = 0;
-		ResourceBarriers[2].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-		ResourceBarriers[3].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[3].Transition.pResource = GPUPointLightsBuffer;
-		ResourceBarriers[3].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-		ResourceBarriers[3].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-		ResourceBarriers[3].Transition.Subresource = 0;
-		ResourceBarriers[3].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-		CommandList->ResourceBarrier(4, ResourceBarriers);
-
-		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-		CommandList->OMSetRenderTargets(1, &HDRSceneColorTextureRTV, TRUE, nullptr);
+		GraphicsCommandList->OMSetRenderTargets(1, &HDRSceneColorTextureRTV, TRUE, nullptr);
 
 		D3D12_VIEWPORT Viewport;
 		Viewport.Height = float(ResolutionHeight);
@@ -4335,7 +3967,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		Viewport.TopLeftY = 0.0f;
 		Viewport.Width = float(ResolutionWidth);
 
-		CommandList->RSSetViewports(1, &Viewport);
+		GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 		D3D12_RECT ScissorRect;
 		ScissorRect.bottom = ResolutionHeight;
@@ -4343,26 +3975,26 @@ void RenderSystem::TickSystem(float DeltaTime)
 		ScissorRect.right = ResolutionWidth;
 		ScissorRect.top = 0;
 
-		CommandList->RSSetScissorRects(1, &ScissorRect);
+		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-		CommandList->DiscardResource(HDRSceneColorTexture, nullptr);
+		GraphicsCommandList->DiscardResource(HDRSceneColorTexture, nullptr);
 
-		UINT DestRangeSize = 8;
-		UINT SourceRangeSizes[7] = { 1, 2, 1, 1, 1, 1, 1 };
-		D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[7] = { DeferredLightingConstantBufferCBV, GBufferTexturesSRVs[0], DepthBufferTextureSRV, ShadowMaskTextureSRV, LightClustersBufferSRV, LightIndicesBufferSRV, PointLightsBufferSRV };
+		UINT DestRangeSize = 11;
+		UINT SourceRangeSizes[10] = { 1, 1, 1, 1, 2, 1, 1, 1, 1, 1 };
+		D3D12_CPU_DESCRIPTOR_HANDLE SourceCPUHandles[10] = { CameraConstantBufferCBV, LightingConstantBufferCBV, RenderTargetConstantBufferCBV, ClusteredShadingConstantBufferCBV, GBufferTexturesSRVs[0], DepthBufferTextureSRV, ShadowMaskTextureSRV, LightClustersBufferSRV, LightIndicesBufferSRV, PointLightsBufferSRV };
 
-		Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 7, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		Device->CopyDescriptors(1, &ResourceCPUHandle, &DestRangeSize, 10, SourceCPUHandles, SourceRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-		ResourceCPUHandle.ptr += 8 * ResourceHandleSize;
+		ResourceCPUHandle.ptr += 11 * ResourceHandleSize;
 
-		CommandList->SetPipelineState(DeferredLightingPipelineState);
+		GraphicsCommandList->SetPipelineState(DeferredLightingPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(3, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 4 * ResourceHandleSize });
 
-		ResourceGPUHandle.ptr += 8 * ResourceHandleSize;
+		ResourceGPUHandle.ptr += 11 * ResourceHandleSize;
 
-		CommandList->DrawInstanced(4, 1, 0, 0);
+		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 	}
 
 	// ===============================================================================================================
@@ -4403,44 +4035,22 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CPUSunConstantBuffers[CurrentFrameIndex]->Unmap(0, &WrittenRange);
 
-		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[0].Transition.pResource = GPUSkyConstantBuffer;
-		ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-		ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-		ResourceBarriers[0].Transition.Subresource = 0;
-		ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		SwitchResourceState(GPUSkyConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
+		SwitchResourceState(GPUSunConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
 
-		ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[1].Transition.pResource = GPUSunConstantBuffer;
-		ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-		ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-		ResourceBarriers[1].Transition.Subresource = 0;
-		ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		ApplyPendingBarriers();
 
-		CommandList->ResourceBarrier(2, ResourceBarriers);
+		GraphicsCommandList->CopyBufferRegion(GPUSkyConstantBuffer, 0, CPUSkyConstantBuffers[CurrentFrameIndex], 0, 256);
+		GraphicsCommandList->CopyBufferRegion(GPUSunConstantBuffer, 0, CPUSunConstantBuffers[CurrentFrameIndex], 0, 256);
 
-		CommandList->CopyBufferRegion(GPUSkyConstantBuffer, 0, CPUSkyConstantBuffers[CurrentFrameIndex], 0, 256);
-		CommandList->CopyBufferRegion(GPUSunConstantBuffer, 0, CPUSunConstantBuffers[CurrentFrameIndex], 0, 256);
+		SwitchResourceState(GPUSkyConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+		SwitchResourceState(GPUSunConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 
-		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[0].Transition.pResource = GPUSkyConstantBuffer;
-		ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-		ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-		ResourceBarriers[0].Transition.Subresource = 0;
-		ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		ApplyPendingBarriers();
 
-		ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[1].Transition.pResource = GPUSunConstantBuffer;
-		ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-		ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-		ResourceBarriers[1].Transition.Subresource = 0;
-		ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-		CommandList->ResourceBarrier(2, ResourceBarriers);
-
-		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-		CommandList->OMSetRenderTargets(1, &HDRSceneColorTextureRTV, TRUE, nullptr);
+		GraphicsCommandList->OMSetRenderTargets(1, &HDRSceneColorTextureRTV, TRUE, nullptr);
 
 		D3D12_VIEWPORT Viewport;
 		Viewport.Height = float(ResolutionHeight);
@@ -4450,7 +4060,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		Viewport.TopLeftY = 0.0f;
 		Viewport.Width = float(ResolutionWidth);
 
-		CommandList->RSSetViewports(1, &Viewport);
+		GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 		D3D12_RECT ScissorRect;
 		ScissorRect.bottom = ResolutionHeight;
@@ -4458,7 +4068,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		ScissorRect.right = ResolutionWidth;
 		ScissorRect.top = 0;
 
-		CommandList->RSSetScissorRects(1, &ScissorRect);
+		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
 		UINT DestRangeSize = 1;
 		UINT SourceRangeSizes[2] = { 1 };
@@ -4468,26 +4078,21 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->SetPipelineState(FogPipelineState);
+		GraphicsCommandList->SetPipelineState(FogPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 		ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->DrawInstanced(4, 1, 0, 0);
+		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 
-		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[0].Transition.pResource = DepthBufferTexture;
-		ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE;
-		ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-		ResourceBarriers[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		SwitchResourceState(DepthBufferTexture, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
-		CommandList->ResourceBarrier(1, ResourceBarriers);
+		ApplyPendingBarriers();
 
-		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-		CommandList->OMSetRenderTargets(1, &HDRSceneColorTextureRTV, TRUE, &DepthBufferTextureDSV);
+		GraphicsCommandList->OMSetRenderTargets(1, &HDRSceneColorTextureRTV, TRUE, &DepthBufferTextureDSV);
 
 		Viewport.Height = float(ResolutionHeight);
 		Viewport.MaxDepth = 1.0f;
@@ -4496,19 +4101,19 @@ void RenderSystem::TickSystem(float DeltaTime)
 		Viewport.TopLeftY = 0.0f;
 		Viewport.Width = float(ResolutionWidth);
 
-		CommandList->RSSetViewports(1, &Viewport);
+		GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 		ScissorRect.bottom = ResolutionHeight;
 		ScissorRect.left = 0;
 		ScissorRect.right = ResolutionWidth;
 		ScissorRect.top = 0;
 
-		CommandList->RSSetScissorRects(1, &ScissorRect);
+		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
 		Device->CopyDescriptorsSimple(1, SamplerCPUHandle, TextureSampler, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 		SamplerCPUHandle.ptr += SamplerHandleSize;
 
-		CommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(5, D3D12_GPU_DESCRIPTOR_HANDLE{ SamplerGPUHandle.ptr + 0 * ResourceHandleSize });
 		SamplerGPUHandle.ptr += SamplerHandleSize;
 
 		DestRangeSize = 2;
@@ -4531,17 +4136,17 @@ void RenderSystem::TickSystem(float DeltaTime)
 		IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
 		IndexBufferView.SizeInBytes = sizeof(WORD) * (300 + 24 * 600 + 300);
 
-		CommandList->IASetVertexBuffers(0, 1, &VertexBufferView);
-		CommandList->IASetIndexBuffer(&IndexBufferView);
+		GraphicsCommandList->IASetVertexBuffers(0, 1, &VertexBufferView);
+		GraphicsCommandList->IASetIndexBuffer(&IndexBufferView);
 
-		CommandList->SetPipelineState(SkyPipelineState);
+		GraphicsCommandList->SetPipelineState(SkyPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
 
 		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
-		CommandList->DrawIndexedInstanced(300 + 24 * 600 + 300, 1, 0, 0, 0);
+		GraphicsCommandList->DrawIndexedInstanced(300 + 24 * 600 + 300, 1, 0, 0, 0);
 
 		DestRangeSize = 2;
 		SourceRangeSizes[0] = 1;
@@ -4561,74 +4166,47 @@ void RenderSystem::TickSystem(float DeltaTime)
 		IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
 		IndexBufferView.SizeInBytes = sizeof(WORD) * 6;
 
-		CommandList->IASetVertexBuffers(0, 1, &VertexBufferView);
-		CommandList->IASetIndexBuffer(&IndexBufferView);
+		GraphicsCommandList->IASetVertexBuffers(0, 1, &VertexBufferView);
+		GraphicsCommandList->IASetIndexBuffer(&IndexBufferView);
 
-		CommandList->SetPipelineState(SunPipelineState);
+		GraphicsCommandList->SetPipelineState(SunPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 1 * ResourceHandleSize });
 
 		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
-		CommandList->DrawIndexedInstanced(6, 1, 0, 0, 0);
+		GraphicsCommandList->DrawIndexedInstanced(6, 1, 0, 0, 0);
 	}
 
 	// ===============================================================================================================
 
-	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[0].Transition.pResource = HDRSceneColorTexture;
-	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
-	ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-	ResourceBarriers[0].Transition.Subresource = 0;
-	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-	ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[1].Transition.pResource = ResolvedHDRSceneColorTexture;
-	ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST;
-	ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[1].Transition.Subresource = 0;
-	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	SwitchResourceState(HDRSceneColorTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE);
+	SwitchResourceState(ResolvedHDRSceneColorTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST);
 
 	// ===============================================================================================================
 
 	{
-		CommandList->ResourceBarrier(2, ResourceBarriers);
+		ApplyPendingBarriers();
 
-		CommandList->ResolveSubresource(ResolvedHDRSceneColorTexture, 0, HDRSceneColorTexture, 0, DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT);
+		GraphicsCommandList->ResolveSubresource(ResolvedHDRSceneColorTexture, 0, HDRSceneColorTexture, 0, DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT);
 	}
 
 	// ===============================================================================================================
 
-	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[0].Transition.pResource = HDRSceneColorTexture;
-	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
-	ResourceBarriers[0].Transition.Subresource = 0;
-	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	SwitchResourceState(HDRSceneColorTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+	SwitchResourceState(ResolvedHDRSceneColorTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+	SwitchResourceState(SceneLuminanceTextures[0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-	ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[1].Transition.pResource = ResolvedHDRSceneColorTexture;
-	ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST;
-	ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[1].Transition.Subresource = 0;
-	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-	ResourceBarriers[2].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[2].Transition.pResource = SceneLuminanceTextures[0];
-	ResourceBarriers[2].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-	ResourceBarriers[2].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[2].Transition.Subresource = 0;
-	ResourceBarriers[2].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
 	// ===============================================================================================================
 
 	{
-		CommandList->ResourceBarrier(3, ResourceBarriers);
+		ApplyPendingBarriers();
 
-		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-		CommandList->OMSetRenderTargets(1, &SceneLuminanceTexturesRTVs[0], TRUE, nullptr);
+		GraphicsCommandList->OMSetRenderTargets(1, &SceneLuminanceTexturesRTVs[0], TRUE, nullptr);
 
 		D3D12_VIEWPORT Viewport;
 		Viewport.Height = FLOAT(ResolutionHeight);
@@ -4638,7 +4216,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		Viewport.TopLeftY = 0.0f;
 		Viewport.Width = FLOAT(ResolutionWidth);
 
-		CommandList->RSSetViewports(1, &Viewport);
+		GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 		D3D12_RECT ScissorRect;
 		ScissorRect.bottom = ResolutionHeight;
@@ -4646,7 +4224,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		ScissorRect.right = ResolutionWidth;
 		ScissorRect.top = 0;
 
-		CommandList->RSSetScissorRects(1, &ScissorRect);
+		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 		
 		UINT DestRangeSize = 1;
 		UINT SourceRangeSize = 1;
@@ -4656,40 +4234,29 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->SetPipelineState(LuminanceCalcPipelineState);
+		GraphicsCommandList->SetPipelineState(LuminanceCalcPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
-		CommandList->DiscardResource(SceneLuminanceTextures[0], nullptr);
+		GraphicsCommandList->DiscardResource(SceneLuminanceTextures[0], nullptr);
 
 		ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->DrawInstanced(4, 1, 0, 0);
+		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 
 		int CurrentWidth = 640;
 		int CurrentHeight = 360;
 
 		for (int i = 1; i <= 11; i++)
 		{
-			ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-			ResourceBarriers[0].Transition.pResource = SceneLuminanceTextures[i - 1];
-			ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-			ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-			ResourceBarriers[0].Transition.Subresource = 0;
-			ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+			SwitchResourceState(SceneLuminanceTextures[i - 1], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+			SwitchResourceState(SceneLuminanceTextures[i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-			ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-			ResourceBarriers[1].Transition.pResource = SceneLuminanceTextures[i];
-			ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-			ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-			ResourceBarriers[1].Transition.Subresource = 0;
-			ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+			ApplyPendingBarriers();
 
-			CommandList->ResourceBarrier(2, ResourceBarriers);
+			GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-			CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-			CommandList->OMSetRenderTargets(1, &SceneLuminanceTexturesRTVs[i], TRUE, nullptr);
+			GraphicsCommandList->OMSetRenderTargets(1, &SceneLuminanceTexturesRTVs[i], TRUE, nullptr);
 
 			Viewport.Height = FLOAT(CurrentHeight);
 			Viewport.MaxDepth = 1.0f;
@@ -4698,14 +4265,14 @@ void RenderSystem::TickSystem(float DeltaTime)
 			Viewport.TopLeftY = 0.0f;
 			Viewport.Width = FLOAT(CurrentWidth);
 
-			CommandList->RSSetViewports(1, &Viewport);
+			GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 			ScissorRect.bottom = CurrentHeight;
 			ScissorRect.left = 0;
 			ScissorRect.right = CurrentWidth;
 			ScissorRect.top = 0;
 
-			CommandList->RSSetScissorRects(1, &ScissorRect);
+			GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
 			CurrentWidth = CurrentWidth / 2 + (CurrentWidth & 1);
 			CurrentHeight = CurrentHeight / 2 + (CurrentHeight & 1);
@@ -4718,29 +4285,24 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
-			CommandList->SetPipelineState(LuminanceSumPipelineState);
+			GraphicsCommandList->SetPipelineState(LuminanceSumPipelineState);
 
-			CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+			GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
-			CommandList->DiscardResource(SceneLuminanceTextures[i], nullptr);
+			GraphicsCommandList->DiscardResource(SceneLuminanceTextures[i], nullptr);
 
 			ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-			CommandList->DrawInstanced(4, 1, 0, 0);
+			GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 		}
 
-		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[0].Transition.pResource = SceneLuminanceTextures[11];
-		ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-		ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-		ResourceBarriers[0].Transition.Subresource = 0;
-		ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		SwitchResourceState(SceneLuminanceTextures[11], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
-		CommandList->ResourceBarrier(1, ResourceBarriers);
+		ApplyPendingBarriers();
 
-		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-		CommandList->OMSetRenderTargets(1, &AverageLuminanceTextureRTV, TRUE, nullptr);
+		GraphicsCommandList->OMSetRenderTargets(1, &AverageLuminanceTextureRTV, TRUE, nullptr);
 
 		Viewport.Height = FLOAT(1);
 		Viewport.MaxDepth = 1.0f;
@@ -4749,14 +4311,14 @@ void RenderSystem::TickSystem(float DeltaTime)
 		Viewport.TopLeftY = 0.0f;
 		Viewport.Width = FLOAT(1);
 
-		CommandList->RSSetViewports(1, &Viewport);
+		GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 		ScissorRect.bottom = 1;
 		ScissorRect.left = 0;
 		ScissorRect.right = 1;
 		ScissorRect.top = 0;
 
-		CommandList->RSSetScissorRects(1, &ScissorRect);
+		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
 		DestRangeSize = 1;
 		SourceRangeSize = 1;
@@ -4766,32 +4328,27 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->SetPipelineState(LuminanceAvgPipelineState);
+		GraphicsCommandList->SetPipelineState(LuminanceAvgPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
-		CommandList->DiscardResource(AverageLuminanceTexture, nullptr);
+		GraphicsCommandList->DiscardResource(AverageLuminanceTexture, nullptr);
 
 		ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->DrawInstanced(4, 1, 0, 0);
+		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 	}
 
 	// ===============================================================================================================
 
 	{
-		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[0].Transition.pResource = BloomTextures[0][0];
-		ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-		ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-		ResourceBarriers[0].Transition.Subresource = 0;
-		ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		SwitchResourceState(BloomTextures[0][0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-		CommandList->ResourceBarrier(1, ResourceBarriers);
+		ApplyPendingBarriers();
 
-		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-		CommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[0][0], TRUE, nullptr);
+		GraphicsCommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[0][0], TRUE, nullptr);
 
 		D3D12_VIEWPORT Viewport;
 		Viewport.Height = FLOAT(ResolutionHeight);
@@ -4801,7 +4358,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		Viewport.TopLeftY = 0.0f;
 		Viewport.Width = FLOAT(ResolutionWidth);
 
-		CommandList->RSSetViewports(1, &Viewport);
+		GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 		D3D12_RECT ScissorRect;
 		ScissorRect.bottom = ResolutionHeight;
@@ -4809,9 +4366,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 		ScissorRect.right = ResolutionWidth;
 		ScissorRect.top = 0;
 
-		CommandList->RSSetScissorRects(1, &ScissorRect);
+		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-		CommandList->DiscardResource(BloomTextures[0][0], nullptr);
+		GraphicsCommandList->DiscardResource(BloomTextures[0][0], nullptr);
 
 		UINT DestRangeSize = 2;
 		UINT SourceRangeSizes[2] = { 1, 1 };
@@ -4821,33 +4378,22 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
 
-		CommandList->SetPipelineState(BrightPassPipelineState);
+		GraphicsCommandList->SetPipelineState(BrightPassPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
-		CommandList->DrawInstanced(4, 1, 0, 0);
+		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 
-		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[0].Transition.pResource = BloomTextures[0][0];
-		ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-		ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-		ResourceBarriers[0].Transition.Subresource = 0;
-		ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		SwitchResourceState(BloomTextures[0][0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		SwitchResourceState(BloomTextures[1][0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-		ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[1].Transition.pResource = BloomTextures[1][0];
-		ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-		ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-		ResourceBarriers[1].Transition.Subresource = 0;
-		ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		ApplyPendingBarriers();
 
-		CommandList->ResourceBarrier(2, ResourceBarriers);
+		GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-		CommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[1][0], TRUE, nullptr);
+		GraphicsCommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[1][0], TRUE, nullptr);
 
 		Viewport.Height = FLOAT(ResolutionHeight);
 		Viewport.MaxDepth = 1.0f;
@@ -4856,16 +4402,16 @@ void RenderSystem::TickSystem(float DeltaTime)
 		Viewport.TopLeftY = 0.0f;
 		Viewport.Width = FLOAT(ResolutionWidth);
 
-		CommandList->RSSetViewports(1, &Viewport);
+		GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 		ScissorRect.bottom = ResolutionHeight;
 		ScissorRect.left = 0;
 		ScissorRect.right = ResolutionWidth;
 		ScissorRect.top = 0;
 
-		CommandList->RSSetScissorRects(1, &ScissorRect);
+		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-		CommandList->DiscardResource(BloomTextures[1][0], nullptr);
+		GraphicsCommandList->DiscardResource(BloomTextures[1][0], nullptr);
 
 		DestRangeSize = 1;
 		SourceRangeSizes[0] = 1;
@@ -4875,33 +4421,22 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->SetPipelineState(HorizontalBlurPipelineState);
+		GraphicsCommandList->SetPipelineState(HorizontalBlurPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 		ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->DrawInstanced(4, 1, 0, 0);
+		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 
-		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[0].Transition.pResource = BloomTextures[1][0];
-		ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-		ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-		ResourceBarriers[0].Transition.Subresource = 0;
-		ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		SwitchResourceState(BloomTextures[1][0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		SwitchResourceState(BloomTextures[2][0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-		ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[1].Transition.pResource = BloomTextures[2][0];
-		ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-		ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-		ResourceBarriers[1].Transition.Subresource = 0;
-		ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		ApplyPendingBarriers();
 
-		CommandList->ResourceBarrier(2, ResourceBarriers);
+		GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-		CommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[2][0], TRUE, nullptr);
+		GraphicsCommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[2][0], TRUE, nullptr);
 
 		Viewport.Height = FLOAT(ResolutionHeight);
 		Viewport.MaxDepth = 1.0f;
@@ -4910,16 +4445,16 @@ void RenderSystem::TickSystem(float DeltaTime)
 		Viewport.TopLeftY = 0.0f;
 		Viewport.Width = FLOAT(ResolutionWidth);
 
-		CommandList->RSSetViewports(1, &Viewport);
+		GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 		ScissorRect.bottom = ResolutionHeight;
 		ScissorRect.left = 0;
 		ScissorRect.right = ResolutionWidth;
 		ScissorRect.top = 0;
 
-		CommandList->RSSetScissorRects(1, &ScissorRect);
+		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-		CommandList->DiscardResource(BloomTextures[2][0], nullptr);
+		GraphicsCommandList->DiscardResource(BloomTextures[2][0], nullptr);
 
 		DestRangeSize = 1;
 		SourceRangeSizes[0] = 1;
@@ -4929,28 +4464,23 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->SetPipelineState(VerticalBlurPipelineState);
+		GraphicsCommandList->SetPipelineState(VerticalBlurPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 		ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->DrawInstanced(4, 1, 0, 0);
+		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 
 		for (int i = 1; i < 7; i++)
 		{
-			ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-			ResourceBarriers[0].Transition.pResource = BloomTextures[0][i];
-			ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-			ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-			ResourceBarriers[0].Transition.Subresource = 0;
-			ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+			SwitchResourceState(BloomTextures[0][i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-			CommandList->ResourceBarrier(1, ResourceBarriers);
+			ApplyPendingBarriers();
 
-			CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+			GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-			CommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[0][i], TRUE, nullptr);
+			GraphicsCommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[0][i], TRUE, nullptr);
 
 			Viewport.Height = FLOAT(ResolutionHeight >> i);
 			Viewport.MaxDepth = 1.0f;
@@ -4959,16 +4489,16 @@ void RenderSystem::TickSystem(float DeltaTime)
 			Viewport.TopLeftY = 0.0f;
 			Viewport.Width = FLOAT(ResolutionWidth >> i);
 
-			CommandList->RSSetViewports(1, &Viewport);
+			GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 			ScissorRect.bottom = ResolutionHeight >> i;
 			ScissorRect.left = 0;
 			ScissorRect.right = ResolutionWidth >> i;
 			ScissorRect.top = 0;
 
-			CommandList->RSSetScissorRects(1, &ScissorRect);
+			GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-			CommandList->DiscardResource(BloomTextures[0][i], nullptr);
+			GraphicsCommandList->DiscardResource(BloomTextures[0][i], nullptr);
 
 			DestRangeSize = 1;
 			SourceRangeSizes[0] = 1;
@@ -4978,33 +4508,22 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
-			CommandList->SetPipelineState(DownSamplePipelineState);
+			GraphicsCommandList->SetPipelineState(DownSamplePipelineState);
 
-			CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+			GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 			ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-			CommandList->DrawInstanced(4, 1, 0, 0);
+			GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 
-			ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-			ResourceBarriers[0].Transition.pResource = BloomTextures[0][i];
-			ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-			ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-			ResourceBarriers[0].Transition.Subresource = 0;
-			ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+			SwitchResourceState(BloomTextures[0][i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+			SwitchResourceState(BloomTextures[1][i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-			ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-			ResourceBarriers[1].Transition.pResource = BloomTextures[1][i];
-			ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-			ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-			ResourceBarriers[1].Transition.Subresource = 0;
-			ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+			ApplyPendingBarriers();
 
-			CommandList->ResourceBarrier(2, ResourceBarriers);
+			GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-			CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-			CommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[1][i], TRUE, nullptr);
+			GraphicsCommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[1][i], TRUE, nullptr);
 
 			Viewport.Height = FLOAT(ResolutionHeight >> i);
 			Viewport.MaxDepth = 1.0f;
@@ -5013,16 +4532,16 @@ void RenderSystem::TickSystem(float DeltaTime)
 			Viewport.TopLeftY = 0.0f;
 			Viewport.Width = FLOAT(ResolutionWidth >> i);
 
-			CommandList->RSSetViewports(1, &Viewport);
+			GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 			ScissorRect.bottom = ResolutionHeight >> i;
 			ScissorRect.left = 0;
 			ScissorRect.right = ResolutionWidth >> i;
 			ScissorRect.top = 0;
 
-			CommandList->RSSetScissorRects(1, &ScissorRect);
+			GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-			CommandList->DiscardResource(BloomTextures[1][i], nullptr);
+			GraphicsCommandList->DiscardResource(BloomTextures[1][i], nullptr);
 
 			DestRangeSize = 1;
 			SourceRangeSizes[0] = 1;
@@ -5032,33 +4551,22 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
-			CommandList->SetPipelineState(HorizontalBlurPipelineState);
+			GraphicsCommandList->SetPipelineState(HorizontalBlurPipelineState);
 
-			CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+			GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 			ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-			CommandList->DrawInstanced(4, 1, 0, 0);
+			GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 
-			ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-			ResourceBarriers[0].Transition.pResource = BloomTextures[1][i];
-			ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-			ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-			ResourceBarriers[0].Transition.Subresource = 0;
-			ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+			SwitchResourceState(BloomTextures[1][i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+			SwitchResourceState(BloomTextures[2][i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-			ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-			ResourceBarriers[1].Transition.pResource = BloomTextures[2][i];
-			ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-			ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-			ResourceBarriers[1].Transition.Subresource = 0;
-			ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+			ApplyPendingBarriers();
 
-			CommandList->ResourceBarrier(2, ResourceBarriers);
+			GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-			CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-			CommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[2][i], TRUE, nullptr);
+			GraphicsCommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[2][i], TRUE, nullptr);
 
 			Viewport.Height = FLOAT(ResolutionHeight >> i);
 			Viewport.MaxDepth = 1.0f;
@@ -5067,16 +4575,16 @@ void RenderSystem::TickSystem(float DeltaTime)
 			Viewport.TopLeftY = 0.0f;
 			Viewport.Width = FLOAT(ResolutionWidth >> i);
 
-			CommandList->RSSetViewports(1, &Viewport);
+			GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 			ScissorRect.bottom = ResolutionHeight >> i;
 			ScissorRect.left = 0;
 			ScissorRect.right = ResolutionWidth >> i;
 			ScissorRect.top = 0;
 
-			CommandList->RSSetScissorRects(1, &ScissorRect);
+			GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-			CommandList->DiscardResource(BloomTextures[2][i], nullptr);
+			GraphicsCommandList->DiscardResource(BloomTextures[2][i], nullptr);
 
 			DestRangeSize = 1;
 			SourceRangeSizes[0] = 1;
@@ -5086,29 +4594,24 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
-			CommandList->SetPipelineState(VerticalBlurPipelineState);
+			GraphicsCommandList->SetPipelineState(VerticalBlurPipelineState);
 
-			CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+			GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 			ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-			CommandList->DrawInstanced(4, 1, 0, 0);
+			GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 		}
 
 		for (int i = 5; i >= 0; i--)
 		{
-			ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-			ResourceBarriers[0].Transition.pResource = BloomTextures[2][i + 1];
-			ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-			ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-			ResourceBarriers[0].Transition.Subresource = 0;
-			ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+			SwitchResourceState(BloomTextures[2][i + 1], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+			
+			ApplyPendingBarriers();
 
-			CommandList->ResourceBarrier(1, ResourceBarriers);
+			GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-			CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-			CommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[2][i], TRUE, nullptr);
+			GraphicsCommandList->OMSetRenderTargets(1, &BloomTexturesRTVs[2][i], TRUE, nullptr);
 
 			Viewport.Height = FLOAT(ResolutionHeight >> i);
 			Viewport.MaxDepth = 1.0f;
@@ -5117,14 +4620,14 @@ void RenderSystem::TickSystem(float DeltaTime)
 			Viewport.TopLeftY = 0.0f;
 			Viewport.Width = FLOAT(ResolutionWidth >> i);
 
-			CommandList->RSSetViewports(1, &Viewport);
+			GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 			ScissorRect.bottom = ResolutionHeight >> i;
 			ScissorRect.left = 0;
 			ScissorRect.right = ResolutionWidth >> i;
 			ScissorRect.top = 0;
 
-			CommandList->RSSetScissorRects(1, &ScissorRect);
+			GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
 			DestRangeSize = 1;
 			SourceRangeSizes[0] = 1;
@@ -5134,40 +4637,29 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
-			CommandList->SetPipelineState(UpSampleWithAddBlendPipelineState);
+			GraphicsCommandList->SetPipelineState(UpSampleWithAddBlendPipelineState);
 
-			CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+			GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 			ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-			CommandList->DrawInstanced(4, 1, 0, 0);
+			GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 		}
 	}
 
 	// ===============================================================================================================
 
-	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[0].Transition.pResource = BloomTextures[2][0];
-	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-	ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-	ResourceBarriers[0].Transition.Subresource = 0;
-	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-	ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[1].Transition.pResource = ToneMappedImageTexture;
-	ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-	ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
-	ResourceBarriers[1].Transition.Subresource = 0;
-	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	SwitchResourceState(BloomTextures[2][0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	SwitchResourceState(ToneMappedImageTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	// ===============================================================================================================
 
 	{
-		CommandList->ResourceBarrier(2, ResourceBarriers);
+		ApplyPendingBarriers();
 
-		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-		CommandList->OMSetRenderTargets(1, &ToneMappedImageTextureRTV, TRUE, nullptr);
+		GraphicsCommandList->OMSetRenderTargets(1, &ToneMappedImageTextureRTV, TRUE, nullptr);
 
 		D3D12_VIEWPORT Viewport;
 		Viewport.Height = FLOAT(ResolutionHeight);
@@ -5177,7 +4669,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		Viewport.TopLeftY = 0.0f;
 		Viewport.Width = FLOAT(ResolutionWidth);
 
-		CommandList->RSSetViewports(1, &Viewport);
+		GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 		D3D12_RECT ScissorRect;
 		ScissorRect.bottom = ResolutionHeight;
@@ -5185,9 +4677,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 		ScissorRect.right = ResolutionWidth;
 		ScissorRect.top = 0;
 
-		CommandList->RSSetScissorRects(1, &ScissorRect);
+		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-		CommandList->DiscardResource(ToneMappedImageTexture, nullptr);
+		GraphicsCommandList->DiscardResource(ToneMappedImageTexture, nullptr);
 
 		UINT DestRangeSize = 2;
 		UINT SourceRangeSizes[2] = { 1, 1 };
@@ -5197,54 +4689,38 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		ResourceCPUHandle.ptr += 2 * ResourceHandleSize;
 
-		CommandList->SetPipelineState(HDRToneMappingPipelineState);
+		GraphicsCommandList->SetPipelineState(HDRToneMappingPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 		ResourceGPUHandle.ptr += 2 * ResourceHandleSize;
 
-		CommandList->DrawInstanced(4, 1, 0, 0);
+		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 	}
 
 	// ===============================================================================================================
 
-	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[0].Transition.pResource = ToneMappedImageTexture;
-	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
-	ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-	ResourceBarriers[0].Transition.Subresource = 0;
-	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-
-	ResourceBarriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[1].Transition.pResource = BackBufferTextures[CurrentBackBufferIndex];
-	ResourceBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST;
-	ResourceBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PRESENT;
-	ResourceBarriers[1].Transition.Subresource = 0;
-	ResourceBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	SwitchResourceState(ToneMappedImageTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE);
+	SwitchResourceState(BackBufferTextures[CurrentBackBufferIndex], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST);
 
 	// ===============================================================================================================
 
 	{
-		CommandList->ResourceBarrier(2, ResourceBarriers);
+		ApplyPendingBarriers();
 
-		CommandList->ResolveSubresource(BackBufferTextures[CurrentBackBufferIndex], 0, ToneMappedImageTexture, 0, DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
+		GraphicsCommandList->ResolveSubresource(BackBufferTextures[CurrentBackBufferIndex], 0, ToneMappedImageTexture, 0, DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
 	}
 
 	// ===============================================================================================================
 
-	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[0].Transition.pResource = BackBufferTextures[CurrentBackBufferIndex];
-	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-	ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST;
-	ResourceBarriers[0].Transition.Subresource = 0;
-	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	SwitchResourceState(BackBufferTextures[CurrentBackBufferIndex], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	// ===============================================================================================================
 
 	{
-		CommandList->ResourceBarrier(1, ResourceBarriers);
+		ApplyPendingBarriers();
 
-		CommandList->OMSetRenderTargets(1, &BackBufferTexturesRTVs[CurrentBackBufferIndex], TRUE, nullptr);
+		GraphicsCommandList->OMSetRenderTargets(1, &BackBufferTexturesRTVs[CurrentBackBufferIndex], TRUE, nullptr);
 
 		D3D12_VIEWPORT Viewport;
 		Viewport.Height = FLOAT(ResolutionHeight);
@@ -5254,7 +4730,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		Viewport.TopLeftY = 0.0f;
 		Viewport.Width = FLOAT(ResolutionWidth);
 
-		CommandList->RSSetViewports(1, &Viewport);
+		GraphicsCommandList->RSSetViewports(1, &Viewport);
 
 		D3D12_RECT ScissorRect;
 		ScissorRect.bottom = ResolutionHeight;
@@ -5262,23 +4738,23 @@ void RenderSystem::TickSystem(float DeltaTime)
 		ScissorRect.right = ResolutionWidth;
 		ScissorRect.top = 0;
 
-		CommandList->RSSetScissorRects(1, &ScissorRect);
+		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 	}
 
 	// ===============================================================================================================
 
 	if (DebugDrawBoundingBoxes)
 	{
-		CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY::D3D10_PRIMITIVE_TOPOLOGY_LINELIST);
+		GraphicsCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY::D3D10_PRIMITIVE_TOPOLOGY_LINELIST);
 
 		D3D12_INDEX_BUFFER_VIEW IndexBufferView;
 		IndexBufferView.BufferLocation = BoundingBoxIndexBufferAddress;
 		IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
 		IndexBufferView.SizeInBytes = 24 * sizeof(WORD);
 
-		CommandList->IASetIndexBuffer(&IndexBufferView);
+		GraphicsCommandList->IASetIndexBuffer(&IndexBufferView);
 
-		CommandList->SetPipelineState(DebugDrawBoundingBoxPipelineState);
+		GraphicsCommandList->SetPipelineState(DebugDrawBoundingBoxPipelineState);
 
 		D3D12_RANGE ReadRange, WrittenRange;
 		ReadRange.Begin = 0;
@@ -5322,25 +4798,15 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		CPUConstantBuffers3[CurrentFrameIndex]->Unmap(0, &WrittenRange);
 
-		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[0].Transition.pResource = GPUConstantBuffer3;
-		ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-		ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-		ResourceBarriers[0].Transition.Subresource = 0;
-		ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		SwitchResourceState(GPUConstantBuffer3, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
 
-		CommandList->ResourceBarrier(1, ResourceBarriers);
+		ApplyPendingBarriers();
 
-		CommandList->CopyBufferRegion(GPUConstantBuffer3, 0, CPUConstantBuffers3[CurrentFrameIndex], 0, ConstantBufferOffset);
+		GraphicsCommandList->CopyBufferRegion(GPUConstantBuffer3, 0, CPUConstantBuffers3[CurrentFrameIndex], 0, ConstantBufferOffset);
 
-		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[0].Transition.pResource = GPUConstantBuffer3;
-		ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-		ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-		ResourceBarriers[0].Transition.Subresource = 0;
-		ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		SwitchResourceState(GPUConstantBuffer3, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 
-		CommandList->ResourceBarrier(1, ResourceBarriers);
+		ApplyPendingBarriers();
 
 		for (size_t k = 0; k < VisibleStaticMeshComponentsCount; k++)
 		{
@@ -5352,11 +4818,11 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
-			CommandList->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+			GraphicsCommandList->SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 			ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-			CommandList->DrawIndexedInstanced(24, 1, 0, 0, 0);
+			GraphicsCommandList->DrawIndexedInstanced(24, 1, 0, 0, 0);
 		}
 	}
 
@@ -5403,27 +4869,17 @@ void RenderSystem::TickSystem(float DeltaTime)
 		DestTextureCopyLocation.SubresourceIndex = 0;
 		DestTextureCopyLocation.Type = D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 
-		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[0].Transition.pResource = DebugOcclusionBufferTexture;
-		ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-		ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-		ResourceBarriers[0].Transition.Subresource = 0;
-		ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		SwitchResourceState(DebugOcclusionBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
 
-		CommandList->ResourceBarrier(1, ResourceBarriers);
+		ApplyPendingBarriers();
 
-		CommandList->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
+		GraphicsCommandList->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
 
-		ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		ResourceBarriers[0].Transition.pResource = DebugOcclusionBufferTexture;
-		ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-		ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST;
-		ResourceBarriers[0].Transition.Subresource = 0;
-		ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		SwitchResourceState(DebugOcclusionBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
-		CommandList->ResourceBarrier(1, ResourceBarriers);		
+		ApplyPendingBarriers();
 
-		CommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 		UINT DestRangeSize = 1;
 		UINT SourceRangeSizes[1] = { 1 };
@@ -5433,38 +4889,52 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		ResourceCPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->SetPipelineState(DebugDrawOcclusionBufferPipelineState);
+		GraphicsCommandList->SetPipelineState(DebugDrawOcclusionBufferPipelineState);
 
-		CommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, D3D12_GPU_DESCRIPTOR_HANDLE{ ResourceGPUHandle.ptr + 0 * ResourceHandleSize });
 
 		ResourceGPUHandle.ptr += 1 * ResourceHandleSize;
 
-		CommandList->DrawInstanced(4, 1, 0, 0);
+		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 	}
 
 	// ===============================================================================================================
 	
-	ResourceBarriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	ResourceBarriers[0].Transition.pResource = BackBufferTextures[CurrentBackBufferIndex];
-	ResourceBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PRESENT;
-	ResourceBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-	ResourceBarriers[0].Transition.Subresource = 0;
-	ResourceBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	SwitchResourceState(BackBufferTextures[CurrentBackBufferIndex], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PRESENT);
 
-	CommandList->ResourceBarrier(1, ResourceBarriers);
+	ApplyPendingBarriers();
 
 	// ===============================================================================================================
 
-	SAFE_DX(CommandList->Close());
+	SAFE_DX(GraphicsCommandList->Close());
 
-	CommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CommandList);
+	GraphicsCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&GraphicsCommandList);
 
 	SAFE_DX(SwapChain->Present(0, DXGI_PRESENT_ALLOW_TEARING));
 
-	SAFE_DX(CommandQueue->Signal(FrameSyncFences[CurrentFrameIndex], 1));
+	SAFE_DX(GraphicsCommandQueue->Signal(FrameSyncFences[CurrentFrameIndex], 1));
 
 	CurrentFrameIndex = (CurrentFrameIndex + 1) % 2;
 	CurrentBackBufferIndex = SwapChain->GetCurrentBackBufferIndex();
+}
+
+void RenderSystem::ApplyPendingBarriers()
+{
+	GraphicsCommandList->ResourceBarrier(PendingResourceBarriersCount, PendingResourceBarriers);
+
+	PendingResourceBarriersCount = 0;
+}
+
+void RenderSystem::SwitchResourceState(ID3D12Resource* Resource, UINT SubResourceIndex, D3D12_RESOURCE_STATES OldState, D3D12_RESOURCE_STATES NewState)
+{
+	PendingResourceBarriers[PendingResourceBarriersCount].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	PendingResourceBarriers[PendingResourceBarriersCount].Transition.pResource = Resource;
+	PendingResourceBarriers[PendingResourceBarriersCount].Transition.StateAfter = NewState;
+	PendingResourceBarriers[PendingResourceBarriersCount].Transition.StateBefore = OldState;
+	PendingResourceBarriers[PendingResourceBarriersCount].Transition.Subresource = SubResourceIndex;
+	PendingResourceBarriers[PendingResourceBarriersCount].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	
+	++PendingResourceBarriersCount;
 }
 
 RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMeshCreateInfo)
@@ -5507,7 +4977,7 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 		AlignedResourceOffset = 0;
 	}
 
-	SAFE_DX(Device->CreatePlacedResource(BufferMemoryHeaps[CurrentBufferMemoryHeapIndex], AlignedResourceOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(renderMesh->MeshBuffer)));
+	SAFE_DX(Device->CreatePlacedResource(BufferMemoryHeaps[CurrentBufferMemoryHeapIndex], AlignedResourceOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON, nullptr, UUIDOF(renderMesh->MeshBuffer)));
 
 	BufferMemoryHeapOffsets[CurrentBufferMemoryHeapIndex] = AlignedResourceOffset + ResourceAllocationInfo.SizeInBytes;
 
@@ -5524,12 +4994,12 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 	memcpy((BYTE*)MappedData, renderMeshCreateInfo.MeshData, sizeof(Vertex) * renderMeshCreateInfo.VertexCount + sizeof(WORD) * renderMeshCreateInfo.IndexCount);
 	UploadBuffer->Unmap(0, &WrittenRange);
 
-	SAFE_DX(CommandAllocators[0]->Reset());
-	SAFE_DX(CommandList->Reset(CommandAllocators[0], nullptr));
+	SAFE_DX(CopyCommandAllocator->Reset());
+	SAFE_DX(CopyCommandList->Reset(CopyCommandAllocator, nullptr));
 
-	CommandList->CopyBufferRegion(renderMesh->MeshBuffer, 0, UploadBuffer, 0, sizeof(Vertex) * renderMeshCreateInfo.VertexCount + sizeof(WORD) * renderMeshCreateInfo.IndexCount);
+	CopyCommandList->CopyBufferRegion(renderMesh->MeshBuffer, 0, UploadBuffer, 0, sizeof(Vertex) * renderMeshCreateInfo.VertexCount + sizeof(WORD) * renderMeshCreateInfo.IndexCount);
 
-	D3D12_RESOURCE_BARRIER ResourceBarrier;
+	/*D3D12_RESOURCE_BARRIER ResourceBarrier;
 	ResourceBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarrier.Transition.pResource = renderMesh->MeshBuffer;
 	ResourceBarrier.Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_INDEX_BUFFER;
@@ -5537,13 +5007,13 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 	ResourceBarrier.Transition.Subresource = 0;
 	ResourceBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(1, &ResourceBarrier);
+	CommandList->ResourceBarrier(1, &ResourceBarrier);*/
 
-	SAFE_DX(CommandList->Close());
+	SAFE_DX(CopyCommandList->Close());
 
-	CommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CommandList);
+	CopyCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CopyCommandList);
 
-	SAFE_DX(CommandQueue->Signal(CopySyncFence, 1));
+	SAFE_DX(CopyCommandQueue->Signal(CopySyncFence, 1));
 
 	if (CopySyncFence->GetCompletedValue() != 1)
 	{
@@ -5662,7 +5132,7 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 		AlignedResourceOffset = 0;
 	}
 
-	SAFE_DX(Device->CreatePlacedResource(TextureMemoryHeaps[CurrentTextureMemoryHeapIndex], AlignedResourceOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(renderTexture->Texture)));
+	SAFE_DX(Device->CreatePlacedResource(TextureMemoryHeaps[CurrentTextureMemoryHeapIndex], AlignedResourceOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON, nullptr, UUIDOF(renderTexture->Texture)));
 
 	TextureMemoryHeapOffsets[CurrentTextureMemoryHeapIndex] = AlignedResourceOffset + ResourceAllocationInfo.SizeInBytes;
 
@@ -5708,8 +5178,8 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 
 	UploadBuffer->Unmap(0, &WrittenRange);
 
-	SAFE_DX(CommandAllocators[0]->Reset());
-	SAFE_DX(CommandList->Reset(CommandAllocators[0], nullptr));
+	SAFE_DX(CopyCommandAllocator->Reset());
+	SAFE_DX(CopyCommandList->Reset(CopyCommandAllocator, nullptr));
 
 	D3D12_TEXTURE_COPY_LOCATION SourceTextureCopyLocation, DestTextureCopyLocation;
 
@@ -5724,10 +5194,10 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 		SourceTextureCopyLocation.PlacedFootprint = PlacedSubResourceFootPrints[i];
 		DestTextureCopyLocation.SubresourceIndex = i;
 
-		CommandList->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
+		CopyCommandList->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
 	}
 
-	D3D12_RESOURCE_BARRIER ResourceBarrier;
+	/*D3D12_RESOURCE_BARRIER ResourceBarrier;
 	ResourceBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	ResourceBarrier.Transition.pResource = renderTexture->Texture;
 	ResourceBarrier.Transition.StateAfter = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
@@ -5735,13 +5205,13 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 	ResourceBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 	ResourceBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-	CommandList->ResourceBarrier(1, &ResourceBarrier);
+	CopyCommandList->ResourceBarrier(1, &ResourceBarrier);*/
 
-	SAFE_DX(CommandList->Close());
+	SAFE_DX(CopyCommandList->Close());
 
-	CommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CommandList);
+	CopyCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CopyCommandList);
 
-	SAFE_DX(CommandQueue->Signal(CopySyncFence, 1));
+	SAFE_DX(CopyCommandQueue->Signal(CopySyncFence, 1));
 
 	if (CopySyncFence->GetCompletedValue() != 1)
 	{
@@ -5760,8 +5230,7 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 	SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 	SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
 
-	renderTexture->TextureSRV.ptr = TexturesDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + TexturesDescriptorsCount * Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	++TexturesDescriptorsCount;
+	renderTexture->TextureSRV = TexturesDescriptorHeap->AllocateDescriptor();
 
 	Device->CreateShaderResourceView(renderTexture->Texture, &SRVDesc, renderTexture->TextureSRV);
 
@@ -5885,7 +5354,7 @@ inline void RenderSystem::CheckDXCallResult(HRESULT hr, const char16_t* Function
 		char16_t DXErrorMessageBuffer[2048];
 		char16_t DXErrorCodeBuffer[512];
 
-		const char16_t *DXErrorCodePtr = GetDXErrorMessageFromHRESULT(hr);
+		const char16_t *DXErrorCodePtr = RenderSystem::GetDXErrorMessageFromHRESULT(hr);
 
 		if (DXErrorCodePtr) wcscpy((wchar_t*)DXErrorCodeBuffer, (const wchar_t*)DXErrorCodePtr);
 		else wsprintf((wchar_t*)DXErrorCodeBuffer, (const wchar_t*)u"0x%08X (неизвестный код)", hr);
