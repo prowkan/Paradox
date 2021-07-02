@@ -23,16 +23,33 @@ class Pointer
 			Data = nullptr;
 		}
 
-		Pointer(const Pointer<T>& OtherPointer)
+		Pointer(const Pointer<T>& OtherPointer) = delete;
+		Pointer<T>& operator=(const Pointer<T>& OtherPointer) = delete;
+
+		Pointer(Pointer<T>&& OtherPointer)
 		{
-			Data = (T*)SystemMemoryAllocator::AllocateMemory(sizeof(T));
-			new (Data) T(*OtherPointer.Data);
+			Data = OtherPointer.Data;
+			OtherPointer.Data = nullptr;
+		}
+
+		Pointer<T>& operator=(Pointer<T>&& OtherPointer)
+		{
+			if (Data != nullptr) Data->~T();
+			Data = OtherPointer.Data;
+			OtherPointer.Data = nullptr;
+
+			return *this;
 		}
 
 		~Pointer()
 		{
-			Data->~T();
+			if (Data != nullptr) Data->~T();
 			SystemMemoryAllocator::FreeMemory(Data);
+		}
+
+		T* operator->()
+		{
+			return Data;
 		}
 
 		template<typename U>

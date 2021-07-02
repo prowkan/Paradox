@@ -4,6 +4,7 @@
 #include "ClusterizationSubSystem.h"
 
 #include <Containers/COMRCPtr.h>
+#include <Containers/Pointer.h>
 
 struct RenderMesh
 {
@@ -89,6 +90,15 @@ class DescriptorHeap
 			FirstDescriptor = DXDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr;
 			DescriptorSize = Device->GetDescriptorHandleIncrementSize(DescriptorsType);
 			AllocatedDescriptorsCount = 0;
+		}
+
+		DescriptorHeap(const DescriptorHeap& OtherDescriptorHeap)
+		{
+			DXDescriptorHeap = OtherDescriptorHeap.DXDescriptorHeap;
+
+			FirstDescriptor = OtherDescriptorHeap.FirstDescriptor;
+			DescriptorSize = OtherDescriptorHeap.DescriptorSize;
+			AllocatedDescriptorsCount = OtherDescriptorHeap.AllocatedDescriptorsCount;
 		}
 
 		D3D12_CPU_DESCRIPTOR_HANDLE AllocateDescriptor()
@@ -228,8 +238,8 @@ class RenderSystem
 		/*COMRCPtr<ID3D12DescriptorHeap> RTDescriptorHeap, DSDescriptorHeap, CBSRUADescriptorHeap, SamplersDescriptorHeap;
 		COMRCPtr<ID3D12DescriptorHeap> ConstantBufferDescriptorHeap, TexturesDescriptorHeap;*/
 
-		DescriptorHeap *RTDescriptorHeap, *DSDescriptorHeap, *CBSRUADescriptorHeap, *SamplersDescriptorHeap;
-		DescriptorHeap *ConstantBufferDescriptorHeap, *TexturesDescriptorHeap;
+		Pointer<DescriptorHeap> RTDescriptorHeap, DSDescriptorHeap, CBSRUADescriptorHeap, SamplersDescriptorHeap;
+		Pointer<DescriptorHeap> ConstantBufferDescriptorHeap, TexturesDescriptorHeap;
 
 		COMRCPtr<ID3D12DescriptorHeap> FrameResourcesDescriptorHeaps[2], FrameSamplersDescriptorHeaps[2];
 
