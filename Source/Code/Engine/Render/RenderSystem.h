@@ -4,6 +4,7 @@
 #include "ClusterizationSubSystem.h"
 
 #include <Containers/COMRCPtr.h>
+#include <Containers/Pointer.h>
 
 struct RenderMesh
 {
@@ -109,61 +110,157 @@ class DescriptorHeap
 		UINT AllocatedDescriptorsCount;
 };
 
-class DescriptorTable
+class DescriptorTable;
+
+class FrameDescriptorHeap
 {
 	public:
 
-		void SetConstantBuffer(D3D12_CPU_DESCRIPTOR_HANDLE Descriptor, UINT SlotIndex)
+		FrameDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE DescriptorsType, UINT DescriptorsCount, ID3D12Device* Device, const char16_t* DebugHeapName = nullptr)
+		{
+			D3D12_DESCRIPTOR_HEAP_DESC DescriptorHeapDesc;
+			DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+			DescriptorHeapDesc.NodeMask = 0;
+			DescriptorHeapDesc.NumDescriptors = DescriptorsCount;
+			DescriptorHeapDesc.Type = DescriptorsType;
+
+			this->DescriptorsType = DescriptorsType;
+
+			HRESULT hr = Device->CreateDescriptorHeap(&DescriptorHeapDesc, UUIDOF(DXDescriptorHeap));
+			if (DebugHeapName) hr = DXDescriptorHeap->SetName((LPCWSTR)DebugHeapName);
+
+			FirstCPUDescriptor = DXDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr;
+			FirstGPUDescriptor = DXDescriptorHeap->GetGPUDescriptorHandleForHeapStart().ptr;
+			DescriptorSize = Device->GetDescriptorHandleIncrementSize(DescriptorsType);
+
+			Descriptors = (D3D12_CPU_DESCRIPTOR_HANDLE*)SystemMemoryAllocator::AllocateMemory(sizeof(D3D12_CPU_DESCRIPTOR_HANDLE) * DescriptorsCount);
+			ArrayOfOnes = (UINT*)SystemMemoryAllocator::AllocateMemory(sizeof(UINT) * DescriptorsCount);
+
+			for (UINT i = 0; i < DescriptorsCount; i++)
+			{
+				ArrayOfOnes[i] = 1;
+			}
+
+			AllocatedDescriptorsCount = 0;
+		}
+
+		void Reset()
+		{
+			AllocatedDescriptorsCount = 0;
+		}
+
+		DescriptorTable AllocateDescriptorTable(UINT DescriptorsCount);
+
+		ID3D12DescriptorHeap* GetDescriptorHeap() { return DXDescriptorHeap; }
+
+		D3D12_DESCRIPTOR_HEAP_TYPE GetDescriptorHeapType() { return DescriptorsType; }
+
+	private:
+
+		COMRCPtr<ID3D12DescriptorHeap> DXDescriptorHeap;
+
+		D3D12_DESCRIPTOR_HEAP_TYPE DescriptorsType;
+
+		SIZE_T FirstCPUDescriptor;
+		UINT64 FirstGPUDescriptor;
+
+		UINT DescriptorSize;
+
+		D3D12_CPU_DESCRIPTOR_HANDLE *Descriptors;
+		UINT *ArrayOfOnes;
+
+		UINT AllocatedDescriptorsCount;
+};
+
+class DescriptorTable
+{
+	friend class FrameDescriptorHeap;
+
+	public:
+
+		DescriptorTable()
+		{
+
+		}
+
+		DescriptorTable(const DescriptorTable& OtherTable)
+		{
+			TableSize = OtherTable.TableSize;
+			Descriptors = OtherTable.Descriptors;
+			FirstCPUDescriptor = OtherTable.FirstCPUDescriptor;
+			FirstGPUDescriptor = OtherTable.FirstGPUDescriptor;
+			ParentDescriptorHeap = OtherTable.ParentDescriptorHeap;
+			RangesArray = OtherTable.RangesArray;
+		}
+
+		void SetConstantBuffer(UINT SlotIndex, D3D12_CPU_DESCRIPTOR_HANDLE Descriptor)
 		{
 			Descriptors[SlotIndex] = Descriptor;
 		}
 
-		void SetBuffer(D3D12_CPU_DESCRIPTOR_HANDLE Descriptor, UINT SlotIndex)
+		void SetBuffer(UINT SlotIndex, D3D12_CPU_DESCRIPTOR_HANDLE Descriptor)
 		{
 			Descriptors[SlotIndex] = Descriptor;
 		}
 
-		void SetRWBuffer(D3D12_CPU_DESCRIPTOR_HANDLE Descriptor, UINT SlotIndex)
+		void SetRWBuffer(UINT SlotIndex, D3D12_CPU_DESCRIPTOR_HANDLE Descriptor)
 		{
 			Descriptors[SlotIndex] = Descriptor;
 		}
 
-		void SetTexture(D3D12_CPU_DESCRIPTOR_HANDLE Descriptor, UINT SlotIndex)
+		void SetTexture(UINT SlotIndex, D3D12_CPU_DESCRIPTOR_HANDLE Descriptor)
 		{
 			Descriptors[SlotIndex] = Descriptor;
 		}
 
-		void SetRWTexture(D3D12_CPU_DESCRIPTOR_HANDLE Descriptor, UINT SlotIndex)
+		void SetRWTexture(UINT SlotIndex, D3D12_CPU_DESCRIPTOR_HANDLE Descriptor)
+		{
+			Descriptors[SlotIndex] = Descriptor;
+		}
+
+		void SetSampler(UINT SlotIndex, D3D12_CPU_DESCRIPTOR_HANDLE Descriptor)
 		{
 			Descriptors[SlotIndex] = Descriptor;
 		}
 
 		void UpdateTable(ID3D12Device* Device)
 		{
-			//Device->CopyDescriptors(1, &FirstCPUDescriptor, &TableSize, , Descriptors, , );
+			Device->CopyDescriptors(1, &FirstCPUDescriptor, &TableSize, TableSize, Descriptors, RangesArray, ParentDescriptorHeap->GetDescriptorHeapType());
 		}
 
 		operator D3D12_GPU_DESCRIPTOR_HANDLE()
 		{
 			return FirstGPUDescriptor;
-		}
+		}		
 
 	private:
 		
 		UINT TableSize;
 
 		D3D12_CPU_DESCRIPTOR_HANDLE *Descriptors;
+		UINT *RangesArray;
 
 		D3D12_CPU_DESCRIPTOR_HANDLE FirstCPUDescriptor;
 		D3D12_GPU_DESCRIPTOR_HANDLE FirstGPUDescriptor;
+
+		FrameDescriptorHeap *ParentDescriptorHeap;
 };
 
-class FrameDescriptorHeap
+inline DescriptorTable FrameDescriptorHeap::AllocateDescriptorTable(UINT TableSize)
 {
-	public:
+	DescriptorTable Table;
 
-	private:
-};
+	Table.Descriptors = Descriptors + AllocatedDescriptorsCount;
+	Table.FirstCPUDescriptor.ptr = FirstCPUDescriptor + AllocatedDescriptorsCount * DescriptorSize;
+	Table.FirstGPUDescriptor.ptr = FirstGPUDescriptor + AllocatedDescriptorsCount * DescriptorSize;
+	Table.ParentDescriptorHeap = this;
+	Table.RangesArray = ArrayOfOnes + AllocatedDescriptorsCount;
+	Table.TableSize = TableSize;
+
+	AllocatedDescriptorsCount += TableSize;
+
+	return Table;
+}
 
 class RenderSystem
 {
@@ -225,16 +322,10 @@ class RenderSystem
 		COMRCPtr<ID3D12Fence> FrameSyncFences[2], CopySyncFence;
 		HANDLE FrameSyncEvent, CopySyncEvent;
 
-		/*COMRCPtr<ID3D12DescriptorHeap> RTDescriptorHeap, DSDescriptorHeap, CBSRUADescriptorHeap, SamplersDescriptorHeap;
-		COMRCPtr<ID3D12DescriptorHeap> ConstantBufferDescriptorHeap, TexturesDescriptorHeap;*/
+		Pointer<DescriptorHeap> RTDescriptorHeap, DSDescriptorHeap, CBSRUADescriptorHeap, SamplersDescriptorHeap;
+		Pointer<DescriptorHeap> ConstantBufferDescriptorHeap, TexturesDescriptorHeap;
 
-		DescriptorHeap *RTDescriptorHeap, *DSDescriptorHeap, *CBSRUADescriptorHeap, *SamplersDescriptorHeap;
-		DescriptorHeap *ConstantBufferDescriptorHeap, *TexturesDescriptorHeap;
-
-		COMRCPtr<ID3D12DescriptorHeap> FrameResourcesDescriptorHeaps[2], FrameSamplersDescriptorHeaps[2];
-
-		//UINT RTDescriptorsCount = 0, DSDescriptorsCount = 0, CBSRUADescriptorsCount = 0, SamplersDescriptorsCount = 0;
-		//UINT ConstantBufferDescriptorsCount = 0, TexturesDescriptorsCount = 0;
+		Pointer<FrameDescriptorHeap> FrameResourcesDescriptorHeaps[2], FrameSamplersDescriptorHeaps[2];
 
 		COMRCPtr<ID3D12RootSignature> GraphicsRootSignature, ComputeRootSignature;
 
