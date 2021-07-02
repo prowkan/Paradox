@@ -444,6 +444,14 @@ class RenderSystem
 
 		static const UINT MAX_MIP_LEVELS_IN_TEXTURE = 16;
 
+		static const UINT MAX_PENDING_BARRIERS = 1000;
+
+		D3D12_RESOURCE_BARRIER PendingResourceBarriers[MAX_PENDING_BARRIERS];
+		UINT PendingResourceBarriersCount = 0;
+
+		void ApplyPendingBarriers();
+		void SwitchResourceState(ID3D12Resource* Resource, UINT SubResourceIndex, D3D12_RESOURCE_STATES OldState, D3D12_RESOURCE_STATES NewState);
+
 	#if WITH_EDITOR
 		UINT EditorViewportWidth;
 		UINT EditorViewportHeight;
