@@ -57,11 +57,11 @@ class Pointer
 			return *Data;
 		}
 
-		template<typename U>
+		/*template<typename U>
 		operator U*()
 		{
 			return (U*)Data;
-		}
+		}*/
 
 	private:
 
