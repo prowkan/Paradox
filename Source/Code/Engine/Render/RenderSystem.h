@@ -574,6 +574,8 @@ class RenderSystem
 
 		void ApplyPendingBarriers();
 		void SwitchResourceState(ID3D12Resource* Resource, UINT SubResourceIndex, D3D12_RESOURCE_STATES OldState, D3D12_RESOURCE_STATES NewState);
+		void SetBufferState(Pointer<Buffer>& BufferPtr, D3D12_RESOURCE_STATES NewState);
+		void SetTextureState(Pointer<Texture>& TexturePtr, UINT SubResourceIndex, D3D12_RESOURCE_STATES NewState);
 
 	#if WITH_EDITOR
 		UINT EditorViewportWidth;
