@@ -24,7 +24,7 @@ float4 PS(PSInput PixelShaderInput, uint SampleIndex : SV_SampleIndex) : SV_Targ
 
 	float3 HDRColor = HDRSceneColorTexture.Load(Coords, SampleIndex).rgb;
 	float3 BloomColor = HDRBloomTexture.Load(int3(Coords, 0)).rgb;
-	float3 ToneMappedColor = ACESToneMappingOperator(HDRColor + BloomColor);
+	float3 ToneMappedColor = 4.0f * ACESToneMappingOperator(HDRColor + BloomColor);
 
 	return float4(ToneMappedColor, 1.0f);
 }

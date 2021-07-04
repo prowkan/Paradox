@@ -171,7 +171,7 @@ void RenderSystem::InitSystem()
 	SwapChainDesc.BufferCount = 2;
 	SwapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	SwapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG::DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | DXGI_SWAP_CHAIN_FLAG::DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
-	SwapChainDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM;
+	SwapChainDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
 	SwapChainDesc.Height = ResolutionHeight;
 	SwapChainDesc.SampleDesc.Count = 1;
 	SwapChainDesc.SampleDesc.Quality = 0;
@@ -329,7 +329,7 @@ void RenderSystem::InitSystem()
 		SAFE_DX(BackBufferTextures[1]->SetName((const wchar_t*)u"Back Buffer Texture 1"));
 
 		D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
-		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
 		RTVDesc.Texture2D.MipSlice = 0;
 		RTVDesc.Texture2D.PlaneSlice = 0;
 		RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2D;
@@ -2749,7 +2749,7 @@ void RenderSystem::InitSystem()
 		ResourceDesc.DepthOrArraySize = 1;
 		ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 		ResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-		ResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		ResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
 		ResourceDesc.Height = ResolutionHeight;
 		ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_UNKNOWN;
 		ResourceDesc.MipLevels = 1;
@@ -2773,7 +2773,7 @@ void RenderSystem::InitSystem()
 		SAFE_DX(GPUMemory11->SetName((const wchar_t*)u"HDR Tone Mapping Pass Data GPU Heap"));
 
 		D3D12_CLEAR_VALUE ClearValue;
-		ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
 		ClearValue.Color[0] = 0.0f;
 		ClearValue.Color[1] = 0.0f;
 		ClearValue.Color[2] = 0.0f;
@@ -2783,7 +2783,7 @@ void RenderSystem::InitSystem()
 		SAFE_DX(ToneMappedImageTexture->SetName((const wchar_t*)u"Tone Mapped Image Texture"));
 
 		D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
-		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
 		RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2DMS;
 
 		ToneMappedImageTextureRTV = RTDescriptorHeap->AllocateDescriptor();
@@ -2807,7 +2807,7 @@ void RenderSystem::InitSystem()
 		GraphicsPipelineStateDesc.PS.pShaderBytecode = HDRToneMappingPixelShaderByteCodeData;
 		GraphicsPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_BACK;
 		GraphicsPipelineStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID;
-		GraphicsPipelineStateDesc.RTVFormats[0] = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		GraphicsPipelineStateDesc.RTVFormats[0] = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
 		GraphicsPipelineStateDesc.SampleDesc.Count = 8;
 		GraphicsPipelineStateDesc.SampleDesc.Quality = 0;
 		GraphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
@@ -2923,7 +2923,7 @@ void RenderSystem::InitSystem()
 		GraphicsPipelineStateDesc.PS.pShaderBytecode = DebugDrawOcclusionBufferPixelShaderByteCodeData;
 		GraphicsPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_BACK;
 		GraphicsPipelineStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID;
-		GraphicsPipelineStateDesc.RTVFormats[0] = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		GraphicsPipelineStateDesc.RTVFormats[0] = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
 		GraphicsPipelineStateDesc.SampleDesc.Count = 1;
 		GraphicsPipelineStateDesc.SampleDesc.Quality = 0;
 		GraphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
@@ -3104,7 +3104,7 @@ void RenderSystem::InitSystem()
 		GraphicsPipelineStateDesc.PS.pShaderBytecode = DebugDrawBoundingBoxPixelShaderByteCodeData;
 		GraphicsPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_BACK;
 		GraphicsPipelineStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID;
-		GraphicsPipelineStateDesc.RTVFormats[0] = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		GraphicsPipelineStateDesc.RTVFormats[0] = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
 		GraphicsPipelineStateDesc.SampleDesc.Count = 1;
 		GraphicsPipelineStateDesc.SampleDesc.Quality = 0;
 		GraphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
@@ -4613,7 +4613,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 	{
 		ApplyPendingBarriers();
 
-		GraphicsCommandList->ResolveSubresource(BackBufferTextures[CurrentBackBufferIndex], 0, ToneMappedImageTexture, 0, DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
+		GraphicsCommandList->ResolveSubresource(BackBufferTextures[CurrentBackBufferIndex], 0, ToneMappedImageTexture, 0, DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT);
 	}
 
 	// ===============================================================================================================
