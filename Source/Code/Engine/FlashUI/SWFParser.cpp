@@ -71,6 +71,10 @@ void SWFParser::ProcessTag(SWFFile& File, uint32_t TagCode, uint32_t TagLength)
 			cout << "SetBackgroundColor tag." << endl;
 			ProcessSetBackgroundColorTag(File);
 			break;
+		case TAG_DEFINE_TEXT:
+			cout << "DefineText tag." << endl;
+			ProcessDefineTextTag(File);
+			break;
 		case TAG_PLACE_OBJECT_2:
 			cout << "PlaceObject2 tag." << endl;
 			ProcessPlaceObject2Tag(File);
@@ -221,6 +225,72 @@ void SWFParser::ProcessSetBackgroundColorTag(SWFFile& File)
 	SWFRGB BackgroundColor = File.ReadRGB();
 
 	cout << "R = " << (uint32_t)BackgroundColor.R << " G = " << (uint32_t)BackgroundColor.G << " B = " << (uint32_t)BackgroundColor.B << endl;
+}
+
+void SWFParser::ProcessDefineTextTag(SWFFile& File)
+{
+	uint16_t CharacterId = File.Read<uint16_t>();
+
+	SWFRect TextBounds = File.ReadRect();
+
+	File.AlignToByte();
+
+	SWFMatrix TextMatrix = File.ReadMatrix();
+
+	uint8_t GlyphBits = File.Read<uint8_t>();
+	uint8_t AdvanceBits = File.Read<uint8_t>();
+
+	while (true)
+	{
+		uint8_t TextRecordType = (uint8_t)File.ReadUnsignedBits(1);
+
+		if (TextRecordType == 0)
+		{
+			File.AlignToByte();
+			break;
+		}
+
+		uint8_t StyleFlagsReserved = (uint8_t)File.ReadUnsignedBits(3);
+		uint8_t StyleFlagsHasFont = (uint8_t)File.ReadUnsignedBits(1);
+		uint8_t StyleFlagsHasColor = (uint8_t)File.ReadUnsignedBits(1);
+		uint8_t StyleFlagsYOffset = (uint8_t)File.ReadUnsignedBits(1);
+		uint8_t StyleFlagsXOffset = (uint8_t)File.ReadUnsignedBits(1);
+
+		if (StyleFlagsHasFont)
+		{
+			uint16_t FontId = File.Read<uint16_t>();
+		}
+
+		if (StyleFlagsHasColor)
+		{
+			SWFRGB TextColor = File.ReadRGB();
+		}
+
+		if (StyleFlagsXOffset)
+		{
+			int16_t XOffset = File.Read<int16_t>();
+		}
+
+		if (StyleFlagsYOffset)
+		{
+			int16_t YOffset = File.Read<int16_t>();
+		}
+
+		if (StyleFlagsHasFont)
+		{
+			uint16_t TextHeight = File.Read<uint16_t>();
+		}
+
+		uint8_t GlyphCount = File.Read<uint8_t>();
+
+		for (uint8_t i = 0; i < GlyphCount; i++)
+		{
+			uint64_t GliphId = File.ReadUnsignedBits(GlyphBits);
+			uint64_t GliphAdvance = File.ReadSignedBits(AdvanceBits);
+		}
+
+		File.AlignToByte();
+	}
 }
 
 void SWFParser::ProcessPlaceObject2Tag(SWFFile& File)
