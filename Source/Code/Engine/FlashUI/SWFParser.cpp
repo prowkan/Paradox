@@ -87,6 +87,14 @@ void SWFParser::ProcessTag(SWFFile& File, uint32_t TagCode, uint32_t TagLength)
 			cout << "FileAttributes tag." << endl;
 			ProcessFileAttributesTag(File);
 			break;
+		case TAG_DEFINE_FONT_ALIGN_ZONES:
+			cout << "DefineFontAlignZones tag." << endl;
+			ProcessDefineFongAlignZonesTag(File);
+			break;
+		case TAG_CSM_TEXT_SETTINGS:
+			cout << "CSMTextSettings tag." << endl;
+			ProcessCSMTextSettingsTag(File);
+			break;
 		case TAG_DEFINE_FONT_3:
 			cout << "DefineFont3 tag." << endl;
 			ProcessDefineFont3Tag(File);
@@ -394,6 +402,44 @@ void SWFParser::ProcessFileAttributesTag(SWFFile& File)
 	Reserved = File.ReadUnsignedBits(2);
 	uint32_t UseNetwork = File.ReadUnsignedBits(1);
 	Reserved = File.ReadUnsignedBits(24);
+}
+
+
+void SWFParser::ProcessDefineFongAlignZonesTag(SWFFile& File)
+{
+	uint16_t FontId = File.Read<uint16_t>();
+
+	uint8_t CSMTableHint = (uint8_t)File.ReadUnsignedBits(2);
+	uint8_t Reserved = (uint8_t)File.ReadUnsignedBits(6);
+
+	for (uint16_t i = 0; i < 409; i++)
+	{
+		uint8_t NumZoneData = File.Read<uint8_t>();
+
+		for (uint8_t j = 0; j < NumZoneData; j++)
+		{
+			uint16_t AlignmentCoordinate = File.Read<uint16_t>();
+			uint16_t Range = File.Read<uint16_t>();
+		}
+
+		uint8_t Reserved = (uint8_t)File.ReadUnsignedBits(6);
+		uint8_t ZoneMaskY = (uint8_t)File.ReadUnsignedBits(1);
+		uint8_t ZoneMaskX = (uint8_t)File.ReadUnsignedBits(1);
+	}
+}
+
+void SWFParser::ProcessCSMTextSettingsTag(SWFFile& File)
+{
+	uint16_t TextId = File.Read<uint16_t>();
+
+	uint8_t UseFlashType = (uint8_t)File.ReadUnsignedBits(2);
+	uint8_t GridFit = (uint8_t)File.ReadUnsignedBits(3);
+	uint8_t Reserved = (uint8_t)File.ReadUnsignedBits(3);
+
+	float Thickness = File.Read<float>();
+	float Sharpness = File.Read<float>();
+
+	Reserved = File.Read<uint8_t>();
 }
 
 void SWFParser::ProcessDefineFont3Tag(SWFFile& File)
