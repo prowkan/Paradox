@@ -4,10 +4,27 @@ struct PSInput
 	float2 TexCoord : TEXCOORD;
 };
 
-struct PSConstants
+struct PSCameraConstants
 {
+	float4x4 ViewProjMatrix;
 	float4x4 InvViewProjMatrix;
 	float3 CameraWorldPosition;
+	float NearZ, FarZ;
+};
+
+struct PSLightingConstants
+{
+	float3 MainLightDirection;
+};
+
+struct PSRenderTargetConstants
+{
+	float2 RenderTargetResolution;
+};
+
+struct PSClusteredShadingConstants
+{
+	uint3 ClustersCounts;
 };
 
 struct PointLight
@@ -18,7 +35,10 @@ struct PointLight
 	float Brightness;
 };
 
-ConstantBuffer<PSConstants> PixelShaderConstants : register(b0);
+ConstantBuffer<PSCameraConstants> PixelShaderCameraConstants : register(b0);
+ConstantBuffer<PSLightingConstants> PixelShaderLightingConstants : register(b1);
+ConstantBuffer<PSRenderTargetConstants> PixelRenderTargetConstants : register(b2);
+ConstantBuffer<PSClusteredShadingConstants> PixelShaderClusteredShadingConstants : register(b3);
 
 Texture2DMS<float4> GBufferTexture0 : register(t0);
 Texture2DMS<float4> GBufferTexture1 : register(t1);
@@ -41,10 +61,10 @@ float4 PS(PSInput PixelShaderInput, uint SampleIndex : SV_SampleIndex) : SV_Targ
 	PixelWorldPosition.z = DepthBufferTexture.Load(Coords, SampleIndex).x;
 	PixelWorldPosition.w = 1.0f;
 
-	PixelWorldPosition = mul(PixelWorldPosition, PixelShaderConstants.InvViewProjMatrix);
+	PixelWorldPosition = mul(PixelWorldPosition, PixelShaderCameraConstants.InvViewProjMatrix);
 	PixelWorldPosition /= PixelWorldPosition.w;
 
-	float3 View = normalize(PixelShaderConstants.CameraWorldPosition - PixelWorldPosition.xyz);
+	float3 View = normalize(PixelShaderCameraConstants.CameraWorldPosition - PixelWorldPosition.xyz);
 
 	float ShadowFactor = ShadowMaskTexture.Load(int3(Coords, 0));
 
@@ -54,22 +74,16 @@ float4 PS(PSInput PixelShaderInput, uint SampleIndex : SV_SampleIndex) : SV_Targ
 
 	float3 Half = normalize(Light + View);
 
-	uint ClusterCoordX = (PixelShaderInput.Position.x - 0.5f) / 1280.0f * 32.0f;
-	uint ClusterCoordY = (PixelShaderInput.Position.y - 0.5f) / 720.0f * 18.0f;
+	uint ClusterCoordX = trunc(PixelShaderInput.Position.x) / PixelRenderTargetConstants.RenderTargetResolution.x * float(PixelShaderClusteredShadingConstants.ClustersCounts.x);
+	uint ClusterCoordY = trunc(PixelShaderInput.Position.y) / PixelRenderTargetConstants.RenderTargetResolution.y * float(PixelShaderClusteredShadingConstants.ClustersCounts.y);
 
 	float Depth = DepthBufferTexture.Load(Coords, SampleIndex).x;
 
-	float Near = 1000.0f;
-	float Far = 0.01f;
+	Depth = ((PixelShaderCameraConstants.FarZ * PixelShaderCameraConstants.NearZ) / (PixelShaderCameraConstants.FarZ - PixelShaderCameraConstants.NearZ)) / ((PixelShaderCameraConstants.FarZ / (PixelShaderCameraConstants.FarZ - PixelShaderCameraConstants.NearZ)) - Depth);
 
-	float a = Far / (Far - Near);
-	float b = (Far * Near) / (Far - Near);
+	uint ClusterCoordZ = float(PixelShaderClusteredShadingConstants.ClustersCounts.z) * log2(Depth / PixelShaderCameraConstants.FarZ) / log2(PixelShaderCameraConstants.NearZ / PixelShaderCameraConstants.FarZ);
 
-	Depth = b / (a - Depth);
-
-	uint ClusterCoordZ = 24.0f * log2(Depth / Far) / log2(Near / Far);
-
-	uint ClusterCoord = ClusterCoordX + ClusterCoordY * 32 + ClusterCoordZ * 32 * 18;
+	uint ClusterCoord = ClusterCoordX + ClusterCoordY * PixelShaderClusteredShadingConstants.ClustersCounts.x + ClusterCoordZ * PixelShaderClusteredShadingConstants.ClustersCounts.x * PixelShaderClusteredShadingConstants.ClustersCounts.y;
 
 	uint2 OffsetAndCount = LightClustersBuffer.Load(ClusterCoord);
 

@@ -16,7 +16,7 @@
 
 #include <FileSystem/LevelFile.h>
 
-#include <MemoryManager/Pointer.h>
+#include <Containers/Pointer.h>
 
 DEFINE_METACLASS_VARIABLE(StaticMeshComponent)
 

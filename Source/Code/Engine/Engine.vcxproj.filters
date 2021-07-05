@@ -165,7 +165,7 @@
     <ClInclude Include="Containers\StaticReference.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MemoryManager\Pointer.h">
+    <ClInclude Include="Containers\Pointer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Platform\PlatformMemoryAllocator.h">
@@ -326,7 +326,7 @@
     <ClCompile Include="FileSystem\LevelFile.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="MemoryManager\Pointer.cpp">
+    <ClCompile Include="Containers\Pointer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Platform\PCWindows\PCWindowsPlatformMemoryAllocator.cpp">
