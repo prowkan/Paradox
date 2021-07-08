@@ -79,9 +79,21 @@ void SWFParser::ProcessTag(SWFFile& File, uint32_t TagCode, uint32_t TagLength)
 			cout << "PlaceObject2 tag." << endl;
 			ProcessPlaceObject2Tag(File);
 			break;
+		case TAG_DEFINE_SHAPE_3:
+			cout << "DefineShape3 tag." << endl;
+			ProcessDefineShape3Tag(File);
+			break;
 		case TAG_DEFINE_EDIT_TEXT:
 			cout << "DefineEditText tag." << endl;
 			ProcessDefineEditTextTag(File);
+			break;
+		case TAG_DEFINE_SPRITE:
+			cout << "DefineSprite tag." << endl;
+			ProcessDefineSpriteTag(File);
+			break;
+		case TAG_FRAME_LABEL:
+			cout << "FrameLabel tag." << endl;
+			ProcessFrameLabelTag(File);
 			break;
 		case TAG_FILE_ATTRIBUTES:
 			cout << "FileAttributes tag." << endl;
@@ -301,6 +313,17 @@ void SWFParser::ProcessDefineTextTag(SWFFile& File)
 	}
 }
 
+void SWFParser::ProcessDefineSpriteTag(SWFFile& File)
+{
+	uint16_t SpriteID = File.Read<uint16_t>();
+	uint16_t FrameCount = File.Read<uint16_t>();
+}
+
+void SWFParser::ProcessFrameLabelTag(SWFFile& File)
+{
+	File.ReadString();
+}
+
 void SWFParser::ProcessPlaceObject2Tag(SWFFile& File)
 {
 	uint8_t HasClipActions = (uint8_t)File.ReadUnsignedBits(1);
@@ -322,6 +345,110 @@ void SWFParser::ProcessPlaceObject2Tag(SWFFile& File)
 	if (HasMatrix)
 	{
 		SWFMatrix Matrix = File.ReadMatrix();
+	}
+}
+
+void SWFParser::ProcessDefineShape3Tag(SWFFile& File)
+{
+	uint16_t ShapeId = File.Read<uint16_t>();
+	SWFRect ShapeRect = File.ReadRect();
+
+	uint8_t FillStyleCount = File.Read<uint8_t>();
+
+	for (int i = 0; i < FillStyleCount; i++)
+	{
+		uint8_t FillStyleType = File.Read<uint8_t>();
+
+		if (FillStyleType == 0x00)
+		{
+			SWFRGBA Color = File.ReadRGBA();
+		}
+	}
+
+	uint8_t LineStyleCount = File.Read<uint8_t>();
+
+	for (int i = 0; i < LineStyleCount; i++)
+	{
+		float Width = File.Read<uint16_t>() / (float)SWFFile::TWIPS_IN_PIXEL;
+		SWFRGBA Color = File.ReadRGBA();
+	}
+
+	uint8_t NumFillBits = (uint8_t)File.ReadUnsignedBits(4);
+	uint8_t NumLineBits = (uint8_t)File.ReadUnsignedBits(4);
+
+	while (true)
+	{
+		uint8_t TypeFlag = (uint8_t)File.ReadUnsignedBits(1);
+
+		if (TypeFlag == 0)
+		{
+			uint8_t StateNewStyles = (uint8_t)File.ReadUnsignedBits(1);
+			uint8_t StateLineStyle = (uint8_t)File.ReadUnsignedBits(1);
+			uint8_t StateFillStyle1 = (uint8_t)File.ReadUnsignedBits(1);
+			uint8_t StateFillStyle0 = (uint8_t)File.ReadUnsignedBits(1);
+			uint8_t StateMoveTo = (uint8_t)File.ReadUnsignedBits(1);
+
+			if ((StateNewStyles == 0) && (StateLineStyle == 0) && (StateFillStyle1 == 0) && (StateFillStyle0 == 0) && (StateMoveTo == 0))
+			{
+				break;
+			}
+			else
+			{
+				if (StateMoveTo)
+				{
+					uint8_t MoveBitsCount = (uint8_t)File.ReadUnsignedBits(5);
+					int64_t MoveDeltaX = File.ReadSignedBits(MoveBitsCount) / SWFFile::TWIPS_IN_PIXEL;
+					int64_t MoveDeltaY = File.ReadSignedBits(MoveBitsCount) / SWFFile::TWIPS_IN_PIXEL;
+				}
+
+				if (StateFillStyle0)
+				{
+					uint64_t FillStyle0 = File.ReadUnsignedBits(NumFillBits);
+				}
+
+				if (StateFillStyle1)
+				{
+					uint64_t FillStyle1 = File.ReadUnsignedBits(NumFillBits);
+				}
+
+				if (StateLineStyle)
+				{
+					uint64_t LineStyle = File.ReadUnsignedBits(NumLineBits);
+				}
+			}
+		}
+		else
+		{
+			uint8_t StraightFlag = (uint8_t)File.ReadUnsignedBits(1);
+
+			if (StraightFlag)
+			{
+				uint8_t NumBits = (uint8_t)File.ReadUnsignedBits(4);
+
+				uint8_t GeneralLineFlag = (uint8_t)File.ReadUnsignedBits(1);
+				uint8_t VerticalLineFlag = 0;
+
+				if (!GeneralLineFlag)
+				{
+					//VerticalLineFlag = (uint8_t)File.ReadSignedBits(1);
+					VerticalLineFlag = (uint8_t)File.ReadUnsignedBits(1); // Согласно спецификации SWF должно быть signed, но т. к. бит один, то если он будет единичным, он будет распространен во все биты слева
+				}
+
+				if (GeneralLineFlag == 1 || VerticalLineFlag == 0)
+				{
+					int64_t DeltaX = File.ReadSignedBits(NumBits + 2) / SWFFile::TWIPS_IN_PIXEL;
+				}
+
+				if (GeneralLineFlag == 1 || VerticalLineFlag == 1)
+				{
+					int64_t DeltaY = File.ReadSignedBits(NumBits + 2) / SWFFile::TWIPS_IN_PIXEL;
+				}
+			}
+			else
+			{
+
+			}
+		}
 	}
 }
 

@@ -18,7 +18,10 @@ class SWFParser
 		static void ProcessSetBackgroundColorTag(SWFFile& File);
 		static void ProcessDefineTextTag(SWFFile& File);
 		static void ProcessPlaceObject2Tag(SWFFile& File);
+		static void ProcessDefineShape3Tag(SWFFile& File);
 		static void ProcessDefineEditTextTag(SWFFile& File);
+		static void ProcessDefineSpriteTag(SWFFile& File);
+		static void ProcessFrameLabelTag(SWFFile& File);
 		static void ProcessFileAttributesTag(SWFFile& File);
 		static void ProcessDefineFongAlignZonesTag(SWFFile& File);
 		static void ProcessCSMTextSettingsTag(SWFFile& File);
@@ -36,7 +39,13 @@ class SWFParser
 
 		static const uint32_t TAG_PLACE_OBJECT_2 = 26;
 
+		static const uint32_t TAG_DEFINE_SHAPE_3 = 32;
+
 		static const uint32_t TAG_DEFINE_EDIT_TEXT = 37;
+
+		static const uint32_t TAG_DEFINE_SPRITE = 39;
+
+		static const uint32_t TAG_FRAME_LABEL = 43;
 
 		static const uint32_t TAG_FILE_ATTRIBUTES = 69;
 

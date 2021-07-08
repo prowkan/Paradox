@@ -13,7 +13,7 @@ void Engine::InitEngine()
 	SystemMemoryAllocator::InitAllocator();
 
 	SWFFile File;
-	File.Open(u"GameContent/UI/Test_1.swf");
+	File.Open(u"GameContent/UI/UI_MainMenu.swf");
 	SWFParser::ParseFile(File);
 	File.Close();
 
