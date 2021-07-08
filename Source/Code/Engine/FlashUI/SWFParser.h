@@ -26,6 +26,7 @@ class SWFParser
 		static void ProcessDefineFongAlignZonesTag(SWFFile& File);
 		static void ProcessCSMTextSettingsTag(SWFFile& File);
 		static void ProcessDefineFont3Tag(SWFFile& File);
+		static void ProcessSymbolClassTag(SWFFile& File);
 		static void ProcessDefineSceneAndFrameLabelDataTag(SWFFile& File);
 		static void ProcessDefineFontNameTag(SWFFile& File);
 
@@ -52,6 +53,7 @@ class SWFParser
 		static const uint32_t TAG_DEFINE_FONT_ALIGN_ZONES = 73;
 		static const uint32_t TAG_CSM_TEXT_SETTINGS = 74;
 		static const uint32_t TAG_DEFINE_FONT_3 = 75;
+		static const uint32_t TAG_SYMBOL_CLASS = 76;
 
 		static const uint32_t TAG_DEFINE_SCENE_AND_FRAME_LABEL_DATA = 86;
 

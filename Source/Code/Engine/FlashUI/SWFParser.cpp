@@ -111,6 +111,10 @@ void SWFParser::ProcessTag(SWFFile& File, uint32_t TagCode, uint32_t TagLength)
 			cout << "DefineFont3 tag." << endl;
 			ProcessDefineFont3Tag(File);
 			break;
+		case TAG_SYMBOL_CLASS:
+			cout << "SymbolClass tag." << endl;
+			ProcessSymbolClassTag(File);
+			break;
 		case TAG_DEFINE_SCENE_AND_FRAME_LABEL_DATA:
 			cout << "DefineSceneAndFrameLabelData tag." << endl;
 			ProcessDefineSceneAndFrameLabelDataTag(File);
@@ -751,6 +755,18 @@ void SWFParser::ProcessDefineFont3Tag(SWFFile& File)
 
 			int16_t KerningAdjustment = File.Read<int16_t>();
 		}
+	}
+}
+
+void SWFParser::ProcessSymbolClassTag(SWFFile& File)
+{
+	uint16_t NumSymbols = File.Read<uint16_t>();
+
+	for (uint16_t i = 0; i < NumSymbols; i++)
+	{
+		uint16_t Tag = File.Read<uint16_t>();
+
+		File.ReadString();
 	}
 }
 
