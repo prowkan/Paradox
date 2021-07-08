@@ -115,6 +115,11 @@ void SWFParser::ProcessTag(SWFFile& File, uint32_t TagCode, uint32_t TagLength)
 			cout << "SymbolClass tag." << endl;
 			ProcessSymbolClassTag(File);
 			break;
+		case TAG_DO_ABC:
+			cout << "DoABC tag." << endl;
+			ProcessDoABCTag(File);
+			File.SkipBytes(TagLength - 5);
+			break;
 		case TAG_DEFINE_SCENE_AND_FRAME_LABEL_DATA:
 			cout << "DefineSceneAndFrameLabelData tag." << endl;
 			ProcessDefineSceneAndFrameLabelDataTag(File);
@@ -768,6 +773,13 @@ void SWFParser::ProcessSymbolClassTag(SWFFile& File)
 
 		File.ReadString();
 	}
+}
+
+void SWFParser::ProcessDoABCTag(SWFFile& File)
+{
+	uint32_t Flags = File.Read<uint32_t>();
+
+	File.ReadString();
 }
 
 void SWFParser::ProcessDefineSceneAndFrameLabelDataTag(SWFFile& File)
