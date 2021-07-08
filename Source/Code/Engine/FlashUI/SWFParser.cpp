@@ -412,7 +412,7 @@ void SWFParser::ProcessDefineFongAlignZonesTag(SWFFile& File)
 	uint8_t CSMTableHint = (uint8_t)File.ReadUnsignedBits(2);
 	uint8_t Reserved = (uint8_t)File.ReadUnsignedBits(6);
 
-	for (uint16_t i = 0; i < 409; i++)
+	for (uint16_t i = 0; i < 8; i++)
 	{
 		uint8_t NumZoneData = File.Read<uint8_t>();
 
@@ -500,6 +500,7 @@ void SWFParser::ProcessDefineFont3Tag(SWFFile& File)
 		uint8_t NumFillBits = (uint8_t)File.ReadUnsignedBits(4);
 		uint8_t NumLineBits = (uint8_t)File.ReadUnsignedBits(4);
 
+
 		while (true)
 		{
 			uint8_t TypeFlag = (uint8_t)File.ReadUnsignedBits(1);
@@ -558,26 +559,31 @@ void SWFParser::ProcessDefineFont3Tag(SWFFile& File)
 						VerticalLineFlag = (uint8_t)File.ReadUnsignedBits(1); // Согласно спецификации SWF должно быть signed, но т. к. бит один, то если он будет единичным, он будет распространен во все биты слева
 					}
 
+					int64_t DeltaX = 0;
+					int64_t DeltaY = 0;
+
 					if (GeneralLineFlag == 1 || VerticalLineFlag == 0)
 					{
-						int64_t DeltaX = File.ReadSignedBits(NumBits + 2) / SWFFile::TWIPS_IN_PIXEL;
+						DeltaX = File.ReadSignedBits(NumBits + 2) / SWFFile::TWIPS_IN_PIXEL;
 					}
 
 					if (GeneralLineFlag == 1 || VerticalLineFlag == 1)
 					{
-						int64_t DeltaY = File.ReadSignedBits(NumBits + 2) / SWFFile::TWIPS_IN_PIXEL;
+						DeltaY = File.ReadSignedBits(NumBits + 2) / SWFFile::TWIPS_IN_PIXEL;
 					}
 				}
 				else
 				{
 					uint8_t NumBits = (uint8_t)File.ReadUnsignedBits(4);
-					int64_t ControlDeltaX = File.ReadSignedBits(NumBits + 2);
-					int64_t ControlDeltaY = File.ReadSignedBits(NumBits + 2);
-					int64_t AnchorDeltaX = File.ReadSignedBits(NumBits + 2);
-					int64_t AnchorDeltaY = File.ReadSignedBits(NumBits + 2);
+					int64_t ControlDeltaX = File.ReadSignedBits(NumBits + 2) / SWFFile::TWIPS_IN_PIXEL;
+					int64_t ControlDeltaY = File.ReadSignedBits(NumBits + 2) / SWFFile::TWIPS_IN_PIXEL;
+					int64_t AnchorDeltaX = File.ReadSignedBits(NumBits + 2) / SWFFile::TWIPS_IN_PIXEL;
+					int64_t AnchorDeltaY = File.ReadSignedBits(NumBits + 2) / SWFFile::TWIPS_IN_PIXEL;
 				}
 			}
 		}
+
+		char Zero = 0;
 	}
 
 	for (int i = 0; i < NumGliphs; i++)
