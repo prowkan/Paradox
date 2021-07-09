@@ -5,6 +5,7 @@
 
 #include <FlashUI/SWFFile.h>
 #include <FlashUI/SWFParser.h>
+#include <FlashUI/ActionScriptVM.h>
 
 StaticReference<Engine> Engine::engine;
 
@@ -15,6 +16,7 @@ void Engine::InitEngine()
 	SWFFile File;
 	File.Open(u"GameContent/UI/UI_MainMenu.swf");
 	SWFParser::ParseFile(File);
+	ActionScriptVM::ParseASByteCode(File.GetData() + 638, 635);
 	File.Close();
 
 	memoryManager.CreateInstance();

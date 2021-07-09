@@ -183,6 +183,9 @@
     <ClInclude Include="Platform\PlatformThread.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="FlashUI\ActionScriptVM.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="StdAfx.cpp">
@@ -336,6 +339,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Platform\PCWindows\PCWindowsPlatformThread.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FlashUI\ActionScriptVM.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

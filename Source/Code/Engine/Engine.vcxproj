@@ -211,6 +211,7 @@
     <ClInclude Include="Containers\Delegate.h" />
     <ClInclude Include="Core\Application.h" />
     <ClInclude Include="Engine\Engine.h" />
+    <ClInclude Include="FlashUI\ActionScriptVM.h" />
     <ClInclude Include="FlashUI\SWFFile.h" />
     <ClInclude Include="FlashUI\SWFParser.h" />
     <ClInclude Include="FileSystem\FileSystem.h" />
@@ -265,6 +266,7 @@
     <ClCompile Include="Containers\String.cpp" />
     <ClCompile Include="Core\Application.cpp" />
     <ClCompile Include="Engine\Engine.cpp" />
+    <ClCompile Include="FlashUI\ActionScriptVM.cpp" />
     <ClCompile Include="FlashUI\SWFFile.cpp" />
     <ClCompile Include="FlashUI\SWFParser.cpp" />
     <ClCompile Include="FileSystem\FileSystem.cpp" />

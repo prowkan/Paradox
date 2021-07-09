@@ -49,6 +49,8 @@ class SWFFile
 
 		bool IsEndOfFile() { return CurrentByte == SWFFileSize; }
 
+		BYTE* GetData() { return SWFFileData; }
+
 		static const uint32_t TWIPS_IN_PIXEL = 20;
 		static const uint32_t BITS_PER_RECT_COORD = 5;
 
