@@ -3375,19 +3375,19 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 				D3D12_VERTEX_BUFFER_VIEW VertexBufferViews[3];
 				VertexBufferViews[0].BufferLocation = renderMesh->VertexBufferAddresses[0];
-				VertexBufferViews[0].SizeInBytes = sizeof(XMFLOAT3) * 9 * 9 * 6;
+				VertexBufferViews[0].SizeInBytes = sizeof(XMFLOAT3) * staticMeshComponent->GetStaticMesh()->GetVertexCount() * 6;
 				VertexBufferViews[0].StrideInBytes = sizeof(XMFLOAT3);
 				VertexBufferViews[1].BufferLocation = renderMesh->VertexBufferAddresses[1];
-				VertexBufferViews[1].SizeInBytes = sizeof(XMFLOAT2) * 9 * 9 * 6;
+				VertexBufferViews[1].SizeInBytes = sizeof(XMFLOAT2) * staticMeshComponent->GetStaticMesh()->GetVertexCount() * 6;
 				VertexBufferViews[1].StrideInBytes = sizeof(XMFLOAT2);
 				VertexBufferViews[2].BufferLocation = renderMesh->VertexBufferAddresses[2];
-				VertexBufferViews[2].SizeInBytes = 3 * sizeof(XMFLOAT3) * 9 * 9 * 6;
+				VertexBufferViews[2].SizeInBytes = 3 * sizeof(XMFLOAT3) * staticMeshComponent->GetStaticMesh()->GetVertexCount() * 6;
 				VertexBufferViews[2].StrideInBytes = 3 * sizeof(XMFLOAT3);
 
 				D3D12_INDEX_BUFFER_VIEW IndexBufferView;
 				IndexBufferView.BufferLocation = renderMesh->IndexBufferAddress;
 				IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
-				IndexBufferView.SizeInBytes = sizeof(WORD) * 8 * 8 * 6 * 6;
+				IndexBufferView.SizeInBytes = sizeof(WORD) * staticMeshComponent->GetStaticMesh()->GetIndexCount() * 6 * 6;
 
 				GraphicsCommandList->IASetVertexBuffers(0, 3, VertexBufferViews);
 				GraphicsCommandList->IASetIndexBuffer(&IndexBufferView);
@@ -3397,7 +3397,28 @@ void RenderSystem::TickSystem(float DeltaTime)
 				GraphicsCommandList->SetGraphicsRootDescriptorTable(VERTEX_SHADER_CONSTANT_BUFFERS, VertexShaderResourcesTable);
 				GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
 
-				GraphicsCommandList->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
+				XMFLOAT3 ObjectLocation = staticMeshComponent->GetTransformComponent()->GetLocation();
+
+				float Distance = sqrtf(powf(ObjectLocation.x - CameraLocation.x, 2.0f) + powf(ObjectLocation.y - CameraLocation.y, 2.0f) + powf(ObjectLocation.z - CameraLocation.z, 2.0f));
+
+				UINT LODIndex;
+
+				if (Distance < 20.0f)
+					LODIndex = 0;
+				else if (Distance < 50.0f)
+					LODIndex = 1;
+				else if (Distance < 100.0f)
+					LODIndex = 2;
+				else if (Distance < 250.0f)
+					LODIndex = 3;
+				else
+					LODIndex = 4;
+
+				UINT IndexCount = staticMeshComponent->GetStaticMesh()->GetIndexCount(LODIndex);
+				UINT VertexOffset = staticMeshComponent->GetStaticMesh()->GetVertexOffset(LODIndex);
+				UINT IndexOffset = staticMeshComponent->GetStaticMesh()->GetIndexOffset(LODIndex);
+
+				GraphicsCommandList->DrawIndexedInstanced(IndexCount, 1, IndexOffset, VertexOffset, 0);
 			}
 		}
 	}
@@ -3636,13 +3657,13 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 					D3D12_VERTEX_BUFFER_VIEW VertexBufferView;
 					VertexBufferView.BufferLocation = renderMesh->VertexBufferAddresses[0];
-					VertexBufferView.SizeInBytes = sizeof(XMFLOAT3) * 9 * 9 * 6;
+					VertexBufferView.SizeInBytes = sizeof(XMFLOAT3) * staticMeshComponent->GetStaticMesh()->GetVertexCount() * 6;
 					VertexBufferView.StrideInBytes = sizeof(XMFLOAT3);
 
 					D3D12_INDEX_BUFFER_VIEW IndexBufferView;
 					IndexBufferView.BufferLocation = renderMesh->IndexBufferAddress;
 					IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
-					IndexBufferView.SizeInBytes = sizeof(WORD) * 8 * 8 * 6 * 6;
+					IndexBufferView.SizeInBytes = sizeof(WORD) * staticMeshComponent->GetStaticMesh()->GetIndexCount() * 6 * 6;
 
 					GraphicsCommandList->IASetVertexBuffers(0, 1, &VertexBufferView);
 					GraphicsCommandList->IASetIndexBuffer(&IndexBufferView);
@@ -3651,7 +3672,28 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 					GraphicsCommandList->SetGraphicsRootDescriptorTable(VERTEX_SHADER_CONSTANT_BUFFERS, VertexShaderResourcesTable);
 
-					GraphicsCommandList->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
+					XMFLOAT3 ObjectLocation = staticMeshComponent->GetTransformComponent()->GetLocation();
+
+					float Distance = sqrtf(powf(ObjectLocation.x - CameraLocation.x, 2.0f) + powf(ObjectLocation.y - CameraLocation.y, 2.0f) + powf(ObjectLocation.z - CameraLocation.z, 2.0f));
+
+					UINT LODIndex;
+
+					if (Distance < 20.0f)
+						LODIndex = 0;
+					else if (Distance < 50.0f)
+						LODIndex = 1;
+					else if (Distance < 100.0f)
+						LODIndex = 2;
+					else if (Distance < 250.0f)
+						LODIndex = 3;
+					else
+						LODIndex = 4;
+
+					UINT IndexCount = staticMeshComponent->GetStaticMesh()->GetIndexCount(LODIndex);
+					UINT VertexOffset = staticMeshComponent->GetStaticMesh()->GetVertexOffset(LODIndex);
+					UINT IndexOffset = staticMeshComponent->GetStaticMesh()->GetIndexOffset(LODIndex);
+
+					GraphicsCommandList->DrawIndexedInstanced(IndexCount, 1, IndexOffset, VertexOffset, 0);
 				}
 			}
 		}
