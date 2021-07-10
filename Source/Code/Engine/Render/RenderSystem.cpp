@@ -3346,7 +3346,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		TextureSamplerTable.SetSampler(0, TextureSampler);
 		TextureSamplerTable.UpdateTable(Device);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(5, TextureSamplerTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SAMPLERS, TextureSamplerTable);
 		
 		{
 			OPTICK_EVENT("Main Camera Draw Calls")
@@ -3394,8 +3394,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 				GraphicsCommandList->SetPipelineState(renderMaterial->GBufferOpaquePassPipelineState);
 
-				GraphicsCommandList->SetGraphicsRootDescriptorTable(0, VertexShaderResourcesTable);
-				GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderResourcesTable);
+				GraphicsCommandList->SetGraphicsRootDescriptorTable(VERTEX_SHADER_CONSTANT_BUFFERS, VertexShaderResourcesTable);
+				GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
 
 				GraphicsCommandList->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
 			}
@@ -3458,7 +3458,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		MinSamplerTable.SetSampler(0, MinSampler);
 		MinSamplerTable.UpdateTable(Device);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(5, MinSamplerTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SAMPLERS, MinSamplerTable);
 
 		DescriptorTable ShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(1);
 		ShaderResourcesTable.SetTexture(0, ResolvedDepthBufferTextureSRV);
@@ -3466,7 +3466,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->SetPipelineState(OcclusionBufferPipelineState);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, ShaderResourcesTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, ShaderResourcesTable);
 
 		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 
@@ -3649,7 +3649,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 					GraphicsCommandList->SetPipelineState(renderMaterial->ShadowMapPassPipelineState);
 
-					GraphicsCommandList->SetGraphicsRootDescriptorTable(0, VertexShaderResourcesTable);
+					GraphicsCommandList->SetGraphicsRootDescriptorTable(VERTEX_SHADER_CONSTANT_BUFFERS, VertexShaderResourcesTable);
 
 					GraphicsCommandList->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
 				}
@@ -3732,7 +3732,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		MinSamplerTable.SetSampler(0, ShadowMapSampler);
 		MinSamplerTable.UpdateTable(Device);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(5, MinSamplerTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SAMPLERS, MinSamplerTable);
 		
 		DescriptorTable PixelShaderConstantBuffersTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(1);
 		DescriptorTable PixelShaderShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(5);
@@ -3749,8 +3749,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->SetPipelineState(ShadowResolvePipelineState);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(3, PixelShaderConstantBuffersTable);
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderShaderResourcesTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_CONSTANT_BUFFERS, PixelShaderConstantBuffersTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderShaderResourcesTable);
 
 		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 	}
@@ -3911,8 +3911,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->SetPipelineState(DeferredLightingPipelineState);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(3, PixelShaderConstantBuffersTable);
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderShaderResourcesTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_CONSTANT_BUFFERS, PixelShaderConstantBuffersTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderShaderResourcesTable);
 
 		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 	}
@@ -3998,7 +3998,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->SetPipelineState(FogPipelineState);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, FogPixelShaderResourcesTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, FogPixelShaderResourcesTable);
 
 		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 
@@ -4030,7 +4030,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		TextureSamplerTable.SetSampler(0, TextureSampler);
 		TextureSamplerTable.UpdateTable(Device);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(5, TextureSamplerTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SAMPLERS, TextureSamplerTable);
 		
 		DescriptorTable VertexShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(1);
 		DescriptorTable PixelShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(1);
@@ -4057,8 +4057,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->SetPipelineState(SkyPipelineState);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(0, VertexShaderResourcesTable);
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderResourcesTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(VERTEX_SHADER_CONSTANT_BUFFERS, VertexShaderResourcesTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
 
 		GraphicsCommandList->DrawIndexedInstanced(300 + 24 * 600 + 300, 1, 0, 0, 0);
 
@@ -4085,8 +4085,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->SetPipelineState(SunPipelineState);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(0, VertexShaderResourcesTable);
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderResourcesTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(VERTEX_SHADER_CONSTANT_BUFFERS, VertexShaderResourcesTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
 
 		GraphicsCommandList->DrawIndexedInstanced(6, 1, 0, 0, 0);
 	}
@@ -4142,7 +4142,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->SetPipelineState(LuminanceCalcPipelineState);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderResourcesTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
 
 		GraphicsCommandList->DiscardResource(SceneLuminanceTextures[0]->DXTexture, nullptr);
 
@@ -4187,7 +4187,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			GraphicsCommandList->SetPipelineState(LuminanceSumPipelineState);
 
-			GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderResourcesTable);
+			GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
 
 			GraphicsCommandList->DiscardResource(SceneLuminanceTextures[i]->DXTexture, nullptr);
 
@@ -4224,7 +4224,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->SetPipelineState(LuminanceAvgPipelineState);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderResourcesTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
 
 		GraphicsCommandList->DiscardResource(AverageLuminanceTexture->DXTexture, nullptr);
 
@@ -4270,7 +4270,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->SetPipelineState(BrightPassPipelineState);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderResourcesTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
 
 		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 
@@ -4307,7 +4307,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->SetPipelineState(HorizontalBlurPipelineState);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderResourcesTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
 
 		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 
@@ -4344,7 +4344,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->SetPipelineState(VerticalBlurPipelineState);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderResourcesTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
 
 		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 
@@ -4382,7 +4382,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			GraphicsCommandList->SetPipelineState(DownSamplePipelineState);
 
-			GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderResourcesTable);
+			GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
 
 			GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 
@@ -4419,7 +4419,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			GraphicsCommandList->SetPipelineState(HorizontalBlurPipelineState);
 
-			GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderResourcesTable);
+			GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
 
 			GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 
@@ -4456,7 +4456,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			GraphicsCommandList->SetPipelineState(VerticalBlurPipelineState);
 
-			GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderResourcesTable);
+			GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
 
 			GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 		}
@@ -4493,7 +4493,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			GraphicsCommandList->SetPipelineState(UpSampleWithAddBlendPipelineState);
 
-			GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderResourcesTable);
+			GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
 
 			GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 		}
@@ -4540,7 +4540,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->SetPipelineState(HDRToneMappingPipelineState);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderResourcesTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
 
 		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 	}
@@ -4661,7 +4661,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 			ShaderResourcesTable.SetTexture(0, ConstantBufferCBVs3[k]);
 			ShaderResourcesTable.UpdateTable(Device);
 
-			GraphicsCommandList->SetGraphicsRootDescriptorTable(0, ShaderResourcesTable);
+			GraphicsCommandList->SetGraphicsRootDescriptorTable(VERTEX_SHADER_CONSTANT_BUFFERS, ShaderResourcesTable);
 
 			GraphicsCommandList->DrawIndexedInstanced(24, 1, 0, 0, 0);
 		}
@@ -4728,7 +4728,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->SetPipelineState(DebugDrawOcclusionBufferPipelineState);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, ShaderResourcesTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, ShaderResourcesTable);
 
 		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 	}
