@@ -3435,7 +3435,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		COMRCPtr<ID3D12GraphicsCommandList1> GraphicsCommandList1;
 
-		GraphicsCommandList->QueryInterface<ID3D12GraphicsCommandList1>(&GraphicsCommandList1);
+		SAFE_DX(GraphicsCommandList->QueryInterface<ID3D12GraphicsCommandList1>(&GraphicsCommandList1));
 
 		GraphicsCommandList1->ResolveSubresourceRegion(ResolvedDepthBufferTexture->DXTexture, 0, 0, 0, DepthBufferTexture->DXTexture, 0, nullptr, DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT_S8X24_UINT, D3D12_RESOLVE_MODE::D3D12_RESOLVE_MODE_MAX);
 	}
