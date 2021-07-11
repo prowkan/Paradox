@@ -3375,19 +3375,19 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 				D3D12_VERTEX_BUFFER_VIEW VertexBufferViews[3];
 				VertexBufferViews[0].BufferLocation = renderMesh->VertexBufferAddresses[0];
-				VertexBufferViews[0].SizeInBytes = sizeof(XMFLOAT3) * staticMeshComponent->GetStaticMesh()->GetVertexCount() * 6;
+				VertexBufferViews[0].SizeInBytes = sizeof(XMFLOAT3) * staticMeshComponent->GetStaticMesh()->GetVertexCount();
 				VertexBufferViews[0].StrideInBytes = sizeof(XMFLOAT3);
 				VertexBufferViews[1].BufferLocation = renderMesh->VertexBufferAddresses[1];
-				VertexBufferViews[1].SizeInBytes = sizeof(XMFLOAT2) * staticMeshComponent->GetStaticMesh()->GetVertexCount() * 6;
+				VertexBufferViews[1].SizeInBytes = sizeof(XMFLOAT2) * staticMeshComponent->GetStaticMesh()->GetVertexCount();
 				VertexBufferViews[1].StrideInBytes = sizeof(XMFLOAT2);
 				VertexBufferViews[2].BufferLocation = renderMesh->VertexBufferAddresses[2];
-				VertexBufferViews[2].SizeInBytes = 3 * sizeof(XMFLOAT3) * staticMeshComponent->GetStaticMesh()->GetVertexCount() * 6;
+				VertexBufferViews[2].SizeInBytes = 3 * sizeof(XMFLOAT3) * staticMeshComponent->GetStaticMesh()->GetVertexCount();
 				VertexBufferViews[2].StrideInBytes = 3 * sizeof(XMFLOAT3);
 
 				D3D12_INDEX_BUFFER_VIEW IndexBufferView;
 				IndexBufferView.BufferLocation = renderMesh->IndexBufferAddress;
 				IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
-				IndexBufferView.SizeInBytes = sizeof(WORD) * staticMeshComponent->GetStaticMesh()->GetIndexCount() * 6 * 6;
+				IndexBufferView.SizeInBytes = sizeof(WORD) * staticMeshComponent->GetStaticMesh()->GetIndexCount();
 
 				GraphicsCommandList->IASetVertexBuffers(0, 3, VertexBufferViews);
 				GraphicsCommandList->IASetIndexBuffer(&IndexBufferView);
@@ -3657,13 +3657,13 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 					D3D12_VERTEX_BUFFER_VIEW VertexBufferView;
 					VertexBufferView.BufferLocation = renderMesh->VertexBufferAddresses[0];
-					VertexBufferView.SizeInBytes = sizeof(XMFLOAT3) * staticMeshComponent->GetStaticMesh()->GetVertexCount() * 6;
+					VertexBufferView.SizeInBytes = sizeof(XMFLOAT3) * staticMeshComponent->GetStaticMesh()->GetVertexCount();
 					VertexBufferView.StrideInBytes = sizeof(XMFLOAT3);
 
 					D3D12_INDEX_BUFFER_VIEW IndexBufferView;
 					IndexBufferView.BufferLocation = renderMesh->IndexBufferAddress;
 					IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
-					IndexBufferView.SizeInBytes = sizeof(WORD) * staticMeshComponent->GetStaticMesh()->GetIndexCount() * 6 * 6;
+					IndexBufferView.SizeInBytes = sizeof(WORD) * staticMeshComponent->GetStaticMesh()->GetIndexCount();
 
 					GraphicsCommandList->IASetVertexBuffers(0, 1, &VertexBufferView);
 					GraphicsCommandList->IASetIndexBuffer(&IndexBufferView);
