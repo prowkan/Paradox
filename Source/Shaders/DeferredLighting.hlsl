@@ -42,11 +42,12 @@ ConstantBuffer<PSClusteredShadingConstants> PixelShaderClusteredShadingConstants
 
 Texture2DMS<float4> GBufferTexture0 : register(t0);
 Texture2DMS<float4> GBufferTexture1 : register(t1);
-Texture2DMS<float> DepthBufferTexture : register(t2);
-Texture2D<float> ShadowMaskTexture : register(t3);
-Buffer<uint2> LightClustersBuffer : register(t4);
-Buffer<uint> LightIndicesBuffer : register(t5);
-StructuredBuffer<PointLight> PointLightsBuffer : register(t6);
+Texture2DMS<float4> GBufferTexture2 : register(t2);
+Texture2DMS<float> DepthBufferTexture : register(t3);
+Texture2D<float> ShadowMaskTexture : register(t4);
+Buffer<uint2> LightClustersBuffer : register(t5);
+Buffer<uint> LightIndicesBuffer : register(t6);
+StructuredBuffer<PointLight> PointLightsBuffer : register(t7);
 
 float4 PS(PSInput PixelShaderInput, uint SampleIndex : SV_SampleIndex) : SV_Target
 {

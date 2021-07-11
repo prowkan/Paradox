@@ -249,7 +249,7 @@ void RenderSystem::InitSystem()
 
 	CopySyncEvent = CreateEvent(NULL, FALSE, FALSE, (const wchar_t*)u"CopySyncEvent");
 
-	RTDescriptorHeap = Pointer<DescriptorHeap>::Create(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 42, Device, u"Render Targets Descriptor Heap");
+	RTDescriptorHeap = Pointer<DescriptorHeap>::Create(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 43, Device, u"Render Targets Descriptor Heap");
 	DSDescriptorHeap = Pointer<DescriptorHeap>::Create(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 5, Device, u"Depth-Stencils Descriptor Heap");
 	CBSRUADescriptorHeap = Pointer<DescriptorHeap>::Create(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 63, Device, u"Constant Buffer/Shader Resource/Unordered Access Views Descriptor Heap");
 	SamplersDescriptorHeap = Pointer<DescriptorHeap>::Create(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 4, Device, u"Samplers Descriptor Heap");
@@ -270,7 +270,7 @@ void RenderSystem::InitSystem()
 	DescriptorRanges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE::D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	DescriptorRanges[0].RegisterSpace = 0;
 	DescriptorRanges[1].BaseShaderRegister = 0;
-	DescriptorRanges[1].NumDescriptors = 7;
+	DescriptorRanges[1].NumDescriptors = 8;
 	DescriptorRanges[1].OffsetInDescriptorsFromTableStart = 0;
 	DescriptorRanges[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE::D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	DescriptorRanges[1].RegisterSpace = 0;
@@ -601,6 +601,20 @@ void RenderSystem::InitSystem()
 		GBufferTexture1ResourceDesc.SampleDesc.Quality = 0;
 		GBufferTexture1ResourceDesc.Width = ResolutionWidth;
 
+		D3D12_RESOURCE_DESC GBufferTexture2ResourceDesc;
+		ZeroMemory(&GBufferTexture2ResourceDesc, sizeof(D3D12_RESOURCE_DESC));
+		GBufferTexture2ResourceDesc.Alignment = 0;
+		GBufferTexture2ResourceDesc.DepthOrArraySize = 1;
+		GBufferTexture2ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+		GBufferTexture2ResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+		GBufferTexture2ResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
+		GBufferTexture2ResourceDesc.Height = ResolutionHeight;
+		GBufferTexture2ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_UNKNOWN;
+		GBufferTexture2ResourceDesc.MipLevels = 1;
+		GBufferTexture2ResourceDesc.SampleDesc.Count = 8;
+		GBufferTexture2ResourceDesc.SampleDesc.Quality = 0;
+		GBufferTexture2ResourceDesc.Width = ResolutionWidth;
+
 		D3D12_RESOURCE_DESC DepthBufferTextureResourceDesc;
 		ZeroMemory(&DepthBufferTextureResourceDesc, sizeof(D3D12_RESOURCE_DESC));
 		DepthBufferTextureResourceDesc.Alignment = 0;
@@ -641,6 +655,7 @@ void RenderSystem::InitSystem()
 
 		SIZE_T GBufferTexture0Offset = GetOffsetForResource(GBufferTexture0ResourceDesc, HeapDesc);
 		SIZE_T GBufferTexture1Offset = GetOffsetForResource(GBufferTexture1ResourceDesc, HeapDesc);
+		SIZE_T GBufferTexture2Offset = GetOffsetForResource(GBufferTexture2ResourceDesc, HeapDesc);
 		SIZE_T DepthBufferTextureOffset = GetOffsetForResource(DepthBufferTextureResourceDesc, HeapDesc);
 		SIZE_T GPUConstantBufferOffset = GetOffsetForResource(GBufferOpaquePassConstantBufferResourceDesc, HeapDesc);
 
@@ -660,6 +675,10 @@ void RenderSystem::InitSystem()
 		ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_R10G10B10A2_UNORM;
 
 		GBufferTextures[1] = CreateTexture(GPUMemory1, GBufferTexture1Offset, &GBufferTexture1ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue, u"G-Buffer Texture 1");
+
+		ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
+
+		GBufferTextures[2] = CreateTexture(GPUMemory1, GBufferTexture2Offset, &GBufferTexture2ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue, u"G-Buffer Texture 2");
 
 		ClearValue.DepthStencil.Depth = 0.0f;
 		ClearValue.DepthStencil.Stencil = 0;
@@ -692,6 +711,7 @@ void RenderSystem::InitSystem()
 
 		GBufferTexturesRTVs[0] = RTDescriptorHeap->AllocateDescriptor();
 		GBufferTexturesRTVs[1] = RTDescriptorHeap->AllocateDescriptor();
+		GBufferTexturesRTVs[2] = RTDescriptorHeap->AllocateDescriptor();
 
 		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 		Device->CreateRenderTargetView(GBufferTextures[0]->DXTexture, &RTVDesc, GBufferTexturesRTVs[0]);
@@ -699,18 +719,25 @@ void RenderSystem::InitSystem()
 		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R10G10B10A2_UNORM;
 		Device->CreateRenderTargetView(GBufferTextures[1]->DXTexture, &RTVDesc, GBufferTexturesRTVs[1]);
 
+		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
+		Device->CreateRenderTargetView(GBufferTextures[2]->DXTexture, &RTVDesc, GBufferTexturesRTVs[2]);
+
 		D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
 		SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2DMS;
 
 		GBufferTexturesSRVs[0] = CBSRUADescriptorHeap->AllocateDescriptor();
 		GBufferTexturesSRVs[1] = CBSRUADescriptorHeap->AllocateDescriptor();
+		GBufferTexturesSRVs[2] = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 		Device->CreateShaderResourceView(GBufferTextures[0]->DXTexture, &SRVDesc, GBufferTexturesSRVs[0]);
 
 		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R10G10B10A2_UNORM;
 		Device->CreateShaderResourceView(GBufferTextures[1]->DXTexture, &SRVDesc, GBufferTexturesSRVs[1]);
+
+		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
+		Device->CreateShaderResourceView(GBufferTextures[2]->DXTexture, &SRVDesc, GBufferTexturesSRVs[2]);
 
 		D3D12_DEPTH_STENCIL_VIEW_DESC DSVDesc;
 		DSVDesc.Flags = D3D12_DSV_FLAGS::D3D12_DSV_FLAG_NONE;
@@ -3193,6 +3220,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	SetTextureState(GBufferTextures[0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 	SetTextureState(GBufferTextures[1], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
+	SetTextureState(GBufferTextures[2], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	// ===============================================================================================================
 
@@ -3316,7 +3344,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-		GraphicsCommandList->OMSetRenderTargets(2, GBufferTexturesRTVs, TRUE, &DepthBufferTextureDSV);
+		GraphicsCommandList->OMSetRenderTargets(3, GBufferTexturesRTVs, TRUE, &DepthBufferTextureDSV);
 
 		D3D12_VIEWPORT Viewport;
 		Viewport.Height = float(ResolutionHeight);
@@ -3340,6 +3368,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->ClearRenderTargetView(GBufferTexturesRTVs[0], ClearColor, 0, nullptr);
 		GraphicsCommandList->ClearRenderTargetView(GBufferTexturesRTVs[1], ClearColor, 0, nullptr);
+		GraphicsCommandList->ClearRenderTargetView(GBufferTexturesRTVs[2], ClearColor, 0, nullptr);
 		GraphicsCommandList->ClearDepthStencilView(DepthBufferTextureDSV, D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_STENCIL, 0.0f, 0, 0, nullptr);
 
 		DescriptorTable TextureSamplerTable = FrameSamplersDescriptorHeap.AllocateDescriptorTable(1);
@@ -3801,6 +3830,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	SetTextureState(GBufferTextures[0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	SetTextureState(GBufferTextures[1], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	SetTextureState(GBufferTextures[2], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	SetTextureState(ShadowMaskTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	SetTextureState(HDRSceneColorTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
@@ -3934,7 +3964,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		GraphicsCommandList->DiscardResource(HDRSceneColorTexture->DXTexture, nullptr);
 
 		DescriptorTable PixelShaderConstantBuffersTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(4);
-		DescriptorTable PixelShaderShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(7);
+		DescriptorTable PixelShaderShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(8);
 
 		PixelShaderConstantBuffersTable.SetConstantBuffer(0, CameraConstantBufferCBV);
 		PixelShaderConstantBuffersTable.SetConstantBuffer(1, LightingConstantBufferCBV);
@@ -3942,11 +3972,12 @@ void RenderSystem::TickSystem(float DeltaTime)
 		PixelShaderConstantBuffersTable.SetConstantBuffer(3, ClusteredShadingConstantBufferCBV);
 		PixelShaderShaderResourcesTable.SetTexture(0, GBufferTexturesSRVs[0]);
 		PixelShaderShaderResourcesTable.SetTexture(1, GBufferTexturesSRVs[1]);
-		PixelShaderShaderResourcesTable.SetTexture(2, DepthBufferTextureSRV);
-		PixelShaderShaderResourcesTable.SetTexture(3, ShadowMaskTextureSRV);
-		PixelShaderShaderResourcesTable.SetTexture(4, LightClustersBufferSRV);
-		PixelShaderShaderResourcesTable.SetTexture(5, LightIndicesBufferSRV);
-		PixelShaderShaderResourcesTable.SetTexture(6, PointLightsBufferSRV);
+		PixelShaderShaderResourcesTable.SetTexture(2, GBufferTexturesSRVs[2]);
+		PixelShaderShaderResourcesTable.SetTexture(3, DepthBufferTextureSRV);
+		PixelShaderShaderResourcesTable.SetTexture(4, ShadowMaskTextureSRV);
+		PixelShaderShaderResourcesTable.SetTexture(5, LightClustersBufferSRV);
+		PixelShaderShaderResourcesTable.SetTexture(6, LightIndicesBufferSRV);
+		PixelShaderShaderResourcesTable.SetTexture(7, PointLightsBufferSRV);
 
 		PixelShaderConstantBuffersTable.UpdateTable(Device);
 		PixelShaderShaderResourcesTable.UpdateTable(Device);		
@@ -5202,7 +5233,7 @@ RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInf
 	GraphicsPipelineStateDesc.InputLayout.NumElements = 5;
 	GraphicsPipelineStateDesc.InputLayout.pInputElementDescs = InputElementDescs;
 	GraphicsPipelineStateDesc.NodeMask = 0;
-	GraphicsPipelineStateDesc.NumRenderTargets = 2;
+	GraphicsPipelineStateDesc.NumRenderTargets = 3;
 	GraphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE::D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	GraphicsPipelineStateDesc.pRootSignature = GraphicsRootSignature;
 	GraphicsPipelineStateDesc.PS.BytecodeLength = renderMaterialCreateInfo.GBufferOpaquePassPixelShaderByteCodeLength;
@@ -5211,6 +5242,7 @@ RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInf
 	GraphicsPipelineStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID;
 	GraphicsPipelineStateDesc.RTVFormats[0] = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 	GraphicsPipelineStateDesc.RTVFormats[1] = DXGI_FORMAT::DXGI_FORMAT_R10G10B10A2_UNORM;
+	GraphicsPipelineStateDesc.RTVFormats[2] = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
 	GraphicsPipelineStateDesc.SampleDesc.Count = 8;
 	GraphicsPipelineStateDesc.SampleDesc.Quality = 0;
 	GraphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;

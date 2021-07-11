@@ -392,8 +392,8 @@ class RenderSystem
 
 		// ===============================================================================================================
 
-		Pointer<Texture> GBufferTextures[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE GBufferTexturesRTVs[2], GBufferTexturesSRVs[2];
+		Pointer<Texture> GBufferTextures[3];
+		D3D12_CPU_DESCRIPTOR_HANDLE GBufferTexturesRTVs[3], GBufferTexturesSRVs[3];
 
 		Pointer<Texture> DepthBufferTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE DepthBufferTextureDSV, DepthBufferTextureSRV;

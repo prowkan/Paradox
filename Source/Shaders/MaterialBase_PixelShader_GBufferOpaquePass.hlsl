@@ -11,6 +11,7 @@ struct PSOutput
 {
 	float4 GBuffer0 : SV_Target0;
 	float4 GBuffer1 : SV_Target1;
+	float4 GBuffer2 : SV_Target2;
 };
 
 Texture2D DiffuseMap : register(t0);
@@ -30,6 +31,7 @@ PSOutput PS(PSInput PixelShaderInput)
 
 	PixelShaderOutput.GBuffer0 = float4(BaseColor, 0.0f);
 	PixelShaderOutput.GBuffer1 = float4(Normal * 0.5f + 0.5f, 0.0f);
+	PixelShaderOutput.GBuffer2 = float4(0.0f, 0.0f, 0.0f, 0.0f);
 
 	return PixelShaderOutput;
 }
