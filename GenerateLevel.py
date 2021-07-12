@@ -78,9 +78,9 @@ while i < 50:
         Bytes.extend(struct.pack("f", 0.0))
         Bytes.extend(struct.pack("f", 0.0))
 
-        Bytes.extend(struct.pack("f", 5.0))
         Bytes.extend(struct.pack("f", 1.0))
-        Bytes.extend(struct.pack("f", 5.0))
+        Bytes.extend(struct.pack("f", 1.0))
+        Bytes.extend(struct.pack("f", 1.0))
 
         Bytes.extend(struct.pack("f", 0.0))
         Bytes.extend(struct.pack("f", 0.0))

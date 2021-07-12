@@ -77,6 +77,37 @@ inline SIZE_T RenderSystem::GetOffsetForResource(D3D12_RESOURCE_DESC& ResourceDe
 	return ResourceOffset;
 }
 
+Pointer<Buffer> RenderSystem::CreateBuffer(ID3D12Heap* Heap, UINT64 HeapOffset, const D3D12_RESOURCE_DESC* ResourceDesc, D3D12_RESOURCE_STATES InitialState, const char16_t* DebugName)
+{
+	Pointer<Buffer> BufferPtr = Pointer<Buffer>::Create();
+
+	SAFE_DX(Device->CreatePlacedResource(Heap, HeapOffset, ResourceDesc, InitialState, nullptr, UUIDOF(BufferPtr->DXBuffer)));
+	if (DebugName) SAFE_DX(BufferPtr->DXBuffer->SetName((LPCWSTR)DebugName));
+
+	BufferPtr->BufferState = InitialState;
+
+	return BufferPtr;
+}
+
+Pointer<Texture> RenderSystem::CreateTexture(ID3D12Heap* Heap, UINT64 HeapOffset, const D3D12_RESOURCE_DESC* ResourceDesc, D3D12_RESOURCE_STATES InitialState, const D3D12_CLEAR_VALUE* OptimizedClearValue, const char16_t* DebugName)
+{
+	Pointer<Texture> TexturePtr = Pointer<Texture>::Create();
+
+	SAFE_DX(Device->CreatePlacedResource(Heap, HeapOffset, ResourceDesc, InitialState, OptimizedClearValue, UUIDOF(TexturePtr->DXTexture)));
+	if (DebugName) SAFE_DX(TexturePtr->DXTexture->SetName((LPCWSTR)DebugName));
+
+	TexturePtr->SubResourcesCount = ResourceDesc->MipLevels * (ResourceDesc->Dimension == D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_TEXTURE2D) ? ResourceDesc->DepthOrArraySize : 1;
+
+	TexturePtr->TextureSubResourceStates = (D3D12_RESOURCE_STATES*)SystemMemoryAllocator::AllocateMemory(sizeof(D3D12_RESOURCE_STATES) * TexturePtr->SubResourcesCount);
+
+	for (UINT i = 0; i < TexturePtr->SubResourcesCount; i++)
+	{
+		TexturePtr->TextureSubResourceStates[i] = InitialState;
+	}
+
+	return TexturePtr;
+}
+
 void RenderSystem::InitSystem()
 {
 	UINT FactoryCreationFlags = 0;
@@ -218,13 +249,13 @@ void RenderSystem::InitSystem()
 
 	CopySyncEvent = CreateEvent(NULL, FALSE, FALSE, (const wchar_t*)u"CopySyncEvent");
 
-	RTDescriptorHeap = Pointer<DescriptorHeap>::Create(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 42, Device, u"Render Targets Descriptor Heap");
+	RTDescriptorHeap = Pointer<DescriptorHeap>::Create(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 43, Device, u"Render Targets Descriptor Heap");
 	DSDescriptorHeap = Pointer<DescriptorHeap>::Create(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 5, Device, u"Depth-Stencils Descriptor Heap");
 	CBSRUADescriptorHeap = Pointer<DescriptorHeap>::Create(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 63, Device, u"Constant Buffer/Shader Resource/Unordered Access Views Descriptor Heap");
 	SamplersDescriptorHeap = Pointer<DescriptorHeap>::Create(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 4, Device, u"Samplers Descriptor Heap");
 
 	ConstantBufferDescriptorHeap = Pointer<DescriptorHeap>::Create(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 120000, Device, u"Constant Buffers Descriptor Heap");
-	TexturesDescriptorHeap = Pointer<DescriptorHeap>::Create(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 8000, Device, u"Textures Descriptor Heap");
+	TexturesDescriptorHeap = Pointer<DescriptorHeap>::Create(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 12000, Device, u"Textures Descriptor Heap");
 
 	FrameResourcesDescriptorHeaps[0] = Pointer<FrameDescriptorHeap>::Create(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 500000, Device, u"Frame Resources Descriptor Heap 0");
 	FrameResourcesDescriptorHeaps[1] = Pointer<FrameDescriptorHeap>::Create(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 500000, Device, u"Frame Resources Descriptor Heap 0");
@@ -239,7 +270,7 @@ void RenderSystem::InitSystem()
 	DescriptorRanges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE::D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	DescriptorRanges[0].RegisterSpace = 0;
 	DescriptorRanges[1].BaseShaderRegister = 0;
-	DescriptorRanges[1].NumDescriptors = 7;
+	DescriptorRanges[1].NumDescriptors = 8;
 	DescriptorRanges[1].OffsetInDescriptorsFromTableStart = 0;
 	DescriptorRanges[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE::D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	DescriptorRanges[1].RegisterSpace = 0;
@@ -498,10 +529,8 @@ void RenderSystem::InitSystem()
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory0)));
 		SAFE_DX(GPUMemory0->SetName((const wchar_t*)u"Camera Constants Data GPU Heap"));
 
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory0, GPUCameraConstantBufferOffset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUCameraConstantBuffer)));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory0, GPURenderTargetConstantBufferOffset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPURenderTargetConstantBuffer)));
-		SAFE_DX(GPUCameraConstantBuffer->SetName((const wchar_t*)u"GPU Camera Constant Buffer"));
-		SAFE_DX(GPURenderTargetConstantBuffer->SetName((const wchar_t*)u"GPU Render Target Constant Buffer"));
+		GPUCameraConstantBuffer = CreateBuffer(GPUMemory0, GPUCameraConstantBufferOffset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, u"GPU Camera Constant Buffer");
+		GPURenderTargetConstantBuffer = CreateBuffer(GPUMemory0, GPURenderTargetConstantBufferOffset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, u"GPU Render Target Constant Buffer");
 
 		HeapDesc.Alignment = 0;
 		HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE;
@@ -520,24 +549,20 @@ void RenderSystem::InitSystem()
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory0)));
 		SAFE_DX(CPUMemory0->SetName((const wchar_t*)u"Camera Constants Data CPU Heap"));
 
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory0, CPUCameraConstantBuffer0Offset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUCameraConstantBuffers[0])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory0, CPUCameraConstantBuffer1Offset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUCameraConstantBuffers[1])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory0, CPURenderTargetConstantBuffer0Offset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPURenderTargetConstantBuffers[0])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory0, CPURenderTargetConstantBuffer1Offset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPURenderTargetConstantBuffers[1])));
-		SAFE_DX(CPUCameraConstantBuffers[0]->SetName((const wchar_t*)u"CPU Camera Constant Buffers 0"));
-		SAFE_DX(CPUCameraConstantBuffers[1]->SetName((const wchar_t*)u"CPU Camera Constant Buffers 1"));
-		SAFE_DX(CPURenderTargetConstantBuffers[0]->SetName((const wchar_t*)u"CPU Render Target Constant Buffers 1"));
-		SAFE_DX(CPURenderTargetConstantBuffers[1]->SetName((const wchar_t*)u"CPU Render Target Constant Buffers 1"));
+		CPUCameraConstantBuffers[0] = CreateBuffer(CPUMemory0, CPUCameraConstantBuffer0Offset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Camera Constant Buffers 0");
+		CPUCameraConstantBuffers[1] = CreateBuffer(CPUMemory0, CPUCameraConstantBuffer1Offset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Camera Constant Buffers 1");
+		CPURenderTargetConstantBuffers[0] = CreateBuffer(CPUMemory0, CPURenderTargetConstantBuffer0Offset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Render Target Constant Buffers 0");
+		CPURenderTargetConstantBuffers[1] = CreateBuffer(CPUMemory0, CPURenderTargetConstantBuffer1Offset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Render Target Constant Buffers 1");
 
 		D3D12_CONSTANT_BUFFER_VIEW_DESC CBVDesc;
-		CBVDesc.BufferLocation = GPUCameraConstantBuffer->GetGPUVirtualAddress();
+		CBVDesc.BufferLocation = GPUCameraConstantBuffer->DXBuffer->GetGPUVirtualAddress();
 		CBVDesc.SizeInBytes = 256;
 
 		CameraConstantBufferCBV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateConstantBufferView(&CBVDesc, CameraConstantBufferCBV);
 
-		CBVDesc.BufferLocation = GPURenderTargetConstantBuffer->GetGPUVirtualAddress();
+		CBVDesc.BufferLocation = GPURenderTargetConstantBuffer->DXBuffer->GetGPUVirtualAddress();
 		CBVDesc.SizeInBytes = 256;
 
 		RenderTargetConstantBufferCBV = CBSRUADescriptorHeap->AllocateDescriptor();
@@ -575,6 +600,20 @@ void RenderSystem::InitSystem()
 		GBufferTexture1ResourceDesc.SampleDesc.Count = 8;
 		GBufferTexture1ResourceDesc.SampleDesc.Quality = 0;
 		GBufferTexture1ResourceDesc.Width = ResolutionWidth;
+
+		D3D12_RESOURCE_DESC GBufferTexture2ResourceDesc;
+		ZeroMemory(&GBufferTexture2ResourceDesc, sizeof(D3D12_RESOURCE_DESC));
+		GBufferTexture2ResourceDesc.Alignment = 0;
+		GBufferTexture2ResourceDesc.DepthOrArraySize = 1;
+		GBufferTexture2ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+		GBufferTexture2ResourceDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+		GBufferTexture2ResourceDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
+		GBufferTexture2ResourceDesc.Height = ResolutionHeight;
+		GBufferTexture2ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_UNKNOWN;
+		GBufferTexture2ResourceDesc.MipLevels = 1;
+		GBufferTexture2ResourceDesc.SampleDesc.Count = 8;
+		GBufferTexture2ResourceDesc.SampleDesc.Quality = 0;
+		GBufferTexture2ResourceDesc.Width = ResolutionWidth;
 
 		D3D12_RESOURCE_DESC DepthBufferTextureResourceDesc;
 		ZeroMemory(&DepthBufferTextureResourceDesc, sizeof(D3D12_RESOURCE_DESC));
@@ -616,6 +655,7 @@ void RenderSystem::InitSystem()
 
 		SIZE_T GBufferTexture0Offset = GetOffsetForResource(GBufferTexture0ResourceDesc, HeapDesc);
 		SIZE_T GBufferTexture1Offset = GetOffsetForResource(GBufferTexture1ResourceDesc, HeapDesc);
+		SIZE_T GBufferTexture2Offset = GetOffsetForResource(GBufferTexture2ResourceDesc, HeapDesc);
 		SIZE_T DepthBufferTextureOffset = GetOffsetForResource(DepthBufferTextureResourceDesc, HeapDesc);
 		SIZE_T GPUConstantBufferOffset = GetOffsetForResource(GBufferOpaquePassConstantBufferResourceDesc, HeapDesc);
 
@@ -630,23 +670,23 @@ void RenderSystem::InitSystem()
 
 		ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory1, GBufferTexture0Offset, &GBufferTexture0ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(GBufferTextures[0])));
-		SAFE_DX(GBufferTextures[0]->SetName((const wchar_t*)u"G-Buffer Texture 0"));
+		GBufferTextures[0] = CreateTexture(GPUMemory1, GBufferTexture0Offset, &GBufferTexture0ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue, u"G-Buffer Texture 0");
 
 		ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_R10G10B10A2_UNORM;
 
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory1, GBufferTexture1Offset, &GBufferTexture1ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(GBufferTextures[1])));
-		SAFE_DX(GBufferTextures[1]->SetName((const wchar_t*)u"G-Buffer Texture 1"));
+		GBufferTextures[1] = CreateTexture(GPUMemory1, GBufferTexture1Offset, &GBufferTexture1ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue, u"G-Buffer Texture 1");
+
+		ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
+
+		GBufferTextures[2] = CreateTexture(GPUMemory1, GBufferTexture2Offset, &GBufferTexture2ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue, u"G-Buffer Texture 2");
 
 		ClearValue.DepthStencil.Depth = 0.0f;
 		ClearValue.DepthStencil.Stencil = 0;
 		ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory1, DepthBufferTextureOffset, &DepthBufferTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE, &ClearValue, UUIDOF(DepthBufferTexture)));
-		SAFE_DX(DepthBufferTexture->SetName((const wchar_t*)u"Depth Buffer Texture"));
+		DepthBufferTexture = CreateTexture(GPUMemory1, DepthBufferTextureOffset, &DepthBufferTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE, &ClearValue, u"Depth Buffer Texture");
 
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory1, GPUConstantBufferOffset, &GBufferOpaquePassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUGBufferOpaquePassObjectsConstantBuffer)));
-		SAFE_DX(GPUGBufferOpaquePassObjectsConstantBuffer->SetName((const wchar_t*)u"GPU G-Buffer Opaque Pass Objects Constant Buffer"));
+		GPUGBufferOpaquePassObjectsConstantBuffer = CreateBuffer(GPUMemory1, GPUConstantBufferOffset, &GBufferOpaquePassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, u"GPU G-Buffer Opaque Pass Objects Constant Buffer");
 
 		HeapDesc.Alignment = 0;
 		HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE;
@@ -663,22 +703,24 @@ void RenderSystem::InitSystem()
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory1)));
 		SAFE_DX(CPUMemory1->SetName((const wchar_t*)u"G-Buffer Opaque Pass Data CPU Heap"));
 
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory1, CPUConstantBuffer0Offset, &GBufferOpaquePassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUGBufferOpaquePassObjectsConstantBuffers[0])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory1, CPUConstantBuffer1Offset, &GBufferOpaquePassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUGBufferOpaquePassObjectsConstantBuffers[1])));
-		SAFE_DX(CPUGBufferOpaquePassObjectsConstantBuffers[0]->SetName((const wchar_t*)u"CPU G-Buffer Opaque Pass Objects Constant Buffers 0"));
-		SAFE_DX(CPUGBufferOpaquePassObjectsConstantBuffers[1]->SetName((const wchar_t*)u"CPU G-Buffer Opaque Pass Objects Constant Buffers 1"));
+		CPUGBufferOpaquePassObjectsConstantBuffers[0] = CreateBuffer(CPUMemory1, CPUConstantBuffer0Offset, &GBufferOpaquePassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU G-Buffer Opaque Pass Objects Constant Buffers 0");
+		CPUGBufferOpaquePassObjectsConstantBuffers[1] = CreateBuffer(CPUMemory1, CPUConstantBuffer1Offset, &GBufferOpaquePassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU G-Buffer Opaque Pass Objects Constant Buffers 1");
 
 		D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
 		RTVDesc.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2DMS;
 
 		GBufferTexturesRTVs[0] = RTDescriptorHeap->AllocateDescriptor();
 		GBufferTexturesRTVs[1] = RTDescriptorHeap->AllocateDescriptor();
+		GBufferTexturesRTVs[2] = RTDescriptorHeap->AllocateDescriptor();
 
 		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-		Device->CreateRenderTargetView(GBufferTextures[0], &RTVDesc, GBufferTexturesRTVs[0]);
+		Device->CreateRenderTargetView(GBufferTextures[0]->DXTexture, &RTVDesc, GBufferTexturesRTVs[0]);
 
 		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R10G10B10A2_UNORM;
-		Device->CreateRenderTargetView(GBufferTextures[1], &RTVDesc, GBufferTexturesRTVs[1]);
+		Device->CreateRenderTargetView(GBufferTextures[1]->DXTexture, &RTVDesc, GBufferTexturesRTVs[1]);
+
+		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
+		Device->CreateRenderTargetView(GBufferTextures[2]->DXTexture, &RTVDesc, GBufferTexturesRTVs[2]);
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
 		SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -686,12 +728,16 @@ void RenderSystem::InitSystem()
 
 		GBufferTexturesSRVs[0] = CBSRUADescriptorHeap->AllocateDescriptor();
 		GBufferTexturesSRVs[1] = CBSRUADescriptorHeap->AllocateDescriptor();
+		GBufferTexturesSRVs[2] = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-		Device->CreateShaderResourceView(GBufferTextures[0], &SRVDesc, GBufferTexturesSRVs[0]);
+		Device->CreateShaderResourceView(GBufferTextures[0]->DXTexture, &SRVDesc, GBufferTexturesSRVs[0]);
 
 		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R10G10B10A2_UNORM;
-		Device->CreateShaderResourceView(GBufferTextures[1], &SRVDesc, GBufferTexturesSRVs[1]);
+		Device->CreateShaderResourceView(GBufferTextures[1]->DXTexture, &SRVDesc, GBufferTexturesSRVs[1]);
+
+		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
+		Device->CreateShaderResourceView(GBufferTextures[2]->DXTexture, &SRVDesc, GBufferTexturesSRVs[2]);
 
 		D3D12_DEPTH_STENCIL_VIEW_DESC DSVDesc;
 		DSVDesc.Flags = D3D12_DSV_FLAGS::D3D12_DSV_FLAG_NONE;
@@ -700,7 +746,7 @@ void RenderSystem::InitSystem()
 
 		DepthBufferTextureDSV = DSDescriptorHeap->AllocateDescriptor();
 
-		Device->CreateDepthStencilView(DepthBufferTexture, &DSVDesc, DepthBufferTextureDSV);
+		Device->CreateDepthStencilView(DepthBufferTexture->DXTexture, &DSVDesc, DepthBufferTextureDSV);
 
 		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
 		SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -708,12 +754,12 @@ void RenderSystem::InitSystem()
 
 		DepthBufferTextureSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
-		Device->CreateShaderResourceView(DepthBufferTexture, &SRVDesc, DepthBufferTextureSRV);
+		Device->CreateShaderResourceView(DepthBufferTexture->DXTexture, &SRVDesc, DepthBufferTextureSRV);
 
 		for (int i = 0; i < 20000; i++)
 		{
 			D3D12_CONSTANT_BUFFER_VIEW_DESC CBVDesc;
-			CBVDesc.BufferLocation = GPUGBufferOpaquePassObjectsConstantBuffer->GetGPUVirtualAddress() + i * 256;
+			CBVDesc.BufferLocation = GPUGBufferOpaquePassObjectsConstantBuffer->DXBuffer->GetGPUVirtualAddress() + i * 256;
 			CBVDesc.SizeInBytes = 256;
 
 			GBufferOpaquePassObjectsConstantBufferCBVs[i] = ConstantBufferDescriptorHeap->AllocateDescriptor();
@@ -759,8 +805,7 @@ void RenderSystem::InitSystem()
 		ClearValue.DepthStencil.Stencil = 0;
 		ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory2, ResolvedDepthBufferTextureOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(ResolvedDepthBufferTexture)));
-		SAFE_DX(ResolvedDepthBufferTexture->SetName((const wchar_t*)u"Resolved Depth Buffer Texture"));
+		ResolvedDepthBufferTexture = CreateTexture(GPUMemory2, ResolvedDepthBufferTextureOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, u"Resolved Depth Buffer Texture");
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
 		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
@@ -773,7 +818,7 @@ void RenderSystem::InitSystem()
 
 		ResolvedDepthBufferTextureSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
-		Device->CreateShaderResourceView(ResolvedDepthBufferTexture, &SRVDesc, ResolvedDepthBufferTextureSRV);
+		Device->CreateShaderResourceView(ResolvedDepthBufferTexture->DXTexture, &SRVDesc, ResolvedDepthBufferTextureSRV);
 	}
 
 	// ===============================================================================================================
@@ -815,8 +860,7 @@ void RenderSystem::InitSystem()
 		ClearValue.Color[3] = 0.0f;
 		ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
 
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory3, OcclusionBufferTextureOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_SOURCE, &ClearValue, UUIDOF(OcclusionBufferTexture)));
-		SAFE_DX(OcclusionBufferTexture->SetName((const wchar_t*)u"Occlusion Buffer Texture"));
+		OcclusionBufferTexture = CreateTexture(GPUMemory3, OcclusionBufferTextureOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue, u"Occlusion Buffer Texture");
 
 		D3D12_PLACED_SUBRESOURCE_FOOTPRINT PlacedSubResourceFootPrint;
 
@@ -852,10 +896,8 @@ void RenderSystem::InitSystem()
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory3)));
 		SAFE_DX(CPUMemory3->SetName((const wchar_t*)u"Occlsuon Buffer Pass Data CPU Heap"));
 
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory3, OcclusionBufferReadbackBuffer0Offset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(OcclusionBufferTextureReadback[0])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory3, OcclusionBufferReadbackBuffer1Offset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, nullptr, UUIDOF(OcclusionBufferTextureReadback[1])));
-		SAFE_DX(OcclusionBufferTextureReadback[0]->SetName((const wchar_t*)u"Occlusion Buffer Texture Readback 0"));
-		SAFE_DX(OcclusionBufferTextureReadback[1]->SetName((const wchar_t*)u"Occlusion Buffer Texture Readback 1"));
+		OcclusionBufferTextureReadback[0] = CreateBuffer(CPUMemory3, OcclusionBufferReadbackBuffer0Offset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, u"Occlusion Buffer Texture Readback 0");
+		OcclusionBufferTextureReadback[1] = CreateBuffer(CPUMemory3, OcclusionBufferReadbackBuffer1Offset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, u"Occlusion Buffer Texture Readback 1");
 
 		D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
 		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
@@ -865,7 +907,7 @@ void RenderSystem::InitSystem()
 
 		OcclusionBufferTextureRTV = RTDescriptorHeap->AllocateDescriptor();
 
-		Device->CreateRenderTargetView(OcclusionBufferTexture, &RTVDesc, OcclusionBufferTextureRTV);
+		Device->CreateRenderTargetView(OcclusionBufferTexture->DXTexture, &RTVDesc, OcclusionBufferTextureRTV);
 
 		void *OcclusionBufferPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel60.OcclusionBuffer");
 		SIZE_T OcclusionBufferPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel60.OcclusionBuffer");
@@ -969,27 +1011,18 @@ void RenderSystem::InitSystem()
 		ClearValue.DepthStencil.Stencil = 0;
 		ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT;
 
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory4, CascadedShadowMapTexture0Offset, &ShadowMapTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(CascadedShadowMapTextures[0])));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory4, CascadedShadowMapTexture1Offset, &ShadowMapTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(CascadedShadowMapTextures[1])));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory4, CascadedShadowMapTexture2Offset, &ShadowMapTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(CascadedShadowMapTextures[2])));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory4, CascadedShadowMapTexture3Offset, &ShadowMapTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(CascadedShadowMapTextures[3])));
-		SAFE_DX(CascadedShadowMapTextures[0]->SetName((const wchar_t*)u"Cascaded Shadow Map Textures [0]"));
-		SAFE_DX(CascadedShadowMapTextures[1]->SetName((const wchar_t*)u"Cascaded Shadow Map Textures [1]"));
-		SAFE_DX(CascadedShadowMapTextures[2]->SetName((const wchar_t*)u"Cascaded Shadow Map Textures [2]"));
-		SAFE_DX(CascadedShadowMapTextures[3]->SetName((const wchar_t*)u"Cascaded Shadow Map Textures [3]"));
+		CascadedShadowMapTextures[0] = CreateTexture(GPUMemory4, CascadedShadowMapTexture0Offset, &ShadowMapTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE, &ClearValue, u"Cascaded Shadow Map Textures [0]");
+		CascadedShadowMapTextures[1] = CreateTexture(GPUMemory4, CascadedShadowMapTexture1Offset, &ShadowMapTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE, &ClearValue, u"Cascaded Shadow Map Textures [1]");
+		CascadedShadowMapTextures[2] = CreateTexture(GPUMemory4, CascadedShadowMapTexture2Offset, &ShadowMapTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE, &ClearValue, u"Cascaded Shadow Map Textures [2]");
+		CascadedShadowMapTextures[3] = CreateTexture(GPUMemory4, CascadedShadowMapTexture3Offset, &ShadowMapTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE, &ClearValue, u"Cascaded Shadow Map Textures [3]");
 
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory4, ConstantBuffer0Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUShadowMapPassObjectsConstantBuffers[0])));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory4, ConstantBuffer1Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUShadowMapPassObjectsConstantBuffers[1])));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory4, ConstantBuffer2Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUShadowMapPassObjectsConstantBuffers[2])));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory4, ConstantBuffer3Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUShadowMapPassObjectsConstantBuffers[3])));
-		SAFE_DX(GPUShadowMapPassObjectsConstantBuffers[0]->SetName((const wchar_t*)u"GPU Shadow Map Pass Objects Constant Buffer [0]"));
-		SAFE_DX(GPUShadowMapPassObjectsConstantBuffers[1]->SetName((const wchar_t*)u"GPU Shadow Map Pass Objects Constant Buffer [1]"));
-		SAFE_DX(GPUShadowMapPassObjectsConstantBuffers[2]->SetName((const wchar_t*)u"GPU Shadow Map Pass Objects Constant Buffer [2]"));
-		SAFE_DX(GPUShadowMapPassObjectsConstantBuffers[3]->SetName((const wchar_t*)u"GPU Shadow Map Pass Objects Constant Buffer [3]"));
+		GPUShadowMapPassObjectsConstantBuffers[0] = CreateBuffer(GPUMemory4, ConstantBuffer0Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, u"GPU Shadow Map Pass Objects Constant Buffer [0]");
+		GPUShadowMapPassObjectsConstantBuffers[1] = CreateBuffer(GPUMemory4, ConstantBuffer1Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, u"GPU Shadow Map Pass Objects Constant Buffer [1]");
+		GPUShadowMapPassObjectsConstantBuffers[2] = CreateBuffer(GPUMemory4, ConstantBuffer2Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, u"GPU Shadow Map Pass Objects Constant Buffer [2]");
+		GPUShadowMapPassObjectsConstantBuffers[3] = CreateBuffer(GPUMemory4, ConstantBuffer3Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, u"GPU Shadow Map Pass Objects Constant Buffer [3]");
 
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory4, CameraConstantBufferOffset, &ShadowMapCameraConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUShadowMapCameraConstantBuffer)));
-		SAFE_DX(GPUShadowMapCameraConstantBuffer->SetName((const wchar_t*)u"GPU Shadow Map Camera Constant Buffer"));
-
+		GPUShadowMapCameraConstantBuffer = CreateBuffer(GPUMemory4, CameraConstantBufferOffset, &ShadowMapCameraConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, u"GPU Shadow Map Camera Constant Buffer");
+		
 		HeapDesc.Alignment = D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT;
 		HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE;
 		HeapDesc.Properties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_WRITE_COMBINE;
@@ -1013,27 +1046,17 @@ void RenderSystem::InitSystem()
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory4)));
 		SAFE_DX(CPUMemory4->SetName((const wchar_t*)u"Shadow Map Pass Data CPU Heap"));
 
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, ConstantBuffer00Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUShadowMapPassObjectsConstantBuffers[0][0])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, ConstantBuffer10Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUShadowMapPassObjectsConstantBuffers[1][0])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, ConstantBuffer20Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUShadowMapPassObjectsConstantBuffers[2][0])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, ConstantBuffer30Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUShadowMapPassObjectsConstantBuffers[3][0])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, ConstantBuffer01Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUShadowMapPassObjectsConstantBuffers[0][1])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, ConstantBuffer11Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUShadowMapPassObjectsConstantBuffers[1][1])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, ConstantBuffer21Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUShadowMapPassObjectsConstantBuffers[2][1])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, ConstantBuffer31Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUShadowMapPassObjectsConstantBuffers[3][1])));
-		SAFE_DX(CPUShadowMapPassObjectsConstantBuffers[0][0]->SetName((const wchar_t*)u"CPU Shadow Map Pass Objects Constant Buffer [0] 0"));
-		SAFE_DX(CPUShadowMapPassObjectsConstantBuffers[1][0]->SetName((const wchar_t*)u"CPU Shadow Map Pass Objects Constant Buffer [1] 0"));
-		SAFE_DX(CPUShadowMapPassObjectsConstantBuffers[2][0]->SetName((const wchar_t*)u"CPU Shadow Map Pass Objects Constant Buffer [2] 0"));
-		SAFE_DX(CPUShadowMapPassObjectsConstantBuffers[3][0]->SetName((const wchar_t*)u"CPU Shadow Map Pass Objects Constant Buffer [3] 0"));
-		SAFE_DX(CPUShadowMapPassObjectsConstantBuffers[0][1]->SetName((const wchar_t*)u"CPU Shadow Map Pass Objects Constant Buffer [0] 1"));
-		SAFE_DX(CPUShadowMapPassObjectsConstantBuffers[1][1]->SetName((const wchar_t*)u"CPU Shadow Map Pass Objects Constant Buffer [1] 1"));
-		SAFE_DX(CPUShadowMapPassObjectsConstantBuffers[2][1]->SetName((const wchar_t*)u"CPU Shadow Map Pass Objects Constant Buffer [2] 1"));
-		SAFE_DX(CPUShadowMapPassObjectsConstantBuffers[3][1]->SetName((const wchar_t*)u"CPU Shadow Map Pass Objects Constant Buffer [3] 1"));
+		CPUShadowMapPassObjectsConstantBuffers[0][0] = CreateBuffer(CPUMemory4, ConstantBuffer00Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Shadow Map Pass Objects Constant Buffer [0] 0");
+		CPUShadowMapPassObjectsConstantBuffers[1][0] = CreateBuffer(CPUMemory4, ConstantBuffer10Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Shadow Map Pass Objects Constant Buffer [1] 0");
+		CPUShadowMapPassObjectsConstantBuffers[2][0] = CreateBuffer(CPUMemory4, ConstantBuffer20Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Shadow Map Pass Objects Constant Buffer [2] 0");
+		CPUShadowMapPassObjectsConstantBuffers[3][0] = CreateBuffer(CPUMemory4, ConstantBuffer30Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Shadow Map Pass Objects Constant Buffer [3] 0");
+		CPUShadowMapPassObjectsConstantBuffers[0][1] = CreateBuffer(CPUMemory4, ConstantBuffer01Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Shadow Map Pass Objects Constant Buffer [0] 1");
+		CPUShadowMapPassObjectsConstantBuffers[1][1] = CreateBuffer(CPUMemory4, ConstantBuffer11Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Shadow Map Pass Objects Constant Buffer [1] 1");
+		CPUShadowMapPassObjectsConstantBuffers[2][1] = CreateBuffer(CPUMemory4, ConstantBuffer21Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Shadow Map Pass Objects Constant Buffer [2] 1");
+		CPUShadowMapPassObjectsConstantBuffers[3][1] = CreateBuffer(CPUMemory4, ConstantBuffer31Offset, &ShadowMapPassConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Shadow Map Pass Objects Constant Buffer [3] 1");
 
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, CPUCameraConstantBufferOffset0, &ShadowMapCameraConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUShadowMapCameraConstantBuffers[0])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory4, CPUCameraConstantBufferOffset1, &ShadowMapCameraConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUShadowMapCameraConstantBuffers[1])));
-		SAFE_DX(CPUShadowMapCameraConstantBuffers[0]->SetName((const wchar_t*)u"CPU Shadow Map Camera Constant Buffer 0"));
-		SAFE_DX(CPUShadowMapCameraConstantBuffers[1]->SetName((const wchar_t*)u"CPU Shadow Map Camera Constant Buffer 1"));
+		CPUShadowMapCameraConstantBuffers[0] = CreateBuffer(CPUMemory4, CPUCameraConstantBufferOffset0, &ShadowMapCameraConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Shadow Map Camera Constant Buffer 0");
+		CPUShadowMapCameraConstantBuffers[1] = CreateBuffer(CPUMemory4, CPUCameraConstantBufferOffset1, &ShadowMapCameraConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Shadow Map Camera Constant Buffer 1");
 
 		D3D12_DEPTH_STENCIL_VIEW_DESC DSVDesc;
 		DSVDesc.Flags = D3D12_DSV_FLAGS::D3D12_DSV_FLAG_NONE;
@@ -1046,10 +1069,10 @@ void RenderSystem::InitSystem()
 		CascadedShadowMapTexturesDSVs[2] = DSDescriptorHeap->AllocateDescriptor();
 		CascadedShadowMapTexturesDSVs[3] = DSDescriptorHeap->AllocateDescriptor();
 
-		Device->CreateDepthStencilView(CascadedShadowMapTextures[0], &DSVDesc, CascadedShadowMapTexturesDSVs[0]);
-		Device->CreateDepthStencilView(CascadedShadowMapTextures[1], &DSVDesc, CascadedShadowMapTexturesDSVs[1]);
-		Device->CreateDepthStencilView(CascadedShadowMapTextures[2], &DSVDesc, CascadedShadowMapTexturesDSVs[2]);
-		Device->CreateDepthStencilView(CascadedShadowMapTextures[3], &DSVDesc, CascadedShadowMapTexturesDSVs[3]);
+		Device->CreateDepthStencilView(CascadedShadowMapTextures[0]->DXTexture, &DSVDesc, CascadedShadowMapTexturesDSVs[0]);
+		Device->CreateDepthStencilView(CascadedShadowMapTextures[1]->DXTexture, &DSVDesc, CascadedShadowMapTexturesDSVs[1]);
+		Device->CreateDepthStencilView(CascadedShadowMapTextures[2]->DXTexture, &DSVDesc, CascadedShadowMapTexturesDSVs[2]);
+		Device->CreateDepthStencilView(CascadedShadowMapTextures[3]->DXTexture, &DSVDesc, CascadedShadowMapTexturesDSVs[3]);
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
 		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
@@ -1065,17 +1088,17 @@ void RenderSystem::InitSystem()
 		CascadedShadowMapTexturesSRVs[2] = CBSRUADescriptorHeap->AllocateDescriptor();
 		CascadedShadowMapTexturesSRVs[3] = CBSRUADescriptorHeap->AllocateDescriptor();
 
-		Device->CreateShaderResourceView(CascadedShadowMapTextures[0], &SRVDesc, CascadedShadowMapTexturesSRVs[0]);
-		Device->CreateShaderResourceView(CascadedShadowMapTextures[1], &SRVDesc, CascadedShadowMapTexturesSRVs[1]);
-		Device->CreateShaderResourceView(CascadedShadowMapTextures[2], &SRVDesc, CascadedShadowMapTexturesSRVs[2]);
-		Device->CreateShaderResourceView(CascadedShadowMapTextures[3], &SRVDesc, CascadedShadowMapTexturesSRVs[3]);
+		Device->CreateShaderResourceView(CascadedShadowMapTextures[0]->DXTexture, &SRVDesc, CascadedShadowMapTexturesSRVs[0]);
+		Device->CreateShaderResourceView(CascadedShadowMapTextures[1]->DXTexture, &SRVDesc, CascadedShadowMapTexturesSRVs[1]);
+		Device->CreateShaderResourceView(CascadedShadowMapTextures[2]->DXTexture, &SRVDesc, CascadedShadowMapTexturesSRVs[2]);
+		Device->CreateShaderResourceView(CascadedShadowMapTextures[3]->DXTexture, &SRVDesc, CascadedShadowMapTexturesSRVs[3]);
 
 		for (int j = 0; j < 4; j++)
 		{
 			ShadowMapCameraConstantBufferCBVs[j] = CBSRUADescriptorHeap->AllocateDescriptor();
 
 			D3D12_CONSTANT_BUFFER_VIEW_DESC CBVDesc;
-			CBVDesc.BufferLocation = GPUShadowMapCameraConstantBuffer->GetGPUVirtualAddress() + j * 256;
+			CBVDesc.BufferLocation = GPUShadowMapCameraConstantBuffer->DXBuffer->GetGPUVirtualAddress() + j * 256;
 			CBVDesc.SizeInBytes = 256;
 
 			Device->CreateConstantBufferView(&CBVDesc, ShadowMapCameraConstantBufferCBVs[j]);
@@ -1083,7 +1106,7 @@ void RenderSystem::InitSystem()
 			for (int i = 0; i < 20000; i++)
 			{
 				D3D12_CONSTANT_BUFFER_VIEW_DESC CBVDesc;
-				CBVDesc.BufferLocation = GPUShadowMapPassObjectsConstantBuffers[j]->GetGPUVirtualAddress() + i * 256;
+				CBVDesc.BufferLocation = GPUShadowMapPassObjectsConstantBuffers[j]->DXBuffer->GetGPUVirtualAddress() + i * 256;
 				CBVDesc.SizeInBytes = 256;
 
 				ShadowMapPassObjectsConstantBufferCBVs[j][i] = ConstantBufferDescriptorHeap->AllocateDescriptor();
@@ -1147,11 +1170,9 @@ void RenderSystem::InitSystem()
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory5)));
 		SAFE_DX(GPUMemory5->SetName((const wchar_t*)u"Shadow Resolve Pass Data GPU Heap"));
 
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory5, ShadowMaskTextureOffset, &ShadowMaskTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(ShadowMaskTexture)));
-		SAFE_DX(ShadowMaskTexture->SetName((const wchar_t*)u"Shadow Mask Texture"));
+		ShadowMaskTexture = CreateTexture(GPUMemory5, ShadowMaskTextureOffset, &ShadowMaskTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue, u"Shadow Mask Texture");
 
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory5, GPUConstantBufferOffset, &ShadowResolveConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUShadowResolveConstantBuffer)));
-		SAFE_DX(GPUShadowResolveConstantBuffer->SetName((const wchar_t*)u"GPU Shadow Resolve Constant Buffer"));
+		GPUShadowResolveConstantBuffer = CreateBuffer(GPUMemory5, GPUConstantBufferOffset, &ShadowResolveConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, u"GPU Shadow Resolve Constant Buffer");
 
 		HeapDesc.Alignment = D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT;
 		HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE;
@@ -1168,10 +1189,8 @@ void RenderSystem::InitSystem()
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory5)));
 		SAFE_DX(CPUMemory5->SetName((const wchar_t*)u"Shadow Resolve Pass Data CPU Heap"));
 
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory5, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ShadowResolveConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUShadowResolveConstantBuffers[0])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory5, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &ShadowResolveConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUShadowResolveConstantBuffers[1])));
-		SAFE_DX(CPUShadowResolveConstantBuffers[0]->SetName((const wchar_t*)u"CPU Shadow Resolve Constant Buffer 0"));
-		SAFE_DX(CPUShadowResolveConstantBuffers[1]->SetName((const wchar_t*)u"CPU Shadow Resolve Constant Buffer 1"));
+		CPUShadowResolveConstantBuffers[0] = CreateBuffer(CPUMemory5, CPUConstantBuffer0Offset, &ShadowResolveConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Shadow Resolve Constant Buffer 0");
+		CPUShadowResolveConstantBuffers[1] = CreateBuffer(CPUMemory5, CPUConstantBuffer1Offset, &ShadowResolveConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Shadow Resolve Constant Buffer 1");
 
 		D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
 		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8_UNORM;
@@ -1181,7 +1200,7 @@ void RenderSystem::InitSystem()
 
 		ShadowMaskTextureRTV = RTDescriptorHeap->AllocateDescriptor();
 
-		Device->CreateRenderTargetView(ShadowMaskTexture, &RTVDesc, ShadowMaskTextureRTV);
+		Device->CreateRenderTargetView(ShadowMaskTexture->DXTexture, &RTVDesc, ShadowMaskTextureRTV);
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
 		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8_UNORM;
@@ -1194,10 +1213,10 @@ void RenderSystem::InitSystem()
 
 		ShadowMaskTextureSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
-		Device->CreateShaderResourceView(ShadowMaskTexture, &SRVDesc, ShadowMaskTextureSRV);
+		Device->CreateShaderResourceView(ShadowMaskTexture->DXTexture, &SRVDesc, ShadowMaskTextureSRV);
 
 		D3D12_CONSTANT_BUFFER_VIEW_DESC CBVDesc;
-		CBVDesc.BufferLocation = GPUShadowResolveConstantBuffer->GetGPUVirtualAddress();
+		CBVDesc.BufferLocation = GPUShadowResolveConstantBuffer->DXBuffer->GetGPUVirtualAddress();
 		CBVDesc.SizeInBytes = 256;
 
 		ShadowResolveConstantBufferCBV = CBSRUADescriptorHeap->AllocateDescriptor();
@@ -1332,20 +1351,14 @@ void RenderSystem::InitSystem()
 		ClearValue.Color[2] = 0.0f;
 		ClearValue.Color[3] = 0.0f;
 
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory6, HDRSceneColorTextureOffset, &HDRSceneColorTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(HDRSceneColorTexture)));
-		SAFE_DX(HDRSceneColorTexture->SetName((const wchar_t*)u"HDR Scene Color Texture"));
+		HDRSceneColorTexture = CreateTexture(GPUMemory6, HDRSceneColorTextureOffset, &HDRSceneColorTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue, u"HDR Scene Color Texture");
 
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory6, GPULightingConstantBufferOffset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPULightingConstantBuffer)));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory6, GPUClusteredShadingConstantBufferOffset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUClusteredShadingConstantBuffer)));
-		SAFE_DX(GPULightingConstantBuffer->SetName((const wchar_t*)u"GPU Lighting Constant Buffer"));
-		SAFE_DX(GPUClusteredShadingConstantBuffer->SetName((const wchar_t*)u"GPU Clustered Shading Constant Buffer"));
+		GPULightingConstantBuffer = CreateBuffer(GPUMemory6, GPULightingConstantBufferOffset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, u"GPU Lighting Constant Buffer");
+		GPUClusteredShadingConstantBuffer = CreateBuffer(GPUMemory6, GPUClusteredShadingConstantBufferOffset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, u"GPU Clustered Shading Constant Buffer");
 
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory6, GPULightClustersBufferOffset, &LightClustersBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(GPULightClustersBuffer)));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory6, GPULightIndicesBufferOffset, &LightIndicesBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(GPULightIndicesBuffer)));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory6, GPUPointLightsBufferOffset, &PointLightsBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(GPUPointLightsBuffer)));
-		SAFE_DX(GPULightClustersBuffer->SetName((const wchar_t*)u"GPU Light Clusters Buffer"));
-		SAFE_DX(GPULightIndicesBuffer->SetName((const wchar_t*)u"GPU Light Clusters Buffer"));
-		SAFE_DX(GPUPointLightsBuffer->SetName((const wchar_t*)u"GPU Point Lights Buffer"));
+		GPULightClustersBuffer = CreateBuffer(GPUMemory6, GPULightClustersBufferOffset, &LightClustersBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, u"GPU Light Clusters Buffer");
+		GPULightIndicesBuffer = CreateBuffer(GPUMemory6, GPULightIndicesBufferOffset, &LightIndicesBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, u"GPU Light Clusters Buffer");
+		GPUPointLightsBuffer = CreateBuffer(GPUMemory6, GPUPointLightsBufferOffset, &PointLightsBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, u"GPU Point Lights Buffer");
 
 		HeapDesc.Alignment = D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT;
 		HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE;
@@ -1370,29 +1383,17 @@ void RenderSystem::InitSystem()
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory6)));
 		SAFE_DX(CPUMemory6->SetName((const wchar_t*)u"Deferred Lighting Pass Data GPU Heap"));
 
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory6, CPULightingConstantBuffer0Offset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPULightingConstantBuffers[0])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory6, CPULightingConstantBuffer1Offset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPULightingConstantBuffers[1])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory6, CPUClusteredShadingConstantBuffer0Offset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUClusteredShadingConstantBuffers[0])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory6, CPUClusteredShadingConstantBuffer1Offset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUClusteredShadingConstantBuffers[1])));
-		SAFE_DX(CPULightingConstantBuffers[0]->SetName((const wchar_t*)u"CPU Lighting Constant Buffer 0"));
-		SAFE_DX(CPULightingConstantBuffers[1]->SetName((const wchar_t*)u"CPU Lighting Constant Buffer 1"));
-		SAFE_DX(CPUClusteredShadingConstantBuffers[0]->SetName((const wchar_t*)u"CPU Clustered Shading Constant Buffer 1"));
-		SAFE_DX(CPUClusteredShadingConstantBuffers[1]->SetName((const wchar_t*)u"CPU Clustered Shading Constant Buffer 1"));
+		CPULightingConstantBuffers[0] = CreateBuffer(CPUMemory6, CPULightingConstantBuffer0Offset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Lighting Constant Buffer 0");
+		CPULightingConstantBuffers[1] = CreateBuffer(CPUMemory6, CPULightingConstantBuffer1Offset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Lighting Constant Buffer 1");
+		CPUClusteredShadingConstantBuffers[0] = CreateBuffer(CPUMemory6, CPUClusteredShadingConstantBuffer0Offset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Clustered Shading Constant Buffer 0");
+		CPUClusteredShadingConstantBuffers[1] = CreateBuffer(CPUMemory6, CPUClusteredShadingConstantBuffer1Offset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Clustered Shading Constant Buffer 1");
 
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory6, CPULightClustersBufferOffset0, &LightClustersBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPULightClustersBuffers[0])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory6, CPULightClustersBufferOffset1, &LightClustersBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPULightClustersBuffers[1])));
-		SAFE_DX(CPULightClustersBuffers[0]->SetName((const wchar_t*)u"CPU Light Clusters Buffer 0"));
-		SAFE_DX(CPULightClustersBuffers[1]->SetName((const wchar_t*)u"CPU Light Clusters Buffer 1"));
-
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory6, CPULightIndicesBufferOffset0, &LightIndicesBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPULightIndicesBuffers[0])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory6, CPULightIndicesBufferOffset1, &LightIndicesBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPULightIndicesBuffers[1])));
-		SAFE_DX(CPULightIndicesBuffers[0]->SetName((const wchar_t*)u"CPU Light Indices Buffer 0"));
-		SAFE_DX(CPULightIndicesBuffers[1]->SetName((const wchar_t*)u"CPU Light Indices Buffer 1"));
-
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory6, CPUPointLightsBufferOffset0, &PointLightsBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUPointLightsBuffers[0])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory6, CPUPointLightsBufferOffset1, &PointLightsBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUPointLightsBuffers[1])));
-		SAFE_DX(CPUPointLightsBuffers[0]->SetName((const wchar_t*)u"CPU Point Lights Buffer 0"));
-		SAFE_DX(CPUPointLightsBuffers[1]->SetName((const wchar_t*)u"CPU Point Lights Buffer 1"));
+		CPULightClustersBuffers[0] = CreateBuffer(CPUMemory6, CPULightClustersBufferOffset0, &LightClustersBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Light Clusters Buffer 0");
+		CPULightClustersBuffers[1] = CreateBuffer(CPUMemory6, CPULightClustersBufferOffset1, &LightClustersBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Light Clusters Buffer 1");
+		CPULightIndicesBuffers[0] = CreateBuffer(CPUMemory6, CPULightIndicesBufferOffset0, &LightIndicesBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Light Clusters Buffer 0");
+		CPULightIndicesBuffers[1] = CreateBuffer(CPUMemory6, CPULightIndicesBufferOffset1, &LightIndicesBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Light Clusters Buffer 1");
+		CPUPointLightsBuffers[0] = CreateBuffer(CPUMemory6, CPUPointLightsBufferOffset0, &PointLightsBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Point Lights Buffer 0");
+		CPUPointLightsBuffers[1] = CreateBuffer(CPUMemory6, CPUPointLightsBufferOffset1, &PointLightsBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Point Lights Buffer 1");
 
 		D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
 		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
@@ -1400,7 +1401,7 @@ void RenderSystem::InitSystem()
 
 		HDRSceneColorTextureRTV = RTDescriptorHeap->AllocateDescriptor();
 
-		Device->CreateRenderTargetView(HDRSceneColorTexture, &RTVDesc, HDRSceneColorTextureRTV);
+		Device->CreateRenderTargetView(HDRSceneColorTexture->DXTexture, &RTVDesc, HDRSceneColorTextureRTV);
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
 		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
@@ -1409,17 +1410,17 @@ void RenderSystem::InitSystem()
 
 		HDRSceneColorTextureSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
-		Device->CreateShaderResourceView(HDRSceneColorTexture, &SRVDesc, HDRSceneColorTextureSRV);
+		Device->CreateShaderResourceView(HDRSceneColorTexture->DXTexture, &SRVDesc, HDRSceneColorTextureSRV);
 
 		D3D12_CONSTANT_BUFFER_VIEW_DESC CBVDesc;
-		CBVDesc.BufferLocation = GPULightingConstantBuffer->GetGPUVirtualAddress();
+		CBVDesc.BufferLocation = GPULightingConstantBuffer->DXBuffer->GetGPUVirtualAddress();
 		CBVDesc.SizeInBytes = 256;
 
 		LightingConstantBufferCBV = CBSRUADescriptorHeap->AllocateDescriptor();
 
 		Device->CreateConstantBufferView(&CBVDesc, LightingConstantBufferCBV);
 
-		CBVDesc.BufferLocation = GPUClusteredShadingConstantBuffer->GetGPUVirtualAddress();
+		CBVDesc.BufferLocation = GPUClusteredShadingConstantBuffer->DXBuffer->GetGPUVirtualAddress();
 		CBVDesc.SizeInBytes = 256;
 
 		ClusteredShadingConstantBufferCBV = CBSRUADescriptorHeap->AllocateDescriptor();
@@ -1436,7 +1437,7 @@ void RenderSystem::InitSystem()
 
 		LightClustersBufferSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
-		Device->CreateShaderResourceView(GPULightClustersBuffer, &SRVDesc, LightClustersBufferSRV);
+		Device->CreateShaderResourceView(GPULightClustersBuffer->DXBuffer, &SRVDesc, LightClustersBufferSRV);
 
 		SRVDesc.Buffer.FirstElement = 0;
 		SRVDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAGS::D3D12_BUFFER_SRV_FLAG_NONE;
@@ -1448,7 +1449,7 @@ void RenderSystem::InitSystem()
 
 		LightIndicesBufferSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
-		Device->CreateShaderResourceView(GPULightIndicesBuffer, &SRVDesc, LightIndicesBufferSRV);
+		Device->CreateShaderResourceView(GPULightIndicesBuffer->DXBuffer, &SRVDesc, LightIndicesBufferSRV);
 
 		SRVDesc.Buffer.FirstElement = 0;
 		SRVDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAGS::D3D12_BUFFER_SRV_FLAG_NONE;
@@ -1460,7 +1461,7 @@ void RenderSystem::InitSystem()
 
 		PointLightsBufferSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
-		Device->CreateShaderResourceView(GPUPointLightsBuffer, &SRVDesc, PointLightsBufferSRV);
+		Device->CreateShaderResourceView(GPUPointLightsBuffer->DXBuffer, &SRVDesc, PointLightsBufferSRV);
 
 		void *DeferredLightingPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel60.DeferredLighting");
 		SIZE_T DeferredLightingPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel60.DeferredLighting");
@@ -1698,20 +1699,19 @@ void RenderSystem::InitSystem()
 
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory7, SkyVertexBufferOffset, &SkyVertexBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON, nullptr, UUIDOF(SkyVertexBuffer)));
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory7, SkyIndexBufferOffset, &SkyIndexBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON, nullptr, UUIDOF(SkyIndexBuffer)));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory7, GPUSkyConstantBufferOffset, &SkyConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUSkyConstantBuffer)));
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory7, SkyTextureOffset, &SkyTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON, nullptr, UUIDOF(SkyTexture)));
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory7, SunVertexBufferOffset, &SunVertexBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON, nullptr, UUIDOF(SunVertexBuffer)));
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory7, SunIndexBufferOffset, &SunIndexBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON, nullptr, UUIDOF(SunIndexBuffer)));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory7, GPUSunConstantBufferOffset, &SunConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUSunConstantBuffer)));
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory7, SunTextureOffset, &SunTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON, nullptr, UUIDOF(SunTexture)));
 		SAFE_DX(SkyVertexBuffer->SetName((const wchar_t*)u"Sky Vertex Buffer"));
 		SAFE_DX(SkyIndexBuffer->SetName((const wchar_t*)u"Sky Index Buffer"));
-		SAFE_DX(GPUSkyConstantBuffer->SetName((const wchar_t*)u"GPU Sky Constant Buffer"));
 		SAFE_DX(SkyTexture->SetName((const wchar_t*)u"Sky Texture"));
 		SAFE_DX(SunVertexBuffer->SetName((const wchar_t*)u"Sun Vertex Buffer"));
 		SAFE_DX(SunIndexBuffer->SetName((const wchar_t*)u"Sun Index Buffer"));
-		SAFE_DX(GPUSunConstantBuffer->SetName((const wchar_t*)u"GPU Sun Constant Buffer"));
 		SAFE_DX(SunTexture->SetName((const wchar_t*)u"Sun Texture"));
+
+		GPUSkyConstantBuffer = CreateBuffer(GPUMemory7, GPUSkyConstantBufferOffset, &SkyConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, u"GPU Sky Constant Buffer");
+		GPUSunConstantBuffer = CreateBuffer(GPUMemory7, GPUSunConstantBufferOffset, &SunConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, u"GPU Sun Constant Buffer");
 
 		HeapDesc.Alignment = D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT;
 		HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE;
@@ -1730,14 +1730,10 @@ void RenderSystem::InitSystem()
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory7)));
 		SAFE_DX(CPUMemory7->SetName((const wchar_t*)u"Sky and Fog Pass Data GPU Heap"));
 
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory7, CPUSkyConstantBufferOffset0, &SkyConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUSkyConstantBuffers[0])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory7, CPUSkyConstantBufferOffset1, &SkyConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUSkyConstantBuffers[1])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory7, CPUSunConstantBufferOffset0, &SunConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUSunConstantBuffers[0])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory7, CPUSunConstantBufferOffset1, &SunConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUSunConstantBuffers[1])));
-		SAFE_DX(CPUSkyConstantBuffers[0]->SetName((const wchar_t*)u"CPU Sky Constant Buffers 0"));
-		SAFE_DX(CPUSkyConstantBuffers[1]->SetName((const wchar_t*)u"CPU Sky Constant Buffers 1"));
-		SAFE_DX(CPUSunConstantBuffers[0]->SetName((const wchar_t*)u"CPU Sun Constant Buffers 0"));
-		SAFE_DX(CPUSunConstantBuffers[1]->SetName((const wchar_t*)u"CPU Sun Constant Buffers 1"));
+		CPUSkyConstantBuffers[0] = CreateBuffer(CPUMemory7, CPUSkyConstantBufferOffset0, &SkyConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Sky Constant Buffers 0");
+		CPUSkyConstantBuffers[1] = CreateBuffer(CPUMemory7, CPUSkyConstantBufferOffset1, &SkyConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Sky Constant Buffers 1");
+		CPUSunConstantBuffers[0] = CreateBuffer(CPUMemory7, CPUSunConstantBufferOffset0, &SunConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Sun Constant Buffers 0");
+		CPUSunConstantBuffers[1] = CreateBuffer(CPUMemory7, CPUSunConstantBufferOffset1, &SunConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Sun Constant Buffers 1");
 
 		void *MappedData;
 
@@ -1793,7 +1789,7 @@ void RenderSystem::InitSystem()
 		SkyIndexBufferAddress = SkyIndexBuffer->GetGPUVirtualAddress();
 
 		D3D12_CONSTANT_BUFFER_VIEW_DESC CBVDesc;
-		CBVDesc.BufferLocation = GPUSkyConstantBuffer->GetGPUVirtualAddress();
+		CBVDesc.BufferLocation = GPUSkyConstantBuffer->DXBuffer->GetGPUVirtualAddress();
 		CBVDesc.SizeInBytes = 256;
 
 		SkyConstantBufferCBV = CBSRUADescriptorHeap->AllocateDescriptor();
@@ -2016,7 +2012,7 @@ void RenderSystem::InitSystem()
 		SunVertexBufferAddress = SunVertexBuffer->GetGPUVirtualAddress();
 		SunIndexBufferAddress = SunIndexBuffer->GetGPUVirtualAddress();
 
-		CBVDesc.BufferLocation = GPUSunConstantBuffer->GetGPUVirtualAddress();
+		CBVDesc.BufferLocation = GPUSunConstantBuffer->DXBuffer->GetGPUVirtualAddress();
 		CBVDesc.SizeInBytes = 256;
 
 		SunConstantBufferCBV = CBSRUADescriptorHeap->AllocateDescriptor();
@@ -2252,8 +2248,7 @@ void RenderSystem::InitSystem()
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory8)));
 		SAFE_DX(GPUMemory1->SetName((const wchar_t*)u"HDR Scene Color Texture Resolve Pass Data GPU Heap"));
 
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory8, ResolvedHDRSceneColorTextureOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(ResolvedHDRSceneColorTexture)));
-		SAFE_DX(ResolvedHDRSceneColorTexture->SetName((const wchar_t*)u"Resolved HDR Scene Color Texture"));
+		ResolvedHDRSceneColorTexture = CreateTexture(GPUMemory8, ResolvedHDRSceneColorTextureOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, nullptr, u"Resolved HDR Scene Color Texture");
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
 		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
@@ -2266,7 +2261,7 @@ void RenderSystem::InitSystem()
 
 		ResolvedHDRSceneColorTextureSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
-		Device->CreateShaderResourceView(ResolvedHDRSceneColorTexture, &SRVDesc, ResolvedHDRSceneColorTextureSRV);
+		Device->CreateShaderResourceView(ResolvedHDRSceneColorTexture->DXTexture, &SRVDesc, ResolvedHDRSceneColorTextureSRV);
 	}
 
 	// ===============================================================================================================
@@ -2334,31 +2329,6 @@ void RenderSystem::InitSystem()
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory9)));
 		SAFE_DX(GPUMemory9->SetName((const wchar_t*)u"Scene Luminance Pass Data GPU Heap"));
 
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory9, SceneLuminanceTexture0Offset, &SceneLuminanceTexturesResourceDescs[0], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(SceneLuminanceTextures[0])));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory9, SceneLuminanceTexture1Offset, &SceneLuminanceTexturesResourceDescs[1], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(SceneLuminanceTextures[1])));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory9, SceneLuminanceTexture2Offset, &SceneLuminanceTexturesResourceDescs[2], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(SceneLuminanceTextures[2])));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory9, SceneLuminanceTexture3Offset, &SceneLuminanceTexturesResourceDescs[3], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(SceneLuminanceTextures[3])));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory9, SceneLuminanceTexture4Offset, &SceneLuminanceTexturesResourceDescs[4], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(SceneLuminanceTextures[4])));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory9, SceneLuminanceTexture5Offset, &SceneLuminanceTexturesResourceDescs[5], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(SceneLuminanceTextures[5])));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory9, SceneLuminanceTexture6Offset, &SceneLuminanceTexturesResourceDescs[6], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(SceneLuminanceTextures[6])));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory9, SceneLuminanceTexture7Offset, &SceneLuminanceTexturesResourceDescs[7], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(SceneLuminanceTextures[7])));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory9, SceneLuminanceTexture8Offset, &SceneLuminanceTexturesResourceDescs[8], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(SceneLuminanceTextures[8])));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory9, SceneLuminanceTexture9Offset, &SceneLuminanceTexturesResourceDescs[9], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(SceneLuminanceTextures[9])));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory9, SceneLuminanceTexture10Offset, &SceneLuminanceTexturesResourceDescs[10], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(SceneLuminanceTextures[10])));
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory9, SceneLuminanceTexture11Offset, &SceneLuminanceTexturesResourceDescs[11], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(SceneLuminanceTextures[11])));
-		SAFE_DX(SceneLuminanceTextures[0]->SetName((const wchar_t*)u"Scene Luminance Textures 0"));
-		SAFE_DX(SceneLuminanceTextures[1]->SetName((const wchar_t*)u"Scene Luminance Textures 1"));
-		SAFE_DX(SceneLuminanceTextures[2]->SetName((const wchar_t*)u"Scene Luminance Textures 2"));
-		SAFE_DX(SceneLuminanceTextures[3]->SetName((const wchar_t*)u"Scene Luminance Textures 3"));
-		SAFE_DX(SceneLuminanceTextures[4]->SetName((const wchar_t*)u"Scene Luminance Textures 4"));
-		SAFE_DX(SceneLuminanceTextures[5]->SetName((const wchar_t*)u"Scene Luminance Textures 5"));
-		SAFE_DX(SceneLuminanceTextures[6]->SetName((const wchar_t*)u"Scene Luminance Textures 6"));
-		SAFE_DX(SceneLuminanceTextures[7]->SetName((const wchar_t*)u"Scene Luminance Textures 7"));
-		SAFE_DX(SceneLuminanceTextures[8]->SetName((const wchar_t*)u"Scene Luminance Textures 8"));
-		SAFE_DX(SceneLuminanceTextures[9]->SetName((const wchar_t*)u"Scene Luminance Textures 9"));
-		SAFE_DX(SceneLuminanceTextures[10]->SetName((const wchar_t*)u"Scene Luminance Textures 10"));
-		SAFE_DX(SceneLuminanceTextures[11]->SetName((const wchar_t*)u"Scene Luminance Textures 11"));
-
 		D3D12_CLEAR_VALUE ClearValue;
 		ClearValue.Color[0] = 0.0f;
 		ClearValue.Color[1] = 0.0f;
@@ -2366,8 +2336,20 @@ void RenderSystem::InitSystem()
 		ClearValue.Color[3] = 0.0f;
 		ClearValue.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
 
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory9, AverageLuminanceTextureOffset, &AverageLuminanceTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue, UUIDOF(AverageLuminanceTexture)));
-		SAFE_DX(AverageLuminanceTexture->SetName((const wchar_t*)u"Average Luminance Texture"));
+		SceneLuminanceTextures[0] = CreateTexture(GPUMemory9, SceneLuminanceTexture0Offset, &SceneLuminanceTexturesResourceDescs[0], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue, u"Scene Luminance Textures 0");
+		SceneLuminanceTextures[1] = CreateTexture(GPUMemory9, SceneLuminanceTexture1Offset, &SceneLuminanceTexturesResourceDescs[1], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue, u"Scene Luminance Textures 1");
+		SceneLuminanceTextures[2] = CreateTexture(GPUMemory9, SceneLuminanceTexture2Offset, &SceneLuminanceTexturesResourceDescs[2], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue, u"Scene Luminance Textures 2");
+		SceneLuminanceTextures[3] = CreateTexture(GPUMemory9, SceneLuminanceTexture3Offset, &SceneLuminanceTexturesResourceDescs[3], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue, u"Scene Luminance Textures 3");
+		SceneLuminanceTextures[4] = CreateTexture(GPUMemory9, SceneLuminanceTexture4Offset, &SceneLuminanceTexturesResourceDescs[4], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue, u"Scene Luminance Textures 4");
+		SceneLuminanceTextures[5] = CreateTexture(GPUMemory9, SceneLuminanceTexture5Offset, &SceneLuminanceTexturesResourceDescs[5], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue, u"Scene Luminance Textures 5");
+		SceneLuminanceTextures[6] = CreateTexture(GPUMemory9, SceneLuminanceTexture6Offset, &SceneLuminanceTexturesResourceDescs[6], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue, u"Scene Luminance Textures 6");
+		SceneLuminanceTextures[7] = CreateTexture(GPUMemory9, SceneLuminanceTexture7Offset, &SceneLuminanceTexturesResourceDescs[7], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue, u"Scene Luminance Textures 7");
+		SceneLuminanceTextures[8] = CreateTexture(GPUMemory9, SceneLuminanceTexture8Offset, &SceneLuminanceTexturesResourceDescs[8], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue, u"Scene Luminance Textures 8");
+		SceneLuminanceTextures[9] = CreateTexture(GPUMemory9, SceneLuminanceTexture9Offset, &SceneLuminanceTexturesResourceDescs[9], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue, u"Scene Luminance Textures 9");
+		SceneLuminanceTextures[10] = CreateTexture(GPUMemory9, SceneLuminanceTexture10Offset, &SceneLuminanceTexturesResourceDescs[10], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue, u"Scene Luminance Textures 10");
+		SceneLuminanceTextures[11] = CreateTexture(GPUMemory9, SceneLuminanceTexture11Offset, &SceneLuminanceTexturesResourceDescs[11], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue, u"Scene Luminance Textures 11");
+		
+		AverageLuminanceTexture = CreateTexture(GPUMemory9, AverageLuminanceTextureOffset, &AverageLuminanceTextureResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue, u"Average Luminance Texture");
 
 		D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
 		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
@@ -2379,7 +2361,7 @@ void RenderSystem::InitSystem()
 		{
 			SceneLuminanceTexturesRTVs[i] = RTDescriptorHeap->AllocateDescriptor();
 
-			Device->CreateRenderTargetView(SceneLuminanceTextures[i], &RTVDesc, SceneLuminanceTexturesRTVs[i]);
+			Device->CreateRenderTargetView(SceneLuminanceTextures[i]->DXTexture, &RTVDesc, SceneLuminanceTexturesRTVs[i]);
 		}
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
@@ -2395,7 +2377,7 @@ void RenderSystem::InitSystem()
 		{
 			SceneLuminanceTexturesSRVs[i] = CBSRUADescriptorHeap->AllocateDescriptor();
 
-			Device->CreateShaderResourceView(SceneLuminanceTextures[i], &SRVDesc, SceneLuminanceTexturesSRVs[i]);
+			Device->CreateShaderResourceView(SceneLuminanceTextures[i]->DXTexture, &SRVDesc, SceneLuminanceTexturesSRVs[i]);
 		}
 
 		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
@@ -2405,7 +2387,7 @@ void RenderSystem::InitSystem()
 
 		AverageLuminanceTextureRTV = RTDescriptorHeap->AllocateDescriptor();
 
-		Device->CreateRenderTargetView(AverageLuminanceTexture, &RTVDesc, AverageLuminanceTextureRTV);
+		Device->CreateRenderTargetView(AverageLuminanceTexture->DXTexture, &RTVDesc, AverageLuminanceTextureRTV);
 
 		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
 		SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -2417,7 +2399,7 @@ void RenderSystem::InitSystem()
 
 		AverageLuminanceTextureSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
-		Device->CreateShaderResourceView(AverageLuminanceTexture, &SRVDesc, AverageLuminanceTextureSRV);
+		Device->CreateShaderResourceView(AverageLuminanceTexture->DXTexture, &SRVDesc, AverageLuminanceTextureSRV);
 
 		void *LuminanceCalcComputeShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel60.LuminanceCalc");
 		SIZE_T LuminanceCalcComputeShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel60.LuminanceCalc");
@@ -2554,17 +2536,13 @@ void RenderSystem::InitSystem()
 
 		for (int i = 0; i < 7; i++)
 		{
-			SAFE_DX(Device->CreatePlacedResource(GPUMemory10, BloomTexturesOffsets[0][i], &ResourceDescs[0][i], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(BloomTextures[0][i])));
-			SAFE_DX(Device->CreatePlacedResource(GPUMemory10, BloomTexturesOffsets[1][i], &ResourceDescs[1][i], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(BloomTextures[1][i])));
-			SAFE_DX(Device->CreatePlacedResource(GPUMemory10, BloomTexturesOffsets[2][i], &ResourceDescs[2][i], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &ClearValue, UUIDOF(BloomTextures[2][i])));
-
 			char16_t DebugTextureName[255];
 			wsprintf((wchar_t*)DebugTextureName, (const wchar_t*)u"Bloom Texture %d %d", i, 0);
-			SAFE_DX(BloomTextures[0][i]->SetName((const wchar_t*)DebugTextureName));
+			BloomTextures[0][i] = CreateTexture(GPUMemory10, BloomTexturesOffsets[0][i], &ResourceDescs[0][i], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue, DebugTextureName);
 			wsprintf((wchar_t*)DebugTextureName, (const wchar_t*)u"Bloom Texture %d %d", i, 1);
-			SAFE_DX(BloomTextures[1][i]->SetName((const wchar_t*)DebugTextureName));
+			BloomTextures[1][i] = CreateTexture(GPUMemory10, BloomTexturesOffsets[1][i], &ResourceDescs[1][i], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue, DebugTextureName);
 			wsprintf((wchar_t*)DebugTextureName, (const wchar_t*)u"Bloom Texture %d %d", i, 2);
-			SAFE_DX(BloomTextures[2][i]->SetName((const wchar_t*)DebugTextureName));
+			BloomTextures[2][i] = CreateTexture(GPUMemory10, BloomTexturesOffsets[2][i], &ResourceDescs[2][i], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue, DebugTextureName);
 		}
 
 		D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
@@ -2579,9 +2557,9 @@ void RenderSystem::InitSystem()
 			BloomTexturesRTVs[1][i] = RTDescriptorHeap->AllocateDescriptor();
 			BloomTexturesRTVs[2][i] = RTDescriptorHeap->AllocateDescriptor();
 
-			Device->CreateRenderTargetView(BloomTextures[0][i], &RTVDesc, BloomTexturesRTVs[0][i]);
-			Device->CreateRenderTargetView(BloomTextures[1][i], &RTVDesc, BloomTexturesRTVs[1][i]);
-			Device->CreateRenderTargetView(BloomTextures[2][i], &RTVDesc, BloomTexturesRTVs[2][i]);
+			Device->CreateRenderTargetView(BloomTextures[0][i]->DXTexture, &RTVDesc, BloomTexturesRTVs[0][i]);
+			Device->CreateRenderTargetView(BloomTextures[1][i]->DXTexture, &RTVDesc, BloomTexturesRTVs[1][i]);
+			Device->CreateRenderTargetView(BloomTextures[2][i]->DXTexture, &RTVDesc, BloomTexturesRTVs[2][i]);
 		}
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
@@ -2599,9 +2577,9 @@ void RenderSystem::InitSystem()
 			BloomTexturesSRVs[1][i] = CBSRUADescriptorHeap->AllocateDescriptor();
 			BloomTexturesSRVs[2][i] = CBSRUADescriptorHeap->AllocateDescriptor();
 
-			Device->CreateShaderResourceView(BloomTextures[0][i], &SRVDesc, BloomTexturesSRVs[0][i]);
-			Device->CreateShaderResourceView(BloomTextures[1][i], &SRVDesc, BloomTexturesSRVs[1][i]);
-			Device->CreateShaderResourceView(BloomTextures[2][i], &SRVDesc, BloomTexturesSRVs[2][i]);
+			Device->CreateShaderResourceView(BloomTextures[0][i]->DXTexture, &SRVDesc, BloomTexturesSRVs[0][i]);
+			Device->CreateShaderResourceView(BloomTextures[1][i]->DXTexture, &SRVDesc, BloomTexturesSRVs[1][i]);
+			Device->CreateShaderResourceView(BloomTextures[2][i]->DXTexture, &SRVDesc, BloomTexturesSRVs[2][i]);
 		}
 
 		void *BrightPassPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel60.BrightPass");
@@ -2779,8 +2757,7 @@ void RenderSystem::InitSystem()
 		ClearValue.Color[2] = 0.0f;
 		ClearValue.Color[3] = 0.0f;
 
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory11, ToneMappedImageTextureOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE, &ClearValue, UUIDOF(ToneMappedImageTexture)));
-		SAFE_DX(ToneMappedImageTexture->SetName((const wchar_t*)u"Tone Mapped Image Texture"));
+		ToneMappedImageTexture = CreateTexture(GPUMemory11, ToneMappedImageTextureOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, &ClearValue, u"Tone Mapped Image Texture");
 
 		D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
 		RTVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
@@ -2788,7 +2765,7 @@ void RenderSystem::InitSystem()
 
 		ToneMappedImageTextureRTV = RTDescriptorHeap->AllocateDescriptor();
 
-		Device->CreateRenderTargetView(ToneMappedImageTexture, &RTVDesc, ToneMappedImageTextureRTV);
+		Device->CreateRenderTargetView(ToneMappedImageTexture->DXTexture, &RTVDesc, ToneMappedImageTextureRTV);
 
 		void *HDRToneMappingPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel60.HDRToneMapping");
 		SIZE_T HDRToneMappingPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel60.HDRToneMapping");
@@ -2849,8 +2826,7 @@ void RenderSystem::InitSystem()
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory12)));
 		SAFE_DX(GPUMemory12->SetName((const wchar_t*)u"Debug Occlusion Pass Data GPU Heap"));
 
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory12, OcclusionBufferTextureOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, nullptr, UUIDOF(DebugOcclusionBufferTexture)));
-		SAFE_DX(DebugOcclusionBufferTexture->SetName((const wchar_t*)u"Debug Occlusion Buffer Texture"));
+		DebugOcclusionBufferTexture = CreateTexture(GPUMemory12, OcclusionBufferTextureOffset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, nullptr, u"Debug Occlusion Buffer Texture");
 
 		D3D12_PLACED_SUBRESOURCE_FOOTPRINT PlacedSubResourceFootPrint;
 
@@ -2886,10 +2862,8 @@ void RenderSystem::InitSystem()
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory12)));
 		SAFE_DX(CPUMemory12->SetName((const wchar_t*)u"Debug Occlusion Pass Data CPU Heap"));
 
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory12, OcclusionBufferReadbackBuffer0Offset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(DebugOcclusionBufferTextureUpload[0])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory12, OcclusionBufferReadbackBuffer1Offset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(DebugOcclusionBufferTextureUpload[1])));
-		SAFE_DX(DebugOcclusionBufferTextureUpload[0]->SetName((const wchar_t*)u"Debug Occlusion Buffer Texture Upload 0"));
-		SAFE_DX(DebugOcclusionBufferTextureUpload[1]->SetName((const wchar_t*)u"Debug Occlusion Buffer Texture Upload 1"));
+		DebugOcclusionBufferTextureUpload[0] = CreateBuffer(CPUMemory12, OcclusionBufferReadbackBuffer0Offset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"Debug Occlusion Buffer Texture Upload 0");
+		DebugOcclusionBufferTextureUpload[1] = CreateBuffer(CPUMemory12, OcclusionBufferReadbackBuffer1Offset, &ResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"Debug Occlusion Buffer Texture Upload 1");
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
 		SRVDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
@@ -2902,7 +2876,7 @@ void RenderSystem::InitSystem()
 
 		DebugOcclusionBufferTextureSRV = CBSRUADescriptorHeap->AllocateDescriptor();
 
-		Device->CreateShaderResourceView(DebugOcclusionBufferTexture, &SRVDesc, DebugOcclusionBufferTextureSRV);
+		Device->CreateShaderResourceView(DebugOcclusionBufferTexture->DXTexture, &SRVDesc, DebugOcclusionBufferTextureSRV);
 
 		void *DebugDrawOcclusionBufferVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData("ShaderModel60.DebugDrawOcclusionBuffer_VertexShader");
 		SIZE_T DebugDrawOcclusionBufferVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize("ShaderModel60.DebugDrawOcclusionBuffer_VertexShader");
@@ -2980,10 +2954,10 @@ void RenderSystem::InitSystem()
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(GPUMemory13)));
 		SAFE_DX(GPUMemory13->SetName((const wchar_t*)u"Debug Bounding Boxes Pass Data GPU Heap"));
 
-		SAFE_DX(Device->CreatePlacedResource(GPUMemory13, GPUConstantBufferOffset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, UUIDOF(GPUConstantBuffer3)));
 		SAFE_DX(Device->CreatePlacedResource(GPUMemory13, IndexBufferOffset, &IndexBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON, nullptr, UUIDOF(BoundingBoxIndexBuffer)));
-		SAFE_DX(GPUConstantBuffer3->SetName((const wchar_t*)u"GPU Constant Buffer 3"));
 		SAFE_DX(BoundingBoxIndexBuffer->SetName((const wchar_t*)u"Bounding Box Index Buffer"));
+
+		GPUConstantBuffer3 = CreateBuffer(GPUMemory13, GPUConstantBufferOffset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, u"Bounding Box Index Buffer");
 
 		HeapDesc.Alignment = 0;
 		HeapDesc.Flags = D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE;
@@ -3000,15 +2974,13 @@ void RenderSystem::InitSystem()
 		SAFE_DX(Device->CreateHeap(&HeapDesc, UUIDOF(CPUMemory13)));
 		SAFE_DX(CPUMemory13->SetName((const wchar_t*)u"Debug Bounding Boxes Pass Data CPU Heap"));
 
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory13, CPUConstantBuffer0Offset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUConstantBuffers3[0])));
-		SAFE_DX(Device->CreatePlacedResource(CPUMemory13, CPUConstantBuffer1Offset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, UUIDOF(CPUConstantBuffers3[1])));
-		SAFE_DX(CPUConstantBuffers3[0]->SetName((const wchar_t*)u"CPU Constant Buffers 3 0"));
-		SAFE_DX(CPUConstantBuffers3[1]->SetName((const wchar_t*)u"CPU Constant Buffers 3 1"));
+		CPUConstantBuffers3[0] = CreateBuffer(CPUMemory13, CPUConstantBuffer0Offset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Constant Buffers 3 0");
+		CPUConstantBuffers3[1] = CreateBuffer(CPUMemory13, CPUConstantBuffer1Offset, &ConstantBufferResourceDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ, u"CPU Constant Buffers 3 1");
 
 		for (int i = 0; i < 20000; i++)
 		{
 			D3D12_CONSTANT_BUFFER_VIEW_DESC CBVDesc;
-			CBVDesc.BufferLocation = GPUConstantBuffer3->GetGPUVirtualAddress() + i * 256;
+			CBVDesc.BufferLocation = GPUConstantBuffer3->DXBuffer->GetGPUVirtualAddress() + i * 256;
 			CBVDesc.SizeInBytes = 256;
 
 			ConstantBufferCBVs3[i] = ConstantBufferDescriptorHeap->AllocateDescriptor();
@@ -3195,7 +3167,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 	{
 		OPTICK_EVENT("Occlusion Buffer Reprojection");
 
-		D3D12_RESOURCE_DESC ResourceDesc = OcclusionBufferTexture->GetDesc();
+		D3D12_RESOURCE_DESC ResourceDesc = OcclusionBufferTexture->DXTexture->GetDesc();
 
 		D3D12_PLACED_SUBRESOURCE_FOOTPRINT PlacedSubResourceFootPrint;
 
@@ -3215,14 +3187,14 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		void *MappedData;
 
-		OcclusionBufferTextureReadback[CurrentFrameIndex]->Map(0, &ReadRange, &MappedData);
+		OcclusionBufferTextureReadback[CurrentFrameIndex]->DXBuffer->Map(0, &ReadRange, &MappedData);
 
 		for (UINT i = 0; i < NumRows; i++)
 		{
 			memcpy((BYTE*)OcclusionBufferData + i * RowSizeInBytes, (BYTE*)MappedData + i * PlacedSubResourceFootPrint.Footprint.RowPitch, RowSizeInBytes);
 		}
 
-		OcclusionBufferTextureReadback[CurrentFrameIndex]->Unmap(0, &WrittenRange);
+		OcclusionBufferTextureReadback[CurrentFrameIndex]->DXBuffer->Unmap(0, &WrittenRange);
 
 		Engine::GetEngine().GetRenderSystem().GetCullingSubSystem().ReProjectOcclusionBuffer(ViewProjMatrix, CurrentFrameIndex);
 	}
@@ -3246,8 +3218,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	// ===============================================================================================================
 
-	SwitchResourceState(GBufferTextures[0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
-	SwitchResourceState(GBufferTextures[1], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
+	SetTextureState(GBufferTextures[0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
+	SetTextureState(GBufferTextures[1], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
+	SetTextureState(GBufferTextures[2], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	// ===============================================================================================================
 
@@ -3275,7 +3248,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 			ReadRange.Begin = 0;
 			ReadRange.End = 0;
 
-			SAFE_DX(CPUCameraConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
+			SAFE_DX(CPUCameraConstantBuffers[CurrentFrameIndex]->DXBuffer->Map(0, &ReadRange, &ConstantBufferData));
 
 			CameraConstantBuffer& ConstantBuffer = *((CameraConstantBuffer*)ConstantBufferData);
 
@@ -3290,12 +3263,12 @@ void RenderSystem::TickSystem(float DeltaTime)
 			WrittenRange.Begin = 0;
 			WrittenRange.End = 256;
 
-			CPUCameraConstantBuffers[CurrentFrameIndex]->Unmap(0, &WrittenRange);
+			CPUCameraConstantBuffers[CurrentFrameIndex]->DXBuffer->Unmap(0, &WrittenRange);
 
 			ReadRange.Begin = 0;
 			ReadRange.End = 0;
 
-			SAFE_DX(CPURenderTargetConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
+			SAFE_DX(CPURenderTargetConstantBuffers[CurrentFrameIndex]->DXBuffer->Map(0, &ReadRange, &ConstantBufferData));
 
 			*(float*)(ConstantBufferData) = 1280.0f;
 			*(float*)((BYTE*)ConstantBufferData + 4) = 720.0f;
@@ -3303,12 +3276,12 @@ void RenderSystem::TickSystem(float DeltaTime)
 			WrittenRange.Begin = 0;
 			WrittenRange.End = 256;
 
-			CPURenderTargetConstantBuffers[CurrentFrameIndex]->Unmap(0, &WrittenRange);
+			CPURenderTargetConstantBuffers[CurrentFrameIndex]->DXBuffer->Unmap(0, &WrittenRange);
 
 			ReadRange.Begin = 0;
 			ReadRange.End = 0;
 
-			SAFE_DX(CPUGBufferOpaquePassObjectsConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
+			SAFE_DX(CPUGBufferOpaquePassObjectsConstantBuffers[CurrentFrameIndex]->DXBuffer->Map(0, &ReadRange, &ConstantBufferData));
 
 			for (size_t k = 0; k < VisibleStaticMeshComponentsCount; k++)
 			{
@@ -3350,28 +3323,28 @@ void RenderSystem::TickSystem(float DeltaTime)
 			WrittenRange.Begin = 0;
 			WrittenRange.End = ConstantBufferOffset;
 
-			CPUGBufferOpaquePassObjectsConstantBuffers[CurrentFrameIndex]->Unmap(0, &WrittenRange);
+			CPUGBufferOpaquePassObjectsConstantBuffers[CurrentFrameIndex]->DXBuffer->Unmap(0, &WrittenRange);
 		}
 
-		SwitchResourceState(GPUCameraConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
-		SwitchResourceState(GPUGBufferOpaquePassObjectsConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
-		SwitchResourceState(GPURenderTargetConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
+		SetBufferState(GPUCameraConstantBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
+		SetBufferState(GPUGBufferOpaquePassObjectsConstantBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
+		SetBufferState(GPURenderTargetConstantBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
 
 		ApplyPendingBarriers();
 
-		GraphicsCommandList->CopyBufferRegion(GPUCameraConstantBuffer, 0, CPUCameraConstantBuffers[CurrentFrameIndex], 0, 256);
-		GraphicsCommandList->CopyBufferRegion(GPURenderTargetConstantBuffer, 0, CPURenderTargetConstantBuffers[CurrentFrameIndex], 0, 256);
-		GraphicsCommandList->CopyBufferRegion(GPUGBufferOpaquePassObjectsConstantBuffer, 0, CPUGBufferOpaquePassObjectsConstantBuffers[CurrentFrameIndex], 0, ConstantBufferOffset);
+		GraphicsCommandList->CopyBufferRegion(GPUCameraConstantBuffer->DXBuffer, 0, CPUCameraConstantBuffers[CurrentFrameIndex]->DXBuffer, 0, 256);
+		GraphicsCommandList->CopyBufferRegion(GPURenderTargetConstantBuffer->DXBuffer, 0, CPURenderTargetConstantBuffers[CurrentFrameIndex]->DXBuffer, 0, 256);
+		GraphicsCommandList->CopyBufferRegion(GPUGBufferOpaquePassObjectsConstantBuffer->DXBuffer, 0, CPUGBufferOpaquePassObjectsConstantBuffers[CurrentFrameIndex]->DXBuffer, 0, ConstantBufferOffset);
 
-		SwitchResourceState(GPUCameraConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
-		SwitchResourceState(GPUGBufferOpaquePassObjectsConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
-		SwitchResourceState(GPURenderTargetConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+		SetBufferState(GPUCameraConstantBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+		SetBufferState(GPUGBufferOpaquePassObjectsConstantBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+		SetBufferState(GPURenderTargetConstantBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 
 		ApplyPendingBarriers();
 
 		GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-		GraphicsCommandList->OMSetRenderTargets(2, GBufferTexturesRTVs, TRUE, &DepthBufferTextureDSV);
+		GraphicsCommandList->OMSetRenderTargets(3, GBufferTexturesRTVs, TRUE, &DepthBufferTextureDSV);
 
 		D3D12_VIEWPORT Viewport;
 		Viewport.Height = float(ResolutionHeight);
@@ -3395,13 +3368,14 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->ClearRenderTargetView(GBufferTexturesRTVs[0], ClearColor, 0, nullptr);
 		GraphicsCommandList->ClearRenderTargetView(GBufferTexturesRTVs[1], ClearColor, 0, nullptr);
+		GraphicsCommandList->ClearRenderTargetView(GBufferTexturesRTVs[2], ClearColor, 0, nullptr);
 		GraphicsCommandList->ClearDepthStencilView(DepthBufferTextureDSV, D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_STENCIL, 0.0f, 0, 0, nullptr);
 
 		DescriptorTable TextureSamplerTable = FrameSamplersDescriptorHeap.AllocateDescriptorTable(1);
 		TextureSamplerTable.SetSampler(0, TextureSampler);
 		TextureSamplerTable.UpdateTable(Device);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(5, TextureSamplerTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SAMPLERS, TextureSamplerTable);
 		
 		{
 			OPTICK_EVENT("Main Camera Draw Calls")
@@ -3415,52 +3389,75 @@ void RenderSystem::TickSystem(float DeltaTime)
 				MaterialResource *material = staticMeshComponent->GetMaterial();
 				RenderTexture *renderTexture0 = material->GetTexture(0)->GetRenderTexture();
 				RenderTexture *renderTexture1 = material->GetTexture(1)->GetRenderTexture();
+				RenderTexture *renderTexture2 = material->GetTexture(2)->GetRenderTexture();
 
 				DescriptorTable VertexShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(2);
-				DescriptorTable PixelShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(2);
+				DescriptorTable PixelShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(3);
 
 				VertexShaderResourcesTable.SetConstantBuffer(0, CameraConstantBufferCBV);
 				VertexShaderResourcesTable.SetConstantBuffer(1, GBufferOpaquePassObjectsConstantBufferCBVs[k]);
 
 				PixelShaderResourcesTable.SetTexture(0, renderTexture0->TextureSRV);
 				PixelShaderResourcesTable.SetTexture(1, renderTexture1->TextureSRV);
+				PixelShaderResourcesTable.SetTexture(2, renderTexture2->TextureSRV);
 
 				VertexShaderResourcesTable.UpdateTable(Device);
 				PixelShaderResourcesTable.UpdateTable(Device);
 
 				D3D12_VERTEX_BUFFER_VIEW VertexBufferViews[3];
 				VertexBufferViews[0].BufferLocation = renderMesh->VertexBufferAddresses[0];
-				VertexBufferViews[0].SizeInBytes = sizeof(XMFLOAT3) * 9 * 9 * 6;
+				VertexBufferViews[0].SizeInBytes = sizeof(XMFLOAT3) * staticMeshComponent->GetStaticMesh()->GetVertexCount();
 				VertexBufferViews[0].StrideInBytes = sizeof(XMFLOAT3);
 				VertexBufferViews[1].BufferLocation = renderMesh->VertexBufferAddresses[1];
-				VertexBufferViews[1].SizeInBytes = sizeof(XMFLOAT2) * 9 * 9 * 6;
+				VertexBufferViews[1].SizeInBytes = sizeof(XMFLOAT2) * staticMeshComponent->GetStaticMesh()->GetVertexCount();
 				VertexBufferViews[1].StrideInBytes = sizeof(XMFLOAT2);
 				VertexBufferViews[2].BufferLocation = renderMesh->VertexBufferAddresses[2];
-				VertexBufferViews[2].SizeInBytes = 3 * sizeof(XMFLOAT3) * 9 * 9 * 6;
+				VertexBufferViews[2].SizeInBytes = 3 * sizeof(XMFLOAT3) * staticMeshComponent->GetStaticMesh()->GetVertexCount();
 				VertexBufferViews[2].StrideInBytes = 3 * sizeof(XMFLOAT3);
 
 				D3D12_INDEX_BUFFER_VIEW IndexBufferView;
 				IndexBufferView.BufferLocation = renderMesh->IndexBufferAddress;
 				IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
-				IndexBufferView.SizeInBytes = sizeof(WORD) * 8 * 8 * 6 * 6;
+				IndexBufferView.SizeInBytes = sizeof(WORD) * staticMeshComponent->GetStaticMesh()->GetIndexCount();
 
 				GraphicsCommandList->IASetVertexBuffers(0, 3, VertexBufferViews);
 				GraphicsCommandList->IASetIndexBuffer(&IndexBufferView);
 
 				GraphicsCommandList->SetPipelineState(renderMaterial->GBufferOpaquePassPipelineState);
 
-				GraphicsCommandList->SetGraphicsRootDescriptorTable(0, VertexShaderResourcesTable);
-				GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderResourcesTable);
+				GraphicsCommandList->SetGraphicsRootDescriptorTable(VERTEX_SHADER_CONSTANT_BUFFERS, VertexShaderResourcesTable);
+				GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
 
-				GraphicsCommandList->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
+				XMFLOAT3 ObjectLocation = staticMeshComponent->GetTransformComponent()->GetLocation();
+
+				float Distance = sqrtf(powf(ObjectLocation.x - CameraLocation.x, 2.0f) + powf(ObjectLocation.y - CameraLocation.y, 2.0f) + powf(ObjectLocation.z - CameraLocation.z, 2.0f));
+
+				UINT LODIndex;
+
+				if (Distance < 20.0f)
+					LODIndex = 0;
+				else if (Distance < 50.0f)
+					LODIndex = 1;
+				else if (Distance < 100.0f)
+					LODIndex = 2;
+				else if (Distance < 250.0f)
+					LODIndex = 3;
+				else
+					LODIndex = 4;
+
+				UINT IndexCount = staticMeshComponent->GetStaticMesh()->GetIndexCount(LODIndex);
+				UINT VertexOffset = staticMeshComponent->GetStaticMesh()->GetVertexOffset(LODIndex);
+				UINT IndexOffset = staticMeshComponent->GetStaticMesh()->GetIndexOffset(LODIndex);
+
+				GraphicsCommandList->DrawIndexedInstanced(IndexCount, 1, IndexOffset, VertexOffset, 0);
 			}
 		}
 	}
 
 	// ===============================================================================================================
 
-	SwitchResourceState(DepthBufferTexture, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE);
-	SwitchResourceState(ResolvedDepthBufferTexture, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST);
+	SetTextureState(DepthBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE);
+	SetTextureState(ResolvedDepthBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST);
 
 	// ===============================================================================================================
 
@@ -3469,19 +3466,19 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		COMRCPtr<ID3D12GraphicsCommandList1> GraphicsCommandList1;
 
-		GraphicsCommandList->QueryInterface<ID3D12GraphicsCommandList1>(&GraphicsCommandList1);
+		SAFE_DX(GraphicsCommandList->QueryInterface<ID3D12GraphicsCommandList1>(&GraphicsCommandList1));
 
-		GraphicsCommandList1->ResolveSubresourceRegion(ResolvedDepthBufferTexture, 0, 0, 0, DepthBufferTexture, 0, nullptr, DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT_S8X24_UINT, D3D12_RESOLVE_MODE::D3D12_RESOLVE_MODE_MAX);
+		GraphicsCommandList1->ResolveSubresourceRegion(ResolvedDepthBufferTexture->DXTexture, 0, 0, 0, DepthBufferTexture->DXTexture, 0, nullptr, DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT_S8X24_UINT, D3D12_RESOLVE_MODE::D3D12_RESOLVE_MODE_MAX);
 	}
 
 	// ===============================================================================================================
 
-	SwitchResourceState(ResolvedDepthBufferTexture, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	SetTextureState(ResolvedDepthBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 	// ===============================================================================================================
 
 	{
-		SwitchResourceState(OcclusionBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
+		SetTextureState(OcclusionBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 		ApplyPendingBarriers();
 
@@ -3507,13 +3504,13 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-		GraphicsCommandList->DiscardResource(OcclusionBufferTexture, nullptr);
+		GraphicsCommandList->DiscardResource(OcclusionBufferTexture->DXTexture, nullptr);
 
 		DescriptorTable MinSamplerTable = FrameSamplersDescriptorHeap.AllocateDescriptorTable(1);
 		MinSamplerTable.SetSampler(0, MinSampler);
 		MinSamplerTable.UpdateTable(Device);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(5, MinSamplerTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SAMPLERS, MinSamplerTable);
 
 		DescriptorTable ShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(1);
 		ShaderResourcesTable.SetTexture(0, ResolvedDepthBufferTextureSRV);
@@ -3521,15 +3518,15 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->SetPipelineState(OcclusionBufferPipelineState);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, ShaderResourcesTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, ShaderResourcesTable);
 
 		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 
-		SwitchResourceState(OcclusionBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_SOURCE);
+		SetTextureState(OcclusionBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_SOURCE);
 
 		ApplyPendingBarriers();
 
-		D3D12_RESOURCE_DESC ResourceDesc = OcclusionBufferTexture->GetDesc();
+		D3D12_RESOURCE_DESC ResourceDesc = OcclusionBufferTexture->DXTexture->GetDesc();
 
 		D3D12_PLACED_SUBRESOURCE_FOOTPRINT PlacedSubResourceFootPrint;
 
@@ -3540,12 +3537,12 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		D3D12_TEXTURE_COPY_LOCATION SourceTextureCopyLocation, DestTextureCopyLocation;
 
-		SourceTextureCopyLocation.pResource = OcclusionBufferTexture;
+		SourceTextureCopyLocation.pResource = OcclusionBufferTexture->DXTexture;
 		SourceTextureCopyLocation.SubresourceIndex = 0;
 		SourceTextureCopyLocation.Type = D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 
 		DestTextureCopyLocation.PlacedFootprint = PlacedSubResourceFootPrint;
-		DestTextureCopyLocation.pResource = OcclusionBufferTextureReadback[CurrentFrameIndex];
+		DestTextureCopyLocation.pResource = OcclusionBufferTextureReadback[CurrentFrameIndex]->DXBuffer;
 		DestTextureCopyLocation.Type = D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 
 		GraphicsCommandList->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
@@ -3553,10 +3550,10 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	// ===============================================================================================================
 
-	SwitchResourceState(CascadedShadowMapTextures[0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE);
-	SwitchResourceState(CascadedShadowMapTextures[1], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE);
-	SwitchResourceState(CascadedShadowMapTextures[2], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE);
-	SwitchResourceState(CascadedShadowMapTextures[3], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE);
+	SetTextureState(CascadedShadowMapTextures[0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE);
+	SetTextureState(CascadedShadowMapTextures[1], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE);
+	SetTextureState(CascadedShadowMapTextures[2], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE);
+	SetTextureState(CascadedShadowMapTextures[3], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
 	// ===============================================================================================================
 
@@ -3567,7 +3564,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		void *ConstantBufferData;
 
-		SAFE_DX(CPUShadowMapCameraConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
+		SAFE_DX(CPUShadowMapCameraConstantBuffers[CurrentFrameIndex]->DXBuffer->Map(0, &ReadRange, &ConstantBufferData));
 
 		for (int i = 0; i < 4; i++)
 		{
@@ -3579,15 +3576,15 @@ void RenderSystem::TickSystem(float DeltaTime)
 		WrittenRange.Begin = 0;
 		WrittenRange.End = 256 * 4;
 
-		CPUShadowMapCameraConstantBuffers[CurrentFrameIndex]->Unmap(0, &WrittenRange);
+		CPUShadowMapCameraConstantBuffers[CurrentFrameIndex]->DXBuffer->Unmap(0, &WrittenRange);
 
-		SwitchResourceState(GPUShadowMapCameraConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
+		SetBufferState(GPUShadowMapCameraConstantBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
 
 		ApplyPendingBarriers();
 
-		GraphicsCommandList->CopyBufferRegion(GPUShadowMapCameraConstantBuffer, 0, CPUShadowMapCameraConstantBuffers[CurrentFrameIndex], 0, 256 * 4);
+		GraphicsCommandList->CopyBufferRegion(GPUShadowMapCameraConstantBuffer->DXBuffer, 0, CPUShadowMapCameraConstantBuffers[CurrentFrameIndex]->DXBuffer, 0, 256 * 4);
 
-		SwitchResourceState(GPUShadowMapCameraConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+		SetBufferState(GPUShadowMapCameraConstantBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 
 		ApplyPendingBarriers();
 
@@ -3615,7 +3612,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 			{
 				OPTICK_EVENT("Shadow Frustum Objects Constants Filling");
 
-				SAFE_DX(CPUShadowMapPassObjectsConstantBuffers[i][CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
+				SAFE_DX(CPUShadowMapPassObjectsConstantBuffers[i][CurrentFrameIndex]->DXBuffer->Map(0, &ReadRange, &ConstantBufferData));
 
 				for (size_t k = 0; k < VisibleStaticMeshComponentsCount; k++)
 				{
@@ -3633,16 +3630,16 @@ void RenderSystem::TickSystem(float DeltaTime)
 				WrittenRange.Begin = 0;
 				WrittenRange.End = ConstantBufferOffset;
 
-				CPUShadowMapPassObjectsConstantBuffers[i][CurrentFrameIndex]->Unmap(0, &WrittenRange);
+				CPUShadowMapPassObjectsConstantBuffers[i][CurrentFrameIndex]->DXBuffer->Unmap(0, &WrittenRange);
 			}
 
-			SwitchResourceState(GPUShadowMapPassObjectsConstantBuffers[i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
+			SetBufferState(GPUShadowMapPassObjectsConstantBuffers[i], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
 
 			ApplyPendingBarriers();
 
-			GraphicsCommandList->CopyBufferRegion(GPUShadowMapPassObjectsConstantBuffers[i], 0, CPUShadowMapPassObjectsConstantBuffers[i][CurrentFrameIndex], 0, ConstantBufferOffset);
+			GraphicsCommandList->CopyBufferRegion(GPUShadowMapPassObjectsConstantBuffers[i]->DXBuffer, 0, CPUShadowMapPassObjectsConstantBuffers[i][CurrentFrameIndex]->DXBuffer, 0, ConstantBufferOffset);
 
-			SwitchResourceState(GPUShadowMapPassObjectsConstantBuffers[i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+			SetBufferState(GPUShadowMapPassObjectsConstantBuffers[i], D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 
 			ApplyPendingBarriers();
 
@@ -3691,22 +3688,43 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 					D3D12_VERTEX_BUFFER_VIEW VertexBufferView;
 					VertexBufferView.BufferLocation = renderMesh->VertexBufferAddresses[0];
-					VertexBufferView.SizeInBytes = sizeof(XMFLOAT3) * 9 * 9 * 6;
+					VertexBufferView.SizeInBytes = sizeof(XMFLOAT3) * staticMeshComponent->GetStaticMesh()->GetVertexCount();
 					VertexBufferView.StrideInBytes = sizeof(XMFLOAT3);
 
 					D3D12_INDEX_BUFFER_VIEW IndexBufferView;
 					IndexBufferView.BufferLocation = renderMesh->IndexBufferAddress;
 					IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
-					IndexBufferView.SizeInBytes = sizeof(WORD) * 8 * 8 * 6 * 6;
+					IndexBufferView.SizeInBytes = sizeof(WORD) * staticMeshComponent->GetStaticMesh()->GetIndexCount();
 
 					GraphicsCommandList->IASetVertexBuffers(0, 1, &VertexBufferView);
 					GraphicsCommandList->IASetIndexBuffer(&IndexBufferView);
 
 					GraphicsCommandList->SetPipelineState(renderMaterial->ShadowMapPassPipelineState);
 
-					GraphicsCommandList->SetGraphicsRootDescriptorTable(0, VertexShaderResourcesTable);
+					GraphicsCommandList->SetGraphicsRootDescriptorTable(VERTEX_SHADER_CONSTANT_BUFFERS, VertexShaderResourcesTable);
 
-					GraphicsCommandList->DrawIndexedInstanced(8 * 8 * 6 * 6, 1, 0, 0, 0);
+					XMFLOAT3 ObjectLocation = staticMeshComponent->GetTransformComponent()->GetLocation();
+
+					float Distance = sqrtf(powf(ObjectLocation.x - CameraLocation.x, 2.0f) + powf(ObjectLocation.y - CameraLocation.y, 2.0f) + powf(ObjectLocation.z - CameraLocation.z, 2.0f));
+
+					UINT LODIndex;
+
+					if (Distance < 20.0f)
+						LODIndex = 0;
+					else if (Distance < 50.0f)
+						LODIndex = 1;
+					else if (Distance < 100.0f)
+						LODIndex = 2;
+					else if (Distance < 250.0f)
+						LODIndex = 3;
+					else
+						LODIndex = 4;
+
+					UINT IndexCount = staticMeshComponent->GetStaticMesh()->GetIndexCount(LODIndex);
+					UINT VertexOffset = staticMeshComponent->GetStaticMesh()->GetVertexOffset(LODIndex);
+					UINT IndexOffset = staticMeshComponent->GetStaticMesh()->GetIndexOffset(LODIndex);
+
+					GraphicsCommandList->DrawIndexedInstanced(IndexCount, 1, IndexOffset, VertexOffset, 0);
 				}
 			}
 		}
@@ -3714,11 +3732,11 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	// ===============================================================================================================
 
-	SwitchResourceState(ShadowMaskTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
-	SwitchResourceState(CascadedShadowMapTextures[0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	SwitchResourceState(CascadedShadowMapTextures[1], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	SwitchResourceState(CascadedShadowMapTextures[2], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	SwitchResourceState(CascadedShadowMapTextures[3], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	SetTextureState(ShadowMaskTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
+	SetTextureState(CascadedShadowMapTextures[0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	SetTextureState(CascadedShadowMapTextures[1], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	SetTextureState(CascadedShadowMapTextures[2], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	SetTextureState(CascadedShadowMapTextures[3], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 	// ===============================================================================================================
 
@@ -3735,7 +3753,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		void *ConstantBufferData;
 
-		SAFE_DX(CPUShadowResolveConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
+		SAFE_DX(CPUShadowResolveConstantBuffers[CurrentFrameIndex]->DXBuffer->Map(0, &ReadRange, &ConstantBufferData));
 
 		ShadowResolveConstantBuffer& ConstantBuffer = *((ShadowResolveConstantBuffer*)((BYTE*)ConstantBufferData));
 
@@ -3747,15 +3765,15 @@ void RenderSystem::TickSystem(float DeltaTime)
 		WrittenRange.Begin = 0;
 		WrittenRange.End = 256;
 
-		CPUShadowResolveConstantBuffers[CurrentFrameIndex]->Unmap(0, &WrittenRange);
+		CPUShadowResolveConstantBuffers[CurrentFrameIndex]->DXBuffer->Unmap(0, &WrittenRange);
 
-		SwitchResourceState(GPUShadowResolveConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
+		SetBufferState(GPUShadowResolveConstantBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
 
 		ApplyPendingBarriers();
 
-		GraphicsCommandList->CopyBufferRegion(GPUShadowResolveConstantBuffer, 0, CPUShadowResolveConstantBuffers[CurrentFrameIndex], 0, 256);
+		GraphicsCommandList->CopyBufferRegion(GPUShadowResolveConstantBuffer->DXBuffer, 0, CPUShadowResolveConstantBuffers[CurrentFrameIndex]->DXBuffer, 0, 256);
 
-		SwitchResourceState(GPUShadowResolveConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+		SetBufferState(GPUShadowResolveConstantBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 
 		ApplyPendingBarriers();
 
@@ -3781,13 +3799,13 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-		GraphicsCommandList->DiscardResource(ShadowMaskTexture, nullptr);
+		GraphicsCommandList->DiscardResource(ShadowMaskTexture->DXTexture, nullptr);
 
 		DescriptorTable MinSamplerTable = FrameSamplersDescriptorHeap.AllocateDescriptorTable(1);
 		MinSamplerTable.SetSampler(0, ShadowMapSampler);
 		MinSamplerTable.UpdateTable(Device);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(5, MinSamplerTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SAMPLERS, MinSamplerTable);
 		
 		DescriptorTable PixelShaderConstantBuffersTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(1);
 		DescriptorTable PixelShaderShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(5);
@@ -3804,18 +3822,19 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->SetPipelineState(ShadowResolvePipelineState);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(3, PixelShaderConstantBuffersTable);
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderShaderResourcesTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_CONSTANT_BUFFERS, PixelShaderConstantBuffersTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderShaderResourcesTable);
 
 		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 	}
 
 	// ===============================================================================================================
 
-	SwitchResourceState(GBufferTextures[0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	SwitchResourceState(GBufferTextures[1], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	SwitchResourceState(ShadowMaskTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	SwitchResourceState(HDRSceneColorTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
+	SetTextureState(GBufferTextures[0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	SetTextureState(GBufferTextures[1], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	SetTextureState(GBufferTextures[2], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	SetTextureState(ShadowMaskTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	SetTextureState(HDRSceneColorTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	// ===============================================================================================================
 
@@ -3848,19 +3867,19 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		void *ConstantBufferData;
 
-		SAFE_DX(CPULightingConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
+		SAFE_DX(CPULightingConstantBuffers[CurrentFrameIndex]->DXBuffer->Map(0, &ReadRange, &ConstantBufferData));
 		
 		*(XMFLOAT3*)(ConstantBufferData) = XMFLOAT3(0.0f, 0.0f, 0.0f);
 
 		WrittenRange.Begin = 0;
 		WrittenRange.End = 256;
 
-		CPULightingConstantBuffers[CurrentFrameIndex]->Unmap(0, &WrittenRange);
+		CPULightingConstantBuffers[CurrentFrameIndex]->DXBuffer->Unmap(0, &WrittenRange);
 
 		ReadRange.Begin = 0;
 		ReadRange.End = 0;
 
-		SAFE_DX(CPUClusteredShadingConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
+		SAFE_DX(CPUClusteredShadingConstantBuffers[CurrentFrameIndex]->DXBuffer->Map(0, &ReadRange, &ConstantBufferData));
 
 		*(UINT*)((BYTE*)ConstantBufferData) = ClusterizationSubSystem::CLUSTERS_COUNT_X;
 		*(UINT*)((BYTE*)ConstantBufferData + 4) = ClusterizationSubSystem::CLUSTERS_COUNT_Y;
@@ -3869,56 +3888,56 @@ void RenderSystem::TickSystem(float DeltaTime)
 		WrittenRange.Begin = 0;
 		WrittenRange.End = 256;
 
-		CPUClusteredShadingConstantBuffers[CurrentFrameIndex]->Unmap(0, &WrittenRange);
+		CPUClusteredShadingConstantBuffers[CurrentFrameIndex]->DXBuffer->Unmap(0, &WrittenRange);
 
 		void *DynamicBufferData;
 
-		SAFE_DX(CPULightClustersBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &DynamicBufferData));
+		SAFE_DX(CPULightClustersBuffers[CurrentFrameIndex]->DXBuffer->Map(0, &ReadRange, &DynamicBufferData));
 
 		memcpy(DynamicBufferData, Engine::GetEngine().GetRenderSystem().GetClusterizationSubSystem().GetLightClustersData(), 32 * 18 * 24 * 2 * sizeof(uint32_t));
 
 		WrittenRange.Begin = 0;
 		WrittenRange.End = 32 * 18 * 24 * 2 * sizeof(uint32_t);
 
-		CPULightClustersBuffers[CurrentFrameIndex]->Unmap(0, &WrittenRange);
+		CPULightClustersBuffers[CurrentFrameIndex]->DXBuffer->Unmap(0, &WrittenRange);
 
-		SAFE_DX(CPULightIndicesBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &DynamicBufferData));
+		SAFE_DX(CPULightIndicesBuffers[CurrentFrameIndex]->DXBuffer->Map(0, &ReadRange, &DynamicBufferData));
 
 		memcpy(DynamicBufferData, Engine::GetEngine().GetRenderSystem().GetClusterizationSubSystem().GetLightIndicesData(), Engine::GetEngine().GetRenderSystem().GetClusterizationSubSystem().GetTotalIndexCount() * sizeof(uint16_t));
 
 		WrittenRange.Begin = 0;
 		WrittenRange.End = Engine::GetEngine().GetRenderSystem().GetClusterizationSubSystem().GetTotalIndexCount() * sizeof(uint16_t);
 
-		CPULightIndicesBuffers[CurrentFrameIndex]->Unmap(0, &WrittenRange);
+		CPULightIndicesBuffers[CurrentFrameIndex]->DXBuffer->Unmap(0, &WrittenRange);
 
-		SAFE_DX(CPUPointLightsBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &DynamicBufferData));
+		SAFE_DX(CPUPointLightsBuffers[CurrentFrameIndex]->DXBuffer->Map(0, &ReadRange, &DynamicBufferData));
 
 		memcpy(DynamicBufferData, PointLights.GetData(), PointLights.GetLength() * sizeof(PointLight));
 
 		WrittenRange.Begin = 0;
 		WrittenRange.End = PointLights.GetLength() * sizeof(PointLight);
 
-		CPUPointLightsBuffers[CurrentFrameIndex]->Unmap(0, &WrittenRange);
+		CPUPointLightsBuffers[CurrentFrameIndex]->DXBuffer->Unmap(0, &WrittenRange);
 
-		SwitchResourceState(GPULightingConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
-		SwitchResourceState(GPUClusteredShadingConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
-		SwitchResourceState(GPULightClustersBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
-		SwitchResourceState(GPULightIndicesBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
-		SwitchResourceState(GPUPointLightsBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
+		SetBufferState(GPULightingConstantBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
+		SetBufferState(GPUClusteredShadingConstantBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
+		SetBufferState(GPULightClustersBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
+		SetBufferState(GPULightIndicesBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
+		SetBufferState(GPUPointLightsBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
 
 		ApplyPendingBarriers();
 
-		GraphicsCommandList->CopyBufferRegion(GPULightingConstantBuffer, 0, CPULightingConstantBuffers[CurrentFrameIndex], 0, 256);
-		GraphicsCommandList->CopyBufferRegion(GPUClusteredShadingConstantBuffer, 0, CPUClusteredShadingConstantBuffers[CurrentFrameIndex], 0, 256);
-		GraphicsCommandList->CopyBufferRegion(GPULightClustersBuffer, 0, CPULightClustersBuffers[CurrentFrameIndex], 0, ClusterizationSubSystem::CLUSTERS_COUNT_X * ClusterizationSubSystem::CLUSTERS_COUNT_Y * ClusterizationSubSystem::CLUSTERS_COUNT_Z * sizeof(LightCluster));
-		GraphicsCommandList->CopyBufferRegion(GPULightIndicesBuffer, 0, CPULightIndicesBuffers[CurrentFrameIndex], 0, Engine::GetEngine().GetRenderSystem().GetClusterizationSubSystem().GetTotalIndexCount() * sizeof(uint16_t));
-		GraphicsCommandList->CopyBufferRegion(GPUPointLightsBuffer, 0, CPUPointLightsBuffers[CurrentFrameIndex], 0, PointLights.GetLength() * sizeof(PointLight));
+		GraphicsCommandList->CopyBufferRegion(GPULightingConstantBuffer->DXBuffer, 0, CPULightingConstantBuffers[CurrentFrameIndex]->DXBuffer, 0, 256);
+		GraphicsCommandList->CopyBufferRegion(GPUClusteredShadingConstantBuffer->DXBuffer, 0, CPUClusteredShadingConstantBuffers[CurrentFrameIndex]->DXBuffer, 0, 256);
+		GraphicsCommandList->CopyBufferRegion(GPULightClustersBuffer->DXBuffer, 0, CPULightClustersBuffers[CurrentFrameIndex]->DXBuffer, 0, ClusterizationSubSystem::CLUSTERS_COUNT_X * ClusterizationSubSystem::CLUSTERS_COUNT_Y * ClusterizationSubSystem::CLUSTERS_COUNT_Z * sizeof(LightCluster));
+		GraphicsCommandList->CopyBufferRegion(GPULightIndicesBuffer->DXBuffer, 0, CPULightIndicesBuffers[CurrentFrameIndex]->DXBuffer, 0, Engine::GetEngine().GetRenderSystem().GetClusterizationSubSystem().GetTotalIndexCount() * sizeof(uint16_t));
+		GraphicsCommandList->CopyBufferRegion(GPUPointLightsBuffer->DXBuffer, 0, CPUPointLightsBuffers[CurrentFrameIndex]->DXBuffer, 0, PointLights.GetLength() * sizeof(PointLight));
 
-		SwitchResourceState(GPULightingConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
-		SwitchResourceState(GPUClusteredShadingConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
-		SwitchResourceState(GPULightClustersBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		SwitchResourceState(GPULightIndicesBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		SwitchResourceState(GPUPointLightsBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		SetBufferState(GPULightingConstantBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+		SetBufferState(GPUClusteredShadingConstantBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+		SetBufferState(GPULightClustersBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		SetBufferState(GPULightIndicesBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		SetBufferState(GPUPointLightsBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 		ApplyPendingBarriers();
 
@@ -3944,10 +3963,10 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-		GraphicsCommandList->DiscardResource(HDRSceneColorTexture, nullptr);
+		GraphicsCommandList->DiscardResource(HDRSceneColorTexture->DXTexture, nullptr);
 
 		DescriptorTable PixelShaderConstantBuffersTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(4);
-		DescriptorTable PixelShaderShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(7);
+		DescriptorTable PixelShaderShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(8);
 
 		PixelShaderConstantBuffersTable.SetConstantBuffer(0, CameraConstantBufferCBV);
 		PixelShaderConstantBuffersTable.SetConstantBuffer(1, LightingConstantBufferCBV);
@@ -3955,19 +3974,20 @@ void RenderSystem::TickSystem(float DeltaTime)
 		PixelShaderConstantBuffersTable.SetConstantBuffer(3, ClusteredShadingConstantBufferCBV);
 		PixelShaderShaderResourcesTable.SetTexture(0, GBufferTexturesSRVs[0]);
 		PixelShaderShaderResourcesTable.SetTexture(1, GBufferTexturesSRVs[1]);
-		PixelShaderShaderResourcesTable.SetTexture(2, DepthBufferTextureSRV);
-		PixelShaderShaderResourcesTable.SetTexture(3, ShadowMaskTextureSRV);
-		PixelShaderShaderResourcesTable.SetTexture(4, LightClustersBufferSRV);
-		PixelShaderShaderResourcesTable.SetTexture(5, LightIndicesBufferSRV);
-		PixelShaderShaderResourcesTable.SetTexture(6, PointLightsBufferSRV);
+		PixelShaderShaderResourcesTable.SetTexture(2, GBufferTexturesSRVs[2]);
+		PixelShaderShaderResourcesTable.SetTexture(3, DepthBufferTextureSRV);
+		PixelShaderShaderResourcesTable.SetTexture(4, ShadowMaskTextureSRV);
+		PixelShaderShaderResourcesTable.SetTexture(5, LightClustersBufferSRV);
+		PixelShaderShaderResourcesTable.SetTexture(6, LightIndicesBufferSRV);
+		PixelShaderShaderResourcesTable.SetTexture(7, PointLightsBufferSRV);
 
 		PixelShaderConstantBuffersTable.UpdateTable(Device);
 		PixelShaderShaderResourcesTable.UpdateTable(Device);		
 
 		GraphicsCommandList->SetPipelineState(DeferredLightingPipelineState);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(3, PixelShaderConstantBuffersTable);
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderShaderResourcesTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_CONSTANT_BUFFERS, PixelShaderConstantBuffersTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderShaderResourcesTable);
 
 		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 	}
@@ -3984,7 +4004,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		void *ConstantBufferData;
 
-		SAFE_DX(CPUSkyConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
+		SAFE_DX(CPUSkyConstantBuffers[CurrentFrameIndex]->DXBuffer->Map(0, &ReadRange, &ConstantBufferData));
 
 		SkyConstantBuffer& skyConstantBuffer = *((SkyConstantBuffer*)((BYTE*)ConstantBufferData));
 
@@ -3993,11 +4013,11 @@ void RenderSystem::TickSystem(float DeltaTime)
 		WrittenRange.Begin = 0;
 		WrittenRange.End = 256;
 
-		CPUSkyConstantBuffers[CurrentFrameIndex]->Unmap(0, &WrittenRange);
+		CPUSkyConstantBuffers[CurrentFrameIndex]->DXBuffer->Unmap(0, &WrittenRange);
 
 		XMFLOAT3 SunPosition(-500.0f + CameraLocation.x, 500.0f + CameraLocation.y, -500.f + CameraLocation.z);
 
-		SAFE_DX(CPUSunConstantBuffers[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
+		SAFE_DX(CPUSunConstantBuffers[CurrentFrameIndex]->DXBuffer->Map(0, &ReadRange, &ConstantBufferData));
 
 		SunConstantBuffer& sunConstantBuffer = *((SunConstantBuffer*)((BYTE*)ConstantBufferData));
 
@@ -4008,18 +4028,18 @@ void RenderSystem::TickSystem(float DeltaTime)
 		WrittenRange.Begin = 0;
 		WrittenRange.End = 256;
 
-		CPUSunConstantBuffers[CurrentFrameIndex]->Unmap(0, &WrittenRange);
+		CPUSunConstantBuffers[CurrentFrameIndex]->DXBuffer->Unmap(0, &WrittenRange);
 
-		SwitchResourceState(GPUSkyConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
-		SwitchResourceState(GPUSunConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
+		SetBufferState(GPUSkyConstantBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
+		SetBufferState(GPUSunConstantBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
 
 		ApplyPendingBarriers();
 
-		GraphicsCommandList->CopyBufferRegion(GPUSkyConstantBuffer, 0, CPUSkyConstantBuffers[CurrentFrameIndex], 0, 256);
-		GraphicsCommandList->CopyBufferRegion(GPUSunConstantBuffer, 0, CPUSunConstantBuffers[CurrentFrameIndex], 0, 256);
+		GraphicsCommandList->CopyBufferRegion(GPUSkyConstantBuffer->DXBuffer, 0, CPUSkyConstantBuffers[CurrentFrameIndex]->DXBuffer, 0, 256);
+		GraphicsCommandList->CopyBufferRegion(GPUSunConstantBuffer->DXBuffer, 0, CPUSunConstantBuffers[CurrentFrameIndex]->DXBuffer, 0, 256);
 
-		SwitchResourceState(GPUSkyConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
-		SwitchResourceState(GPUSunConstantBuffer, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+		SetBufferState(GPUSkyConstantBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+		SetBufferState(GPUSunConstantBuffer, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 
 		ApplyPendingBarriers();
 
@@ -4053,11 +4073,11 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->SetPipelineState(FogPipelineState);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, FogPixelShaderResourcesTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, FogPixelShaderResourcesTable);
 
 		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 
-		SwitchResourceState(DepthBufferTexture, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE);
+		SetTextureState(DepthBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
 		ApplyPendingBarriers();
 
@@ -4085,7 +4105,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		TextureSamplerTable.SetSampler(0, TextureSampler);
 		TextureSamplerTable.UpdateTable(Device);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(5, TextureSamplerTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SAMPLERS, TextureSamplerTable);
 		
 		DescriptorTable VertexShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(1);
 		DescriptorTable PixelShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(1);
@@ -4112,8 +4132,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->SetPipelineState(SkyPipelineState);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(0, VertexShaderResourcesTable);
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderResourcesTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(VERTEX_SHADER_CONSTANT_BUFFERS, VertexShaderResourcesTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
 
 		GraphicsCommandList->DrawIndexedInstanced(300 + 24 * 600 + 300, 1, 0, 0, 0);
 
@@ -4140,31 +4160,29 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->SetPipelineState(SunPipelineState);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(0, VertexShaderResourcesTable);
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderResourcesTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(VERTEX_SHADER_CONSTANT_BUFFERS, VertexShaderResourcesTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
 
 		GraphicsCommandList->DrawIndexedInstanced(6, 1, 0, 0, 0);
 	}
 
 	// ===============================================================================================================
 
-	SwitchResourceState(HDRSceneColorTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE);
-	SwitchResourceState(ResolvedHDRSceneColorTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST);
+	SetTextureState(HDRSceneColorTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE);
+	SetTextureState(ResolvedHDRSceneColorTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST);
 
 	// ===============================================================================================================
 
 	{
 		ApplyPendingBarriers();
 
-		GraphicsCommandList->ResolveSubresource(ResolvedHDRSceneColorTexture, 0, HDRSceneColorTexture, 0, DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT);
+		GraphicsCommandList->ResolveSubresource(ResolvedHDRSceneColorTexture->DXTexture, 0, HDRSceneColorTexture->DXTexture, 0, DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT);
 	}
 
 	// ===============================================================================================================
 
-	SwitchResourceState(HDRSceneColorTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-	SwitchResourceState(ResolvedHDRSceneColorTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-	SwitchResourceState(SceneLuminanceTextures[0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
-
+	SetTextureState(ResolvedHDRSceneColorTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+	SetTextureState(SceneLuminanceTextures[0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	// ===============================================================================================================
 
@@ -4199,9 +4217,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->SetPipelineState(LuminanceCalcPipelineState);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderResourcesTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
 
-		GraphicsCommandList->DiscardResource(SceneLuminanceTextures[0], nullptr);
+		GraphicsCommandList->DiscardResource(SceneLuminanceTextures[0]->DXTexture, nullptr);
 
 		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 
@@ -4210,8 +4228,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		for (int i = 1; i <= 11; i++)
 		{
-			SwitchResourceState(SceneLuminanceTextures[i - 1], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-			SwitchResourceState(SceneLuminanceTextures[i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
+			SetTextureState(SceneLuminanceTextures[i - 1], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+			SetTextureState(SceneLuminanceTextures[i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 			ApplyPendingBarriers();
 
@@ -4244,14 +4262,14 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			GraphicsCommandList->SetPipelineState(LuminanceSumPipelineState);
 
-			GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderResourcesTable);
+			GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
 
-			GraphicsCommandList->DiscardResource(SceneLuminanceTextures[i], nullptr);
+			GraphicsCommandList->DiscardResource(SceneLuminanceTextures[i]->DXTexture, nullptr);
 
 			GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 		}
 
-		SwitchResourceState(SceneLuminanceTextures[11], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+		SetTextureState(SceneLuminanceTextures[11], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
 		ApplyPendingBarriers();
 
@@ -4281,9 +4299,9 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->SetPipelineState(LuminanceAvgPipelineState);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderResourcesTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
 
-		GraphicsCommandList->DiscardResource(AverageLuminanceTexture, nullptr);
+		GraphicsCommandList->DiscardResource(AverageLuminanceTexture->DXTexture, nullptr);
 
 
 		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
@@ -4292,7 +4310,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 	// ===============================================================================================================
 
 	{
-		SwitchResourceState(BloomTextures[0][0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
+		SetTextureState(BloomTextures[0][0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 		ApplyPendingBarriers();
 
@@ -4318,7 +4336,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-		GraphicsCommandList->DiscardResource(BloomTextures[0][0], nullptr);
+		GraphicsCommandList->DiscardResource(BloomTextures[0][0]->DXTexture, nullptr);
 
 		DescriptorTable PixelShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(2);
 		PixelShaderResourcesTable.SetTexture(0, ResolvedHDRSceneColorTextureSRV);
@@ -4327,12 +4345,12 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->SetPipelineState(BrightPassPipelineState);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderResourcesTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
 
 		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 
-		SwitchResourceState(BloomTextures[0][0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		SwitchResourceState(BloomTextures[1][0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
+		SetTextureState(BloomTextures[0][0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		SetTextureState(BloomTextures[1][0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 		ApplyPendingBarriers();
 
@@ -4356,7 +4374,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-		GraphicsCommandList->DiscardResource(BloomTextures[1][0], nullptr);
+		GraphicsCommandList->DiscardResource(BloomTextures[1][0]->DXTexture, nullptr);
 
 		PixelShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(1);
 		PixelShaderResourcesTable.SetTexture(0, BloomTexturesSRVs[0][0]);
@@ -4364,13 +4382,12 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->SetPipelineState(HorizontalBlurPipelineState);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderResourcesTable);
-
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
 
 		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 
-		SwitchResourceState(BloomTextures[1][0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		SwitchResourceState(BloomTextures[2][0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
+		SetTextureState(BloomTextures[1][0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		SetTextureState(BloomTextures[2][0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 		ApplyPendingBarriers();
 
@@ -4394,7 +4411,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-		GraphicsCommandList->DiscardResource(BloomTextures[2][0], nullptr);
+		GraphicsCommandList->DiscardResource(BloomTextures[2][0]->DXTexture, nullptr);
 
 		PixelShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(1);
 		PixelShaderResourcesTable.SetTexture(0, BloomTexturesSRVs[1][0]);
@@ -4402,13 +4419,13 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->SetPipelineState(VerticalBlurPipelineState);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderResourcesTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
 
 		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 
 		for (int i = 1; i < 7; i++)
 		{
-			SwitchResourceState(BloomTextures[0][i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
+			SetTextureState(BloomTextures[0][i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 			ApplyPendingBarriers();
 
@@ -4432,7 +4449,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-			GraphicsCommandList->DiscardResource(BloomTextures[0][i], nullptr);
+			GraphicsCommandList->DiscardResource(BloomTextures[0][i]->DXTexture, nullptr);
 
 			PixelShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(1);
 			PixelShaderResourcesTable.SetTexture(0, BloomTexturesSRVs[0][i - 1]);
@@ -4440,12 +4457,12 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			GraphicsCommandList->SetPipelineState(DownSamplePipelineState);
 
-			GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderResourcesTable);
+			GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
 
 			GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 
-			SwitchResourceState(BloomTextures[0][i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-			SwitchResourceState(BloomTextures[1][i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
+			SetTextureState(BloomTextures[0][i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+			SetTextureState(BloomTextures[1][i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 			ApplyPendingBarriers();
 
@@ -4469,7 +4486,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-			GraphicsCommandList->DiscardResource(BloomTextures[1][i], nullptr);
+			GraphicsCommandList->DiscardResource(BloomTextures[1][i]->DXTexture, nullptr);
 
 			PixelShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(1);
 			PixelShaderResourcesTable.SetTexture(0, BloomTexturesSRVs[0][i]);
@@ -4477,12 +4494,12 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			GraphicsCommandList->SetPipelineState(HorizontalBlurPipelineState);
 
-			GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderResourcesTable);
+			GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
 
 			GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 
-			SwitchResourceState(BloomTextures[1][i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-			SwitchResourceState(BloomTextures[2][i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
+			SetTextureState(BloomTextures[1][i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+			SetTextureState(BloomTextures[2][i], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 			ApplyPendingBarriers();
 
@@ -4506,7 +4523,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-			GraphicsCommandList->DiscardResource(BloomTextures[2][i], nullptr);
+			GraphicsCommandList->DiscardResource(BloomTextures[2][i]->DXTexture, nullptr);
 
 			PixelShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(1);
 			PixelShaderResourcesTable.SetTexture(0, BloomTexturesSRVs[1][i]);
@@ -4514,15 +4531,15 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			GraphicsCommandList->SetPipelineState(VerticalBlurPipelineState);
 
-			GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderResourcesTable);
+			GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
 
 			GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 		}
 
 		for (int i = 5; i >= 0; i--)
 		{
-			SwitchResourceState(BloomTextures[2][i + 1], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-			
+			SetTextureState(BloomTextures[2][i + 1], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
 			ApplyPendingBarriers();
 
 			GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
@@ -4551,7 +4568,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 			GraphicsCommandList->SetPipelineState(UpSampleWithAddBlendPipelineState);
 
-			GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderResourcesTable);
+			GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
 
 			GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 		}
@@ -4559,8 +4576,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	// ===============================================================================================================
 
-	SwitchResourceState(BloomTextures[2][0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	SwitchResourceState(ToneMappedImageTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
+	SetTextureState(BloomTextures[2][0], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	SetTextureState(ToneMappedImageTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	// ===============================================================================================================
 
@@ -4589,7 +4606,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
 
-		GraphicsCommandList->DiscardResource(ToneMappedImageTexture, nullptr);
+		GraphicsCommandList->DiscardResource(ToneMappedImageTexture->DXTexture, nullptr);
 
 		DescriptorTable PixelShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(2);
 		PixelShaderResourcesTable.SetTexture(0, HDRSceneColorTextureSRV);
@@ -4598,14 +4615,14 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->SetPipelineState(HDRToneMappingPipelineState);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, PixelShaderResourcesTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
 
 		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 	}
 
 	// ===============================================================================================================
 
-	SwitchResourceState(ToneMappedImageTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE);
+	SetTextureState(ToneMappedImageTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_SOURCE);
 	SwitchResourceState(BackBufferTextures[CurrentBackBufferIndex], 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RESOLVE_DEST);
 
 	// ===============================================================================================================
@@ -4613,7 +4630,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 	{
 		ApplyPendingBarriers();
 
-		GraphicsCommandList->ResolveSubresource(BackBufferTextures[CurrentBackBufferIndex], 0, ToneMappedImageTexture, 0, DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT);
+		GraphicsCommandList->ResolveSubresource(BackBufferTextures[CurrentBackBufferIndex], 0, ToneMappedImageTexture->DXTexture, 0, DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT);
 	}
 
 	// ===============================================================================================================
@@ -4668,7 +4685,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 		void *ConstantBufferData;
 		SIZE_T ConstantBufferOffset = 0;
 
-		SAFE_DX(CPUConstantBuffers3[CurrentFrameIndex]->Map(0, &ReadRange, &ConstantBufferData));
+		SAFE_DX(CPUConstantBuffers3[CurrentFrameIndex]->DXBuffer->Map(0, &ReadRange, &ConstantBufferData));
 
 		for (size_t k = 0; k < VisibleStaticMeshComponentsCount; k++)
 		{
@@ -4701,15 +4718,15 @@ void RenderSystem::TickSystem(float DeltaTime)
 		WrittenRange.Begin = 0;
 		WrittenRange.End = ConstantBufferOffset;
 
-		CPUConstantBuffers3[CurrentFrameIndex]->Unmap(0, &WrittenRange);
+		CPUConstantBuffers3[CurrentFrameIndex]->DXBuffer->Unmap(0, &WrittenRange);
 
-		SwitchResourceState(GPUConstantBuffer3, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
+		SetBufferState(GPUConstantBuffer3, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
 
 		ApplyPendingBarriers();
 
-		GraphicsCommandList->CopyBufferRegion(GPUConstantBuffer3, 0, CPUConstantBuffers3[CurrentFrameIndex], 0, ConstantBufferOffset);
+		GraphicsCommandList->CopyBufferRegion(GPUConstantBuffer3->DXBuffer, 0, CPUConstantBuffers3[CurrentFrameIndex]->DXBuffer, 0, ConstantBufferOffset);
 
-		SwitchResourceState(GPUConstantBuffer3, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+		SetBufferState(GPUConstantBuffer3, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 
 		ApplyPendingBarriers();
 
@@ -4719,7 +4736,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 			ShaderResourcesTable.SetTexture(0, ConstantBufferCBVs3[k]);
 			ShaderResourcesTable.UpdateTable(Device);
 
-			GraphicsCommandList->SetGraphicsRootDescriptorTable(0, ShaderResourcesTable);
+			GraphicsCommandList->SetGraphicsRootDescriptorTable(VERTEX_SHADER_CONSTANT_BUFFERS, ShaderResourcesTable);
 
 			GraphicsCommandList->DrawIndexedInstanced(24, 1, 0, 0, 0);
 		}
@@ -4729,7 +4746,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	if (DebugDrawOcclusionBuffer)
 	{
-		D3D12_RESOURCE_DESC ResourceDesc = DebugOcclusionBufferTexture->GetDesc();
+		D3D12_RESOURCE_DESC ResourceDesc = DebugOcclusionBufferTexture->DXTexture->GetDesc();
 
 		D3D12_PLACED_SUBRESOURCE_FOOTPRINT PlacedSubResourceFootPrint;
 
@@ -4749,32 +4766,32 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		void *MappedData;
 
-		DebugOcclusionBufferTextureUpload[CurrentFrameIndex]->Map(0, &ReadRange, &MappedData);
+		DebugOcclusionBufferTextureUpload[CurrentFrameIndex]->DXBuffer->Map(0, &ReadRange, &MappedData);
 
 		for (UINT i = 0; i < NumRows; i++)
 		{
 			memcpy((BYTE*)MappedData + i * PlacedSubResourceFootPrint.Footprint.RowPitch, (BYTE*)OcclusionBufferData + i * RowSizeInBytes, RowSizeInBytes);
 		}
 
-		DebugOcclusionBufferTextureUpload[CurrentFrameIndex]->Unmap(0, &WrittenRange);
+		DebugOcclusionBufferTextureUpload[CurrentFrameIndex]->DXBuffer->Unmap(0, &WrittenRange);
 
 		D3D12_TEXTURE_COPY_LOCATION SourceTextureCopyLocation, DestTextureCopyLocation;
 
 		SourceTextureCopyLocation.PlacedFootprint = PlacedSubResourceFootPrint;
-		SourceTextureCopyLocation.pResource = DebugOcclusionBufferTextureUpload[CurrentFrameIndex];
+		SourceTextureCopyLocation.pResource = DebugOcclusionBufferTextureUpload[CurrentFrameIndex]->DXBuffer;
 		SourceTextureCopyLocation.Type = D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 
-		DestTextureCopyLocation.pResource = DebugOcclusionBufferTexture;
+		DestTextureCopyLocation.pResource = DebugOcclusionBufferTexture->DXTexture;
 		DestTextureCopyLocation.SubresourceIndex = 0;
 		DestTextureCopyLocation.Type = D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 
-		SwitchResourceState(DebugOcclusionBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
+		SetTextureState(DebugOcclusionBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
 
 		ApplyPendingBarriers();
 
 		GraphicsCommandList->CopyTextureRegion(&DestTextureCopyLocation, 0, 0, 0, &SourceTextureCopyLocation, nullptr);
 
-		SwitchResourceState(DebugOcclusionBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		SetTextureState(DebugOcclusionBufferTexture, 0, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 		ApplyPendingBarriers();
 
@@ -4786,7 +4803,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 		GraphicsCommandList->SetPipelineState(DebugDrawOcclusionBufferPipelineState);
 
-		GraphicsCommandList->SetGraphicsRootDescriptorTable(4, ShaderResourcesTable);
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, ShaderResourcesTable);
 
 		GraphicsCommandList->DrawInstanced(4, 1, 0, 0);
 	}
@@ -4813,9 +4830,11 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 void RenderSystem::ApplyPendingBarriers()
 {
-	GraphicsCommandList->ResourceBarrier(PendingResourceBarriersCount, PendingResourceBarriers);
-
-	PendingResourceBarriersCount = 0;
+	if (PendingResourceBarriersCount > 0)
+	{
+		GraphicsCommandList->ResourceBarrier(PendingResourceBarriersCount, PendingResourceBarriers);
+		PendingResourceBarriersCount = 0;
+	}
 }
 
 void RenderSystem::SwitchResourceState(ID3D12Resource* Resource, UINT SubResourceIndex, D3D12_RESOURCE_STATES OldState, D3D12_RESOURCE_STATES NewState)
@@ -4828,6 +4847,40 @@ void RenderSystem::SwitchResourceState(ID3D12Resource* Resource, UINT SubResourc
 	PendingResourceBarriers[PendingResourceBarriersCount].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	
 	++PendingResourceBarriersCount;
+}
+
+void RenderSystem::SetBufferState(Pointer<Buffer>& BufferPtr, D3D12_RESOURCE_STATES NewState)
+{
+	if (BufferPtr->BufferState != NewState)
+	{
+		PendingResourceBarriers[PendingResourceBarriersCount].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		PendingResourceBarriers[PendingResourceBarriersCount].Transition.pResource = BufferPtr->DXBuffer;
+		PendingResourceBarriers[PendingResourceBarriersCount].Transition.StateAfter = NewState;
+		PendingResourceBarriers[PendingResourceBarriersCount].Transition.StateBefore = BufferPtr->BufferState;
+		PendingResourceBarriers[PendingResourceBarriersCount].Transition.Subresource = 0;
+		PendingResourceBarriers[PendingResourceBarriersCount].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+
+		++PendingResourceBarriersCount;
+
+		BufferPtr->BufferState = NewState;
+	}
+}
+
+void RenderSystem::SetTextureState(Pointer<Texture>& TexturePtr, UINT SubResourceIndex, D3D12_RESOURCE_STATES NewState)
+{
+	if (TexturePtr->TextureSubResourceStates[SubResourceIndex] != NewState)
+	{
+		PendingResourceBarriers[PendingResourceBarriersCount].Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		PendingResourceBarriers[PendingResourceBarriersCount].Transition.pResource = TexturePtr->DXTexture;
+		PendingResourceBarriers[PendingResourceBarriersCount].Transition.StateAfter = NewState;
+		PendingResourceBarriers[PendingResourceBarriersCount].Transition.StateBefore = TexturePtr->TextureSubResourceStates[SubResourceIndex];
+		PendingResourceBarriers[PendingResourceBarriersCount].Transition.Subresource = SubResourceIndex;
+		PendingResourceBarriers[PendingResourceBarriersCount].Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+
+		++PendingResourceBarriersCount;
+
+		TexturePtr->TextureSubResourceStates[SubResourceIndex] = NewState;
+	}
 }
 
 RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMeshCreateInfo)
@@ -4849,7 +4902,7 @@ RenderMesh* RenderSystem::CreateRenderMesh(const RenderMeshCreateInfo& renderMes
 
 	D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDesc);
 
-	size_t AlignedResourceOffset = BufferMemoryHeapOffsets[CurrentBufferMemoryHeapIndex] + (ResourceAllocationInfo.Alignment - BufferMemoryHeapOffsets[CurrentBufferMemoryHeapIndex] % ResourceAllocationInfo.Alignment);
+	size_t AlignedResourceOffset = (BufferMemoryHeapOffsets[CurrentBufferMemoryHeapIndex] == 0) ? 0 : BufferMemoryHeapOffsets[CurrentBufferMemoryHeapIndex] + (ResourceAllocationInfo.Alignment - BufferMemoryHeapOffsets[CurrentBufferMemoryHeapIndex] % ResourceAllocationInfo.Alignment);
 
 	if (AlignedResourceOffset + ResourceAllocationInfo.SizeInBytes > BUFFER_MEMORY_HEAP_SIZE)
 	{
@@ -5004,7 +5057,7 @@ RenderTexture* RenderSystem::CreateRenderTexture(const RenderTextureCreateInfo& 
 
 	D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo = Device->GetResourceAllocationInfo(0, 1, &ResourceDesc);
 
-	size_t AlignedResourceOffset = TextureMemoryHeapOffsets[CurrentTextureMemoryHeapIndex] + (ResourceAllocationInfo.Alignment - TextureMemoryHeapOffsets[CurrentTextureMemoryHeapIndex] % ResourceAllocationInfo.Alignment);
+	size_t AlignedResourceOffset = (TextureMemoryHeapOffsets[CurrentTextureMemoryHeapIndex] == 0) ? 0 : TextureMemoryHeapOffsets[CurrentTextureMemoryHeapIndex] + (ResourceAllocationInfo.Alignment - TextureMemoryHeapOffsets[CurrentTextureMemoryHeapIndex] % ResourceAllocationInfo.Alignment);
 
 	if (AlignedResourceOffset + ResourceAllocationInfo.SizeInBytes > TEXTURE_MEMORY_HEAP_SIZE)
 	{
@@ -5182,7 +5235,7 @@ RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInf
 	GraphicsPipelineStateDesc.InputLayout.NumElements = 5;
 	GraphicsPipelineStateDesc.InputLayout.pInputElementDescs = InputElementDescs;
 	GraphicsPipelineStateDesc.NodeMask = 0;
-	GraphicsPipelineStateDesc.NumRenderTargets = 2;
+	GraphicsPipelineStateDesc.NumRenderTargets = 3;
 	GraphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE::D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	GraphicsPipelineStateDesc.pRootSignature = GraphicsRootSignature;
 	GraphicsPipelineStateDesc.PS.BytecodeLength = renderMaterialCreateInfo.GBufferOpaquePassPixelShaderByteCodeLength;
@@ -5191,6 +5244,7 @@ RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInf
 	GraphicsPipelineStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID;
 	GraphicsPipelineStateDesc.RTVFormats[0] = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 	GraphicsPipelineStateDesc.RTVFormats[1] = DXGI_FORMAT::DXGI_FORMAT_R10G10B10A2_UNORM;
+	GraphicsPipelineStateDesc.RTVFormats[2] = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
 	GraphicsPipelineStateDesc.SampleDesc.Count = 8;
 	GraphicsPipelineStateDesc.SampleDesc.Quality = 0;
 	GraphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
