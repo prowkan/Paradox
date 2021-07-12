@@ -3445,11 +3445,18 @@ void RenderSystem::TickSystem(float DeltaTime)
 				else
 					LODIndex = 4;
 
-				UINT IndexCount = staticMeshComponent->GetStaticMesh()->GetIndexCount(LODIndex);
-				UINT VertexOffset = staticMeshComponent->GetStaticMesh()->GetVertexOffset(LODIndex);
-				UINT IndexOffset = staticMeshComponent->GetStaticMesh()->GetIndexOffset(LODIndex);
+				UINT VertexOffsetForLOD = staticMeshComponent->GetStaticMesh()->GetVertexOffset(LODIndex);
+				UINT IndexOffsetForLOD = staticMeshComponent->GetStaticMesh()->GetIndexOffset(LODIndex);
 
-				GraphicsCommandList->DrawIndexedInstanced(IndexCount, 1, IndexOffset, VertexOffset, 0);
+				UINT SubMeshCount = staticMeshComponent->GetStaticMesh()->GetSubMeshCount(LODIndex);
+
+				for (UINT i = 0; i < SubMeshCount; i++)
+				{
+					UINT IndexCount = staticMeshComponent->GetStaticMesh()->GetIndexCount(LODIndex, i);
+					UINT IndexOffsetForSubMesh = staticMeshComponent->GetStaticMesh()->GetIndexOffset(LODIndex, i);
+
+					GraphicsCommandList->DrawIndexedInstanced(IndexCount, 1, IndexOffsetForLOD + IndexOffsetForSubMesh, VertexOffsetForLOD, 0);
+				}
 			}
 		}
 	}
@@ -3720,11 +3727,18 @@ void RenderSystem::TickSystem(float DeltaTime)
 					else
 						LODIndex = 4;
 
-					UINT IndexCount = staticMeshComponent->GetStaticMesh()->GetIndexCount(LODIndex);
-					UINT VertexOffset = staticMeshComponent->GetStaticMesh()->GetVertexOffset(LODIndex);
-					UINT IndexOffset = staticMeshComponent->GetStaticMesh()->GetIndexOffset(LODIndex);
+					UINT VertexOffsetForLOD = staticMeshComponent->GetStaticMesh()->GetVertexOffset(LODIndex);
+					UINT IndexOffsetForLOD = staticMeshComponent->GetStaticMesh()->GetIndexOffset(LODIndex);
 
-					GraphicsCommandList->DrawIndexedInstanced(IndexCount, 1, IndexOffset, VertexOffset, 0);
+					UINT SubMeshCount = staticMeshComponent->GetStaticMesh()->GetSubMeshCount(LODIndex);
+
+					for (UINT i = 0; i < SubMeshCount; i++)
+					{
+						UINT IndexCount = staticMeshComponent->GetStaticMesh()->GetIndexCount(LODIndex, i);
+						UINT IndexOffsetForSubMesh = staticMeshComponent->GetStaticMesh()->GetIndexOffset(LODIndex, i);
+
+						GraphicsCommandList->DrawIndexedInstanced(IndexCount, 1, IndexOffsetForLOD + IndexOffsetForSubMesh, VertexOffsetForLOD, 0);
+					}
 				}
 			}
 		}
@@ -5240,7 +5254,7 @@ RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInf
 	GraphicsPipelineStateDesc.pRootSignature = GraphicsRootSignature;
 	GraphicsPipelineStateDesc.PS.BytecodeLength = renderMaterialCreateInfo.GBufferOpaquePassPixelShaderByteCodeLength;
 	GraphicsPipelineStateDesc.PS.pShaderBytecode = renderMaterialCreateInfo.GBufferOpaquePassPixelShaderByteCodeData;
-	GraphicsPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_BACK;
+	GraphicsPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_NONE;
 	GraphicsPipelineStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID;
 	GraphicsPipelineStateDesc.RTVFormats[0] = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 	GraphicsPipelineStateDesc.RTVFormats[1] = DXGI_FORMAT::DXGI_FORMAT_R10G10B10A2_UNORM;
@@ -5266,7 +5280,7 @@ RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInf
 	GraphicsPipelineStateDesc.pRootSignature = GraphicsRootSignature;
 	GraphicsPipelineStateDesc.PS.BytecodeLength = renderMaterialCreateInfo.ShadowMapPassPixelShaderByteCodeLength;
 	GraphicsPipelineStateDesc.PS.pShaderBytecode = renderMaterialCreateInfo.ShadowMapPassPixelShaderByteCodeData;
-	GraphicsPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_BACK;
+	GraphicsPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_NONE;
 	GraphicsPipelineStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID;
 	GraphicsPipelineStateDesc.SampleDesc.Count = 1;
 	GraphicsPipelineStateDesc.SampleDesc.Quality = 0;

@@ -45,6 +45,34 @@ void StaticMeshResource::CreateResource(const String& ResourceName, const void* 
 	LODDataArray[4].IndexCount = 2 * 2 * 6 * 6;
 	LODDataArray[4].VertexOffset = LODDataArray[0].VertexCount + LODDataArray[1].VertexCount + LODDataArray[2].VertexCount + LODDataArray[3].VertexCount;
 	LODDataArray[4].IndexOffset = LODDataArray[0].IndexCount + LODDataArray[1].IndexCount + LODDataArray[2].IndexCount + LODDataArray[3].IndexCount;
+
+	LODDataArray[0].SubMeshesCount = 2;
+	LODDataArray[0].SubMeshDataArray[0].IndexCount = 27648;
+	LODDataArray[0].SubMeshDataArray[0].IndexOffset = 0;
+	LODDataArray[0].SubMeshDataArray[1].IndexCount = 9216;
+	LODDataArray[0].SubMeshDataArray[1].IndexOffset = LODDataArray[0].SubMeshDataArray[0].IndexCount;
+
+	LODDataArray[1].SubMeshesCount = 2;
+	LODDataArray[1].SubMeshDataArray[0].IndexCount = 6912;
+	LODDataArray[1].SubMeshDataArray[0].IndexOffset = 0;
+	LODDataArray[1].SubMeshDataArray[1].IndexCount = 2304;
+	LODDataArray[1].SubMeshDataArray[1].IndexOffset = LODDataArray[1].SubMeshDataArray[0].IndexCount;
+
+	LODDataArray[2].SubMeshesCount = 2;
+	LODDataArray[2].SubMeshDataArray[0].IndexCount = 1728;
+	LODDataArray[2].SubMeshDataArray[0].IndexOffset = 0;
+	LODDataArray[2].SubMeshDataArray[1].IndexCount = 576;
+	LODDataArray[2].SubMeshDataArray[1].IndexOffset = LODDataArray[2].SubMeshDataArray[0].IndexCount;
+
+	LODDataArray[3].SubMeshesCount = 2;
+	LODDataArray[3].SubMeshDataArray[0].IndexCount = 432;
+	LODDataArray[3].SubMeshDataArray[0].IndexOffset = 0;
+	LODDataArray[3].SubMeshDataArray[1].IndexCount = 144;
+	LODDataArray[3].SubMeshDataArray[1].IndexOffset = LODDataArray[3].SubMeshDataArray[0].IndexCount;
+
+	LODDataArray[4].SubMeshesCount = 1;
+	LODDataArray[4].SubMeshDataArray[0].IndexCount = LODDataArray[4].IndexCount;
+	LODDataArray[4].SubMeshDataArray[0].IndexOffset = 0;
 }
 
 void StaticMeshResource::DestroyResource()

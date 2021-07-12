@@ -11,12 +11,20 @@ struct StaticMeshResourceCreateInfo
 	UINT IndexCount;
 };
 
+struct SubMeshData
+{
+	UINT IndexCount;
+	UINT IndexOffset;
+};
+
 struct LODData
 {
 	UINT VertexCount;
 	UINT IndexCount;
 	UINT VertexOffset;
 	UINT IndexOffset;
+	UINT SubMeshesCount;
+	SubMeshData SubMeshDataArray[3];
 };
 
 class StaticMeshResource : public Resource
@@ -34,6 +42,9 @@ class StaticMeshResource : public Resource
 		UINT GetIndexCount(UINT LODLevel) { return LODDataArray[LODLevel].IndexCount; }
 		UINT GetVertexOffset(UINT LODLevel) { return LODDataArray[LODLevel].VertexOffset; }
 		UINT GetIndexOffset(UINT LODLevel) { return LODDataArray[LODLevel].IndexOffset; }
+		UINT GetSubMeshCount(UINT LODLevel) { return LODDataArray[LODLevel].SubMeshesCount; }
+		UINT GetIndexCount(UINT LODLevel, UINT SubMeshIndex) { return LODDataArray[LODLevel].SubMeshDataArray[SubMeshIndex].IndexCount; }
+		UINT GetIndexOffset(UINT LODLevel, UINT SubMeshIndex) { return LODDataArray[LODLevel].SubMeshDataArray[SubMeshIndex].IndexOffset; }
 
 	private:
 

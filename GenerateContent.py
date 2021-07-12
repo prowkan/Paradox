@@ -663,51 +663,375 @@ def GenerateCubeMesh1(PositionsArray, TexCoordsArray, TangentSpacesArray, Indice
             TangentSpacesArray[VertexArrayOffset + 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j][2] = Vector3(0.0, 0.0, 1.0)
 
 
-    for i in range(CubeMeshSize):
-        for j in range(CubeMeshSize):
+    if CubeMeshSize == 2:
+        ArrayIndex = 0            
+        for k in range(6):
+            for i in range(CubeMeshSize):
+                for j in range(CubeMeshSize):
 
-            IndicesArray[IndexArrayOffset + 0 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 0] = 0 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
-            IndicesArray[IndexArrayOffset + 0 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 1] = 0 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            IndicesArray[IndexArrayOffset + 0 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 2] = 0 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            IndicesArray[IndexArrayOffset + 0 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 3] = 0 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            IndicesArray[IndexArrayOffset + 0 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 4] = 0 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            IndicesArray[IndexArrayOffset + 0 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 5] = 0 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+    elif CubeMeshSize == 4:
+        ArrayIndex = 0            
+        for k in range(6):
+            for i in range(0, 1):
+                for j in range(0, 4):
 
-            IndicesArray[IndexArrayOffset + 1 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 0] = 1 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
-            IndicesArray[IndexArrayOffset + 1 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 1] = 1 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            IndicesArray[IndexArrayOffset + 1 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 2] = 1 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            IndicesArray[IndexArrayOffset + 1 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 3] = 1 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            IndicesArray[IndexArrayOffset + 1 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 4] = 1 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            IndicesArray[IndexArrayOffset + 1 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 5] = 1 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
 
-            IndicesArray[IndexArrayOffset + 2 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 0] = 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
-            IndicesArray[IndexArrayOffset + 2 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 1] = 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            IndicesArray[IndexArrayOffset + 2 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 2] = 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            IndicesArray[IndexArrayOffset + 2 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 3] = 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            IndicesArray[IndexArrayOffset + 2 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 4] = 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            IndicesArray[IndexArrayOffset + 2 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 5] = 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+            for i in range(3, 4):
+                for j in range(0, 4):
 
-            IndicesArray[IndexArrayOffset + 3 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 0] = 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
-            IndicesArray[IndexArrayOffset + 3 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 1] = 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            IndicesArray[IndexArrayOffset + 3 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 2] = 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            IndicesArray[IndexArrayOffset + 3 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 3] = 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            IndicesArray[IndexArrayOffset + 3 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 4] = 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            IndicesArray[IndexArrayOffset + 3 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 5] = 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
 
-            IndicesArray[IndexArrayOffset + 4 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 0] = 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
-            IndicesArray[IndexArrayOffset + 4 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 1] = 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            IndicesArray[IndexArrayOffset + 4 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 2] = 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            IndicesArray[IndexArrayOffset + 4 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 3] = 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            IndicesArray[IndexArrayOffset + 4 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 4] = 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            IndicesArray[IndexArrayOffset + 4 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 5] = 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+            for i in range(1, 3):
+                for j in range(0, 1):
 
-            IndicesArray[IndexArrayOffset + 5 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 0] = 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
-            IndicesArray[IndexArrayOffset + 5 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 1] = 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            IndicesArray[IndexArrayOffset + 5 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 2] = 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            IndicesArray[IndexArrayOffset + 5 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 3] = 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            IndicesArray[IndexArrayOffset + 5 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 4] = 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            IndicesArray[IndexArrayOffset + 5 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 5] = 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
 
+            for i in range(1, 3):
+                for j in range(3, 4):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+
+        for k in range(6):
+            for i in range(1, 3):
+                for j in range(1, 3):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+    elif CubeMeshSize == 8:
+        ArrayIndex = 0            
+        for k in range(6):
+            for i in range(0, 2):
+                for j in range(0, 8):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+
+            for i in range(6, 8):
+                for j in range(0, 8):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+
+            for i in range(2, 6):
+                for j in range(0, 2):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+
+            for i in range(2, 6):
+                for j in range(6, 8):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+
+        for k in range(6):
+            for i in range(2, 6):
+                for j in range(2, 6):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+    elif CubeMeshSize == 16:
+        ArrayIndex = 0            
+        for k in range(6):
+            for i in range(0, 4):
+                for j in range(0, 16):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+
+            for i in range(12, 16):
+                for j in range(0, 16):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+
+            for i in range(4, 12):
+                for j in range(0, 4):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+
+            for i in range(4, 12):
+                for j in range(12, 16):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+
+        for k in range(6):
+            for i in range(4, 12):
+                for j in range(4, 12):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+    elif CubeMeshSize == 32:
+        ArrayIndex = 0            
+        for k in range(6):
+            for i in range(0, 8):
+                for j in range(0, 32):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+
+            for i in range(24, 32):
+                for j in range(0, 32):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+
+            for i in range(8, 24):
+                for j in range(0, 8):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+
+            for i in range(8, 24):
+                for j in range(24, 32):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+
+        for k in range(6):
+            for i in range(8, 24):
+                for j in range(8, 24):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+    else:
+        ArrayIndex = 0            
+        for k in range(6):
+            for i in range(CubeMeshSize):
+                for j in range(CubeMeshSize):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                
 def GenerateCubeMesh2(PositionsArray, TexCoordsArray, TangentSpacesArray, IndicesArray, VertexArrayOffset, IndexArrayOffset, CubeMeshSize):
 
     for i in range(CubeMeshSize + 1):
@@ -756,50 +1080,374 @@ def GenerateCubeMesh2(PositionsArray, TexCoordsArray, TangentSpacesArray, Indice
             TangentSpacesArray[VertexArrayOffset + 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j][2] = Vector3(0.0, 0.0, 1.0)
 
 
-    for i in range(CubeMeshSize):
-        for j in range(CubeMeshSize):
+    if CubeMeshSize == 2:
+        ArrayIndex = 0            
+        for k in range(6):
+            for i in range(CubeMeshSize):
+                for j in range(CubeMeshSize):
 
-            IndicesArray[IndexArrayOffset + 0 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 0] = 0 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
-            IndicesArray[IndexArrayOffset + 0 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 1] = 0 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            IndicesArray[IndexArrayOffset + 0 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 2] = 0 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            IndicesArray[IndexArrayOffset + 0 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 3] = 0 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            IndicesArray[IndexArrayOffset + 0 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 4] = 0 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            IndicesArray[IndexArrayOffset + 0 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 5] = 0 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+    elif CubeMeshSize == 4:
+        ArrayIndex = 0            
+        for k in range(6):
+            for i in range(0, 1):
+                for j in range(0, 4):
 
-            IndicesArray[IndexArrayOffset + 1 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 0] = 1 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
-            IndicesArray[IndexArrayOffset + 1 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 1] = 1 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            IndicesArray[IndexArrayOffset + 1 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 2] = 1 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            IndicesArray[IndexArrayOffset + 1 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 3] = 1 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            IndicesArray[IndexArrayOffset + 1 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 4] = 1 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            IndicesArray[IndexArrayOffset + 1 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 5] = 1 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
 
-            IndicesArray[IndexArrayOffset + 2 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 0] = 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
-            IndicesArray[IndexArrayOffset + 2 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 1] = 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            IndicesArray[IndexArrayOffset + 2 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 2] = 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            IndicesArray[IndexArrayOffset + 2 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 3] = 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            IndicesArray[IndexArrayOffset + 2 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 4] = 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            IndicesArray[IndexArrayOffset + 2 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 5] = 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+            for i in range(3, 4):
+                for j in range(0, 4):
 
-            IndicesArray[IndexArrayOffset + 3 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 0] = 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
-            IndicesArray[IndexArrayOffset + 3 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 1] = 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            IndicesArray[IndexArrayOffset + 3 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 2] = 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            IndicesArray[IndexArrayOffset + 3 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 3] = 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            IndicesArray[IndexArrayOffset + 3 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 4] = 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            IndicesArray[IndexArrayOffset + 3 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 5] = 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
 
-            IndicesArray[IndexArrayOffset + 4 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 0] = 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
-            IndicesArray[IndexArrayOffset + 4 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 1] = 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            IndicesArray[IndexArrayOffset + 4 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 2] = 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            IndicesArray[IndexArrayOffset + 4 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 3] = 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            IndicesArray[IndexArrayOffset + 4 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 4] = 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            IndicesArray[IndexArrayOffset + 4 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 5] = 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+            for i in range(1, 3):
+                for j in range(0, 1):
 
-            IndicesArray[IndexArrayOffset + 5 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 0] = 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
-            IndicesArray[IndexArrayOffset + 5 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 1] = 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            IndicesArray[IndexArrayOffset + 5 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 2] = 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            IndicesArray[IndexArrayOffset + 5 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 3] = 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            IndicesArray[IndexArrayOffset + 5 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 4] = 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            IndicesArray[IndexArrayOffset + 5 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 5] = 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+
+            for i in range(1, 3):
+                for j in range(3, 4):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+
+        for k in range(6):
+            for i in range(1, 3):
+                for j in range(1, 3):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+    elif CubeMeshSize == 8:
+        ArrayIndex = 0            
+        for k in range(6):
+            for i in range(0, 2):
+                for j in range(0, 8):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+
+            for i in range(6, 8):
+                for j in range(0, 8):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+
+            for i in range(2, 6):
+                for j in range(0, 2):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+
+            for i in range(2, 6):
+                for j in range(6, 8):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+
+        for k in range(6):
+            for i in range(2, 6):
+                for j in range(2, 6):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+    elif CubeMeshSize == 16:
+        ArrayIndex = 0            
+        for k in range(6):
+            for i in range(0, 4):
+                for j in range(0, 16):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+
+            for i in range(12, 16):
+                for j in range(0, 16):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+
+            for i in range(4, 12):
+                for j in range(0, 4):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+
+            for i in range(4, 12):
+                for j in range(12, 16):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+
+        for k in range(6):
+            for i in range(4, 12):
+                for j in range(4, 12):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+    elif CubeMeshSize == 32:
+        ArrayIndex = 0            
+        for k in range(6):
+            for i in range(0, 8):
+                for j in range(0, 32):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+
+            for i in range(24, 32):
+                for j in range(0, 32):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+
+            for i in range(8, 24):
+                for j in range(0, 8):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+
+            for i in range(8, 24):
+                for j in range(24, 32):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+
+        for k in range(6):
+            for i in range(8, 24):
+                for j in range(8, 24):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
+    else:
+        ArrayIndex = 0            
+        for k in range(6):
+            for i in range(CubeMeshSize):
+                for j in range(CubeMeshSize):
+
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+                    ArrayIndex = ArrayIndex + 1
+                    IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+                    ArrayIndex = ArrayIndex + 1
 
 GenerateCubeMesh1(Positions1, TexCoords1, TangentSpaces1, Indices1, 0, 0, 32)
 GenerateCubeMesh1(Positions1, TexCoords1, TangentSpaces1, Indices1, 33 * 33 * 6, 32 * 32 * 6 * 6, 16)

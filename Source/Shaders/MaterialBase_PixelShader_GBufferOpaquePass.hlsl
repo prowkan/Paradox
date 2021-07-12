@@ -33,7 +33,7 @@ PSOutput PS(PSInput PixelShaderInput)
 
 	PixelShaderOutput.GBuffer0 = float4(BaseColor, 0.0f);
 	PixelShaderOutput.GBuffer1 = float4(Normal * 0.5f + 0.5f, 0.0f);
-	PixelShaderOutput.GBuffer2 = float4(100.0f * EmissiveColor, 0.0f);
+	PixelShaderOutput.GBuffer2 = float4(EmissiveColor, 0.0f);
 
 	return PixelShaderOutput;
 }
