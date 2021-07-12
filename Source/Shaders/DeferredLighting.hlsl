@@ -55,6 +55,7 @@ float4 PS(PSInput PixelShaderInput, uint SampleIndex : SV_SampleIndex) : SV_Targ
 
 	float4 GBufferData0 = GBufferTexture0.Load(Coords, SampleIndex);
 	float4 GBufferData1 = GBufferTexture1.Load(Coords, SampleIndex);
+	float4 GBufferData2 = GBufferTexture2.Load(Coords, SampleIndex);
 
 	float4 PixelWorldPosition;
 
@@ -71,6 +72,7 @@ float4 PS(PSInput PixelShaderInput, uint SampleIndex : SV_SampleIndex) : SV_Targ
 
 	float3 BaseColor = GBufferData0.rgb;
 	float3 Normal = 2.0f * GBufferData1.xyz - 1.0f;
+	float3 EmissiveColor = GBufferData2.rgb;
 	float3 Light = normalize(float3(-1.0f, 1.0f, -1.0f));
 
 	float3 Half = normalize(Light + View);
@@ -91,7 +93,7 @@ float4 PS(PSInput PixelShaderInput, uint SampleIndex : SV_SampleIndex) : SV_Targ
 	uint Offset = OffsetAndCount.x;
 	uint Count = OffsetAndCount.y;
 
-	float3 Color = BaseColor * (0.1f + (max(0.0f, dot(Light, Normal)) + ((128.0f + 1.0f) / (2.0f * 3.14f)) * pow(max(0.0f, dot(Half, Normal)), 128.0f)) * ShadowFactor);
+	float3 Color = EmissiveColor + BaseColor * (0.1f + (max(0.0f, dot(Light, Normal)) + ((128.0f + 1.0f) / (2.0f * 3.14f)) * pow(max(0.0f, dot(Half, Normal)), 128.0f)) * ShadowFactor);
 
 	[loop]
 	for (uint i = 0; i < Count; i++)

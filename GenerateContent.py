@@ -493,6 +493,42 @@ def GenerateNormalTexture():
     OutputTexture.GenerateMipmaps()
     return OutputTexture
 
+def GenerateEmissiveTexture():
+    OutputTexture = Texture()
+    OutputTexture.Width = 512
+    OutputTexture.Height = 512
+    OutputTexture.MIPLevels = 8
+    OutputTexture.SRGB = 1
+    OutputTexture.Compressed = 0
+    x = 0
+    y = 0
+    OutputTexture.TextureData.append([])
+    while y < OutputTexture.Height:
+        x = 0
+        OutputTexture.TextureData[0].append([])
+        while x < OutputTexture.Width:
+            OutputTexture.TextureData[0][y].append(Texel())
+            OutputTexture.TextureData[0][y][x].R = 0
+            OutputTexture.TextureData[0][y][x].G = 0
+            OutputTexture.TextureData[0][y][x].B = 0
+            OutputTexture.TextureData[0][y][x].A = 255
+            x = x + 1
+        y = y + 1
+    x = 128 + 28
+    y = 128 + 28
+    while y < 256 + 128 - 28:
+        x = 128 + 28
+        while x < 256 + 128 - 28:
+            OutputTexture.TextureData[0][y][x].R = 128
+            OutputTexture.TextureData[0][y][x].G = 64
+            OutputTexture.TextureData[0][y][x].B = 255
+            OutputTexture.TextureData[0][y][x].A = 255
+            x = x + 1
+        y = y + 1
+
+    OutputTexture.GenerateMipmaps()
+    return OutputTexture
+
 DiffuseTexture = GenerateCheckerTexture()
 CompressedDiffuseTexture = CompressTextureBC1(DiffuseTexture)
 DiffuseTextureData = CompressedDiffuseTexture.SerializeBC1()
@@ -500,6 +536,10 @@ DiffuseTextureData = CompressedDiffuseTexture.SerializeBC1()
 NormalTexture = GenerateNormalTexture()
 CompressedNormalTexture = CompressTextureBC5(NormalTexture)
 NormalTextureData = CompressedNormalTexture.SerializeBC5()
+
+EmissiveTexture = GenerateEmissiveTexture()
+CompressedEmissiveTexture = CompressTextureBC1(EmissiveTexture)
+EmissiveTextureData = CompressedEmissiveTexture.SerializeBC1()
 
 os.chdir("D:/Paradox/Build/GameContent/Test")
 
@@ -510,6 +550,9 @@ while i < 4000:
     f.close()
     f = open("T_Default_" + str(i) + "_N.dasset", "wb")
     f.write(NormalTextureData)
+    f.close()
+    f = open("T_Default_" + str(i) + "_E.dasset", "wb")
+    f.write(EmissiveTextureData)
     f.close()
     i = i + 1
 
@@ -560,13 +603,19 @@ class Vertex:
 VertexCount = 33 * 33 * 6 + 17 * 17 * 6 + 9 * 9 * 6 + 5 * 5 * 6 + 3 * 3 * 6
 IndexCount = 32 * 32 * 6 * 6 + 16 * 16 * 6 * 6 + 8 * 8 * 6 * 6 + 4 * 4 * 6 * 6 + 2 * 2 * 6 * 6
 
-Positions = [Vector3()] * VertexCount;
-TexCoords = [Vector2()] * VertexCount;
-TangentSpaces = [[]] * VertexCount;
+Positions1 = [Vector3()] * VertexCount;
+TexCoords1 = [Vector2()] * VertexCount;
+TangentSpaces1 = [[]] * VertexCount;
 
-Indices = [0] * IndexCount
+Indices1 = [0] * IndexCount
 
-def GenerateCubeMesh(PositionsArray, TexCoordsArray, TangentSpacesArray, VertexArrayOffset, IndexArrayOffset, CubeMeshSize):
+Positions2 = [Vector3()] * VertexCount;
+TexCoords2 = [Vector2()] * VertexCount;
+TangentSpaces2 = [[]] * VertexCount;
+
+Indices2 = [0] * IndexCount
+
+def GenerateCubeMesh1(PositionsArray, TexCoordsArray, TangentSpacesArray, IndicesArray, VertexArrayOffset, IndexArrayOffset, CubeMeshSize):
 
     for i in range(CubeMeshSize + 1):
         for j in range(CubeMeshSize + 1):
@@ -617,77 +666,196 @@ def GenerateCubeMesh(PositionsArray, TexCoordsArray, TangentSpacesArray, VertexA
     for i in range(CubeMeshSize):
         for j in range(CubeMeshSize):
 
-            Indices[IndexArrayOffset + 0 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 0] = 0 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
-            Indices[IndexArrayOffset + 0 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 1] = 0 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            Indices[IndexArrayOffset + 0 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 2] = 0 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            Indices[IndexArrayOffset + 0 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 3] = 0 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            Indices[IndexArrayOffset + 0 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 4] = 0 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            Indices[IndexArrayOffset + 0 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 5] = 0 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+            IndicesArray[IndexArrayOffset + 0 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 0] = 0 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+            IndicesArray[IndexArrayOffset + 0 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 1] = 0 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+            IndicesArray[IndexArrayOffset + 0 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 2] = 0 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+            IndicesArray[IndexArrayOffset + 0 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 3] = 0 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+            IndicesArray[IndexArrayOffset + 0 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 4] = 0 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+            IndicesArray[IndexArrayOffset + 0 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 5] = 0 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
 
-            Indices[IndexArrayOffset + 1 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 0] = 1 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
-            Indices[IndexArrayOffset + 1 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 1] = 1 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            Indices[IndexArrayOffset + 1 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 2] = 1 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            Indices[IndexArrayOffset + 1 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 3] = 1 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            Indices[IndexArrayOffset + 1 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 4] = 1 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            Indices[IndexArrayOffset + 1 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 5] = 1 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+            IndicesArray[IndexArrayOffset + 1 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 0] = 1 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+            IndicesArray[IndexArrayOffset + 1 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 1] = 1 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+            IndicesArray[IndexArrayOffset + 1 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 2] = 1 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+            IndicesArray[IndexArrayOffset + 1 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 3] = 1 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+            IndicesArray[IndexArrayOffset + 1 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 4] = 1 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+            IndicesArray[IndexArrayOffset + 1 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 5] = 1 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
 
-            Indices[IndexArrayOffset + 2 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 0] = 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
-            Indices[IndexArrayOffset + 2 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 1] = 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            Indices[IndexArrayOffset + 2 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 2] = 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            Indices[IndexArrayOffset + 2 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 3] = 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            Indices[IndexArrayOffset + 2 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 4] = 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            Indices[IndexArrayOffset + 2 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 5] = 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+            IndicesArray[IndexArrayOffset + 2 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 0] = 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+            IndicesArray[IndexArrayOffset + 2 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 1] = 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+            IndicesArray[IndexArrayOffset + 2 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 2] = 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+            IndicesArray[IndexArrayOffset + 2 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 3] = 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+            IndicesArray[IndexArrayOffset + 2 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 4] = 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+            IndicesArray[IndexArrayOffset + 2 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 5] = 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
 
-            Indices[IndexArrayOffset + 3 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 0] = 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
-            Indices[IndexArrayOffset + 3 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 1] = 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            Indices[IndexArrayOffset + 3 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 2] = 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            Indices[IndexArrayOffset + 3 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 3] = 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            Indices[IndexArrayOffset + 3 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 4] = 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            Indices[IndexArrayOffset + 3 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 5] = 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+            IndicesArray[IndexArrayOffset + 3 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 0] = 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+            IndicesArray[IndexArrayOffset + 3 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 1] = 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+            IndicesArray[IndexArrayOffset + 3 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 2] = 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+            IndicesArray[IndexArrayOffset + 3 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 3] = 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+            IndicesArray[IndexArrayOffset + 3 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 4] = 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+            IndicesArray[IndexArrayOffset + 3 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 5] = 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
 
-            Indices[IndexArrayOffset + 4 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 0] = 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
-            Indices[IndexArrayOffset + 4 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 1] = 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            Indices[IndexArrayOffset + 4 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 2] = 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            Indices[IndexArrayOffset + 4 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 3] = 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            Indices[IndexArrayOffset + 4 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 4] = 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            Indices[IndexArrayOffset + 4 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 5] = 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+            IndicesArray[IndexArrayOffset + 4 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 0] = 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+            IndicesArray[IndexArrayOffset + 4 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 1] = 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+            IndicesArray[IndexArrayOffset + 4 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 2] = 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+            IndicesArray[IndexArrayOffset + 4 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 3] = 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+            IndicesArray[IndexArrayOffset + 4 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 4] = 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+            IndicesArray[IndexArrayOffset + 4 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 5] = 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
 
-            Indices[IndexArrayOffset + 5 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 0] = 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
-            Indices[IndexArrayOffset + 5 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 1] = 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            Indices[IndexArrayOffset + 5 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 2] = 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            Indices[IndexArrayOffset + 5 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 3] = 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
-            Indices[IndexArrayOffset + 5 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 4] = 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
-            Indices[IndexArrayOffset + 5 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 5] = 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+            IndicesArray[IndexArrayOffset + 5 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 0] = 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+            IndicesArray[IndexArrayOffset + 5 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 1] = 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+            IndicesArray[IndexArrayOffset + 5 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 2] = 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+            IndicesArray[IndexArrayOffset + 5 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 3] = 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+            IndicesArray[IndexArrayOffset + 5 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 4] = 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+            IndicesArray[IndexArrayOffset + 5 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 5] = 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
 
-GenerateCubeMesh(Positions, TexCoords, TangentSpaces, 0, 0, 32)
-GenerateCubeMesh(Positions, TexCoords, TangentSpaces, 33 * 33 * 6, 32 * 32 * 6 * 6, 16)
-GenerateCubeMesh(Positions, TexCoords, TangentSpaces, (33 * 33 + 17 * 17) * 6, (32 * 32 + 16 * 16) * 6 * 6, 8)
-GenerateCubeMesh(Positions, TexCoords, TangentSpaces, (33 * 33 + 17 * 17 + 9 * 9) * 6, (32 * 32 + 16 * 16 + 8 * 8) * 6 * 6, 4)
-GenerateCubeMesh(Positions, TexCoords, TangentSpaces, (33 * 33 + 17 * 17 + 9 * 9 + 5 * 5) * 6, (32 * 32 + 16 * 16 + 8 * 8 + 4 * 4) * 6 * 6, 2)
+def GenerateCubeMesh2(PositionsArray, TexCoordsArray, TangentSpacesArray, IndicesArray, VertexArrayOffset, IndexArrayOffset, CubeMeshSize):
 
-CubeMeshData = bytearray()
-CubeMeshData.extend(int(2).to_bytes(2, byteorder='little', signed=False))
-CubeMeshData.extend(int(VertexCount).to_bytes(4, byteorder='little', signed=False))
-CubeMeshData.extend(int(IndexCount).to_bytes(4, byteorder='little', signed=False))
+    for i in range(CubeMeshSize + 1):
+        for j in range(CubeMeshSize + 1):
 
-for Pos in Positions:
-    CubeMeshData.extend(Pos.Serialize())
-for Tc in TexCoords:
-    CubeMeshData.extend(Tc.Serialize())
-for TS in TangentSpaces:
-    CubeMeshData.extend(TS[0].Serialize())
-    CubeMeshData.extend(TS[1].Serialize())
-    CubeMeshData.extend(TS[2].Serialize())
+            PositionsArray[VertexArrayOffset + (CubeMeshSize + 1) * i + j] = Vector3(-5.0 + j * 10.0 / CubeMeshSize, 1.0 - i * 2.0 / CubeMeshSize, -5.0)
+            TexCoordsArray[VertexArrayOffset + (CubeMeshSize + 1) * i + j] = Vector2(j * 1.0 / CubeMeshSize, i * 1.0 / CubeMeshSize)
+            TangentSpacesArray[VertexArrayOffset + (CubeMeshSize + 1) * i + j] = [Vector3()] * 3;
+            TangentSpacesArray[VertexArrayOffset + (CubeMeshSize + 1) * i + j][0] = Vector3(0.0, 0.0, -1.0)
+            TangentSpacesArray[VertexArrayOffset + (CubeMeshSize + 1) * i + j][1] = Vector3(1.0, 0.0, 0.0)
+            TangentSpacesArray[VertexArrayOffset + (CubeMeshSize + 1) * i + j][2] = Vector3(0.0, -1.0, 0.0)
 
-for Idx in Indices:
-    CubeMeshData.extend(int(Idx).to_bytes(2, byteorder='little', signed=False))
+            PositionsArray[VertexArrayOffset + (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j] = Vector3(5.0, 1.0 - i * 2.0 / CubeMeshSize, -5.0 + j * 10.0 / CubeMeshSize)
+            TexCoordsArray[VertexArrayOffset + (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j] = Vector2(j * 1.0 / CubeMeshSize, i * 1.0 / CubeMeshSize)
+            TangentSpacesArray[VertexArrayOffset + (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j] = [Vector3()] * 3;
+            TangentSpacesArray[VertexArrayOffset + (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j][0] = Vector3(1.0, 0.0, 0.0)
+            TangentSpacesArray[VertexArrayOffset + (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j][1] = Vector3(0.0, 0.0, 1.0)
+            TangentSpacesArray[VertexArrayOffset + (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j][2] = Vector3(0.0, -1.0, 0.0)
+
+            PositionsArray[VertexArrayOffset + 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j] = Vector3(5.0 - j * 10.0 / CubeMeshSize, 1.0 - i * 2.0 / CubeMeshSize, 5.0)
+            TexCoordsArray[VertexArrayOffset + 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j] = Vector2(j * 1.0 / CubeMeshSize, i * 1.0 / CubeMeshSize)
+            TangentSpacesArray[VertexArrayOffset + 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j] = [Vector3()] * 3;
+            TangentSpacesArray[VertexArrayOffset + 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j][0] = Vector3(0.0, 0.0, 1.0)
+            TangentSpacesArray[VertexArrayOffset + 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j][1] = Vector3(-1.0, 0.0, 0.0)
+            TangentSpacesArray[VertexArrayOffset + 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j][2] = Vector3(0.0, -1.0, 0.0)
+
+            PositionsArray[VertexArrayOffset + 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j] = Vector3(-5.0, 1.0 - i * 2.0 / CubeMeshSize, 5.0 - j * 10.0 / CubeMeshSize)
+            TexCoordsArray[VertexArrayOffset + 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j] = Vector2(j * 1.0 / CubeMeshSize, i * 1.0 / CubeMeshSize)
+            TangentSpacesArray[VertexArrayOffset + 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j] = [Vector3()] * 3;
+            TangentSpacesArray[VertexArrayOffset + 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j][0] = Vector3(-1.0, 0.0, 0.0)
+            TangentSpacesArray[VertexArrayOffset + 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j][1] = Vector3(0.0, 0.0, -1.0)
+            TangentSpacesArray[VertexArrayOffset + 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j][2] = Vector3(0.0, -1.0, 0.0)
+
+            PositionsArray[VertexArrayOffset + 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j] = Vector3(-5.0 + j * 10.0 / CubeMeshSize, 1.0, 5.0 - i * 10.0 / CubeMeshSize)
+            TexCoordsArray[VertexArrayOffset + 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j] = Vector2(j * 1.0 / CubeMeshSize, i * 1.0 / CubeMeshSize)
+            TangentSpacesArray[VertexArrayOffset + 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j] = [Vector3()] * 3;
+            TangentSpacesArray[VertexArrayOffset + 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j][0] = Vector3(0.0, 1.0, 0.0)
+            TangentSpacesArray[VertexArrayOffset + 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j][1] = Vector3(1.0, 0.0, 0.0)
+            TangentSpacesArray[VertexArrayOffset + 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j][2] = Vector3(0.0, 0.0, -1.0)
+
+            PositionsArray[VertexArrayOffset + 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j] = Vector3(-5.0 + j * 10.0 / CubeMeshSize, -1.0, -5.0 + i * 10.0 / CubeMeshSize)
+            TexCoordsArray[VertexArrayOffset + 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j] = Vector2(j * 1.0 / CubeMeshSize, i * 1.0 / CubeMeshSize)
+            TangentSpacesArray[VertexArrayOffset + 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j] = [Vector3()] * 3;
+            TangentSpacesArray[VertexArrayOffset + 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j][0] = Vector3(0.0, -1.0, 0.0)
+            TangentSpacesArray[VertexArrayOffset + 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j][1] = Vector3(1.0, 0.0, 0.0)
+            TangentSpacesArray[VertexArrayOffset + 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j][2] = Vector3(0.0, 0.0, 1.0)
+
+
+    for i in range(CubeMeshSize):
+        for j in range(CubeMeshSize):
+
+            IndicesArray[IndexArrayOffset + 0 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 0] = 0 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+            IndicesArray[IndexArrayOffset + 0 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 1] = 0 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+            IndicesArray[IndexArrayOffset + 0 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 2] = 0 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+            IndicesArray[IndexArrayOffset + 0 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 3] = 0 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+            IndicesArray[IndexArrayOffset + 0 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 4] = 0 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+            IndicesArray[IndexArrayOffset + 0 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 5] = 0 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+
+            IndicesArray[IndexArrayOffset + 1 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 0] = 1 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+            IndicesArray[IndexArrayOffset + 1 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 1] = 1 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+            IndicesArray[IndexArrayOffset + 1 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 2] = 1 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+            IndicesArray[IndexArrayOffset + 1 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 3] = 1 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+            IndicesArray[IndexArrayOffset + 1 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 4] = 1 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+            IndicesArray[IndexArrayOffset + 1 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 5] = 1 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+
+            IndicesArray[IndexArrayOffset + 2 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 0] = 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+            IndicesArray[IndexArrayOffset + 2 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 1] = 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+            IndicesArray[IndexArrayOffset + 2 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 2] = 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+            IndicesArray[IndexArrayOffset + 2 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 3] = 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+            IndicesArray[IndexArrayOffset + 2 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 4] = 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+            IndicesArray[IndexArrayOffset + 2 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 5] = 2 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+
+            IndicesArray[IndexArrayOffset + 3 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 0] = 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+            IndicesArray[IndexArrayOffset + 3 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 1] = 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+            IndicesArray[IndexArrayOffset + 3 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 2] = 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+            IndicesArray[IndexArrayOffset + 3 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 3] = 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+            IndicesArray[IndexArrayOffset + 3 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 4] = 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+            IndicesArray[IndexArrayOffset + 3 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 5] = 3 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+
+            IndicesArray[IndexArrayOffset + 4 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 0] = 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+            IndicesArray[IndexArrayOffset + 4 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 1] = 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+            IndicesArray[IndexArrayOffset + 4 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 2] = 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+            IndicesArray[IndexArrayOffset + 4 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 3] = 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+            IndicesArray[IndexArrayOffset + 4 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 4] = 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+            IndicesArray[IndexArrayOffset + 4 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 5] = 4 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+
+            IndicesArray[IndexArrayOffset + 5 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 0] = 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j
+            IndicesArray[IndexArrayOffset + 5 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 1] = 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+            IndicesArray[IndexArrayOffset + 5 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 2] = 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+            IndicesArray[IndexArrayOffset + 5 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 3] = 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j
+            IndicesArray[IndexArrayOffset + 5 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 4] = 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * i + j + 1
+            IndicesArray[IndexArrayOffset + 5 * CubeMeshSize * CubeMeshSize * 6 + CubeMeshSize * 6 * i + 6 * j + 5] = 5 * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
+
+GenerateCubeMesh1(Positions1, TexCoords1, TangentSpaces1, Indices1, 0, 0, 32)
+GenerateCubeMesh1(Positions1, TexCoords1, TangentSpaces1, Indices1, 33 * 33 * 6, 32 * 32 * 6 * 6, 16)
+GenerateCubeMesh1(Positions1, TexCoords1, TangentSpaces1, Indices1, (33 * 33 + 17 * 17) * 6, (32 * 32 + 16 * 16) * 6 * 6, 8)
+GenerateCubeMesh1(Positions1, TexCoords1, TangentSpaces1, Indices1, (33 * 33 + 17 * 17 + 9 * 9) * 6, (32 * 32 + 16 * 16 + 8 * 8) * 6 * 6, 4)
+GenerateCubeMesh1(Positions1, TexCoords1, TangentSpaces1, Indices1, (33 * 33 + 17 * 17 + 9 * 9 + 5 * 5) * 6, (32 * 32 + 16 * 16 + 8 * 8 + 4 * 4) * 6 * 6, 2)
+
+GenerateCubeMesh2(Positions2, TexCoords2, TangentSpaces2, Indices2, 0, 0, 32)
+GenerateCubeMesh2(Positions2, TexCoords2, TangentSpaces2, Indices2, 33 * 33 * 6, 32 * 32 * 6 * 6, 16)
+GenerateCubeMesh2(Positions2, TexCoords2, TangentSpaces2, Indices2, (33 * 33 + 17 * 17) * 6, (32 * 32 + 16 * 16) * 6 * 6, 8)
+GenerateCubeMesh2(Positions2, TexCoords2, TangentSpaces2, Indices2, (33 * 33 + 17 * 17 + 9 * 9) * 6, (32 * 32 + 16 * 16 + 8 * 8) * 6 * 6, 4)
+GenerateCubeMesh2(Positions2, TexCoords2, TangentSpaces2, Indices2, (33 * 33 + 17 * 17 + 9 * 9 + 5 * 5) * 6, (32 * 32 + 16 * 16 + 8 * 8 + 4 * 4) * 6 * 6, 2)
+
+CubeMeshData1 = bytearray()
+CubeMeshData1.extend(int(2).to_bytes(2, byteorder='little', signed=False))
+CubeMeshData1.extend(int(VertexCount).to_bytes(4, byteorder='little', signed=False))
+CubeMeshData1.extend(int(IndexCount).to_bytes(4, byteorder='little', signed=False))
+
+CubeMeshData2 = bytearray()
+CubeMeshData2.extend(int(2).to_bytes(2, byteorder='little', signed=False))
+CubeMeshData2.extend(int(VertexCount).to_bytes(4, byteorder='little', signed=False))
+CubeMeshData2.extend(int(IndexCount).to_bytes(4, byteorder='little', signed=False))
+
+for Pos in Positions1:
+    CubeMeshData1.extend(Pos.Serialize())
+for Tc in TexCoords1:
+    CubeMeshData1.extend(Tc.Serialize())
+for TS in TangentSpaces1:
+    CubeMeshData1.extend(TS[0].Serialize())
+    CubeMeshData1.extend(TS[1].Serialize())
+    CubeMeshData1.extend(TS[2].Serialize())
+
+for Idx in Indices1:
+    CubeMeshData1.extend(int(Idx).to_bytes(2, byteorder='little', signed=False))
+
+for Pos in Positions2:
+    CubeMeshData2.extend(Pos.Serialize())
+for Tc in TexCoords2:
+    CubeMeshData2.extend(Tc.Serialize())
+for TS in TangentSpaces2:
+    CubeMeshData2.extend(TS[0].Serialize())
+    CubeMeshData2.extend(TS[1].Serialize())
+    CubeMeshData2.extend(TS[2].Serialize())
+
+for Idx in Indices2:
+    CubeMeshData2.extend(int(Idx).to_bytes(2, byteorder='little', signed=False))
 
 os.chdir("D:/Paradox/Build/GameContent/Test")
 
 i = 0
 while i < 4000:
     f = open("SM_Cube_" + str(i) + ".dasset", "wb")
-    f.write(CubeMeshData)
+    if i % 2 == 0:
+        f.write(CubeMeshData1)
+    else:
+        f.write(CubeMeshData2)
     f.close()
     i = i + 1
 
@@ -696,10 +864,12 @@ i = 0
 while i < 4000:
     f = open("M_Standart_" + str(i) + ".dasset", "wb")
     f.write(int(1).to_bytes(2, byteorder='little', signed=False))
-    f.write(int(2).to_bytes(2, byteorder='little', signed=False))
+    f.write(int(3).to_bytes(2, byteorder='little', signed=False))
     f.write(("Test.T_Default_" + str(i) + "_D").encode())
     f.write(b'\0')
     f.write(("Test.T_Default_" + str(i) + "_N").encode())
+    f.write(b'\0')
+    f.write(("Test.T_Default_" + str(i) + "_E").encode())
     f.write(b'\0')
     f.close()
     i = i + 1

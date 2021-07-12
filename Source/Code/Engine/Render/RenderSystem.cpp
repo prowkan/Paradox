@@ -255,7 +255,7 @@ void RenderSystem::InitSystem()
 	SamplersDescriptorHeap = Pointer<DescriptorHeap>::Create(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 4, Device, u"Samplers Descriptor Heap");
 
 	ConstantBufferDescriptorHeap = Pointer<DescriptorHeap>::Create(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 120000, Device, u"Constant Buffers Descriptor Heap");
-	TexturesDescriptorHeap = Pointer<DescriptorHeap>::Create(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 8000, Device, u"Textures Descriptor Heap");
+	TexturesDescriptorHeap = Pointer<DescriptorHeap>::Create(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 12000, Device, u"Textures Descriptor Heap");
 
 	FrameResourcesDescriptorHeaps[0] = Pointer<FrameDescriptorHeap>::Create(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 500000, Device, u"Frame Resources Descriptor Heap 0");
 	FrameResourcesDescriptorHeaps[1] = Pointer<FrameDescriptorHeap>::Create(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 500000, Device, u"Frame Resources Descriptor Heap 0");
@@ -3389,15 +3389,17 @@ void RenderSystem::TickSystem(float DeltaTime)
 				MaterialResource *material = staticMeshComponent->GetMaterial();
 				RenderTexture *renderTexture0 = material->GetTexture(0)->GetRenderTexture();
 				RenderTexture *renderTexture1 = material->GetTexture(1)->GetRenderTexture();
+				RenderTexture *renderTexture2 = material->GetTexture(2)->GetRenderTexture();
 
 				DescriptorTable VertexShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(2);
-				DescriptorTable PixelShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(2);
+				DescriptorTable PixelShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(3);
 
 				VertexShaderResourcesTable.SetConstantBuffer(0, CameraConstantBufferCBV);
 				VertexShaderResourcesTable.SetConstantBuffer(1, GBufferOpaquePassObjectsConstantBufferCBVs[k]);
 
 				PixelShaderResourcesTable.SetTexture(0, renderTexture0->TextureSRV);
 				PixelShaderResourcesTable.SetTexture(1, renderTexture1->TextureSRV);
+				PixelShaderResourcesTable.SetTexture(2, renderTexture2->TextureSRV);
 
 				VertexShaderResourcesTable.UpdateTable(Device);
 				PixelShaderResourcesTable.UpdateTable(Device);
