@@ -355,6 +355,16 @@ void SWFParser::ProcessPlaceObject2Tag(SWFFile& File)
 	{
 		SWFMatrix Matrix = File.ReadMatrix();
 	}
+
+	if (HasRatio)
+	{
+		uint16_t Ratio = File.Read<uint16_t>();
+	}
+
+	if (HasName)
+	{
+		File.ReadString();
+	}
 }
 
 void SWFParser::ProcessDefineShape3Tag(SWFFile& File)
@@ -548,7 +558,7 @@ void SWFParser::ProcessDefineFongAlignZonesTag(SWFFile& File)
 	uint8_t CSMTableHint = (uint8_t)File.ReadUnsignedBits(2);
 	uint8_t Reserved = (uint8_t)File.ReadUnsignedBits(6);
 
-	for (uint16_t i = 0; i < 8; i++)
+	for (uint16_t i = 0; i < 376; i++)
 	{
 		uint8_t NumZoneData = File.Read<uint8_t>();
 
