@@ -398,6 +398,12 @@ void ActionScriptVM::ParseASByteCode(BYTE* ByteCodeData, SIZE_T ByteCodeLength)
 				case 0x68:
 					cout << "initproperty" << endl;
 					break;
+				case 0x46:
+					cout << "callproperty" << endl;
+					break;
+				case 0x61:
+					cout << "setproperty" << endl;
+					break;
 				default:
 					cout << (uint32_t)OpCode << endl;
 					break;
@@ -407,7 +413,7 @@ void ActionScriptVM::ParseASByteCode(BYTE* ByteCodeData, SIZE_T ByteCodeLength)
 			{
 				CodePointer++;
 			}
-			if (OpCode == 0x5D || OpCode == 0x60 || OpCode == 0x2C || OpCode == 0x49 || OpCode == 0x66 || OpCode == 0x40 || OpCode == 0x65 || OpCode == 0x58 || OpCode == 0x68)
+			if (OpCode == 0x5D || OpCode == 0x60 || OpCode == 0x2C || OpCode == 0x49 || OpCode == 0x66 || OpCode == 0x40 || OpCode == 0x65 || OpCode == 0x58 || OpCode == 0x68 || OpCode == 0x61)
 			{
 				uint8_t Operand = Code[CodePointer];
 				CodePointer++;
@@ -432,7 +438,7 @@ void ActionScriptVM::ParseASByteCode(BYTE* ByteCodeData, SIZE_T ByteCodeLength)
 					}
 				}
 			}
-			if (OpCode == 0x4F)
+			if (OpCode == 0x4F || OpCode == 0x46)
 			{
 				uint8_t Operand = Code[CodePointer];
 				CodePointer++;
