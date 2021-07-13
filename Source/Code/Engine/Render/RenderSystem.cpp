@@ -3385,24 +3385,13 @@ void RenderSystem::TickSystem(float DeltaTime)
 				StaticMeshComponent *staticMeshComponent = VisibleStaticMeshComponents[k];
 
 				RenderMesh *renderMesh = staticMeshComponent->GetStaticMesh()->GetRenderMesh();
-				RenderMaterial *renderMaterial = staticMeshComponent->GetMaterial()->GetRenderMaterial();
-				MaterialResource *material = staticMeshComponent->GetMaterial();
-				RenderTexture *renderTexture0 = material->GetTexture(0)->GetRenderTexture();
-				RenderTexture *renderTexture1 = material->GetTexture(1)->GetRenderTexture();
-				RenderTexture *renderTexture2 = material->GetTexture(2)->GetRenderTexture();
-
+				
 				DescriptorTable VertexShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(2);
-				DescriptorTable PixelShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(3);
 
 				VertexShaderResourcesTable.SetConstantBuffer(0, CameraConstantBufferCBV);
 				VertexShaderResourcesTable.SetConstantBuffer(1, GBufferOpaquePassObjectsConstantBufferCBVs[k]);
 
-				PixelShaderResourcesTable.SetTexture(0, renderTexture0->TextureSRV);
-				PixelShaderResourcesTable.SetTexture(1, renderTexture1->TextureSRV);
-				PixelShaderResourcesTable.SetTexture(2, renderTexture2->TextureSRV);
-
 				VertexShaderResourcesTable.UpdateTable(Device);
-				PixelShaderResourcesTable.UpdateTable(Device);
 
 				D3D12_VERTEX_BUFFER_VIEW VertexBufferViews[3];
 				VertexBufferViews[0].BufferLocation = renderMesh->VertexBufferAddresses[0];
@@ -3423,10 +3412,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 				GraphicsCommandList->IASetVertexBuffers(0, 3, VertexBufferViews);
 				GraphicsCommandList->IASetIndexBuffer(&IndexBufferView);
 
-				GraphicsCommandList->SetPipelineState(renderMaterial->GBufferOpaquePassPipelineState);
-
 				GraphicsCommandList->SetGraphicsRootDescriptorTable(VERTEX_SHADER_CONSTANT_BUFFERS, VertexShaderResourcesTable);
-				GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
 
 				XMFLOAT3 ObjectLocation = staticMeshComponent->GetTransformComponent()->GetLocation();
 
@@ -3452,6 +3438,23 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 				for (UINT i = 0; i < SubMeshCount; i++)
 				{
+					RenderMaterial* renderMaterial = staticMeshComponent->GetMaterial(staticMeshComponent->GetStaticMesh()->GetElementOffset(LODIndex) + i)->GetRenderMaterial();
+					MaterialResource* material = staticMeshComponent->GetMaterial(staticMeshComponent->GetStaticMesh()->GetElementOffset(LODIndex) + i);
+					RenderTexture* renderTexture0 = material->GetTexture(0)->GetRenderTexture();
+					RenderTexture* renderTexture1 = material->GetTexture(1)->GetRenderTexture();
+					RenderTexture* renderTexture2 = material->GetTexture(2)->GetRenderTexture();
+
+					DescriptorTable PixelShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(3);
+
+					PixelShaderResourcesTable.SetTexture(0, renderTexture0->TextureSRV);
+					PixelShaderResourcesTable.SetTexture(1, renderTexture1->TextureSRV);
+					PixelShaderResourcesTable.SetTexture(2, renderTexture2->TextureSRV);
+
+					PixelShaderResourcesTable.UpdateTable(Device);
+
+					GraphicsCommandList->SetPipelineState(renderMaterial->GBufferOpaquePassPipelineState);
+					GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
+
 					UINT IndexCount = staticMeshComponent->GetStaticMesh()->GetIndexCount(LODIndex, i);
 					UINT IndexOffsetForSubMesh = staticMeshComponent->GetStaticMesh()->GetIndexOffset(LODIndex, i);
 
@@ -3682,10 +3685,8 @@ void RenderSystem::TickSystem(float DeltaTime)
 					StaticMeshComponent *staticMeshComponent = VisibleStaticMeshComponents[k];
 
 					RenderMesh *renderMesh = staticMeshComponent->GetStaticMesh()->GetRenderMesh();
-					RenderMaterial *renderMaterial = staticMeshComponent->GetMaterial()->GetRenderMaterial();
-					RenderTexture *renderTexture0 = staticMeshComponent->GetMaterial()->GetTexture(0)->GetRenderTexture();
-					RenderTexture *renderTexture1 = staticMeshComponent->GetMaterial()->GetTexture(1)->GetRenderTexture();
-
+					
+					
 					DescriptorTable VertexShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(2);
 
 					VertexShaderResourcesTable.SetConstantBuffer(0, ShadowMapCameraConstantBufferCBVs[i]);
@@ -3705,8 +3706,6 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 					GraphicsCommandList->IASetVertexBuffers(0, 1, &VertexBufferView);
 					GraphicsCommandList->IASetIndexBuffer(&IndexBufferView);
-
-					GraphicsCommandList->SetPipelineState(renderMaterial->ShadowMapPassPipelineState);
 
 					GraphicsCommandList->SetGraphicsRootDescriptorTable(VERTEX_SHADER_CONSTANT_BUFFERS, VertexShaderResourcesTable);
 
@@ -3734,6 +3733,10 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 					for (UINT i = 0; i < SubMeshCount; i++)
 					{
+						RenderMaterial* renderMaterial = staticMeshComponent->GetMaterial(staticMeshComponent->GetStaticMesh()->GetElementOffset(LODIndex) + i)->GetRenderMaterial();
+
+						GraphicsCommandList->SetPipelineState(renderMaterial->ShadowMapPassPipelineState);
+
 						UINT IndexCount = staticMeshComponent->GetStaticMesh()->GetIndexCount(LODIndex, i);
 						UINT IndexOffsetForSubMesh = staticMeshComponent->GetStaticMesh()->GetIndexOffset(LODIndex, i);
 

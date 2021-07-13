@@ -24,6 +24,7 @@ struct LODData
 	UINT VertexOffset;
 	UINT IndexOffset;
 	UINT SubMeshesCount;
+	UINT ElementOffset;
 	SubMeshData SubMeshDataArray[3];
 };
 
@@ -45,6 +46,19 @@ class StaticMeshResource : public Resource
 		UINT GetSubMeshCount(UINT LODLevel) { return LODDataArray[LODLevel].SubMeshesCount; }
 		UINT GetIndexCount(UINT LODLevel, UINT SubMeshIndex) { return LODDataArray[LODLevel].SubMeshDataArray[SubMeshIndex].IndexCount; }
 		UINT GetIndexOffset(UINT LODLevel, UINT SubMeshIndex) { return LODDataArray[LODLevel].SubMeshDataArray[SubMeshIndex].IndexOffset; }
+		UINT GetElementOffset(UINT LODLevel) { return LODDataArray[LODLevel].ElementOffset; }
+
+		UINT GetTotalElementsCount()
+		{
+			UINT ElementsCount = 0;
+
+			for (UINT i = 0; i < LODCount; i++)
+			{
+				ElementsCount += LODDataArray[i].SubMeshesCount;
+			}
+
+			return ElementsCount;
+		}
 
 	private:
 

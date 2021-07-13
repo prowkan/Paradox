@@ -193,7 +193,11 @@ void StaticMeshComponent::LoadFromFile(LevelFile& File)
 	}
 
 	StaticMesh = Engine::GetEngine().GetResourceManager().GetResource<StaticMeshResource>(StaticMeshResourceName);
-	Material = Engine::GetEngine().GetResourceManager().GetResource<MaterialResource>(MaterialResourceName);
+	
+	for (UINT i = 0; i < StaticMesh->GetTotalElementsCount(); i++)
+	{
+		Materials.Add(Engine::GetEngine().GetResourceManager().GetResource<MaterialResource>(MaterialResourceName));
+	}
 
 	transformComponent = Owner->GetComponent<TransformComponent>();
 	boundingBoxComponent = Owner->GetComponent<BoundingBoxComponent>();

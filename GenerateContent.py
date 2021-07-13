@@ -748,7 +748,7 @@ def GenerateCubeMesh1(PositionsArray, TexCoordsArray, TangentSpacesArray, Indice
                     IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
                     ArrayIndex = ArrayIndex + 1
 
-        for k in range(6):
+        for k in [5, 4, 0, 1, 2, 3]:
             for i in range(1, 3):
                 for j in range(1, 3):
 
@@ -831,7 +831,7 @@ def GenerateCubeMesh1(PositionsArray, TexCoordsArray, TangentSpacesArray, Indice
                     IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
                     ArrayIndex = ArrayIndex + 1
 
-        for k in range(6):
+        for k in [5, 4, 0, 1, 2, 3]:
             for i in range(2, 6):
                 for j in range(2, 6):
 
@@ -914,7 +914,7 @@ def GenerateCubeMesh1(PositionsArray, TexCoordsArray, TangentSpacesArray, Indice
                     IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
                     ArrayIndex = ArrayIndex + 1
 
-        for k in range(6):
+        for k in [5, 4, 0, 1, 2, 3]:
             for i in range(4, 12):
                 for j in range(4, 12):
 
@@ -997,7 +997,7 @@ def GenerateCubeMesh1(PositionsArray, TexCoordsArray, TangentSpacesArray, Indice
                     IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
                     ArrayIndex = ArrayIndex + 1
 
-        for k in range(6):
+        for k in [5, 4, 0, 1, 2, 3]:
             for i in range(8, 24):
                 for j in range(8, 24):
 
@@ -1165,7 +1165,7 @@ def GenerateCubeMesh2(PositionsArray, TexCoordsArray, TangentSpacesArray, Indice
                     IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
                     ArrayIndex = ArrayIndex + 1
 
-        for k in range(6):
+        for k in [5, 4, 0, 1, 2, 3]:
             for i in range(1, 3):
                 for j in range(1, 3):
 
@@ -1248,7 +1248,7 @@ def GenerateCubeMesh2(PositionsArray, TexCoordsArray, TangentSpacesArray, Indice
                     IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
                     ArrayIndex = ArrayIndex + 1
 
-        for k in range(6):
+        for k in [5, 4, 0, 1, 2, 3]:
             for i in range(2, 6):
                 for j in range(2, 6):
 
@@ -1331,7 +1331,7 @@ def GenerateCubeMesh2(PositionsArray, TexCoordsArray, TangentSpacesArray, Indice
                     IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
                     ArrayIndex = ArrayIndex + 1
 
-        for k in range(6):
+        for k in [5, 4, 0, 1, 2, 3]:
             for i in range(4, 12):
                 for j in range(4, 12):
 
@@ -1414,7 +1414,7 @@ def GenerateCubeMesh2(PositionsArray, TexCoordsArray, TangentSpacesArray, Indice
                     IndicesArray[IndexArrayOffset + ArrayIndex] = k * (CubeMeshSize + 1) * (CubeMeshSize + 1) + (CubeMeshSize + 1) * (i + 1) + j + 1
                     ArrayIndex = ArrayIndex + 1
 
-        for k in range(6):
+        for k in [5, 4, 0, 1, 2, 3]:
             for i in range(8, 24):
                 for j in range(8, 24):
 
