@@ -20,8 +20,28 @@ struct RenderTexture
 
 struct RenderMaterial
 {
-	COMRCPtr<ID3D12PipelineState> GBufferOpaquePassPipelineState;
-	COMRCPtr<ID3D12PipelineState> ShadowMapPassPipelineState;
+	union
+	{
+		struct
+		{
+			COMRCPtr<ID3D12PipelineState> GBufferOpaquePassPipelineState;
+			COMRCPtr<ID3D12PipelineState> ShadowMapPassPipelineState;
+		} Opaque;
+		struct
+		{
+			COMRCPtr<ID3D12PipelineState> TransparentPassPipelineState;
+		} Transparent;
+	};
+
+	RenderMaterial()
+	{
+
+	}
+
+	~RenderMaterial()
+	{
+
+	}
 };
 
 enum class BlockCompression { BC1, BC2, BC3, BC4, BC5 };
@@ -45,14 +65,28 @@ struct RenderTextureCreateInfo
 
 struct RenderMaterialCreateInfo
 {
-	void *GBufferOpaquePassVertexShaderByteCodeData;
-	void *GBufferOpaquePassPixelShaderByteCodeData;
-	size_t GBufferOpaquePassVertexShaderByteCodeLength;
-	size_t GBufferOpaquePassPixelShaderByteCodeLength;
-	void *ShadowMapPassVertexShaderByteCodeData;
-	void *ShadowMapPassPixelShaderByteCodeData;
-	size_t ShadowMapPassVertexShaderByteCodeLength;
-	size_t ShadowMapPassPixelShaderByteCodeLength;
+	union
+	{
+		struct
+		{
+			void* GBufferOpaquePassVertexShaderByteCodeData;
+			void* GBufferOpaquePassPixelShaderByteCodeData;
+			size_t GBufferOpaquePassVertexShaderByteCodeLength;
+			size_t GBufferOpaquePassPixelShaderByteCodeLength;
+			void* ShadowMapPassVertexShaderByteCodeData;
+			void* ShadowMapPassPixelShaderByteCodeData;
+			size_t ShadowMapPassVertexShaderByteCodeLength;
+			size_t ShadowMapPassPixelShaderByteCodeLength;
+		} Opaque;
+		struct
+		{
+			void* TransparentPassVertexShaderByteCodeData;
+			void* TransparentPassPixelShaderByteCodeData;
+			size_t TransparentPassVertexShaderByteCodeLength;
+			size_t TransparentPassPixelShaderByteCodeLength;
+		} Transparent;
+	};
+	BYTE BlendMode;
 };
 
 struct Vertex

@@ -25,7 +25,6 @@
     <FxCompile Include="SunPixelShader.hlsl" />
     <FxCompile Include="MaterialBase_VertexShader_ShadowMapPass.hlsl" />
     <FxCompile Include="MaterialBase_VertexShader_GBufferOpaquePass.hlsl" />
-    <FxCompile Include="MaterialBase_PixelShader_GBufferOpaquePass.hlsl" />
     <FxCompile Include="ShadowResolve.hlsl" />
     <FxCompile Include="LuminanceSum.hlsl" />
     <FxCompile Include="LuminanceCalc.hlsl" />
@@ -39,6 +38,10 @@
     <FxCompile Include="DebugDrawOcclusionBuffer_VertexShader.hlsl" />
     <FxCompile Include="DebugDrawBoundingBox_VertexShader.hlsl" />
     <FxCompile Include="DebugDrawBoundingBox_PixelShader.hlsl" />
+    <FxCompile Include="MaterialBase_PixelShader_GBufferOpaquePass_1.hlsl" />
+    <FxCompile Include="MaterialBase_PixelShader_GBufferOpaquePass_2.hlsl" />
+    <FxCompile Include="MaterialBase_PixelShader_TransparentPass.hlsl" />
+    <FxCompile Include="MaterialBase_VertexShader_TransparentPass.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="CompileMaterialShaders.bat">

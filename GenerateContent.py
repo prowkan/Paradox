@@ -1512,6 +1512,19 @@ i = 0
 while i < 4000:
     f = open("M_Standart_" + str(i) + ".dasset", "wb")
     f.write(int(1).to_bytes(2, byteorder='little', signed=False))
+    f.write(int(0).to_bytes(1, byteorder='little', signed=False))
+    f.write(int(2).to_bytes(2, byteorder='little', signed=False))
+    f.write(("Test.T_Default_" + str(i) + "_D").encode())
+    f.write(b'\0')
+    f.write(("Test.T_Default_" + str(i) + "_N").encode())
+    f.write(b'\0')
+    f.close()
+    i = i + 1
+i = 0
+while i < 4000:
+    f = open("M_Standart_" + str(4000 + i) + ".dasset", "wb")
+    f.write(int(1).to_bytes(2, byteorder='little', signed=False))
+    f.write(int(0).to_bytes(1, byteorder='little', signed=False))
     f.write(int(3).to_bytes(2, byteorder='little', signed=False))
     f.write(("Test.T_Default_" + str(i) + "_D").encode())
     f.write(b'\0')
@@ -1519,5 +1532,13 @@ while i < 4000:
     f.write(b'\0')
     f.write(("Test.T_Default_" + str(i) + "_E").encode())
     f.write(b'\0')
+    f.close()
+    i = i + 1
+i = 0
+while i < 4000:
+    f = open("M_Standart_" + str(8000 + i) + ".dasset", "wb")
+    f.write(int(1).to_bytes(2, byteorder='little', signed=False))
+    f.write(int(1).to_bytes(1, byteorder='little', signed=False))
+    f.write(int(0).to_bytes(2, byteorder='little', signed=False))
     f.close()
     i = i + 1

@@ -59,6 +59,30 @@ while i < 50:
         Bytes += b'\0'
         Bytes.extend(("Test.M_Standart_" + str(ResourceCounter)).encode())
         Bytes += b'\0'
+        Bytes.extend(("Test.M_Standart_" + str(4000 + ResourceCounter)).encode())
+        Bytes += b'\0'
+        Bytes.extend(("Test.M_Standart_" + str(8000 + ResourceCounter)).encode())
+        Bytes += b'\0'
+        Bytes.extend(("Test.M_Standart_" + str(ResourceCounter)).encode())
+        Bytes += b'\0'
+        Bytes.extend(("Test.M_Standart_" + str(4000 + ResourceCounter)).encode())
+        Bytes += b'\0'
+        Bytes.extend(("Test.M_Standart_" + str(8000 + ResourceCounter)).encode())
+        Bytes += b'\0'
+        Bytes.extend(("Test.M_Standart_" + str(ResourceCounter)).encode())
+        Bytes += b'\0'
+        Bytes.extend(("Test.M_Standart_" + str(4000 + ResourceCounter)).encode())
+        Bytes += b'\0'
+        Bytes.extend(("Test.M_Standart_" + str(8000 + ResourceCounter)).encode())
+        Bytes += b'\0'
+        Bytes.extend(("Test.M_Standart_" + str(ResourceCounter)).encode())
+        Bytes += b'\0'
+        Bytes.extend(("Test.M_Standart_" + str(4000 + ResourceCounter)).encode())
+        Bytes += b'\0'
+        Bytes.extend(("Test.M_Standart_" + str(8000 + ResourceCounter)).encode())
+        Bytes += b'\0'
+        Bytes.extend(("Test.M_Standart_" + str(ResourceCounter)).encode())
+        Bytes += b'\0'
         
         ResourceCounter = (ResourceCounter + 1) % 4000
 
@@ -101,6 +125,30 @@ while i < 50:
         Bytes += b'\0'
 
         Bytes.extend(("Test.SM_Cube_" + str(ResourceCounter)).encode())
+        Bytes += b'\0'
+        Bytes.extend(("Test.M_Standart_" + str(ResourceCounter)).encode())
+        Bytes += b'\0'
+        Bytes.extend(("Test.M_Standart_" + str(4000 + ResourceCounter)).encode())
+        Bytes += b'\0'
+        Bytes.extend(("Test.M_Standart_" + str(8000 + ResourceCounter)).encode())
+        Bytes += b'\0'
+        Bytes.extend(("Test.M_Standart_" + str(ResourceCounter)).encode())
+        Bytes += b'\0'
+        Bytes.extend(("Test.M_Standart_" + str(4000 + ResourceCounter)).encode())
+        Bytes += b'\0'
+        Bytes.extend(("Test.M_Standart_" + str(8000 + ResourceCounter)).encode())
+        Bytes += b'\0'
+        Bytes.extend(("Test.M_Standart_" + str(ResourceCounter)).encode())
+        Bytes += b'\0'
+        Bytes.extend(("Test.M_Standart_" + str(4000 + ResourceCounter)).encode())
+        Bytes += b'\0'
+        Bytes.extend(("Test.M_Standart_" + str(8000 + ResourceCounter)).encode())
+        Bytes += b'\0'
+        Bytes.extend(("Test.M_Standart_" + str(ResourceCounter)).encode())
+        Bytes += b'\0'
+        Bytes.extend(("Test.M_Standart_" + str(4000 + ResourceCounter)).encode())
+        Bytes += b'\0'
+        Bytes.extend(("Test.M_Standart_" + str(8000 + ResourceCounter)).encode())
         Bytes += b'\0'
         Bytes.extend(("Test.M_Standart_" + str(ResourceCounter)).encode())
         Bytes += b'\0'
