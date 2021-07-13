@@ -38,8 +38,7 @@ void StaticMeshComponent::UnRegisterComponent()
 void StaticMeshComponent::LoadFromFile(LevelFile& File)
 {
 	String StaticMeshResourceName = File.Read<String>();
-	String MaterialResourceName = File.Read<String>();
-
+	
 	if (!Engine::GetEngine().GetResourceManager().IsResourceLoaded(StaticMeshResourceName))
 	{
 		struct StaticMeshFileHeader
@@ -61,108 +60,126 @@ void StaticMeshComponent::LoadFromFile(LevelFile& File)
 		Engine::GetEngine().GetResourceManager().AddResource<StaticMeshResource>(StaticMeshResourceName, &staticMeshResourceCreateInfo);
 	}
 
-	if (!Engine::GetEngine().GetResourceManager().IsResourceLoaded(MaterialResourceName))
-	{
-		Pointer<BYTE[]> MaterialData = Pointer<BYTE[]>::Create(Engine::GetEngine().GetFileSystem().GetFileSize(MaterialResourceName));
-		Engine::GetEngine().GetFileSystem().LoadFile(MaterialResourceName, MaterialData);
-
-		const char *ShaderModel = "ShaderModel60";
-
-		char ShaderFileName[255];
-		sprintf(ShaderFileName, "%s.%s.GBufferOpaquePass_VertexShader", ShaderModel, MaterialResourceName.GetData());
-
-		void *GBufferOpaquePassVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData(ShaderFileName);
-		SIZE_T GBufferOpaquePassVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize(ShaderFileName);
-
-		sprintf(ShaderFileName, "%s.%s.GBufferOpaquePass_PixelShader", ShaderModel, MaterialResourceName.GetData());
-
-		void *GBufferOpaquePassPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData(ShaderFileName);
-		SIZE_T GBufferOpaquePassPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize(ShaderFileName);
-
-		sprintf(ShaderFileName, "%s.%s.ShadowMapPass_VertexShader", ShaderModel, MaterialResourceName.GetData());
-
-		void *ShadowMapPassVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData(ShaderFileName);
-		SIZE_T ShadowMapPassVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize(ShaderFileName);
-
-		MaterialResourceCreateInfo materialResourceCreateInfo;
-		materialResourceCreateInfo.GBufferOpaquePassPixelShaderByteCodeData = GBufferOpaquePassPixelShaderByteCodeData;
-		materialResourceCreateInfo.GBufferOpaquePassPixelShaderByteCodeLength = GBufferOpaquePassPixelShaderByteCodeLength;
-		materialResourceCreateInfo.GBufferOpaquePassVertexShaderByteCodeData = GBufferOpaquePassVertexShaderByteCodeData;
-		materialResourceCreateInfo.GBufferOpaquePassVertexShaderByteCodeLength = GBufferOpaquePassVertexShaderByteCodeLength;
-		materialResourceCreateInfo.ShadowMapPassPixelShaderByteCodeData = nullptr;
-		materialResourceCreateInfo.ShadowMapPassPixelShaderByteCodeLength = 0;
-		materialResourceCreateInfo.ShadowMapPassVertexShaderByteCodeData = ShadowMapPassVertexShaderByteCodeData;
-		materialResourceCreateInfo.ShadowMapPassVertexShaderByteCodeLength = ShadowMapPassVertexShaderByteCodeLength;
-		materialResourceCreateInfo.Textures.Add(nullptr);
-		materialResourceCreateInfo.Textures.Add(nullptr);
-
-		String Texture0Name((char*)((BYTE*)MaterialData + 4));
-		String Texture1Name((char*)((BYTE*)MaterialData + 4 + Texture0Name.GetLength() + 1));
-
-		if (!Engine::GetEngine().GetResourceManager().IsResourceLoaded(Texture0Name))
-		{
-			struct TextureFileHeader
-			{
-				UINT Width;
-				UINT Height;
-				UINT MIPLevels;
-				BOOL SRGB;
-				BOOL Compressed;
-			};
-
-			Pointer<BYTE[]> TextureData = Pointer<BYTE[]>::Create(Engine::GetEngine().GetFileSystem().GetFileSize(Texture0Name));
-			Engine::GetEngine().GetFileSystem().LoadFile(Texture0Name, TextureData);
-
-			TextureFileHeader *textureFileHeader = (TextureFileHeader*)((BYTE*)TextureData + 2);
-
-			Texture2DResourceCreateInfo texture2DResourceCreateInfo;
-			texture2DResourceCreateInfo.Height = textureFileHeader->Height;
-			texture2DResourceCreateInfo.MIPLevels = textureFileHeader->MIPLevels;
-			texture2DResourceCreateInfo.SRGB = textureFileHeader->SRGB;
-			texture2DResourceCreateInfo.Compressed = textureFileHeader->Compressed;
-			texture2DResourceCreateInfo.CompressionType = BlockCompression::BC1;
-			texture2DResourceCreateInfo.TexelData = (BYTE*)textureFileHeader + sizeof(TextureFileHeader);
-			texture2DResourceCreateInfo.Width = textureFileHeader->Width;
-
-			Engine::GetEngine().GetResourceManager().AddResource<Texture2DResource>(Texture0Name, &texture2DResourceCreateInfo);
-		}
-
-		if (!Engine::GetEngine().GetResourceManager().IsResourceLoaded(Texture1Name))
-		{
-			struct TextureFileHeader
-			{
-				UINT Width;
-				UINT Height;
-				UINT MIPLevels;
-				BOOL SRGB;
-				BOOL Compressed;
-			};
-
-			Pointer<BYTE[]> TextureData = Pointer<BYTE[]>::Create(Engine::GetEngine().GetFileSystem().GetFileSize(Texture1Name));
-			Engine::GetEngine().GetFileSystem().LoadFile(Texture1Name, TextureData);
-
-			TextureFileHeader *textureFileHeader = (TextureFileHeader*)((BYTE*)TextureData + 2);
-
-			Texture2DResourceCreateInfo texture2DResourceCreateInfo;
-			texture2DResourceCreateInfo.Height = textureFileHeader->Height;
-			texture2DResourceCreateInfo.MIPLevels = textureFileHeader->MIPLevels;
-			texture2DResourceCreateInfo.SRGB = textureFileHeader->SRGB;
-			texture2DResourceCreateInfo.Compressed = textureFileHeader->Compressed;
-			texture2DResourceCreateInfo.CompressionType = BlockCompression::BC5;
-			texture2DResourceCreateInfo.TexelData = (BYTE*)textureFileHeader + sizeof(TextureFileHeader);
-			texture2DResourceCreateInfo.Width = textureFileHeader->Width;
-
-			Engine::GetEngine().GetResourceManager().AddResource<Texture2DResource>(Texture1Name, &texture2DResourceCreateInfo);
-		}
-
-		materialResourceCreateInfo.Textures[0] = Engine::GetEngine().GetResourceManager().GetResource<Texture2DResource>(Texture0Name);
-		materialResourceCreateInfo.Textures[1] = Engine::GetEngine().GetResourceManager().GetResource<Texture2DResource>(Texture1Name);
-
-		Engine::GetEngine().GetResourceManager().AddResource<MaterialResource>(MaterialResourceName, &materialResourceCreateInfo);
-	}
-
 	StaticMesh = Engine::GetEngine().GetResourceManager().GetResource<StaticMeshResource>(StaticMeshResourceName);
-	Material = Engine::GetEngine().GetResourceManager().GetResource<MaterialResource>(MaterialResourceName);
+	
+	for (UINT i = 0; i < StaticMesh->GetTotalElementsCount(); i++)
+	{
+		String MaterialResourceName = File.Read<String>();
+
+		if (!Engine::GetEngine().GetResourceManager().IsResourceLoaded(MaterialResourceName))
+		{
+			Pointer<BYTE[]> MaterialData = Pointer<BYTE[]>::Create(Engine::GetEngine().GetFileSystem().GetFileSize(MaterialResourceName));
+			Engine::GetEngine().GetFileSystem().LoadFile(MaterialResourceName, MaterialData);
+
+#pragma pack(push, 1)
+
+			struct MaterialFileHeader
+			{
+				BYTE BlendMode;
+				USHORT TexturesCount;
+			};
+
+#pragma pack(pop, 1)
+
+			MaterialFileHeader* materialFileHeader = (MaterialFileHeader*)((BYTE*)MaterialData + 2);
+
+			const char* ShaderModel = "ShaderModel60";
+
+			MaterialResourceCreateInfo materialResourceCreateInfo;
+
+			if (materialFileHeader->BlendMode == 0)
+			{
+				char ShaderFileName[255];
+				sprintf(ShaderFileName, "%s.%s.GBufferOpaquePass_VertexShader", ShaderModel, MaterialResourceName.GetData());
+
+				void* GBufferOpaquePassVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData(ShaderFileName);
+				SIZE_T GBufferOpaquePassVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize(ShaderFileName);
+
+				sprintf(ShaderFileName, "%s.%s.GBufferOpaquePass_PixelShader", ShaderModel, MaterialResourceName.GetData());
+
+				void* GBufferOpaquePassPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData(ShaderFileName);
+				SIZE_T GBufferOpaquePassPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize(ShaderFileName);
+
+				sprintf(ShaderFileName, "%s.%s.ShadowMapPass_VertexShader", ShaderModel, MaterialResourceName.GetData());
+
+				void* ShadowMapPassVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData(ShaderFileName);
+				SIZE_T ShadowMapPassVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize(ShaderFileName);
+
+				materialResourceCreateInfo.GBufferOpaquePassPixelShaderByteCodeData = GBufferOpaquePassPixelShaderByteCodeData;
+				materialResourceCreateInfo.GBufferOpaquePassPixelShaderByteCodeLength = GBufferOpaquePassPixelShaderByteCodeLength;
+				materialResourceCreateInfo.GBufferOpaquePassVertexShaderByteCodeData = GBufferOpaquePassVertexShaderByteCodeData;
+				materialResourceCreateInfo.GBufferOpaquePassVertexShaderByteCodeLength = GBufferOpaquePassVertexShaderByteCodeLength;
+				materialResourceCreateInfo.ShadowMapPassPixelShaderByteCodeData = nullptr;
+				materialResourceCreateInfo.ShadowMapPassPixelShaderByteCodeLength = 0;
+				materialResourceCreateInfo.ShadowMapPassVertexShaderByteCodeData = ShadowMapPassVertexShaderByteCodeData;
+				materialResourceCreateInfo.ShadowMapPassVertexShaderByteCodeLength = ShadowMapPassVertexShaderByteCodeLength;
+			}
+			else if(materialFileHeader->BlendMode == 1)
+			{
+				char ShaderFileName[255];
+				sprintf(ShaderFileName, "%s.%s.TransparentPass_VertexShader", ShaderModel, MaterialResourceName.GetData());
+
+				void* TransparentPassVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData(ShaderFileName);
+				SIZE_T TransparentPassVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize(ShaderFileName);
+
+				sprintf(ShaderFileName, "%s.%s.TransparentPass_PixelShader", ShaderModel, MaterialResourceName.GetData());
+
+				void* TransparentPassPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData(ShaderFileName);
+				SIZE_T TransparentPassPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize(ShaderFileName);
+
+				materialResourceCreateInfo.TransparentPassPixelShaderByteCodeData = TransparentPassPixelShaderByteCodeData;
+				materialResourceCreateInfo.TransparentPassPixelShaderByteCodeLength = TransparentPassPixelShaderByteCodeLength;
+				materialResourceCreateInfo.TransparentPassVertexShaderByteCodeData = TransparentPassVertexShaderByteCodeData;
+				materialResourceCreateInfo.TransparentPassVertexShaderByteCodeLength = TransparentPassVertexShaderByteCodeLength;
+			}		
+			
+			materialResourceCreateInfo.Textures.Resize(materialFileHeader->TexturesCount);
+			materialResourceCreateInfo.BlendMode = materialFileHeader->BlendMode;
+
+			SIZE_T Offset = 0;
+
+			for (USHORT i = 0; i < materialFileHeader->TexturesCount; i++)
+			{
+				String TextureName((char*)((BYTE*)MaterialData + 5 + Offset));
+
+				Offset += TextureName.GetLength() + 1;
+
+				if (!Engine::GetEngine().GetResourceManager().IsResourceLoaded(TextureName))
+				{
+					struct TextureFileHeader
+					{
+						UINT Width;
+						UINT Height;
+						UINT MIPLevels;
+						BOOL SRGB;
+						BOOL Compressed;
+					};
+
+					Pointer<BYTE[]> TextureData = Pointer<BYTE[]>::Create(Engine::GetEngine().GetFileSystem().GetFileSize(TextureName));
+					Engine::GetEngine().GetFileSystem().LoadFile(TextureName, TextureData);
+
+					TextureFileHeader* textureFileHeader = (TextureFileHeader*)((BYTE*)TextureData + 2);
+
+					Texture2DResourceCreateInfo texture2DResourceCreateInfo;
+					texture2DResourceCreateInfo.Height = textureFileHeader->Height;
+					texture2DResourceCreateInfo.MIPLevels = textureFileHeader->MIPLevels;
+					texture2DResourceCreateInfo.SRGB = textureFileHeader->SRGB;
+					texture2DResourceCreateInfo.Compressed = textureFileHeader->Compressed;
+					texture2DResourceCreateInfo.CompressionType = i == 1 ? BlockCompression::BC5 : BlockCompression::BC1;
+					texture2DResourceCreateInfo.TexelData = (BYTE*)textureFileHeader + sizeof(TextureFileHeader);
+					texture2DResourceCreateInfo.Width = textureFileHeader->Width;
+
+					Engine::GetEngine().GetResourceManager().AddResource<Texture2DResource>(TextureName, &texture2DResourceCreateInfo);
+				}
+
+				materialResourceCreateInfo.Textures[i] = Engine::GetEngine().GetResourceManager().GetResource<Texture2DResource>(TextureName);
+			}
+
+			Engine::GetEngine().GetResourceManager().AddResource<MaterialResource>(MaterialResourceName, &materialResourceCreateInfo);
+		}
+
+		Materials.Add(Engine::GetEngine().GetResourceManager().GetResource<MaterialResource>(MaterialResourceName));
+	}
 
 	transformComponent = Owner->GetComponent<TransformComponent>();
 	boundingBoxComponent = Owner->GetComponent<BoundingBoxComponent>();
