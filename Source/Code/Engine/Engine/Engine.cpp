@@ -16,7 +16,7 @@ void Engine::InitEngine()
 	SWFFile File;
 	File.Open(u"GameContent/UI/UI_MainMenu.swf");
 	SWFParser::ParseFile(File);
-	ActionScriptVM::ParseASByteCode(File.GetData() + 638, 635);
+	ActionScriptVM::ParseASByteCode(File.GetData() + 56331, 1293);
 	File.Close();
 
 	memoryManager.CreateInstance();

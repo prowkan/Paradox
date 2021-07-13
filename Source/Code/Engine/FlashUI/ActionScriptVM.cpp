@@ -81,51 +81,88 @@ void ActionScriptVM::ParseASByteCode(BYTE* ByteCodeData, SIZE_T ByteCodeLength)
 
 	uint32_t NamespaceCount = ReadEncodedU30();
 
+	struct ASNamespace
+	{
+		uint8_t Kind;
+		uint32_t Name;
+	};
+
+	DynamicArray<ASNamespace> Namespaces;
+
 	for (uint32_t i = 0; i < NamespaceCount - 1; i++)
 	{
 		uint8_t Kind = Read<uint8_t>();
 		uint32_t Name = ReadEncodedU30();
+
+		cout << "Namespace: " << StringsArray[Name - 1] << endl;
+
+		Namespaces.Add({ Kind, Name });
 	}
 
 	uint32_t NsSetCount = ReadEncodedU30();
 
-	for (uint32_t i = 0; i < NsSetCount; i++)
+	for (uint32_t i = 0; i < NsSetCount - 1; i++)
 	{
 		uint32_t Count = ReadEncodedU30();
+
+		cout << "Namespace set:" << endl;
+
 		for (uint32_t j = 0; j < Count; j++)
 		{
 			uint32_t ns = ReadEncodedU30();
+			//cout << ns << endl;
+			cout << StringsArray[Namespaces[ns - 1].Name - 1] << endl;
 		}
+
+		cout << "============" << endl;
 	}
 
 	uint32_t MultiNameCount = ReadEncodedU30();
 
+	struct ASMultiName
+	{
+		uint32_t Kind;
+		uint32_t u1;
+		uint32_t u2;
+	};
+
+	DynamicArray<ASMultiName> MultiNames;
+
 	for (uint32_t i = 0; i < MultiNameCount - 1; i++)
 	{
 		uint8_t Kind = Read<uint8_t>();
+		cout << +Kind << " ";
+
+		uint32_t ns;
+		uint32_t Name;
+		uint32_t ns_set;
 
 		switch (Kind)
 		{
 			case 0x07:
 			case 0x0D:
-				/*uint32_t ns =*/ ReadEncodedU30();
-				/*uint32_t Name =*/ ReadEncodedU30();
+				ns = ReadEncodedU30();
+				Name = ReadEncodedU30();
+				cout << StringsArray[Namespaces[ns - 1].Name - 1] << "." << StringsArray[Name - 1] << endl;
+				MultiNames.Add({ Kind, ns, Name });
 				break;
 			case 0x0F:
 			case 0x1D:
-				/*uint32_t Name =*/ ReadEncodedU30();
+				Name = ReadEncodedU30();
 				break;
 			case 0x11:
 			case 0x12:
 				break;
 			case 0x09:
 			case 0x0E:
-				/*uint32_t Name =*/ ReadEncodedU30();
-				/*uint32_t ns_set =*/ ReadEncodedU30();
+				Name = ReadEncodedU30();
+				ns_set = ReadEncodedU30();
+				cout << StringsArray[Name - 1] << endl;
+				MultiNames.Add({ Kind, Name, ns_set });
 				break;
 			case 0x1B:
 			case 0x1C:
-				/*uint32_t ns_set =*/ ReadEncodedU30();
+				ns_set = ReadEncodedU30();
 				break;
 		}
 	}
@@ -145,6 +182,18 @@ void ActionScriptVM::ParseASByteCode(BYTE* ByteCodeData, SIZE_T ByteCodeLength)
 	}
 
 	uint32_t MetaDataCount = ReadEncodedU30();
+
+	for (uint32_t i = 0; i < MetaDataCount; i++)
+	{
+		uint32_t Name = ReadEncodedU30();
+		uint32_t ItemCount = ReadEncodedU30();
+
+		for (uint32_t j = 0; j < ItemCount; j++)
+		{
+			uint32_t Key = ReadEncodedU30();
+			uint32_t Value = ReadEncodedU30();
+		}
+	}
 
 	uint32_t ClassCount = ReadEncodedU30();
 
@@ -170,7 +219,12 @@ void ActionScriptVM::ParseASByteCode(BYTE* ByteCodeData, SIZE_T ByteCodeLength)
 			{
 				case 0:
 				case 6:
-
+					ReadEncodedU30();
+					ReadEncodedU30();
+					if (ReadEncodedU30() > 0)
+					{
+						Read<uint8_t>();
+					}
 					break;
 				case 5:
 					ReadEncodedU30();
@@ -226,7 +280,7 @@ void ActionScriptVM::ParseASByteCode(BYTE* ByteCodeData, SIZE_T ByteCodeLength)
 		}
 	}
 	uint32_t ScriptCount = ReadEncodedU30();
-	for (uint32_t i = 0; i < ClassCount; i++)
+	for (uint32_t i = 0; i < ScriptCount; i++)
 	{
 		uint32_t ScriptInitializer = ReadEncodedU30();
 		uint32_t TraitCount = ReadEncodedU30();
