@@ -20,28 +20,9 @@ struct RenderTexture
 
 struct RenderMaterial
 {
-	union
-	{
-		struct
-		{
-			COMRCPtr<ID3D12PipelineState> GBufferOpaquePassPipelineState;
-			COMRCPtr<ID3D12PipelineState> ShadowMapPassPipelineState;
-		} Opaque;
-		struct
-		{
-			COMRCPtr<ID3D12PipelineState> TransparentPassPipelineState;
-		} Transparent;
-	};
-
-	RenderMaterial()
-	{
-
-	}
-
-	~RenderMaterial()
-	{
-
-	}
+	COMRCPtr<ID3D12PipelineState> GBufferOpaquePassPipelineState;
+	COMRCPtr<ID3D12PipelineState> ShadowMapPassPipelineState;
+	COMRCPtr<ID3D12PipelineState> TransparentPassPipelineState;
 };
 
 enum class BlockCompression { BC1, BC2, BC3, BC4, BC5 };
@@ -65,27 +46,18 @@ struct RenderTextureCreateInfo
 
 struct RenderMaterialCreateInfo
 {
-	union
-	{
-		struct
-		{
-			void* GBufferOpaquePassVertexShaderByteCodeData;
-			void* GBufferOpaquePassPixelShaderByteCodeData;
-			size_t GBufferOpaquePassVertexShaderByteCodeLength;
-			size_t GBufferOpaquePassPixelShaderByteCodeLength;
-			void* ShadowMapPassVertexShaderByteCodeData;
-			void* ShadowMapPassPixelShaderByteCodeData;
-			size_t ShadowMapPassVertexShaderByteCodeLength;
-			size_t ShadowMapPassPixelShaderByteCodeLength;
-		} Opaque;
-		struct
-		{
-			void* TransparentPassVertexShaderByteCodeData;
-			void* TransparentPassPixelShaderByteCodeData;
-			size_t TransparentPassVertexShaderByteCodeLength;
-			size_t TransparentPassPixelShaderByteCodeLength;
-		} Transparent;
-	};
+	void* GBufferOpaquePassVertexShaderByteCodeData;
+	void* GBufferOpaquePassPixelShaderByteCodeData;
+	size_t GBufferOpaquePassVertexShaderByteCodeLength;
+	size_t GBufferOpaquePassPixelShaderByteCodeLength;
+	void* ShadowMapPassVertexShaderByteCodeData;
+	void* ShadowMapPassPixelShaderByteCodeData;
+	size_t ShadowMapPassVertexShaderByteCodeLength;
+	size_t ShadowMapPassPixelShaderByteCodeLength;
+	void* TransparentPassVertexShaderByteCodeData;
+	void* TransparentPassPixelShaderByteCodeData;
+	size_t TransparentPassVertexShaderByteCodeLength;
+	size_t TransparentPassPixelShaderByteCodeLength;
 	BYTE BlendMode;
 };
 

@@ -10,27 +10,18 @@ class Texture2DResource;
 
 struct MaterialResourceCreateInfo
 {
-	union
-	{
-		struct
-		{
-			void* GBufferOpaquePassVertexShaderByteCodeData;
-			void* GBufferOpaquePassPixelShaderByteCodeData;
-			size_t GBufferOpaquePassVertexShaderByteCodeLength;
-			size_t GBufferOpaquePassPixelShaderByteCodeLength;
-			void* ShadowMapPassVertexShaderByteCodeData;
-			void* ShadowMapPassPixelShaderByteCodeData;
-			size_t ShadowMapPassVertexShaderByteCodeLength;
-			size_t ShadowMapPassPixelShaderByteCodeLength;
-		} Opaque;
-		struct
-		{
-			void* TransparentPassVertexShaderByteCodeData;
-			void* TransparentPassPixelShaderByteCodeData;
-			size_t TransparentPassVertexShaderByteCodeLength;
-			size_t TransparentPassPixelShaderByteCodeLength;
-		} Transparent;
-	};
+	void* GBufferOpaquePassVertexShaderByteCodeData;
+	void* GBufferOpaquePassPixelShaderByteCodeData;
+	size_t GBufferOpaquePassVertexShaderByteCodeLength;
+	size_t GBufferOpaquePassPixelShaderByteCodeLength;
+	void* ShadowMapPassVertexShaderByteCodeData;
+	void* ShadowMapPassPixelShaderByteCodeData;
+	size_t ShadowMapPassVertexShaderByteCodeLength;
+	size_t ShadowMapPassPixelShaderByteCodeLength;
+	void* TransparentPassVertexShaderByteCodeData;
+	void* TransparentPassPixelShaderByteCodeData;
+	size_t TransparentPassVertexShaderByteCodeLength;
+	size_t TransparentPassPixelShaderByteCodeLength;
 	DynamicArray<Texture2DResource*> Textures;
 	BYTE BlendMode;
 };

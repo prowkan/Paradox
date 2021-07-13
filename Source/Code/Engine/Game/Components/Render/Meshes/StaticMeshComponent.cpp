@@ -105,14 +105,14 @@ void StaticMeshComponent::LoadFromFile(LevelFile& File)
 				void* ShadowMapPassVertexShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData(ShaderFileName);
 				SIZE_T ShadowMapPassVertexShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize(ShaderFileName);
 
-				materialResourceCreateInfo.Opaque.GBufferOpaquePassPixelShaderByteCodeData = GBufferOpaquePassPixelShaderByteCodeData;
-				materialResourceCreateInfo.Opaque.GBufferOpaquePassPixelShaderByteCodeLength = GBufferOpaquePassPixelShaderByteCodeLength;
-				materialResourceCreateInfo.Opaque.GBufferOpaquePassVertexShaderByteCodeData = GBufferOpaquePassVertexShaderByteCodeData;
-				materialResourceCreateInfo.Opaque.GBufferOpaquePassVertexShaderByteCodeLength = GBufferOpaquePassVertexShaderByteCodeLength;
-				materialResourceCreateInfo.Opaque.ShadowMapPassPixelShaderByteCodeData = nullptr;
-				materialResourceCreateInfo.Opaque.ShadowMapPassPixelShaderByteCodeLength = 0;
-				materialResourceCreateInfo.Opaque.ShadowMapPassVertexShaderByteCodeData = ShadowMapPassVertexShaderByteCodeData;
-				materialResourceCreateInfo.Opaque.ShadowMapPassVertexShaderByteCodeLength = ShadowMapPassVertexShaderByteCodeLength;
+				materialResourceCreateInfo.GBufferOpaquePassPixelShaderByteCodeData = GBufferOpaquePassPixelShaderByteCodeData;
+				materialResourceCreateInfo.GBufferOpaquePassPixelShaderByteCodeLength = GBufferOpaquePassPixelShaderByteCodeLength;
+				materialResourceCreateInfo.GBufferOpaquePassVertexShaderByteCodeData = GBufferOpaquePassVertexShaderByteCodeData;
+				materialResourceCreateInfo.GBufferOpaquePassVertexShaderByteCodeLength = GBufferOpaquePassVertexShaderByteCodeLength;
+				materialResourceCreateInfo.ShadowMapPassPixelShaderByteCodeData = nullptr;
+				materialResourceCreateInfo.ShadowMapPassPixelShaderByteCodeLength = 0;
+				materialResourceCreateInfo.ShadowMapPassVertexShaderByteCodeData = ShadowMapPassVertexShaderByteCodeData;
+				materialResourceCreateInfo.ShadowMapPassVertexShaderByteCodeLength = ShadowMapPassVertexShaderByteCodeLength;
 			}
 			else if(materialFileHeader->BlendMode == 1)
 			{
@@ -127,10 +127,10 @@ void StaticMeshComponent::LoadFromFile(LevelFile& File)
 				void* TransparentPassPixelShaderByteCodeData = Engine::GetEngine().GetFileSystem().GetShaderData(ShaderFileName);
 				SIZE_T TransparentPassPixelShaderByteCodeLength = Engine::GetEngine().GetFileSystem().GetShaderSize(ShaderFileName);
 
-				materialResourceCreateInfo.Transparent.TransparentPassPixelShaderByteCodeData = TransparentPassPixelShaderByteCodeData;
-				materialResourceCreateInfo.Transparent.TransparentPassPixelShaderByteCodeLength = TransparentPassPixelShaderByteCodeLength;
-				materialResourceCreateInfo.Transparent.TransparentPassVertexShaderByteCodeData = TransparentPassVertexShaderByteCodeData;
-				materialResourceCreateInfo.Transparent.TransparentPassVertexShaderByteCodeLength = TransparentPassVertexShaderByteCodeLength;
+				materialResourceCreateInfo.TransparentPassPixelShaderByteCodeData = TransparentPassPixelShaderByteCodeData;
+				materialResourceCreateInfo.TransparentPassPixelShaderByteCodeLength = TransparentPassPixelShaderByteCodeLength;
+				materialResourceCreateInfo.TransparentPassVertexShaderByteCodeData = TransparentPassVertexShaderByteCodeData;
+				materialResourceCreateInfo.TransparentPassVertexShaderByteCodeLength = TransparentPassVertexShaderByteCodeLength;
 			}		
 			
 			materialResourceCreateInfo.Textures.Resize(materialFileHeader->TexturesCount);

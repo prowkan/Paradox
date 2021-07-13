@@ -3110,7 +3110,7 @@ void RenderSystem::ShutdownSystem()
 
 	for (RenderMaterial* renderMaterial : RenderMaterialDestructionQueue)
 	{
-		//delete renderMaterial;
+		delete renderMaterial;
 	}
 
 	RenderMaterialDestructionQueue.Clear();
@@ -3455,7 +3455,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 					PixelShaderResourcesTable.UpdateTable(Device);
 
-					GraphicsCommandList->SetPipelineState(renderMaterial->Opaque.GBufferOpaquePassPipelineState);
+					GraphicsCommandList->SetPipelineState(renderMaterial->GBufferOpaquePassPipelineState);
 					GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
 
 					UINT IndexCount = staticMeshComponent->GetStaticMesh()->GetIndexCount(LODIndex, i);
@@ -3740,7 +3740,7 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 						RenderMaterial* renderMaterial = staticMeshComponent->GetMaterial(staticMeshComponent->GetStaticMesh()->GetElementOffset(LODIndex) + i)->GetRenderMaterial();
 
-						GraphicsCommandList->SetPipelineState(renderMaterial->Opaque.ShadowMapPassPipelineState);
+						GraphicsCommandList->SetPipelineState(renderMaterial->ShadowMapPassPipelineState);
 
 						UINT IndexCount = staticMeshComponent->GetStaticMesh()->GetIndexCount(LODIndex, i);
 						UINT IndexOffsetForSubMesh = staticMeshComponent->GetStaticMesh()->GetIndexOffset(LODIndex, i);
@@ -4190,121 +4190,123 @@ void RenderSystem::TickSystem(float DeltaTime)
 
 	// ===============================================================================================================
 	
-	GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	GraphicsCommandList->OMSetRenderTargets(1, &HDRSceneColorTextureRTV, TRUE, &DepthBufferTextureDSV);
-
-	D3D12_VIEWPORT Viewport;
-	Viewport.Height = float(ResolutionHeight);
-	Viewport.MaxDepth = 1.0f;
-	Viewport.MinDepth = 0.0f;
-	Viewport.TopLeftX = 0.0f;
-	Viewport.TopLeftY = 0.0f;
-	Viewport.Width = float(ResolutionWidth);
-
-	GraphicsCommandList->RSSetViewports(1, &Viewport);
-
-	D3D12_RECT ScissorRect;
-	ScissorRect.bottom = ResolutionHeight;
-	ScissorRect.left = 0;
-	ScissorRect.right = ResolutionWidth;
-	ScissorRect.top = 0;
-
-	GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
-
-	float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-
-	DescriptorTable TextureSamplerTable = FrameSamplersDescriptorHeap.AllocateDescriptorTable(1);
-	TextureSamplerTable.SetSampler(0, TextureSampler);
-	TextureSamplerTable.UpdateTable(Device);
-
-	GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SAMPLERS, TextureSamplerTable);
-
 	{
-		OPTICK_EVENT("Transparent Pass Draw Calls")
+		GraphicsCommandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-		for (size_t k = 0; k < VisibleStaticMeshComponentsCount; k++)
+		GraphicsCommandList->OMSetRenderTargets(1, &HDRSceneColorTextureRTV, TRUE, &DepthBufferTextureDSV);
+
+		D3D12_VIEWPORT Viewport;
+		Viewport.Height = float(ResolutionHeight);
+		Viewport.MaxDepth = 1.0f;
+		Viewport.MinDepth = 0.0f;
+		Viewport.TopLeftX = 0.0f;
+		Viewport.TopLeftY = 0.0f;
+		Viewport.Width = float(ResolutionWidth);
+
+		GraphicsCommandList->RSSetViewports(1, &Viewport);
+
+		D3D12_RECT ScissorRect;
+		ScissorRect.bottom = ResolutionHeight;
+		ScissorRect.left = 0;
+		ScissorRect.right = ResolutionWidth;
+		ScissorRect.top = 0;
+
+		GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
+
+		float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+		DescriptorTable TextureSamplerTable = FrameSamplersDescriptorHeap.AllocateDescriptorTable(1);
+		TextureSamplerTable.SetSampler(0, TextureSampler);
+		TextureSamplerTable.UpdateTable(Device);
+
+		GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SAMPLERS, TextureSamplerTable);
+
 		{
-			StaticMeshComponent* staticMeshComponent = VisibleStaticMeshComponents[k];
+			OPTICK_EVENT("Transparent Pass Draw Calls")
 
-			RenderMesh* renderMesh = staticMeshComponent->GetStaticMesh()->GetRenderMesh();
-
-			DescriptorTable VertexShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(2);
-
-			VertexShaderResourcesTable.SetConstantBuffer(0, CameraConstantBufferCBV);
-			VertexShaderResourcesTable.SetConstantBuffer(1, GBufferOpaquePassObjectsConstantBufferCBVs[k]);
-
-			VertexShaderResourcesTable.UpdateTable(Device);
-
-			D3D12_VERTEX_BUFFER_VIEW VertexBufferViews[3];
-			VertexBufferViews[0].BufferLocation = renderMesh->VertexBufferAddresses[0];
-			VertexBufferViews[0].SizeInBytes = sizeof(XMFLOAT3) * staticMeshComponent->GetStaticMesh()->GetVertexCount();
-			VertexBufferViews[0].StrideInBytes = sizeof(XMFLOAT3);
-			VertexBufferViews[1].BufferLocation = renderMesh->VertexBufferAddresses[1];
-			VertexBufferViews[1].SizeInBytes = sizeof(XMFLOAT2) * staticMeshComponent->GetStaticMesh()->GetVertexCount();
-			VertexBufferViews[1].StrideInBytes = sizeof(XMFLOAT2);
-			VertexBufferViews[2].BufferLocation = renderMesh->VertexBufferAddresses[2];
-			VertexBufferViews[2].SizeInBytes = 3 * sizeof(XMFLOAT3) * staticMeshComponent->GetStaticMesh()->GetVertexCount();
-			VertexBufferViews[2].StrideInBytes = 3 * sizeof(XMFLOAT3);
-
-			D3D12_INDEX_BUFFER_VIEW IndexBufferView;
-			IndexBufferView.BufferLocation = renderMesh->IndexBufferAddress;
-			IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
-			IndexBufferView.SizeInBytes = sizeof(WORD) * staticMeshComponent->GetStaticMesh()->GetIndexCount();
-
-			GraphicsCommandList->IASetVertexBuffers(0, 3, VertexBufferViews);
-			GraphicsCommandList->IASetIndexBuffer(&IndexBufferView);
-
-			GraphicsCommandList->SetGraphicsRootDescriptorTable(VERTEX_SHADER_CONSTANT_BUFFERS, VertexShaderResourcesTable);
-
-			XMFLOAT3 ObjectLocation = staticMeshComponent->GetTransformComponent()->GetLocation();
-
-			float Distance = sqrtf(powf(ObjectLocation.x - CameraLocation.x, 2.0f) + powf(ObjectLocation.y - CameraLocation.y, 2.0f) + powf(ObjectLocation.z - CameraLocation.z, 2.0f));
-
-			UINT LODIndex;
-
-			if (Distance < 20.0f)
-				LODIndex = 0;
-			else if (Distance < 50.0f)
-				LODIndex = 1;
-			else if (Distance < 100.0f)
-				LODIndex = 2;
-			else if (Distance < 250.0f)
-				LODIndex = 3;
-			else
-				LODIndex = 4;
-
-			UINT VertexOffsetForLOD = staticMeshComponent->GetStaticMesh()->GetVertexOffset(LODIndex);
-			UINT IndexOffsetForLOD = staticMeshComponent->GetStaticMesh()->GetIndexOffset(LODIndex);
-
-			UINT SubMeshCount = staticMeshComponent->GetStaticMesh()->GetSubMeshCount(LODIndex);
-
-			for (UINT i = 0; i < SubMeshCount; i++)
+			for (size_t k = 0; k < VisibleStaticMeshComponentsCount; k++)
 			{
-				MaterialResource* material = staticMeshComponent->GetMaterial(staticMeshComponent->GetStaticMesh()->GetElementOffset(LODIndex) + i);
+				StaticMeshComponent* staticMeshComponent = VisibleStaticMeshComponents[k];
 
-				if (material->GetBlendMode() != 1) continue;
+				RenderMesh* renderMesh = staticMeshComponent->GetStaticMesh()->GetRenderMesh();
 
-				RenderMaterial* renderMaterial = staticMeshComponent->GetMaterial(staticMeshComponent->GetStaticMesh()->GetElementOffset(LODIndex) + i)->GetRenderMaterial();
+				DescriptorTable VertexShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(2);
 
-				UINT TexturesCount = staticMeshComponent->GetMaterial(staticMeshComponent->GetStaticMesh()->GetElementOffset(LODIndex) + i)->GetTexturesCount();
+				VertexShaderResourcesTable.SetConstantBuffer(0, CameraConstantBufferCBV);
+				VertexShaderResourcesTable.SetConstantBuffer(1, GBufferOpaquePassObjectsConstantBufferCBVs[k]);
 
-				DescriptorTable PixelShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(TexturesCount);
+				VertexShaderResourcesTable.UpdateTable(Device);
 
-				for (UINT i = 0; i < TexturesCount; i++)
+				D3D12_VERTEX_BUFFER_VIEW VertexBufferViews[3];
+				VertexBufferViews[0].BufferLocation = renderMesh->VertexBufferAddresses[0];
+				VertexBufferViews[0].SizeInBytes = sizeof(XMFLOAT3) * staticMeshComponent->GetStaticMesh()->GetVertexCount();
+				VertexBufferViews[0].StrideInBytes = sizeof(XMFLOAT3);
+				VertexBufferViews[1].BufferLocation = renderMesh->VertexBufferAddresses[1];
+				VertexBufferViews[1].SizeInBytes = sizeof(XMFLOAT2) * staticMeshComponent->GetStaticMesh()->GetVertexCount();
+				VertexBufferViews[1].StrideInBytes = sizeof(XMFLOAT2);
+				VertexBufferViews[2].BufferLocation = renderMesh->VertexBufferAddresses[2];
+				VertexBufferViews[2].SizeInBytes = 3 * sizeof(XMFLOAT3) * staticMeshComponent->GetStaticMesh()->GetVertexCount();
+				VertexBufferViews[2].StrideInBytes = 3 * sizeof(XMFLOAT3);
+
+				D3D12_INDEX_BUFFER_VIEW IndexBufferView;
+				IndexBufferView.BufferLocation = renderMesh->IndexBufferAddress;
+				IndexBufferView.Format = DXGI_FORMAT::DXGI_FORMAT_R16_UINT;
+				IndexBufferView.SizeInBytes = sizeof(WORD) * staticMeshComponent->GetStaticMesh()->GetIndexCount();
+
+				GraphicsCommandList->IASetVertexBuffers(0, 3, VertexBufferViews);
+				GraphicsCommandList->IASetIndexBuffer(&IndexBufferView);
+
+				GraphicsCommandList->SetGraphicsRootDescriptorTable(VERTEX_SHADER_CONSTANT_BUFFERS, VertexShaderResourcesTable);
+
+				XMFLOAT3 ObjectLocation = staticMeshComponent->GetTransformComponent()->GetLocation();
+
+				float Distance = sqrtf(powf(ObjectLocation.x - CameraLocation.x, 2.0f) + powf(ObjectLocation.y - CameraLocation.y, 2.0f) + powf(ObjectLocation.z - CameraLocation.z, 2.0f));
+
+				UINT LODIndex;
+
+				if (Distance < 20.0f)
+					LODIndex = 0;
+				else if (Distance < 50.0f)
+					LODIndex = 1;
+				else if (Distance < 100.0f)
+					LODIndex = 2;
+				else if (Distance < 250.0f)
+					LODIndex = 3;
+				else
+					LODIndex = 4;
+
+				UINT VertexOffsetForLOD = staticMeshComponent->GetStaticMesh()->GetVertexOffset(LODIndex);
+				UINT IndexOffsetForLOD = staticMeshComponent->GetStaticMesh()->GetIndexOffset(LODIndex);
+
+				UINT SubMeshCount = staticMeshComponent->GetStaticMesh()->GetSubMeshCount(LODIndex);
+
+				for (UINT i = 0; i < SubMeshCount; i++)
 				{
-					PixelShaderResourcesTable.SetTexture(i, material->GetTexture(i)->GetRenderTexture()->TextureSRV);
+					MaterialResource* material = staticMeshComponent->GetMaterial(staticMeshComponent->GetStaticMesh()->GetElementOffset(LODIndex) + i);
+
+					if (material->GetBlendMode() != 1) continue;
+
+					RenderMaterial* renderMaterial = staticMeshComponent->GetMaterial(staticMeshComponent->GetStaticMesh()->GetElementOffset(LODIndex) + i)->GetRenderMaterial();
+
+					UINT TexturesCount = staticMeshComponent->GetMaterial(staticMeshComponent->GetStaticMesh()->GetElementOffset(LODIndex) + i)->GetTexturesCount();
+
+					DescriptorTable PixelShaderResourcesTable = FrameResourcesDescriptorHeap.AllocateDescriptorTable(TexturesCount);
+
+					for (UINT i = 0; i < TexturesCount; i++)
+					{
+						PixelShaderResourcesTable.SetTexture(i, material->GetTexture(i)->GetRenderTexture()->TextureSRV);
+					}
+
+					PixelShaderResourcesTable.UpdateTable(Device);
+
+					GraphicsCommandList->SetPipelineState(renderMaterial->TransparentPassPipelineState);
+					GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
+
+					UINT IndexCount = staticMeshComponent->GetStaticMesh()->GetIndexCount(LODIndex, i);
+					UINT IndexOffsetForSubMesh = staticMeshComponent->GetStaticMesh()->GetIndexOffset(LODIndex, i);
+
+					GraphicsCommandList->DrawIndexedInstanced(IndexCount, 1, IndexOffsetForLOD + IndexOffsetForSubMesh, VertexOffsetForLOD, 0);
 				}
-
-				PixelShaderResourcesTable.UpdateTable(Device);
-
-				GraphicsCommandList->SetPipelineState(renderMaterial->Transparent.TransparentPassPipelineState);
-				GraphicsCommandList->SetGraphicsRootDescriptorTable(PIXEL_SHADER_SHADER_RESOURCES, PixelShaderResourcesTable);
-
-				UINT IndexCount = staticMeshComponent->GetStaticMesh()->GetIndexCount(LODIndex, i);
-				UINT IndexOffsetForSubMesh = staticMeshComponent->GetStaticMesh()->GetIndexOffset(LODIndex, i);
-
-				GraphicsCommandList->DrawIndexedInstanced(IndexCount, 1, IndexOffsetForLOD + IndexOffsetForSubMesh, VertexOffsetForLOD, 0);
 			}
 		}
 	}
@@ -5383,8 +5385,8 @@ RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInf
 		GraphicsPipelineStateDesc.NumRenderTargets = 3;
 		GraphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE::D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		GraphicsPipelineStateDesc.pRootSignature = GraphicsRootSignature;
-		GraphicsPipelineStateDesc.PS.BytecodeLength = renderMaterialCreateInfo.Opaque.GBufferOpaquePassPixelShaderByteCodeLength;
-		GraphicsPipelineStateDesc.PS.pShaderBytecode = renderMaterialCreateInfo.Opaque.GBufferOpaquePassPixelShaderByteCodeData;
+		GraphicsPipelineStateDesc.PS.BytecodeLength = renderMaterialCreateInfo.GBufferOpaquePassPixelShaderByteCodeLength;
+		GraphicsPipelineStateDesc.PS.pShaderBytecode = renderMaterialCreateInfo.GBufferOpaquePassPixelShaderByteCodeData;
 		GraphicsPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_NONE;
 		GraphicsPipelineStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID;
 		GraphicsPipelineStateDesc.RTVFormats[0] = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
@@ -5393,10 +5395,10 @@ RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInf
 		GraphicsPipelineStateDesc.SampleDesc.Count = 8;
 		GraphicsPipelineStateDesc.SampleDesc.Quality = 0;
 		GraphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
-		GraphicsPipelineStateDesc.VS.BytecodeLength = renderMaterialCreateInfo.Opaque.GBufferOpaquePassVertexShaderByteCodeLength;
-		GraphicsPipelineStateDesc.VS.pShaderBytecode = renderMaterialCreateInfo.Opaque.GBufferOpaquePassVertexShaderByteCodeData;
+		GraphicsPipelineStateDesc.VS.BytecodeLength = renderMaterialCreateInfo.GBufferOpaquePassVertexShaderByteCodeLength;
+		GraphicsPipelineStateDesc.VS.pShaderBytecode = renderMaterialCreateInfo.GBufferOpaquePassVertexShaderByteCodeData;
 
-		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(renderMaterial->Opaque.GBufferOpaquePassPipelineState)));
+		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(renderMaterial->GBufferOpaquePassPipelineState)));
 
 		ZeroMemory(&GraphicsPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
 		GraphicsPipelineStateDesc.DepthStencilState.DepthEnable = TRUE;
@@ -5409,17 +5411,17 @@ RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInf
 		GraphicsPipelineStateDesc.NodeMask = 0;
 		GraphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE::D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		GraphicsPipelineStateDesc.pRootSignature = GraphicsRootSignature;
-		GraphicsPipelineStateDesc.PS.BytecodeLength = renderMaterialCreateInfo.Opaque.ShadowMapPassPixelShaderByteCodeLength;
-		GraphicsPipelineStateDesc.PS.pShaderBytecode = renderMaterialCreateInfo.Opaque.ShadowMapPassPixelShaderByteCodeData;
+		GraphicsPipelineStateDesc.PS.BytecodeLength = renderMaterialCreateInfo.ShadowMapPassPixelShaderByteCodeLength;
+		GraphicsPipelineStateDesc.PS.pShaderBytecode = renderMaterialCreateInfo.ShadowMapPassPixelShaderByteCodeData;
 		GraphicsPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_NONE;
 		GraphicsPipelineStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID;
 		GraphicsPipelineStateDesc.SampleDesc.Count = 1;
 		GraphicsPipelineStateDesc.SampleDesc.Quality = 0;
 		GraphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
-		GraphicsPipelineStateDesc.VS.BytecodeLength = renderMaterialCreateInfo.Opaque.ShadowMapPassVertexShaderByteCodeLength;
-		GraphicsPipelineStateDesc.VS.pShaderBytecode = renderMaterialCreateInfo.Opaque.ShadowMapPassVertexShaderByteCodeData;
+		GraphicsPipelineStateDesc.VS.BytecodeLength = renderMaterialCreateInfo.ShadowMapPassVertexShaderByteCodeLength;
+		GraphicsPipelineStateDesc.VS.pShaderBytecode = renderMaterialCreateInfo.ShadowMapPassVertexShaderByteCodeData;
 
-		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(renderMaterial->Opaque.ShadowMapPassPipelineState)));
+		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(renderMaterial->ShadowMapPassPipelineState)));
 	}
 	else if (renderMaterialCreateInfo.BlendMode == 1)
 	{
@@ -5444,18 +5446,18 @@ RenderMaterial* RenderSystem::CreateRenderMaterial(const RenderMaterialCreateInf
 		GraphicsPipelineStateDesc.NumRenderTargets = 1;
 		GraphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE::D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		GraphicsPipelineStateDesc.pRootSignature = GraphicsRootSignature;
-		GraphicsPipelineStateDesc.PS.BytecodeLength = renderMaterialCreateInfo.Transparent.TransparentPassPixelShaderByteCodeLength;
-		GraphicsPipelineStateDesc.PS.pShaderBytecode = renderMaterialCreateInfo.Transparent.TransparentPassPixelShaderByteCodeData;
+		GraphicsPipelineStateDesc.PS.BytecodeLength = renderMaterialCreateInfo.TransparentPassPixelShaderByteCodeLength;
+		GraphicsPipelineStateDesc.PS.pShaderBytecode = renderMaterialCreateInfo.TransparentPassPixelShaderByteCodeData;
 		GraphicsPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_NONE;
 		GraphicsPipelineStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID;
 		GraphicsPipelineStateDesc.RTVFormats[0] = DXGI_FORMAT::DXGI_FORMAT_R16G16B16A16_FLOAT;
 		GraphicsPipelineStateDesc.SampleDesc.Count = 8;
 		GraphicsPipelineStateDesc.SampleDesc.Quality = 0;
 		GraphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
-		GraphicsPipelineStateDesc.VS.BytecodeLength = renderMaterialCreateInfo.Transparent.TransparentPassVertexShaderByteCodeLength;
-		GraphicsPipelineStateDesc.VS.pShaderBytecode = renderMaterialCreateInfo.Transparent.TransparentPassVertexShaderByteCodeData;
+		GraphicsPipelineStateDesc.VS.BytecodeLength = renderMaterialCreateInfo.TransparentPassVertexShaderByteCodeLength;
+		GraphicsPipelineStateDesc.VS.pShaderBytecode = renderMaterialCreateInfo.TransparentPassVertexShaderByteCodeData;
 
-		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(renderMaterial->Transparent.TransparentPassPipelineState)));
+		SAFE_DX(Device->CreateGraphicsPipelineState(&GraphicsPipelineStateDesc, UUIDOF(renderMaterial->TransparentPassPipelineState)));
 	}
 
 	return renderMaterial;
