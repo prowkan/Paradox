@@ -46,6 +46,8 @@ uint32_t ActionScriptVM::ReadEncodedU32()
 
 void ActionScriptVM::ParseASByteCode(BYTE* ByteCodeData, SIZE_T ByteCodeLength)
 {
+	SetConsoleOutputCP(CP_UTF8);
+
 	ActionScriptVM::ByteCodeData = ByteCodeData;
 
 	CurrentByte = 0;
@@ -345,75 +347,76 @@ void ActionScriptVM::ParseASByteCode(BYTE* ByteCodeData, SIZE_T ByteCodeLength)
 			switch (OpCode)
 			{
 				case 0xD0:
-					cout << "getlocal_0" << endl;
+					cout << "\tgetlocal_0";
 					break;
 				case 0x30:
-					cout << "pushscope" << endl;
+					cout << "\tpushscope";
 					break;
 				case 0x47:
-					cout << "returnvoid" << endl;
+					cout << "\treturnvoid";
 					break;
 				case 0x5D:
-					cout << "findpropstrict" << endl;
+					cout << "\tfindpropstrict";
 					break;
 				case 0x60:
-					cout << "getlex" << endl;
+					cout << "\tgetlex";
 					break;
 				case 0x1D:
-					cout << "popscope" << endl;
+					cout << "\tpopscope";
 					break;
 				case 0x2C:
-					cout << "pushstring" << endl;
+					cout << "\tpushstring";
 					break;
 				case 0x4F:
-					cout << "callpropvoid" << endl;
+					cout << "\tcallpropvoid";
 					break;
 				case 0x57:
-					cout << "newactivation" << endl;
+					cout << "\tnewactivation";
 					break;
 				case 0x2A:
-					cout << "dup" << endl;
+					cout << "\tdup";
 					break;
 				case 0xD5:
-					cout << "setlocal_1" << endl;
+					cout << "\tsetlocal_1";
 					break;
 				case 0x49:
-					cout << "constructsuper" << endl;
+					cout << "\tconstructsuper";
 					break;
 				case 0x24:
-					cout << "pushbyte" << endl;
+					cout << "\tpushbyte";
 					break;
 				case 0x66:
-					cout << "getproperty" << endl;
+					cout << "\tgetproperty";
 					break;
 				case 0x40:
-					cout << "newfunction" << endl;
+					cout << "\tnewfunction";
 					break;
 				case 0x65:
-					cout << "getscopeobject" << endl;
+					cout << "\tgetscopeobject";
 					break;
 				case 0x58:
-					cout << "newclass" << endl;
+					cout << "\tnewclass";
 					break;
 				case 0x68:
-					cout << "initproperty" << endl;
+					cout << "\tinitproperty";
 					break;
 				case 0x46:
-					cout << "callproperty" << endl;
+					cout << "\tcallproperty";
 					break;
 				case 0x61:
-					cout << "setproperty" << endl;
+					cout << "\tsetproperty";
 					break;
 				default:
-					cout << (uint32_t)OpCode << endl;
+					cout << (uint32_t)OpCode;
 					break;
 			}
 
 			if (OpCode == 0x24)
 			{
+				cout << " " << +Code[CodePointer];
 				CodePointer++;
 			}
-			if (OpCode == 0x5D || OpCode == 0x60 || OpCode == 0x2C || OpCode == 0x49 || OpCode == 0x66 || OpCode == 0x40 || OpCode == 0x65 || OpCode == 0x58 || OpCode == 0x68 || OpCode == 0x61)
+			if (OpCode == 0x2C)
 			{
 				uint8_t Operand = Code[CodePointer];
 				CodePointer++;
@@ -437,8 +440,10 @@ void ActionScriptVM::ParseASByteCode(BYTE* ByteCodeData, SIZE_T ByteCodeLength)
 						}
 					}
 				}
+
+				cout << " \"" << StringsArray[Operand - 1] << "\"";
 			}
-			if (OpCode == 0x4F || OpCode == 0x46)
+			if (OpCode == 0x46 || OpCode == 0x4F)
 			{
 				uint8_t Operand = Code[CodePointer];
 				CodePointer++;
@@ -462,6 +467,9 @@ void ActionScriptVM::ParseASByteCode(BYTE* ByteCodeData, SIZE_T ByteCodeLength)
 						}
 					}
 				}
+
+				cout << " \"" << StringsArray[MultiNames[Operand - 1].u2  - 1] << "\"";
+
 				Operand = Code[CodePointer];
 				CodePointer++;
 				if (Operand & 0b1000000)
@@ -485,6 +493,87 @@ void ActionScriptVM::ParseASByteCode(BYTE* ByteCodeData, SIZE_T ByteCodeLength)
 					}
 				}
 			}
+			if (OpCode == 0x61 || OpCode == 0x66 || OpCode == 0x68 || OpCode == 0x5D)
+			{
+				uint8_t Operand = Code[CodePointer];
+				CodePointer++;
+				if (Operand & 0b1000000)
+				{
+					Operand = Code[CodePointer];
+					CodePointer++;
+					if (Operand & 0b1000000)
+					{
+						Operand = Code[CodePointer];
+						CodePointer++;
+						if (Operand & 0b1000000)
+						{
+							Operand = Code[CodePointer];
+							CodePointer++;
+							if (Operand & 0b1000000)
+							{
+								Operand = Code[CodePointer];
+								CodePointer++;
+							}
+						}
+					}
+				}
+
+				cout << " \"" << StringsArray[MultiNames[Operand - 1].u2 - 1] << "\"";
+			}
+			if (OpCode == 0x40)
+			{
+				uint8_t Operand = Code[CodePointer];
+				CodePointer++;
+				if (Operand & 0b1000000)
+				{
+					Operand = Code[CodePointer];
+					CodePointer++;
+					if (Operand & 0b1000000)
+					{
+						Operand = Code[CodePointer];
+						CodePointer++;
+						if (Operand & 0b1000000)
+						{
+							Operand = Code[CodePointer];
+							CodePointer++;
+							if (Operand & 0b1000000)
+							{
+								Operand = Code[CodePointer];
+								CodePointer++;
+							}
+						}
+					}
+				}
+
+				cout << " " << +Operand;
+			}
+			if (OpCode == 0x60 || OpCode == 0x49 || OpCode == 0x65 || OpCode == 0x58 || OpCode == 0x61)
+			{
+				uint8_t Operand = Code[CodePointer];
+				CodePointer++;
+				if (Operand & 0b1000000)
+				{
+					Operand = Code[CodePointer];
+					CodePointer++;
+					if (Operand & 0b1000000)
+					{
+						Operand = Code[CodePointer];
+						CodePointer++;
+						if (Operand & 0b1000000)
+						{
+							Operand = Code[CodePointer];
+							CodePointer++;
+							if (Operand & 0b1000000)
+							{
+								Operand = Code[CodePointer];
+								CodePointer++;
+							}
+						}
+					}
+				}
+			}			
+
+			cout << endl;
 		}
 		
 		cout << "End method " << Method << endl;
