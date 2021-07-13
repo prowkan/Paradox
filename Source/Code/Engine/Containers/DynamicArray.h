@@ -162,6 +162,55 @@ class DynamicArray
 			ArrayLength = 0;
 		}
 
+		void Resize(const size_t NewSize)
+		{
+			if (NewSize == ArrayLength) return;
+			if (NewSize < ArrayLength)
+			{
+				for (size_t i = NewSize; i < ArrayLength; i++)
+				{
+					ArrayData[i].~T();
+				}
+
+				ArrayLength = NewSize;
+			}
+			if (NewSize > ArrayLength)
+			{
+				if (NewSize <= ArrayCapacity)
+				{
+					for (size_t i = ArrayLength; i < NewSize; i++)
+					{
+						new (&ArrayData[i]) T();
+					}
+
+					ArrayLength = NewSize;
+				}
+				else
+				{
+					T* OldArrayData = ArrayData;
+
+					ArrayCapacity = NewSize;
+
+					ArrayData = (T*)Allocator::AllocateMemory(sizeof(T) * ArrayCapacity);
+
+					for (size_t i = 0; i < ArrayLength; i++)
+					{
+						new (&ArrayData[i]) T(OldArrayData[i]);
+						OldArrayData[i].~T();
+					}
+
+					for (size_t i = ArrayLength; i < NewSize; i++)
+					{
+						new (&ArrayData[i]) T();
+					}
+
+					Allocator::FreeMemory(OldArrayData);
+
+					ArrayLength = NewSize;
+				}
+			}
+		}
+
 #if 0
 		template<typename U>
 		void Sort(const U& Comparator)

@@ -22,6 +22,7 @@ struct RenderMaterial
 {
 	COMRCPtr<ID3D12PipelineState> GBufferOpaquePassPipelineState;
 	COMRCPtr<ID3D12PipelineState> ShadowMapPassPipelineState;
+	COMRCPtr<ID3D12PipelineState> TransparentPassPipelineState;
 };
 
 enum class BlockCompression { BC1, BC2, BC3, BC4, BC5 };
@@ -45,14 +46,19 @@ struct RenderTextureCreateInfo
 
 struct RenderMaterialCreateInfo
 {
-	void *GBufferOpaquePassVertexShaderByteCodeData;
-	void *GBufferOpaquePassPixelShaderByteCodeData;
+	void* GBufferOpaquePassVertexShaderByteCodeData;
+	void* GBufferOpaquePassPixelShaderByteCodeData;
 	size_t GBufferOpaquePassVertexShaderByteCodeLength;
 	size_t GBufferOpaquePassPixelShaderByteCodeLength;
-	void *ShadowMapPassVertexShaderByteCodeData;
-	void *ShadowMapPassPixelShaderByteCodeData;
+	void* ShadowMapPassVertexShaderByteCodeData;
+	void* ShadowMapPassPixelShaderByteCodeData;
 	size_t ShadowMapPassVertexShaderByteCodeLength;
 	size_t ShadowMapPassPixelShaderByteCodeLength;
+	void* TransparentPassVertexShaderByteCodeData;
+	void* TransparentPassPixelShaderByteCodeData;
+	size_t TransparentPassVertexShaderByteCodeLength;
+	size_t TransparentPassPixelShaderByteCodeLength;
+	BYTE BlendMode;
 };
 
 struct Vertex
@@ -392,8 +398,8 @@ class RenderSystem
 
 		// ===============================================================================================================
 
-		Pointer<Texture> GBufferTextures[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE GBufferTexturesRTVs[2], GBufferTexturesSRVs[2];
+		Pointer<Texture> GBufferTextures[3];
+		D3D12_CPU_DESCRIPTOR_HANDLE GBufferTexturesRTVs[3], GBufferTexturesSRVs[3];
 
 		Pointer<Texture> DepthBufferTexture;
 		D3D12_CPU_DESCRIPTOR_HANDLE DepthBufferTextureDSV, DepthBufferTextureSRV;
@@ -583,4 +589,16 @@ class RenderSystem
 	#endif
 
 		inline SIZE_T GetOffsetForResource(D3D12_RESOURCE_DESC& ResourceDesc, D3D12_HEAP_DESC& HeapDesc);
+
+		static const UINT VERTEX_SHADER_CONSTANT_BUFFERS = 0;
+		static const UINT VERTEX_SHADER_SHADER_RESOURCES = 1;
+		static const UINT VERTEX_SHADER_SAMPLERS = 2;
+		static const UINT PIXEL_SHADER_CONSTANT_BUFFERS = 3;
+		static const UINT PIXEL_SHADER_SHADER_RESOURCES = 4;
+		static const UINT PIXEL_SHADER_SAMPLERS = 5;
+
+		static const UINT COMPUTE_SHADER_CONSTANT_BUFFERS = 0;
+		static const UINT COMPUTE_SHADER_SHADER_RESOURCES = 1;
+		static const UINT COMPUTE_SHADER_SAMPLERS = 2;
+		static const UINT COMPUTE_SHADER_UNORDERED_ACCESS_VIEWS = 3;
 };

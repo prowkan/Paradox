@@ -1,8 +1,10 @@
 #pragma once
 
+#include <Containers/DynamicArray.h>
+#include <ResourceManager/Resources/Render/Meshes/StaticMeshResource.h>
+
 #include "../../../Component.h"
 
-class StaticMeshResource;
 class MaterialResource;
 
 class TransformComponent;
@@ -22,10 +24,10 @@ class StaticMeshComponent : public Component
 		virtual void LoadFromFile(LevelFile& File) override;
 
 		StaticMeshResource* GetStaticMesh() { return StaticMesh; }
-		void SetStaticMesh(StaticMeshResource* NewStaticMesh) { StaticMesh = NewStaticMesh; }
+		void SetStaticMesh(StaticMeshResource* NewStaticMesh) { StaticMesh = NewStaticMesh; Materials.Resize(StaticMesh->GetTotalElementsCount()); };
 
-		MaterialResource* GetMaterial() { return Material; }
-		void SetMaterial(MaterialResource* NewMaterial) { Material = NewMaterial; }
+		MaterialResource* GetMaterial(const UINT ElementIndex) { return Materials[ElementIndex]; }
+		void SetMaterial(MaterialResource* NewMaterial, const UINT ElementIndex) { Materials[ElementIndex] = NewMaterial; }
 
 		TransformComponent* GetTransformComponent() { return transformComponent; }
 		BoundingBoxComponent* GetBoundingBoxComponent() { return boundingBoxComponent; }
@@ -33,7 +35,7 @@ class StaticMeshComponent : public Component
 	private:
 
 		StaticMeshResource *StaticMesh;
-		MaterialResource *Material;
+		DynamicArray<MaterialResource*> Materials;
 
 		TransformComponent *transformComponent;
 		BoundingBoxComponent *boundingBoxComponent;

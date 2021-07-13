@@ -223,6 +223,8 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action, bool Co
 
 		if (!CompileMaterialShaders) return;
 
+		// ====================================================================================================================================================
+
 		HANDLE ShaderFile = CreateFile((const wchar_t*)L"MaterialBase_VertexShader_GBufferOpaquePass.hlsl", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
 		LARGE_INTEGER ShaderFileSize;
 		BOOL Result = GetFileSizeEx(ShaderFile, &ShaderFileSize);
@@ -265,6 +267,8 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action, bool Co
 
 		Result = HeapFree(GetProcessHeap(), 0, ShaderData);
 
+		// ====================================================================================================================================================
+
 		ShaderFile = CreateFile((const wchar_t*)L"MaterialBase_VertexShader_ShadowMapPass.hlsl", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
 		Result = GetFileSizeEx(ShaderFile, &ShaderFileSize);
 		ShaderData = HeapAlloc(GetProcessHeap(), 0, ShaderFileSize.QuadPart);
@@ -301,7 +305,47 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action, bool Co
 
 		Result = HeapFree(GetProcessHeap(), 0, ShaderData);
 
-		ShaderFile = CreateFile((const wchar_t*)L"MaterialBase_PixelShader_GBufferOpaquePass.hlsl", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+		// ====================================================================================================================================================
+
+		ShaderFile = CreateFile((const wchar_t*)L"MaterialBase_VertexShader_TransparentPass.hlsl", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+		Result = GetFileSizeEx(ShaderFile, &ShaderFileSize);
+		ShaderData = HeapAlloc(GetProcessHeap(), 0, ShaderFileSize.QuadPart);
+		Result = ReadFile(ShaderFile, ShaderData, (DWORD)ShaderFileSize.QuadPart, NULL, NULL);
+		Result = CloseHandle(ShaderFile);
+
+		ShaderSource.Encoding = 0;
+		ShaderSource.Ptr = ShaderData;
+		ShaderSource.Size = ShaderFileSize.QuadPart;
+
+		CompilerArgs.Clear();
+		CompilerArgs.Add(u"-E VS");
+		CompilerArgs.Add(u"-T vs_6_0");
+		CompilerArgs.Add(u"-Zpr");
+
+		hr = Compiler->Compile(&ShaderSource, (const wchar_t**)CompilerArgs.GetData(), (UINT32)CompilerArgs.GetLength(), NULL, __uuidof(IDxcOperationResult), (void**)&CompilationResult);
+
+		hr = CompilationResult->GetStatus(&CompilationStatus);
+
+		if (FAILED(CompilationStatus))
+		{
+			COMRCPtr<IDxcBlobEncoding> ErrorBuffer;
+			hr = CompilationResult->GetErrorBuffer(&ErrorBuffer);
+			if (ErrorBuffer.Pointer)
+			{
+				cout << (const char*)ErrorBuffer->GetBufferPointer() << endl;
+			}
+			ExitProcess(0);
+		}
+
+		COMRCPtr<IDxcBlob> VertexShader3Blob;
+
+		hr = CompilationResult->GetResult(&VertexShader3Blob);
+
+		Result = HeapFree(GetProcessHeap(), 0, ShaderData);
+
+		// ====================================================================================================================================================
+
+		ShaderFile = CreateFile((const wchar_t*)L"MaterialBase_PixelShader_GBufferOpaquePass_1.hlsl", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
 		Result = GetFileSizeEx(ShaderFile, &ShaderFileSize);
 		ShaderData = HeapAlloc(GetProcessHeap(), 0, ShaderFileSize.QuadPart);
 		Result = ReadFile(ShaderFile, ShaderData, (DWORD)ShaderFileSize.QuadPart, NULL, NULL);
@@ -331,9 +375,85 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action, bool Co
 			ExitProcess(0);
 		}
 
-		COMRCPtr<IDxcBlob> PixelShaderBlob;
+		COMRCPtr<IDxcBlob> PixelShader1Blob;
 
-		hr = CompilationResult->GetResult(&PixelShaderBlob);
+		hr = CompilationResult->GetResult(&PixelShader1Blob);
+
+		Result = HeapFree(GetProcessHeap(), 0, ShaderData);
+
+		// ====================================================================================================================================================
+
+		ShaderFile = CreateFile((const wchar_t*)L"MaterialBase_PixelShader_GBufferOpaquePass_2.hlsl", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+		Result = GetFileSizeEx(ShaderFile, &ShaderFileSize);
+		ShaderData = HeapAlloc(GetProcessHeap(), 0, ShaderFileSize.QuadPart);
+		Result = ReadFile(ShaderFile, ShaderData, (DWORD)ShaderFileSize.QuadPart, NULL, NULL);
+		Result = CloseHandle(ShaderFile);
+
+		ShaderSource.Encoding = 0;
+		ShaderSource.Ptr = ShaderData;
+		ShaderSource.Size = ShaderFileSize.QuadPart;
+
+		CompilerArgs.Clear();
+		CompilerArgs.Add(u"-E PS");
+		CompilerArgs.Add(u"-T ps_6_0");
+		CompilerArgs.Add(u"-Zpr");
+
+		hr = Compiler->Compile(&ShaderSource, (const wchar_t**)CompilerArgs.GetData(), (UINT32)CompilerArgs.GetLength(), NULL, __uuidof(IDxcOperationResult), (void**)&CompilationResult);
+
+		hr = CompilationResult->GetStatus(&CompilationStatus);
+
+		if (FAILED(CompilationStatus))
+		{
+			COMRCPtr<IDxcBlobEncoding> ErrorBuffer;
+			hr = CompilationResult->GetErrorBuffer(&ErrorBuffer);
+			if (ErrorBuffer.Pointer)
+			{
+				cout << (const char*)ErrorBuffer->GetBufferPointer() << endl;
+			}
+			ExitProcess(0);
+		}
+
+		COMRCPtr<IDxcBlob> PixelShader2Blob;
+
+		hr = CompilationResult->GetResult(&PixelShader2Blob);
+
+		Result = HeapFree(GetProcessHeap(), 0, ShaderData);
+
+		// ====================================================================================================================================================
+
+		ShaderFile = CreateFile((const wchar_t*)L"MaterialBase_PixelShader_TransparentPass.hlsl", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+		Result = GetFileSizeEx(ShaderFile, &ShaderFileSize);
+		ShaderData = HeapAlloc(GetProcessHeap(), 0, ShaderFileSize.QuadPart);
+		Result = ReadFile(ShaderFile, ShaderData, (DWORD)ShaderFileSize.QuadPart, NULL, NULL);
+		Result = CloseHandle(ShaderFile);
+
+		ShaderSource.Encoding = 0;
+		ShaderSource.Ptr = ShaderData;
+		ShaderSource.Size = ShaderFileSize.QuadPart;
+
+		CompilerArgs.Clear();
+		CompilerArgs.Add(u"-E PS");
+		CompilerArgs.Add(u"-T ps_6_0");
+		CompilerArgs.Add(u"-Zpr");
+
+		hr = Compiler->Compile(&ShaderSource, (const wchar_t**)CompilerArgs.GetData(), (UINT32)CompilerArgs.GetLength(), NULL, __uuidof(IDxcOperationResult), (void**)&CompilationResult);
+
+		hr = CompilationResult->GetStatus(&CompilationStatus);
+
+		if (FAILED(CompilationStatus))
+		{
+			COMRCPtr<IDxcBlobEncoding> ErrorBuffer;
+			hr = CompilationResult->GetErrorBuffer(&ErrorBuffer);
+			if (ErrorBuffer.Pointer)
+			{
+				cout << (const char*)ErrorBuffer->GetBufferPointer() << endl;
+			}
+			ExitProcess(0);
+		}
+
+		COMRCPtr<IDxcBlob> PixelShader3Blob;
+
+		hr = CompilationResult->GetResult(&PixelShader3Blob);
 
 		Result = HeapFree(GetProcessHeap(), 0, ShaderData);
 
@@ -358,11 +478,60 @@ extern "C" __declspec(dllexport) void CompileShaders(const char* Action, bool Co
 			wsprintf(OutputFileName, L"%s/Test.M_Standart_%d.GBufferOpaquePass_PixelShader.dxil", OutputDirSM60, i);
 
 			ShaderFile = CreateFile(OutputFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
-			ShaderFileSize.QuadPart = PixelShaderBlob->GetBufferSize();
-			Result = WriteFile(ShaderFile, PixelShaderBlob->GetBufferPointer(), ShaderFileSize.QuadPart, NULL, NULL);
+			ShaderFileSize.QuadPart = PixelShader1Blob->GetBufferSize();
+			Result = WriteFile(ShaderFile, PixelShader1Blob->GetBufferPointer(), ShaderFileSize.QuadPart, NULL, NULL);
 			CloseHandle(ShaderFile);
 
-			cout << (i + 1) << "/4000" << endl;
+			cout << (i + 1) << "/12000" << endl;
+		}
+
+		for (int i = 4000; i < 8000; i++)
+		{
+			wchar_t OutputFileName[8192];
+
+			wsprintf(OutputFileName, L"%s/Test.M_Standart_%d.GBufferOpaquePass_VertexShader.dxil", OutputDirSM60, i);
+
+			ShaderFile = CreateFile(OutputFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
+			ShaderFileSize.QuadPart = VertexShader1Blob->GetBufferSize();
+			Result = WriteFile(ShaderFile, VertexShader1Blob->GetBufferPointer(), ShaderFileSize.QuadPart, NULL, NULL);
+			CloseHandle(ShaderFile);
+
+			wsprintf(OutputFileName, L"%s/Test.M_Standart_%d.ShadowMapPass_VertexShader.dxil", OutputDirSM60, i);
+
+			ShaderFile = CreateFile(OutputFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
+			ShaderFileSize.QuadPart = VertexShader2Blob->GetBufferSize();
+			Result = WriteFile(ShaderFile, VertexShader2Blob->GetBufferPointer(), ShaderFileSize.QuadPart, NULL, NULL);
+			CloseHandle(ShaderFile);
+
+			wsprintf(OutputFileName, L"%s/Test.M_Standart_%d.GBufferOpaquePass_PixelShader.dxil", OutputDirSM60, i);
+
+			ShaderFile = CreateFile(OutputFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
+			ShaderFileSize.QuadPart = PixelShader2Blob->GetBufferSize();
+			Result = WriteFile(ShaderFile, PixelShader2Blob->GetBufferPointer(), ShaderFileSize.QuadPart, NULL, NULL);
+			CloseHandle(ShaderFile);
+
+			cout << (i + 1) << "/12000" << endl;
+		}
+
+		for (int i = 8000; i < 12000; i++)
+		{
+			wchar_t OutputFileName[8192];
+
+			wsprintf(OutputFileName, L"%s/Test.M_Standart_%d.TransparentPass_VertexShader.dxil", OutputDirSM60, i);
+
+			ShaderFile = CreateFile(OutputFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
+			ShaderFileSize.QuadPart = VertexShader3Blob->GetBufferSize();
+			Result = WriteFile(ShaderFile, VertexShader3Blob->GetBufferPointer(), ShaderFileSize.QuadPart, NULL, NULL);
+			CloseHandle(ShaderFile);
+
+			wsprintf(OutputFileName, L"%s/Test.M_Standart_%d.TransparentPass_PixelShader.dxil", OutputDirSM60, i);
+
+			ShaderFile = CreateFile(OutputFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
+			ShaderFileSize.QuadPart = PixelShader3Blob->GetBufferSize();
+			Result = WriteFile(ShaderFile, PixelShader3Blob->GetBufferPointer(), ShaderFileSize.QuadPart, NULL, NULL);
+			CloseHandle(ShaderFile);
+
+			cout << (i + 1) << "/12000" << endl;
 		}
 	}
 	else if (strcmp(Action, "Clean") == 0)
