@@ -79,6 +79,10 @@ void SWFParser::ProcessTag(SWFFile& File, uint32_t TagCode, uint32_t TagLength)
 			cout << "PlaceObject2 tag." << endl;
 			ProcessPlaceObject2Tag(File);
 			break;
+		case TAG_REMOVE_OBJECT_2:
+			cout << "RemoveObject2 tag." << endl;
+			ProcessRemoveObject2Tag(File);
+			break;
 		case TAG_DEFINE_SHAPE_3:
 			cout << "DefineShape3 tag." << endl;
 			ProcessDefineShape3Tag(File);
@@ -365,6 +369,11 @@ void SWFParser::ProcessPlaceObject2Tag(SWFFile& File)
 	{
 		File.ReadString();
 	}
+}
+
+void SWFParser::ProcessRemoveObject2Tag(SWFFile& File)
+{
+	uint16_t Depth = File.Read<uint16_t>();
 }
 
 void SWFParser::ProcessDefineShape3Tag(SWFFile& File)
