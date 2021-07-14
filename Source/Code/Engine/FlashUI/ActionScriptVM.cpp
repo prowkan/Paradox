@@ -12,19 +12,6 @@ SIZE_T ActionScriptVM::CurrentBit;
 
 uint32_t ActionScriptVM::ReadEncodedU30()
 {
-	/*uint32_t Value = 0;
-
-	for (int i = 0; i < 5; i++)
-	{
-		uint8_t Byte = Read<uint8_t>();
-
-		Value |= ((Byte & (0b01111111)) << (i * 7));
-
-		if (((Byte & 0b10000000) >> 7) == 0) break;
-	}
-
-	return Value;*/
-
 	return ReadEncodedU32() & 0b00111111111111111111111111111111;
 }
 
