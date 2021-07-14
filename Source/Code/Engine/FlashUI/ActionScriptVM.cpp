@@ -57,8 +57,6 @@ void ActionScriptVM::ParseASByteCode(BYTE* ByteCodeData, SIZE_T ByteCodeLength)
 	{
 		uint32_t StringLength = ReadEncodedU30();
 
-		//char* String = (char*)(ByteCodeData + CurrentByte);
-
 		char* String = new char[StringLength + 1];
 		memcpy(String, ByteCodeData + CurrentByte, StringLength);
 		String[StringLength] = 0;
@@ -99,7 +97,6 @@ void ActionScriptVM::ParseASByteCode(BYTE* ByteCodeData, SIZE_T ByteCodeLength)
 		for (uint32_t j = 0; j < Count; j++)
 		{
 			uint32_t ns = ReadEncodedU30();
-			//cout << ns << endl;
 			cout << StringsArray[Namespaces[ns - 1].Name - 1] << endl;
 		}
 
@@ -234,6 +231,7 @@ void ActionScriptVM::ParseASByteCode(BYTE* ByteCodeData, SIZE_T ByteCodeLength)
 			}
 		}
 	}
+
 	for (uint32_t i = 0; i < ClassCount; i++)
 	{
 		uint32_t ClassInitializer = ReadEncodedU30();
@@ -268,7 +266,9 @@ void ActionScriptVM::ParseASByteCode(BYTE* ByteCodeData, SIZE_T ByteCodeLength)
 			}
 		}
 	}
+
 	uint32_t ScriptCount = ReadEncodedU30();
+
 	for (uint32_t i = 0; i < ScriptCount; i++)
 	{
 		uint32_t ScriptInitializer = ReadEncodedU30();
@@ -480,7 +480,7 @@ void ActionScriptVM::ParseASByteCode(BYTE* ByteCodeData, SIZE_T ByteCodeLength)
 					}
 				}
 			}
-			if (OpCode == 0x61 || OpCode == 0x66 || OpCode == 0x68 || OpCode == 0x5D)
+			if (OpCode == 0x61 || OpCode == 0x66 || OpCode == 0x68 || OpCode == 0x5D || OpCode == 0x60)
 			{
 				uint8_t Operand = Code[CodePointer];
 				CodePointer++;
@@ -534,7 +534,7 @@ void ActionScriptVM::ParseASByteCode(BYTE* ByteCodeData, SIZE_T ByteCodeLength)
 
 				cout << " " << +Operand;
 			}
-			if (OpCode == 0x60 || OpCode == 0x49 || OpCode == 0x65 || OpCode == 0x58 || OpCode == 0x61)
+			if (OpCode == 0x49 || OpCode == 0x65 || OpCode == 0x58 || OpCode == 0x61)
 			{
 				uint8_t Operand = Code[CodePointer];
 				CodePointer++;
