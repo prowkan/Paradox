@@ -336,6 +336,15 @@ void ActionScriptVM::ParseASByteCode(BYTE* ByteCodeData, SIZE_T ByteCodeLength)
 				case 0xD0:
 					cout << "\tgetlocal_0";
 					break;
+				case 0xD1:
+					cout << "\tgetlocal_1";
+					break;
+				case 0xD2:
+					cout << "\tgetlocal_2";
+					break;
+				case 0xD3:
+					cout << "\tgetlocal_3";
+					break;
 				case 0x30:
 					cout << "\tpushscope";
 					break;
