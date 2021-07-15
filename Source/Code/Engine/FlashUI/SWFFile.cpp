@@ -208,6 +208,9 @@ SWFMatrix SWFFile::ReadMatrix()
 	if (HasScale)
 	{
 		uint8_t ScaleBits = (uint8_t)ReadUnsignedBits(5);
+
+		uint64_t ScaleX = ReadUnsignedBits(ScaleBits);
+		uint64_t ScaleY = ReadUnsignedBits(ScaleBits);
 	}
 
 	uint8_t HasRotate = (uint8_t)ReadUnsignedBits(1);
@@ -215,6 +218,9 @@ SWFMatrix SWFFile::ReadMatrix()
 	if (HasRotate)
 	{
 		uint8_t RotateBits = (uint8_t)ReadUnsignedBits(5);
+
+		uint64_t RotateSkew0 = ReadUnsignedBits(RotateBits);
+		uint64_t RotateSkew1 = ReadUnsignedBits(RotateBits);
 	}
 
 	uint8_t TranslateBits = (uint8_t)ReadUnsignedBits(5);
