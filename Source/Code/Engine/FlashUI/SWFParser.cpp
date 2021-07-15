@@ -164,6 +164,12 @@ void SWFParser::ProcessDefineShapeTag(SWFFile& File)
 		{
 			SWFRGB Color = File.ReadRGB();
 		}
+
+		if (FillStyleType == 0x40 || FillStyleType == 0x41 || FillStyleType == 0x42 || FillStyleType == 0x43)
+		{
+			uint16_t BitmapId = File.Read<uint16_t>();
+			SWFMatrix BitmapMatrix = File.ReadMatrix();
+		}
 	}
 
 	uint8_t LineStyleCount = File.Read<uint8_t>();
