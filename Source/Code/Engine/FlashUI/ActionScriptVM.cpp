@@ -187,6 +187,9 @@ void ActionScriptVM::ParseASByteCode(BYTE* ByteCodeData, SIZE_T ByteCodeLength)
 	{
 		uint32_t Name = ReadEncodedU30();
 		uint32_t SuperName = ReadEncodedU30();
+		cout << "Class instance: " << endl;
+		cout << StringsArray[Namespaces[MultiNames[Name - 1].u1 - 1].Name - 1] << "." << StringsArray[MultiNames[Name - 1].u2 - 1] << endl;
+		cout << StringsArray[Namespaces[MultiNames[SuperName - 1].u1 - 1].Name - 1] << "." << StringsArray[MultiNames[SuperName - 1].u2 - 1] << endl;
 		uint8_t Flags = Read<uint8_t>();
 		uint32_t ProtectedNameSpace = ReadEncodedU30();
 		uint32_t InterfacesCount = ReadEncodedU30();
@@ -196,11 +199,14 @@ void ActionScriptVM::ParseASByteCode(BYTE* ByteCodeData, SIZE_T ByteCodeLength)
 		}
 		uint32_t InstanceInitializer = ReadEncodedU30();
 		uint32_t TraitCount = ReadEncodedU30();
+		cout << "Traits count: " << TraitCount << endl;
 		for (uint32_t i = 0; i < TraitCount; i++)
 		{
 			uint32_t TraitName = ReadEncodedU30();
+			cout << "Trait name: " << StringsArray[Namespaces[MultiNames[TraitName - 1].u1 - 1].Name - 1] << "." << StringsArray[MultiNames[TraitName - 1].u2 - 1] << endl;
 			uint8_t TraitKind = Read<uint8_t>();
 			uint8_t TraitType = TraitKind & 0b1111;
+			cout << "Trait type: " << +TraitType << endl;
 			switch (TraitType)
 			{
 				case 0:
@@ -230,17 +236,22 @@ void ActionScriptVM::ParseASByteCode(BYTE* ByteCodeData, SIZE_T ByteCodeLength)
 
 			}
 		}
+		cout << "================================================" << endl;
 	}
 
 	for (uint32_t i = 0; i < ClassCount; i++)
 	{
+		cout << "Class: " << endl;
 		uint32_t ClassInitializer = ReadEncodedU30();
 		uint32_t TraitCount = ReadEncodedU30();
+		cout << "Traits count: " << TraitCount << endl;
 		for (uint32_t i = 0; i < TraitCount; i++)
 		{
 			uint32_t TraitName = ReadEncodedU30();
+			cout << "Trait name: " << StringsArray[Namespaces[MultiNames[TraitName - 1].u1 - 1].Name - 1] << "." << StringsArray[MultiNames[TraitName - 1].u2 - 1] << endl;
 			uint8_t TraitKind = Read<uint8_t>();
 			uint8_t TraitType = TraitKind & 0b1111;
+			cout << "Trait type: " << +TraitType << endl;
 			switch (TraitType)
 			{
 			case 0:
@@ -265,19 +276,24 @@ void ActionScriptVM::ParseASByteCode(BYTE* ByteCodeData, SIZE_T ByteCodeLength)
 
 			}
 		}
+		cout << "================================================" << endl;
 	}
 
 	uint32_t ScriptCount = ReadEncodedU30();
 
 	for (uint32_t i = 0; i < ScriptCount; i++)
 	{
+		cout << "Script: " << endl;
 		uint32_t ScriptInitializer = ReadEncodedU30();
 		uint32_t TraitCount = ReadEncodedU30();
+		cout << "Traits count: " << TraitCount << endl;
 		for (uint32_t i = 0; i < TraitCount; i++)
 		{
 			uint32_t TraitName = ReadEncodedU30();
+			cout << "Trait name: " << StringsArray[Namespaces[MultiNames[TraitName - 1].u1 - 1].Name - 1] << "." << StringsArray[MultiNames[TraitName - 1].u2 - 1] << endl;
 			uint8_t TraitKind = Read<uint8_t>();
 			uint8_t TraitType = TraitKind & 0b1111;
+			cout << "Trait type: " << +TraitType << endl;
 			switch (TraitType)
 			{
 			case 0:
@@ -306,6 +322,7 @@ void ActionScriptVM::ParseASByteCode(BYTE* ByteCodeData, SIZE_T ByteCodeLength)
 
 			}
 		}
+		cout << "================================================" << endl;
 	}
 	uint32_t MethodBodyCount = ReadEncodedU30();
 	for (uint32_t i = 0; i < MethodBodyCount; i++)
@@ -572,36 +589,37 @@ void ActionScriptVM::ParseASByteCode(BYTE* ByteCodeData, SIZE_T ByteCodeLength)
 			cout << endl;
 		}
 		
-		cout << "End method " << Method << endl;
-
 		CurrentByte += CodeLength;
 		uint32_t ExceptionCount = ReadEncodedU30();
 		uint32_t TraitCount = ReadEncodedU30();
+		cout << "Traits count: " << TraitCount << endl;
 		for (uint32_t j = 0; j < TraitCount; j++)
 		{
 			uint32_t TraitName = ReadEncodedU30();
+			cout << "Trait name: " << StringsArray[Namespaces[MultiNames[TraitName - 1].u1 - 1].Name - 1] << "." << StringsArray[MultiNames[TraitName - 1].u2 - 1] << endl;
 			uint8_t TraitKind = Read<uint8_t>();
 			uint8_t TraitType = TraitKind & 0b1111;
+			cout << "Trait type: " << +TraitType << endl;
 			switch (TraitType)
 			{
-			case 0:
-			case 6:
+				case 0:
+				case 6:
 
-				break;
-			case 4:
-				ReadEncodedU30();
-				ReadEncodedU30();
-				break;
-			case 5:
-				ReadEncodedU30();
-				ReadEncodedU30();
-				break;
-			case 1:
-			case 2:
-			case 3:
-				ReadEncodedU30();
-				ReadEncodedU30();
-				break;
+					break;
+				case 4:
+					ReadEncodedU30();
+					ReadEncodedU30();
+					break;
+				case 5:
+					ReadEncodedU30();
+					ReadEncodedU30();
+					break;
+				case 1:
+				case 2:
+				case 3:
+					ReadEncodedU30();
+					ReadEncodedU30();
+					break;
 			}
 			if (((TraitKind & 0b00001111) >> 4) == 0) continue;
 			uint32_t MetaDataCount = ReadEncodedU30();
@@ -610,5 +628,6 @@ void ActionScriptVM::ParseASByteCode(BYTE* ByteCodeData, SIZE_T ByteCodeLength)
 
 			}
 		}
+		cout << "End method " << Method << endl;
 	}
 }
