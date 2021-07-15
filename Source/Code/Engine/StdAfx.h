@@ -15,6 +15,8 @@
 #include <Windows.h>
 #include <DbgHelp.h>
 
+#include <D:/zLib/zlib.h>
+
 #include <d3d12.h>
 #include <dxgi1_6.h>
 
@@ -31,8 +33,10 @@
 
 #ifdef _DEBUG
 #pragma comment(lib, "D:/Optick/lib/x64/debug/OptickCore.lib")
+#pragma comment(lib, "D:/zLib/contrib/vstudio/vc14/x64/ZlibStatDebug/zlibstat.lib")
 #else
 #pragma comment(lib, "D:/Optick/lib/x64/release/OptickCore.lib")
+#pragma comment(lib, "D:/zLib/contrib/vstudio/vc14/x64/ZlibStatRelease/zlibstat.lib")
 #endif
 
 using namespace std;

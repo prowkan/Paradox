@@ -497,7 +497,27 @@ void SWFParser::ProcessDefineBitsLoseLess2Tag(SWFFile& File)
 	uint16_t BitmapWidth = File.Read<uint16_t>();
 	uint16_t BitmapHeight = File.Read<uint16_t>();
 
-	File.SkipBytes(632);
+	BYTE *DecompressedImage = new BYTE[4 * 50 * 50];
+	ULONG DecompressedDataSize = 0;
+	ULONG CompressedDataSize = 632;
+
+	//int Result = uncompress(DecompressedImage, &DecompressedDataSize, File.GetData() + 56009, CompressedDataSize);
+
+	// Функция uncompress по непонятной причине не работает
+	// Код ниже взят отсюда: https://github.com/id-Software/DOOM-3-BFG/blob/master/neo/swf/SWF_Zlib.cpp
+
+	z_stream Stream;
+	ZeroMemory(&Stream, sizeof(z_stream));
+	Stream.zalloc = nullptr;
+	Stream.zfree = nullptr;
+	Stream.next_in = File.GetData() + 56009;
+	Stream.next_out = DecompressedImage;
+	Stream.avail_in = 632;
+	Stream.avail_out = 4 * 50 * 50;
+
+	int Result = inflateInit(&Stream);
+	Result = inflate(&Stream, Z_FINISH);
+	Result = inflateEnd(&Stream);
 }
 
 void SWFParser::ProcessDefineEditTextTag(SWFFile& File)
