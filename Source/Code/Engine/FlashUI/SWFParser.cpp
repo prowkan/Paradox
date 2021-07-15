@@ -87,6 +87,10 @@ void SWFParser::ProcessTag(SWFFile& File, uint32_t TagCode, uint32_t TagLength)
 			cout << "DefineShape3 tag." << endl;
 			ProcessDefineShape3Tag(File);
 			break;
+		case TAG_DEFINE_BITS_LOSELESS_2:
+			cout << "DefineBitsLoseLess2 tag." << endl;
+			ProcessDefineBitsLoseLess2Tag(File);
+			break;
 		case TAG_DEFINE_EDIT_TEXT:
 			cout << "DefineEditText tag." << endl;
 			ProcessDefineEditTextTag(File);
@@ -484,6 +488,16 @@ void SWFParser::ProcessDefineShape3Tag(SWFFile& File)
 			}
 		}
 	}
+}
+
+void SWFParser::ProcessDefineBitsLoseLess2Tag(SWFFile& File)
+{
+	uint16_t CharacterId = File.Read<uint16_t>();
+	uint8_t BitmapFormat = File.Read<uint8_t>();
+	uint16_t BitmapWidth = File.Read<uint16_t>();
+	uint16_t BitmapHeight = File.Read<uint16_t>();
+
+	File.SkipBytes(632);
 }
 
 void SWFParser::ProcessDefineEditTextTag(SWFFile& File)

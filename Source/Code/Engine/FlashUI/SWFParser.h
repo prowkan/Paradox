@@ -20,6 +20,7 @@ class SWFParser
 		static void ProcessPlaceObject2Tag(SWFFile& File);
 		static void ProcessRemoveObject2Tag(SWFFile& File);
 		static void ProcessDefineShape3Tag(SWFFile& File);
+		static void ProcessDefineBitsLoseLess2Tag(SWFFile& File);
 		static void ProcessDefineEditTextTag(SWFFile& File);
 		static void ProcessDefineSpriteTag(SWFFile& File);
 		static void ProcessFrameLabelTag(SWFFile& File);
@@ -46,6 +47,7 @@ class SWFParser
 
 		static const uint32_t TAG_DEFINE_SHAPE_3 = 32;
 
+		static const uint32_t TAG_DEFINE_BITS_LOSELESS_2 = 36;
 		static const uint32_t TAG_DEFINE_EDIT_TEXT = 37;
 
 		static const uint32_t TAG_DEFINE_SPRITE = 39;
