@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Containers/String.h>
+
 struct SWFRect
 {
 	int64_t XMin, XMax, YMin, YMax;
@@ -42,7 +44,7 @@ class SWFFile
 		SWFRGBA ReadRGBA();
 		SWFMatrix ReadMatrix();
 
-		void ReadString();
+		String ReadString();
 
 		void SkipBytes(const size_t BytesCount);
 		void AlignToByte();

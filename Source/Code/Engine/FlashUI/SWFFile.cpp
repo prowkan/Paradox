@@ -254,17 +254,17 @@ void SWFFile::AlignToByte()
 	}
 }
 
-void SWFFile::ReadString()
+String SWFFile::ReadString()
 {
-	char Ch;
-
-	while (true)
+	if ((CurrentBit % 8) > 0)
 	{
-		Ch = Read<char>();
-
-		if (Ch == 0)
-		{
-			break;
-		}
+		CurrentBit = 0;
+		CurrentByte++;
 	}
+
+	String string((char*)SWFFileData + CurrentByte);
+
+	CurrentByte += string.GetLength() + 1;
+
+	return string;
 }

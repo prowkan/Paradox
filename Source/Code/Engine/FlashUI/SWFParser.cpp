@@ -344,7 +344,7 @@ void SWFParser::ProcessDefineSpriteTag(SWFFile& File)
 
 void SWFParser::ProcessFrameLabelTag(SWFFile& File)
 {
-	File.ReadString();
+	String Name = File.ReadString();
 }
 
 void SWFParser::ProcessPlaceObject2Tag(SWFFile& File)
@@ -377,7 +377,7 @@ void SWFParser::ProcessPlaceObject2Tag(SWFFile& File)
 
 	if (HasName)
 	{
-		File.ReadString();
+		String Name = File.ReadString();
 	}
 }
 
@@ -552,7 +552,7 @@ void SWFParser::ProcessDefineEditTextTag(SWFFile& File)
 
 	if (HasFontClass)
 	{
-		File.ReadString();
+		String FontClass = File.ReadString();
 	}
 
 	if (HasFont)
@@ -579,11 +579,11 @@ void SWFParser::ProcessDefineEditTextTag(SWFFile& File)
 		int16_t Leading = File.Read<int16_t>();
 	}
 
-	File.ReadString();
+	String VariableName = File.ReadString();
 
 	if (HasText)
 	{
-		File.ReadString();
+		String InitialText = File.ReadString();
 	}
 }
 
@@ -830,7 +830,7 @@ void SWFParser::ProcessSymbolClassTag(SWFFile& File)
 	{
 		uint16_t Tag = File.Read<uint16_t>();
 
-		File.ReadString();
+		String Name = File.ReadString();
 	}
 }
 
@@ -848,7 +848,7 @@ void SWFParser::ProcessDefineSceneAndFrameLabelDataTag(SWFFile& File)
 	for (uint32_t i = 0; i < SceneCount; i++)
 	{
 		uint32_t Offset = File.ReadEncodedU32();
-		File.ReadString();
+		String Name = File.ReadString();
 	}
 
 	uint32_t FrameLabelsCount = File.ReadEncodedU32();
@@ -856,13 +856,13 @@ void SWFParser::ProcessDefineSceneAndFrameLabelDataTag(SWFFile& File)
 	for (uint32_t i = 0; i < FrameLabelsCount; i++)
 	{
 		uint32_t FrameLabelNum = File.ReadEncodedU32();
-		File.ReadString();
+		String FrameLabel = File.ReadString();
 	}
 }
 
 void SWFParser::ProcessDefineFontNameTag(SWFFile& File)
 {
 	uint16_t FontId = File.Read<uint16_t>();
-	File.ReadString();
-	File.ReadString();
+	String FontName = File.ReadString();
+	String FontCopyright = File.ReadString();
 }
