@@ -117,12 +117,6 @@
     <ClInclude Include="Containers\DynamicArray.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FlashUI\SWFParser.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="FlashUI\SWFFile.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Game\Entities\Render\Lights\PointLightEntity.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -183,7 +177,16 @@
     <ClInclude Include="Platform\PlatformThread.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FlashUI\ActionScriptVM.h">
+    <ClInclude Include="FlashUI\ActionScriptByteCode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FlashUI\SWFMovie.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FlashUI\SWFStream.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FlashUI\ABCStream.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -290,12 +293,6 @@
     <ClCompile Include="Containers\DynamicArray.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="FlashUI\SWFParser.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="FlashUI\SWFFile.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Game\Entities\Render\Lights\PointLightEntity.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -341,7 +338,16 @@
     <ClCompile Include="Platform\PCWindows\PCWindowsPlatformThread.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="FlashUI\ActionScriptVM.cpp">
+    <ClCompile Include="FlashUI\ActionScriptByteCode.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FlashUI\SWFMovie.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FlashUI\SWFStream.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FlashUI\ABCStream.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -3,9 +3,8 @@
 
 #include "Engine.h"
 
-#include <FlashUI/SWFFile.h>
-#include <FlashUI/SWFParser.h>
-#include <FlashUI/ActionScriptVM.h>
+#include <FlashUI/SWFMovie.h>
+#include <FlashUI/SWFStream.h>
 
 StaticReference<Engine> Engine::engine;
 
@@ -13,11 +12,8 @@ void Engine::InitEngine()
 {
 	SystemMemoryAllocator::InitAllocator();
 
-	SWFFile File;
-	File.Open(u"GameContent/UI/UI_MainMenu.swf");
-	SWFParser::ParseFile(File);
-	ActionScriptVM::ParseASByteCode(File.GetData() + 56893, 1572);
-	File.Close();
+	SWFStream Stream = SWFStream::CreateFromFile(u"GameContent/UI/UI_MainMenu.swf");
+	SWFMovie Movie(Stream);
 
 	memoryManager.CreateInstance();
 	configSystem.CreateInstance();

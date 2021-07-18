@@ -43,6 +43,20 @@ class StringTemplate
 			StringData[StringLength] = 0;
 		}
 
+		StringTemplate(const CharType* Arg, const size_t CharsCount)
+		{
+			StringLength = CharsCount;
+
+			StringData = (CharType*)Allocator::AllocateMemory(sizeof(CharType) * (StringLength + 1));
+
+			for (size_t i = 0; i < StringLength; i++)
+			{
+				StringData[i] = Arg[i];
+			}
+
+			StringData[StringLength] = 0;
+		}
+
 		StringTemplate(CharType ch)
 		{
 			StringLength = 1;
@@ -229,3 +243,9 @@ class StringTemplate
 
 using String = StringTemplate<char>;
 using UTF16String = StringTemplate<char16_t>;
+
+inline ostream& operator<<(ostream& stream, const String& string)
+{
+	stream << string.GetData();
+	return stream;
+}

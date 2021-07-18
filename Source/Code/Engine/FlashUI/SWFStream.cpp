@@ -1,33 +1,14 @@
 // This is an independent project of an individual developer. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 
-#include "SWFFile.h"
+#include "SWFStream.h"
 
-void SWFFile::Open(const char16_t* FileName)
-{
-	HANDLE SWFFileHandle = CreateFile((const wchar_t*)FileName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
-	LARGE_INTEGER SWFFileSize;
-	BOOL Result = GetFileSizeEx(SWFFileHandle, &SWFFileSize);
-	SWFFileData = (BYTE*)malloc(SWFFileSize.QuadPart);
-	this->SWFFileSize = SWFFileSize.QuadPart;
-	Result = ReadFile(SWFFileHandle, SWFFileData, (DWORD)SWFFileSize.QuadPart, NULL, NULL);
-	Result = CloseHandle(SWFFileHandle);
-
-	CurrentByte = 0;
-	CurrentBit = 0;
-}
-
-void SWFFile::Close()
-{
-	free(SWFFileData);
-}
-
-uint64_t SWFFile::ReadUnsignedBits(const uint8_t BitsCount)
+uint64_t SWFStream::ReadUnsignedBits(const uint8_t BitsCount)
 {
 #if 1
 	uint64_t Value = 0;
 
-	uint8_t Byte = *(uint8_t*)(SWFFileData + CurrentByte);
+	uint8_t Byte = *(uint8_t*)(SWFData + Position);
 
 	SIZE_T RemainingBitsInCurrentByte = 8 - CurrentBit;
 	SIZE_T AdditionalBytesCount = 0;
@@ -46,7 +27,7 @@ uint64_t SWFFile::ReadUnsignedBits(const uint8_t BitsCount)
 	if (CurrentBit == 8)
 	{
 		this->CurrentBit = 0;
-		this->CurrentByte++;
+		this->Position++;
 	}
 
 	SIZE_T RemainingBits = BitsCount - RemainingBitsInCurrentByte;
@@ -55,17 +36,17 @@ uint64_t SWFFile::ReadUnsignedBits(const uint8_t BitsCount)
 	{
 		if (i < AdditionalBytesCount - 1)
 		{
-			uint8_t Byte = *(uint8_t*)(SWFFileData + CurrentByte);
+			uint8_t Byte = *(uint8_t*)(SWFData + Position);
 
 			Value |= (Byte << (RemainingBits - 8));
 
-			CurrentByte++;
+			Position++;
 
 			RemainingBits -= 8;
 		}
 		else
 		{
-			uint8_t Byte = *(uint8_t*)(SWFFileData + CurrentByte);
+			uint8_t Byte = *(uint8_t*)(SWFData + Position);
 
 			uint8_t Mask = ((1 << RemainingBits) - 1) << (8 - RemainingBits);
 			Value |= ((Byte & Mask) >> (8 - RemainingBits));
@@ -75,7 +56,7 @@ uint64_t SWFFile::ReadUnsignedBits(const uint8_t BitsCount)
 			if (CurrentBit == 8)
 			{
 				this->CurrentBit = 0;
-				this->CurrentByte++;
+				this->Position++;
 			}
 		}
 	}
@@ -107,7 +88,7 @@ uint64_t SWFFile::ReadUnsignedBits(const uint8_t BitsCount)
 #endif
 }
 
-int64_t SWFFile::ReadSignedBits(const uint8_t BitsCount)
+int64_t SWFStream::ReadSignedBits(const uint8_t BitsCount)
 {
 #if 1
 	uint64_t Value = ReadUnsignedBits(BitsCount);
@@ -144,7 +125,15 @@ int64_t SWFFile::ReadSignedBits(const uint8_t BitsCount)
 #endif
 }
 
-uint32_t SWFFile::ReadEncodedU32()
+float SWFStream::ReadFixedBits(const uint8_t BitsCount)
+{
+	int64_t Value1 = ReadSignedBits(BitsCount - 16);
+	uint64_t Value2 = ReadUnsignedBits(16);
+
+	return (float)Value1 + (float)Value2 / 65536.0f;
+}
+
+uint32_t SWFStream::ReadEncodedU32()
 {
 	uint32_t Value = 0;
 
@@ -160,7 +149,23 @@ uint32_t SWFFile::ReadEncodedU32()
 	return Value;
 }
 
-SWFRect SWFFile::ReadRect()
+float SWFStream::ReadFixed()
+{
+	int16_t Value1 = Read<int16_t>();
+	int16_t Value2 = Read<int16_t>();
+
+	return (float)Value2 + (float)Value1 / 65536.0f;
+}
+
+float SWFStream::ReadFixed8()
+{
+	int8_t Value1 = Read<int8_t>();
+	int8_t Value2 = Read<int8_t>();
+
+	return (float)Value2 + (float)Value1 / 256.0f;
+}
+
+SWFRect SWFStream::ReadRect()
 {
 	AlignToByte();
 
@@ -176,7 +181,7 @@ SWFRect SWFFile::ReadRect()
 	return Rect;
 }
 
-SWFRGB SWFFile::ReadRGB()
+SWFRGB SWFStream::ReadRGB()
 {
 	SWFRGB RGB;
 
@@ -187,7 +192,7 @@ SWFRGB SWFFile::ReadRGB()
 	return RGB;
 }
 
-SWFRGBA SWFFile::ReadRGBA()
+SWFRGBA SWFStream::ReadRGBA()
 {
 	SWFRGBA RGBA;
 
@@ -199,8 +204,22 @@ SWFRGBA SWFFile::ReadRGBA()
 	return RGBA;
 }
 
-SWFMatrix SWFFile::ReadMatrix()
+SWFRGBA SWFStream::ReadARGB()
 {
+	SWFRGBA RGBA;
+
+	RGBA.A = Read<uint8_t>();
+	RGBA.R = Read<uint8_t>();
+	RGBA.G = Read<uint8_t>();
+	RGBA.B = Read<uint8_t>();
+
+	return RGBA;
+}
+
+SWFMatrix SWFStream::ReadMatrix()
+{
+	AlignToByte();
+
 	SWFMatrix Matrix;
 
 	uint8_t HasScale = (uint8_t)ReadUnsignedBits(1);
@@ -209,8 +228,13 @@ SWFMatrix SWFFile::ReadMatrix()
 	{
 		uint8_t ScaleBits = (uint8_t)ReadUnsignedBits(5);
 
-		uint64_t ScaleX = ReadUnsignedBits(ScaleBits);
-		uint64_t ScaleY = ReadUnsignedBits(ScaleBits);
+		Matrix.ScaleX = ReadFixedBits(ScaleBits);
+		Matrix.ScaleY = ReadFixedBits(ScaleBits);
+	}
+	else
+	{
+		Matrix.ScaleX = 1.0f;
+		Matrix.ScaleY = 1.0f;
 	}
 
 	uint8_t HasRotate = (uint8_t)ReadUnsignedBits(1);
@@ -219,14 +243,19 @@ SWFMatrix SWFFile::ReadMatrix()
 	{
 		uint8_t RotateBits = (uint8_t)ReadUnsignedBits(5);
 
-		uint64_t RotateSkew0 = ReadUnsignedBits(RotateBits);
-		uint64_t RotateSkew1 = ReadUnsignedBits(RotateBits);
+		Matrix.RotateSkew0 = ReadFixedBits(RotateBits);
+		Matrix.RotateSkew1 = ReadFixedBits(RotateBits);
+	}
+	else
+	{
+		Matrix.RotateSkew0 = 0.0f;
+		Matrix.RotateSkew1 = 0.0f;
 	}
 
 	uint8_t TranslateBits = (uint8_t)ReadUnsignedBits(5);
 
-	int32_t TranslateX = (int32_t)ReadSignedBits(TranslateBits);
-	int32_t TranslateY = (int32_t)ReadSignedBits(TranslateBits);
+	int32_t TranslateX = (int32_t)ReadSignedBits(TranslateBits) / TWIPS_IN_PIXEL;
+	int32_t TranslateY = (int32_t)ReadSignedBits(TranslateBits) / TWIPS_IN_PIXEL;
 
 	Matrix.TranslateX = TranslateX;
 	Matrix.TranslateY = TranslateY;
@@ -234,37 +263,29 @@ SWFMatrix SWFFile::ReadMatrix()
 	return Matrix;
 }
 
-void SWFFile::SkipBytes(const size_t BytesCount)
+void SWFStream::SkipBytes(const size_t BytesCount)
 {
-	if ((CurrentBit % 8) > 0)
-	{
-		CurrentBit = 0;
-		CurrentByte++;
-	}
+	AlignToByte();
 
-	CurrentByte += BytesCount;
+	Position += BytesCount;
 }
 
-void SWFFile::AlignToByte()
+void SWFStream::AlignToByte()
 {
 	if ((CurrentBit % 8) > 0)
 	{
 		CurrentBit = 0;
-		CurrentByte++;
+		Position++;
 	}
 }
 
-String SWFFile::ReadString()
+String SWFStream::ReadString()
 {
-	if ((CurrentBit % 8) > 0)
-	{
-		CurrentBit = 0;
-		CurrentByte++;
-	}
+	AlignToByte();
 
-	String string((char*)SWFFileData + CurrentByte);
+	String string((char*)SWFData + Position);
 
-	CurrentByte += string.GetLength() + 1;
+	Position += string.GetLength() + 1;
 
 	return string;
 }
